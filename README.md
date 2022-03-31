@@ -25,7 +25,7 @@ The plugin comes with a [set of default snippets](https://github.com/artisticat1
 Snippets are formatted as follows:
 
 ```typescript
-{trigger: string; replacement: string; options: string; description?: string}
+{trigger: string, replacement: string, options: string, description?: string}
 ```
 
 - `trigger` : The text that triggers this snippet.
@@ -51,7 +51,7 @@ Multiple options can be used at once.
 ##### Example
 The snippet
 ```typescript
-{trigger: "([A-Za-z])(\\d)"; replacement: "[[0]]_{[[1]]}"; options: "rA"}
+{trigger: "([A-Za-z])(\\d)", replacement: "[[0]]_{[[1]]}", options: "rA"}
 ```
 will expand `x2` to `x_{2}`.
 
