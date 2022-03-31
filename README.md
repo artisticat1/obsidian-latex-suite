@@ -25,12 +25,13 @@ The plugin comes with a [set of default snippets](https://github.com/artisticat1
 Snippets are formatted as follows:
 
 ```typescript
-{trigger: string, replacement: string, options: string, description?: string}
+{trigger: string, replacement: string, options: string, description?: string, priority?: number}
 ```
 
 - `trigger` : The text that triggers this snippet.
 - `replacement` : The text to replace the `trigger` with.
 - `options` : See below.
+- `priority` (optional): This snippet's priority. Snippets with higher priority are run first. Can be negative. Defaults to 0.
 - `description` (optional): A description for this snippet.
 
 

@@ -2,8 +2,8 @@ export interface Snippet {
     trigger: string,
     replacement: string,
     options: string,
-    description?: string,
-    priority?: number
+    priority?: number,
+    description?: string
 }
 
 export interface Environment {

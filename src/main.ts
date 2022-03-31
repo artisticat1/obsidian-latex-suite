@@ -114,6 +114,22 @@ export default class LatexSuitePlugin extends Plugin {
 
 	setSnippets(snippets:string) {
 		this.snippets = parse(snippets);
+
+		function compare( a:Snippet, b:Snippet ) {
+			const aPriority = a.priority === undefined ? 0 : a.priority;
+			const bPriority = b.priority === undefined ? 0 : b.priority;
+
+			if ( aPriority < bPriority ){
+				return 1;
+			}
+			if ( aPriority > bPriority ){
+				return -1;
+			}
+			return 0;
+		}
+
+		// Sort snippets in order of priority
+		this.snippets.sort(compare);
 	}
 
 
