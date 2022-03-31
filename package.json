@@ -1,0 +1,41 @@
+{
+	"name": "obsidian-latex-suite",
+	"version": "1.0.1",
+	"description": "Make typesetting LaTeX as fast as handwriting",
+	"main": "main.js",
+	"scripts": {
+		"dev": "node esbuild.config.mjs",
+		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
+		"version": "node version-bump.mjs && git add manifest.json versions.json"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "MIT",
+	"devDependencies": {
+		"@codemirror/basic-setup": "^0.19.1",
+		"@codemirror/commands": "^0.19.0",
+		"@codemirror/fold": "0.19.0",
+		"@codemirror/highlight": "^0.19.0",
+		"@codemirror/history": "^0.19.0",
+		"@codemirror/lang-css": "^0.19.3",
+		"@codemirror/lang-html": "^0.19.4",
+		"@codemirror/language": "^0.19.7",
+		"@codemirror/matchbrackets": "^0.19.0",
+		"@codemirror/panel": "^0.19.0",
+		"@codemirror/rangeset": "^0.19.0",
+		"@codemirror/search": "^0.19.0",
+		"@codemirror/state": "^0.19.6",
+		"@codemirror/stream-parser": "https://github.com/lishid/stream-parser",
+		"@codemirror/view": "^0.19.37",
+		"@types/node": "^16.11.6",
+		"@typescript-eslint/eslint-plugin": "^5.2.0",
+		"@typescript-eslint/parser": "^5.2.0",
+		"builtin-modules": "^3.2.0",
+		"esbuild": "0.13.12",
+		"eslint": "^8.12.0",
+		"json5": "^2.2.1",
+		"obsidian": "^0.13.30",
+		"tslib": "2.3.1",
+		"typescript": "4.4.4"
+	}
+}
