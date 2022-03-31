@@ -1,72 +1,132 @@
-## Obsidian Sample Plugin
+# Obsidian Latex Suite
+A plugin for Obsidian that aims to make typesetting LaTeX as fast as handwriting.
 
-This is a sample plugin for Obsidian (https://obsidian.md).
-
-This project uses Typescript to provide type checking and documentation.
-The repo depends on the latest plugin API (obsidian.d.ts) in Typescript Definition format, which contains TSDoc comments describing what it does.
-
-**Note:** The Obsidian API is still in early alpha and is subject to change at any time!
-
-This sample plugin demonstrates some of the basic functionality the plugin API can do.
-- Changes the default font color to red using `styles.css`.
-- Adds a ribbon icon, which shows a Notice when clicked.
-- Adds a command "Open Sample Modal" which opens a Modal.
-- Adds a plugin setting tab to the settings page.
-- Registers a global click event and output 'click' to the console.
-- Registers a global interval which logs 'setInterval' to the console.
-
-### First time developing plugins?
-
-Quick starting guide for new plugin devs:
-
-- Make a copy of this repo as a template with the "Use this template" button (login to GitHub if you don't see it).
-- Clone your repo to a local development folder. For convenience, you can place this folder in your `.obsidian/plugins/your-plugin-name` folder.
-- Install NodeJS, then run `npm i` in the command line under your repo folder.
-- Run `npm run dev` to compile your plugin from `main.ts` to `main.js`.
-- Make changes to `main.ts` (or create new `.ts` files). Those changes should be automatically compiled into `main.js`.
-- Reload Obsidian to load the new version of your plugin.
-- Enable plugin in settings window.
-- For updates to the Obsidian API run `npm update` in the command line under your repo folder.
-
-### Releasing new releases
-
-- Update your `manifest.json` with your new version number, such as `1.0.1`, and the minimum Obsidian version required for your latest release.
-- Update your `versions.json` file with `"new-plugin-version": "minimum-obsidian-version"` so older versions of Obsidian can download an older version of your plugin that's compatible.
-- Create new GitHub release using your new version number as the "Tag version". Use the exact version number, don't include a prefix `v`. See here for an example: https://github.com/obsidianmd/obsidian-sample-plugin/releases
-- Upload the files `manifest.json`, `main.js`, `styles.css` as binary attachments. Note: The manifest.json file must be in two places, first the root path of your repository and also in the release.
-- Publish the release.
-
-> You can simplify the version bump process by running `npm version patch`, `npm version minor` or `npm version major` after updating `minAppVersion` manually in `manifest.json`.
-> The command will bump version in `manifest.json` and `package.json`, and add the entry for the new version to `versions.json`
-
-### Adding your plugin to the community plugin list
-
-- Check https://github.com/obsidianmd/obsidian-releases/blob/master/plugin-review.md
-- Publish an initial version.
-- Make sure you have a `README.md` file in the root of your repo.
-- Make a pull request at https://github.com/obsidianmd/obsidian-releases to add your plugin.
-
-### How to use
-
-- Clone this repo.
-- `npm i` or `yarn` to install dependencies
-- `npm run dev` to start compilation in watch mode.
-
-### Manually installing the plugin
-
-- Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/your-plugin-id/`.
-
-### Improve code quality with eslint (optional)
-- [ESLint](https://eslint.org/) is a tool that analyzes your code to quickly find problems. You can run ESLint against your plugin to find common bugs and ways to improve your code. 
-- To use eslint with this project, make sure to install eslint from terminal:
-  - `npm install -g eslint`
-- To use eslint to analyze this project use this command:
-  - `eslint main.ts`
-  - eslint will then create a report with suggestions for code improvement by file and line number.
-- If your source code is in a folder, such as `src`, you can use eslint with this command to analyze all files in that folder:
-  - `eslint .\src\`
+Inspired by [Gilles Castel's setup](https://castel.dev/post/lecture-notes-1/) using UltiSnips.
 
 
-### API Documentation
+## Features
+- Snippets
+	- Tabstops
+	- Regex
+	- Options
+- Multiple cursor support
+- Auto-fraction
+- Matrix shortcuts
+- Auto-enlarge brackets
+- Tabout
+- Editor commands
 
-See https://github.com/obsidianmd/obsidian-api
+You can switch features on/off in settings.
+The plugin comes with a [set of default snippets](https://github.com/artisticat1/obsidian-latex-suite/blob/main/src/default_snippets.ts), loosely based on [Gilles Castel's](https://castel.dev/post/lecture-notes-1/#other-snippets), that can be customised or removed in settings.
+
+
+## Documentation
+### Snippets
+Snippets are formatted as follows:
+
+```typescript
+{trigger: string; replacement: string; options: string; description?: string}
+```
+
+- `trigger` : The text that triggers this snippet.
+- `replacement` : The text to replace the `trigger` with.
+- `options` : See below.
+- `description` (optional): A description for this snippet.
+
+
+#### Options
+- `m` : Math mode. Only run this snippet inside math
+- `t` : Text mode. Only run this snippet outside math
+- `A` : Auto. Expand this snippet as soon as the trigger is typed. If omitted, the `Tab` key must be pressed to expand the snippet
+- `r` : Regex. The `trigger` will be treated as a regular expression
+
+Multiple options can be used at once.
+
+
+#### Regex
+- Use the `r` option to create a regex snippet.
+- In the `trigger`, surround an expression with brackets `()` to create a capturing group.
+- Inside the `replacement` string, strings of the form `[[X]]` will be replaced by matches in increasing order of X, starting from 0.
+
+##### Example
+The snippet
+```typescript
+{trigger: "([A-Za-z])(\\d)"; replacement: "[[0]]_{[[1]]}"; options: "rA"}
+```
+will expand `x2` to `x_{2}`.
+
+
+#### Tabstops
+- Insert tabstops for the cursor to jump to using `$X`, where X is a number starting from 0.
+- Pressing `Tab` will move the cursor to the next tabstop.
+- A tabstop can be a selection. Use the format `${X:text}`, where `text` is the text that will be selected by the cursor on moving to this tabstop.
+- Tabstops with the same number, X, will all be selected at the same time.
+
+##### Examples
+```typescript
+{trigger: "//", replacement: "\\frac{$0}{$1}$2", options: "mA"}
+
+{trigger: "dint", replacement: "\\int_{${0:0}}^{${1:\\infty}} $2 d${3:x}", options: "mA"}
+
+{trigger: "outp", replacement: "\\ket{${0:\\psi}} \\bra{${0:\\psi}} $1", options: "mA"}
+```
+
+
+#### Variables
+The following variables are available for use in a `trigger` or `replacement`:
+
+- `${VISUAL}` : Can be inserted in a `replacement`. When the snippet is expanded, "${VISUAL}" is replaced with the current selection.
+	- Visual snippets will not expand unless text is selected.
+- `${GREEK}` : Can be inserted in a `trigger`. Shorthand for the following:
+
+```
+alpha|beta|gamma|Gamma|delta|Delta|epsilon|varepsilon|zeta|eta|theta|Theta|iota|kappa|lambda|Lambda|mu|nu|xi|Xi|pi|Pi|rho|sigma|Sigma|tau|upsilon|phi|Phi|chi|psi|Psi|omega|Omega
+```
+
+Recommended for use with the regex option "r".
+
+- `${SYMBOL}` : Can be inserted in a `trigger`. Shorthand for the following:
+
+```
+hbar|ell|nabla
+```
+
+Recommended for use with the regex option "r".
+
+
+### Auto-fraction
+Converts the typed text
+
+- `x/` → `\frac{x}{}`
+- `(a + b(c + d))/` → `\frac{a + b(c + d)}{}`
+
+and moves the cursor inside the brackets.
+Once done typing the denominator, press `Tab` to exit the fraction.
+
+
+### Matrix shortcuts
+While inside a matrix, array, align, or cases environment,
+
+- Pressing `Tab` will insert the "&" symbol
+- Pressing `Enter` will insert "\\\\" and move to a new line
+
+
+### Auto-enlarge brackets
+When a snippet containing "\\sum", "\\int" or "\\frac" is triggered, any enclosing brackets will be enlarged with "\\left" and "\\right".
+
+
+### Tabout
+- Pressing `Tab` while the cursor is at the end of an equation will move the cursor outside the $ symbols.
+- Otherwise, pressing `Tab` will advance the cursor to the next closing bracket: ), ], }, >, or |.
+
+
+### Editor commands
+- Box current equation – surround the equation the cursor is currently in with a box.
+
+More to be added later.
+
+
+## Acknowledgements
+- [@tth05](https://github.com/tth05)'s [Obsidian Completr](https://github.com/tth05/obsidian-completr) for the basis of the tabstop code
+- [Dynamic Highlights](https://github.com/nothingislost/obsidian-dynamic-highlights/blob/master/src/settings/ui.ts) for reference
+- [Quick Latex for Obsidian](https://github.com/joeyuping/quick_latex_obsidian) for inspiration
