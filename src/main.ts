@@ -8,7 +8,7 @@ import { Tree } from "@lezer/common";
 
 import { posFromIndex, getOpenBracket, getCloseBracket, findMatchingBracket, orientAnchorHead, editorToCodeMirrorState } from "./editor_helpers"
 import { DEFAULT_SETTINGS, LatexSuiteSettings, LatexSuiteSettingTab } from "./settings"
-import { Environment, Snippet } from "./snippets"
+import { Environment, Snippet, SNIPPET_VARIABLES } from "./snippets"
 import { markerStateField } from "./marker_state_field";
 import { SnippetManager } from "./snippet_manager";
 import { parse } from "json5";
@@ -307,12 +307,8 @@ export default class LatexSuitePlugin extends Plugin {
 
 
 	private readonly insertSnippetVariables = (trigger: string) => {
-		const variables = {
-			"${GREEK}": "alpha|beta|gamma|Gamma|delta|Delta|epsilon|varepsilon|zeta|eta|theta|Theta|iota|kappa|lambda|Lambda|mu|nu|xi|Xi|pi|Pi|rho|sigma|Sigma|tau|upsilon|phi|Phi|chi|psi|Psi|omega|Omega",
-			"${SYMBOL}": "hbar|ell|nabla"
-		};
 
-		for (const [variable, replacement] of Object.entries(variables)) {
+		for (const [variable, replacement] of Object.entries(SNIPPET_VARIABLES)) {
 			trigger = trigger.replace(variable, replacement);
 		}
 
