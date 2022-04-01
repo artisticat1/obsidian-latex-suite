@@ -6,5 +6,5 @@
 	"description": "Make typesetting LaTeX as fast as handwriting",
 	"author": "artisticat",
 	"authorUrl": "https://github.com/artisticat1",
-	"isDesktopOnly": false
+	"isDesktopOnly": true
 }
