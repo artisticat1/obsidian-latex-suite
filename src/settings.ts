@@ -129,7 +129,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
         customCSSWrapper.appendChild(this.snippetsEditor.dom);
 
 
-        const buttonsDiv = snippetsFooter.createEl("div");
+        const buttonsDiv = snippetsFooter.createDiv("snippets-editor-buttons");
         const reset = new ButtonComponent(buttonsDiv);
         reset.setIcon("switch")
         .setTooltip("Reset to default snippets")

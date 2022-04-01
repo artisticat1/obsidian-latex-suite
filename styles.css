@@ -92,6 +92,14 @@
 }
 
 
+
+.snippets-editor-buttons {
+    display: flex;
+    flex-direction: row;
+}
+
+
+
 .latex-suite-confirmation-modal .setting-item {
     border: none;
 }
