@@ -54,27 +54,7 @@ export default class LatexSuitePlugin extends Plugin {
         }));
 
 
-		this.addCommand({
-			id: "latex-suite-box-equation",
-			name: "Box current equation",
-			editorCheckCallback: (checking: boolean, editor: Editor, view: MarkdownView) => {
-
-				const cursor = editor.getCursor("to");
-				const pos = editor.posToOffset(cursor);
-				const withinMath = this.checkWithinMath(editorToCodeMirrorState(editor), pos-1, editor);
-
-
-				if (withinMath) {
-					if (!checking) {
-						this.boxCurrentEquation(editor, pos);
-					}
-
-					return true;
-				}
-
-				return false;
-			},
-		});
+		this.addEditorCommands();
 	}
 
 	onunload() {
@@ -141,6 +121,66 @@ export default class LatexSuitePlugin extends Plugin {
 
 		this.autofractionExcludedEnvs = envs;
 	}
+
+
+
+	private readonly addEditorCommands = () => {
+
+		this.addCommand({
+			id: "latex-suite-box-equation",
+			name: "Box current equation",
+			editorCheckCallback: (checking: boolean, editor: Editor, view: MarkdownView) => {
+
+				const cursor = editor.getCursor("to");
+				const pos = editor.posToOffset(cursor);
+				const withinMath = this.checkWithinMath(editorToCodeMirrorState(editor), pos-1, editor);
+
+
+				if (withinMath) {
+					if (!checking) {
+						this.boxCurrentEquation(editor, pos);
+					}
+
+					return true;
+				}
+
+				return false;
+			},
+		});
+
+
+		this.addCommand({
+			id: "latex-suite-select-equation",
+			name: "Select current equation",
+			editorCheckCallback: (checking: boolean, editor: Editor, view: MarkdownView) => {
+
+				const cursor = editor.getCursor("to");
+				const pos = editor.posToOffset(cursor);
+				const withinMath = this.checkWithinMath(editorToCodeMirrorState(editor), pos-1, editor);
+
+
+				if (withinMath) {
+					if (!checking) {
+						const result = this.getEquationBounds(editor, pos);
+						if (!result) return false;
+						let {start, end} = result;
+
+						// Don't include newline characters in the selection
+						if (editor.getValue().charAt(start+1) === "\n") start++;
+						if (editor.getValue().charAt(end-1) === "\n") end--;
+
+						editor.setSelection(editor.offsetToPos(start+1), editor.offsetToPos(end));
+					}
+
+					return true;
+				}
+
+				return false;
+			},
+		});
+	}
+
+
 
 
 	private readonly boxCurrentEquation = (editor: Editor, pos: number) => {
@@ -268,6 +308,10 @@ export default class LatexSuitePlugin extends Plugin {
 			triggerPos = selection.anchor.ch;
 			replacement = snippet.replacement.replace("${VISUAL}", sel);
 
+		}
+		else if (sel) {
+			// Don't run non-visual snippets when there is a selection
+			return null;
 		}
 		else if (!(snippet.options.contains("r"))) {
 
