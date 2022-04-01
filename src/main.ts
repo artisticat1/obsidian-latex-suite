@@ -12,7 +12,6 @@ import { Environment, Snippet, SNIPPET_VARIABLES } from "./snippets"
 import { markerStateField } from "./marker_state_field";
 import { SnippetManager } from "./snippet_manager";
 import { parse } from "json5";
-import { createInflateRaw } from "zlib";
 
 
 export default class LatexSuitePlugin extends Plugin {
@@ -193,10 +192,25 @@ export default class LatexSuitePlugin extends Plugin {
 		const startPos = editor.offsetToPos(start+1);
 		const endPos = editor.offsetToPos(end);
 
-		const equation = "\n\\boxed{" + editor.getRange(startPos, endPos) + "}\n";
+		let equation = "\\boxed{" + editor.getRange(startPos, endPos) + "}";
+
+
+		// Insert newlines if we're in a block equation
+		const text = editor.getValue();
+		const insideBlockEquation = text.slice(start-1, start+1) === "$$" && text.slice(end, end+2) === "$$";
+
+		if (insideBlockEquation) {
+			equation = "\n" + equation + "\n";
+		}
 
 		editor.replaceRange(equation, startPos, endPos);
-		editor.setCursor({...cursor, line: cursor.line + 1});
+
+		if (insideBlockEquation) {
+			editor.setCursor({...cursor, line: cursor.line + 1});
+		}
+		else {
+			editor.setCursor({...cursor, ch: cursor.ch + "\\boxed{".length});
+		}
 	}
 
 
