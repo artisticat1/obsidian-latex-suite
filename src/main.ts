@@ -12,6 +12,7 @@ import { Environment, Snippet, SNIPPET_VARIABLES } from "./snippets"
 import { markerStateField } from "./marker_state_field";
 import { SnippetManager } from "./snippet_manager";
 import { parse } from "json5";
+import { createInflateRaw } from "zlib";
 
 
 export default class LatexSuitePlugin extends Plugin {
@@ -561,7 +562,14 @@ export default class LatexSuitePlugin extends Plugin {
             if (curLine.slice(start) === "") return false;
 
 
-			const replacement = "\\frac{" + curLine.slice(start, head.ch) + "}{$0}$1";
+			// Remove brackets
+			let numerator = curLine.slice(start, head.ch);
+			if (curLine.charAt(start) === "(" && curLine.charAt(head.ch-1) === ")") {
+				numerator = numerator.slice(1, -1);
+			}
+
+
+			const replacement = "\\frac{" + numerator + "}{$0}$1";
 			this.expandSnippet(editor, {...head, ch: start}, head, replacement);
 
 			const tabstops = this.snippetManager.getTabstopsFromSnippet(editor, {...head, ch: start}, replacement);
