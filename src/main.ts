@@ -757,7 +757,18 @@ export default class LatexSuitePlugin extends Plugin {
 			return true;
 		}
 		else if (event.key === "Enter") {
-			editor.replaceSelection(" \\\\\n");
+			if (event.shiftKey) {
+				// Move cursor to end of next line
+
+				const cursor = editor.offsetToPos(pos);
+				const nextLineNo = cursor.line + 1;
+				const nextLine = editor.getLine(nextLineNo);
+
+				editor.setCursor({line: nextLineNo, ch: nextLine.length});
+			}
+			else {
+				editor.replaceSelection(" \\\\\n");
+			}
 
 			event.preventDefault();
 			return true;

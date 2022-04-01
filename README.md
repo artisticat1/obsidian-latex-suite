@@ -110,6 +110,7 @@ While inside a matrix, array, align, or cases environment,
 
 - Pressing `Tab` will insert the "&" symbol
 - Pressing `Enter` will insert "\\\\" and move to a new line
+- Pressing `Shift + Enter` will move to the end of the next line (can be used to exit the matrix)
 
 
 ### Auto-enlarge brackets
