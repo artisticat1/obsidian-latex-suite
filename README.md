@@ -3,6 +3,8 @@ A plugin for Obsidian that aims to make typesetting LaTeX as fast as handwriting
 
 Inspired by [Gilles Castel's setup](https://castel.dev/post/lecture-notes-1/) using UltiSnips.
 
+![demo](gifs/demo.gif)
+
 
 ## Features
 - Snippets
@@ -104,6 +106,14 @@ Converts the typed text
 and moves the cursor inside the brackets.
 Once done typing the denominator, press `Tab` to exit the fraction.
 
+![auto-fraction](gifs/auto-fraction.gif)
+
+
+### Auto-enlarge brackets
+When a snippet containing "\\sum", "\\int" or "\\frac" is triggered, any enclosing brackets will be enlarged with "\\left" and "\\right".
+
+![auto-enlarge brackets](gifs/auto-enlarge_brackets.gif)
+
 
 ### Matrix shortcuts
 While inside a matrix, array, align, or cases environment,
@@ -112,9 +122,7 @@ While inside a matrix, array, align, or cases environment,
 - Pressing `Enter` will insert "\\\\" and move to a new line
 - Pressing `Shift + Enter` will move to the end of the next line (can be used to exit the matrix)
 
-
-### Auto-enlarge brackets
-When a snippet containing "\\sum", "\\int" or "\\frac" is triggered, any enclosing brackets will be enlarged with "\\left" and "\\right".
+![matrix shortcuts](gifs/matrix_shortcuts.gif)
 
 
 ### Tabout
@@ -124,6 +132,7 @@ When a snippet containing "\\sum", "\\int" or "\\frac" is triggered, any enclosi
 
 ### Editor commands
 - Box current equation – surround the equation the cursor is currently in with a box.
+- Select current equation – select the equation the cursor is currently in
 
 More to be added later.
 
