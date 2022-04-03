@@ -28,17 +28,20 @@ export function reverse(s: string){
 
 export function findMatchingBracket(text: string, start: number, openBracket: string, closeBracket: string, searchBackwards: boolean):number {
     if (searchBackwards) {
-        const reversedIndex = findMatchingBracket(reverse(text), text.length - 1 - start, closeBracket, openBracket, false);
-        return text.length - 1 - reversedIndex
+        const reversedIndex = findMatchingBracket(reverse(text), text.length - (start + closeBracket.length), reverse(closeBracket), reverse(openBracket), false);
+
+        if (reversedIndex === -1) return -1;
+
+        return text.length - (reversedIndex + openBracket.length)
     }
 
     let brackets = 0;
 
     for (let i = start; i < text.length; i++) {
-        if (text.charAt(i) === openBracket) {
+        if (text.slice(i, i + openBracket.length) === openBracket) {
             brackets++;
         }
-        else if (text.charAt(i) === closeBracket) {
+        else if (text.slice(i, i + closeBracket.length) === closeBracket) {
             brackets--;
 
             if (brackets === 0) {

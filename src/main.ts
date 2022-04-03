@@ -301,7 +301,7 @@ export default class LatexSuitePlugin extends Plugin {
 		}
 
 
-		if (this.settings.matrixShortcutsEnabled) {
+		if (this.settings.matrixShortcutsEnabled && withinMath) {
 			success = this.runMatrixShortcuts(editor, event, pos);
 
 			if (success) {
@@ -726,32 +726,45 @@ export default class LatexSuitePlugin extends Plugin {
 		const text = editor.getValue();
 		const {openSymbol, closeSymbol} = env;
 
+		// Restrict our search to the equation we're currently in
+		const curText = text.slice(start, end);
 
-		let left = text.lastIndexOf(openSymbol, pos);
-		if (left === -1) return false;
-
-		// Get the inside edge of the openSymbol
-		left += openSymbol.length;
-		if (pos < left) return false;
+		const openBracket = openSymbol.slice(-1);
+		const closeBracket = getCloseBracket(openBracket);
 
 
-		let right;
-		if (openSymbol.slice(-1) === "{" && closeSymbol === "}") {
-			right = findMatchingBracket(text, left-1, "{", "}", false);
-			if (right < pos) return false;
+		// Take care when the open symbol ends with a bracket {, [, or (
+		// as then the closing symbol, }, ] or ), is not unique to this open symbol
+		let offset;
+		let openSearchSymbol;
+
+		if (["{", "[", "("].contains(openBracket) && closeSymbol === closeBracket) {
+			offset = openSymbol.length - 1;
+			openSearchSymbol = openBracket;
 		}
 		else {
-			right = text.indexOf(closeSymbol, pos);
+			offset = 0;
+			openSearchSymbol = openSymbol;
 		}
 
-		if (right === -1) return false;
 
+		let left = curText.lastIndexOf(openSymbol, pos - start - 1);
 
-		// Check that the symbols lie inside the equation
-		if (left < start || right > end) return false;
+		while (left != -1) {
+			const right = findMatchingBracket(curText, left + offset, openSearchSymbol, closeSymbol, false);
 
+			if (right === -1) return false;
 
-		return true;
+			// Check whether the cursor lies inside the environment symbols
+			if ((right >= pos - start) && (pos - start >= left + openSymbol.length)) {
+				return true;
+			}
+
+			// Find the next open symbol
+			left = curText.lastIndexOf(openSymbol, left - 1);
+		}
+
+		return false;
 	}
 
 
