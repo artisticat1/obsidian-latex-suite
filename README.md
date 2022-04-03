@@ -80,6 +80,11 @@ The following variables are available for use in a `trigger` or `replacement`:
 
 - `${VISUAL}` : Can be inserted in a `replacement`. When the snippet is expanded, "${VISUAL}" is replaced with the current selection.
 	- Visual snippets will not expand unless text is selected.
+
+##### Examples
+![visual snippets](gifs/visual_snippets.gif)
+
+
 - `${GREEK}` : Can be inserted in a `trigger`. Shorthand for the following:
 
 ```
@@ -132,7 +137,7 @@ While inside a matrix, array, align, or cases environment,
 
 ### Editor commands
 - Box current equation – surround the equation the cursor is currently in with a box.
-- Select current equation – select the equation the cursor is currently in
+- Select current equation – select the equation the cursor is currently in.
 
 More to be added later.
 
