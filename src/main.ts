@@ -92,9 +92,12 @@ export default class LatexSuitePlugin extends Plugin {
 	}
 
 
-	setSnippets(snippets:string) {
-		this.snippets = parse(snippets);
+	setSnippets(snippetsStr:string) {
+		const snippets = parse(snippetsStr);
 
+		if (!this.validateSnippets(snippets)) throw "Invalid snippet format.";
+
+		// Sort snippets in order of priority
 		function compare( a:Snippet, b:Snippet ) {
 			const aPriority = a.priority === undefined ? 0 : a.priority;
 			const bPriority = b.priority === undefined ? 0 : b.priority;
@@ -108,8 +111,24 @@ export default class LatexSuitePlugin extends Plugin {
 			return 0;
 		}
 
-		// Sort snippets in order of priority
-		this.snippets.sort(compare);
+		snippets.sort(compare);
+		this.snippets = snippets;
+	}
+
+
+	validateSnippets(snippets: Snippet[]):boolean {
+		let valid = true;
+
+		for (const snippet of snippets) {
+			// Check that the snippet trigger, replacement and options are defined
+
+			if (!(snippet.trigger && snippet.replacement && snippet.options != undefined)) {
+				valid = false;
+				break;
+			}
+		}
+
+		return valid;
 	}
 
 
