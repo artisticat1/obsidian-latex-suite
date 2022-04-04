@@ -97,21 +97,8 @@ export default class LatexSuitePlugin extends Plugin {
 
 		if (!this.validateSnippets(snippets)) throw "Invalid snippet format.";
 
-		// Sort snippets in order of priority
-		function compare( a:Snippet, b:Snippet ) {
-			const aPriority = a.priority === undefined ? 0 : a.priority;
-			const bPriority = b.priority === undefined ? 0 : b.priority;
+		this.sortSnippets(snippets);
 
-			if ( aPriority < bPriority ){
-				return 1;
-			}
-			if ( aPriority > bPriority ){
-				return -1;
-			}
-			return 0;
-		}
-
-		snippets.sort(compare);
 		this.snippets = snippets;
 	}
 
@@ -130,6 +117,27 @@ export default class LatexSuitePlugin extends Plugin {
 
 		return valid;
 	}
+
+
+	sortSnippets(snippets:Snippet[]) {
+		// Sort snippets in order of priority
+
+		function compare( a:Snippet, b:Snippet ) {
+			const aPriority = a.priority === undefined ? 0 : a.priority;
+			const bPriority = b.priority === undefined ? 0 : b.priority;
+
+			if ( aPriority < bPriority ){
+				return 1;
+			}
+			if ( aPriority > bPriority ){
+				return -1;
+			}
+			return 0;
+		}
+
+		snippets.sort(compare);
+	}
+
 
 
 	setAutofractionExcludedEnvs(envsStr: string) {
