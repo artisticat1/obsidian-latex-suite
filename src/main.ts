@@ -1,4 +1,4 @@
-import { Editor, EditorPosition, EditorSelection, editorViewField, MarkdownView, Plugin } from "obsidian";
+import { Editor, EditorPosition, EditorSelection, editorViewField, Plugin } from "obsidian";
 import { EditorView } from "@codemirror/view";
 import { Prec } from "@codemirror/state";
 
@@ -48,6 +48,10 @@ export default class LatexSuitePlugin extends Plugin {
             if (update.selectionSet) {
                 this.handleCursorActivity(posFromIndex(update.state.doc, update.state.selection.main.head))
             }
+
+			if (update.transactions.some(tr => tr.isUserEvent("undo"))) {
+				this.onUndo();
+			}
         }));
 
 
@@ -155,6 +159,12 @@ export default class LatexSuitePlugin extends Plugin {
 	}
 
 
+	private readonly onUndo = () => {
+		// Remove references to tabstops that were removed in the undo
+		this.snippetManager.clearEmptyTabstopReferences();
+	}
+
+
 
 	private readonly onKeydown = (event: KeyboardEvent, cm: EditorView) => {
 		const view = cm.state.field(editorViewField, false);
@@ -172,10 +182,13 @@ export default class LatexSuitePlugin extends Plugin {
 
 
 		if (this.settings.snippetsEnabled) {
-			success = this.runSnippets(editor, event, withinMath, cursors);
 
-			if (success) return;
+			// Allows Ctrl + z for undo, instead of triggering a snippet ending with z
+			if (!event.ctrlKey) {
+				success = this.runSnippets(editor, event, withinMath, cursors);
 
+				if (success) return;
+			}
 		}
 
 

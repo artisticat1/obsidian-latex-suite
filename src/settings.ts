@@ -56,7 +56,6 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 		containerEl.empty();
 
-		// containerEl.createEl('h4', {text: 'LaTeX Suite'});
 		containerEl.createEl("h4", {text: "Snippets"});
 
 
