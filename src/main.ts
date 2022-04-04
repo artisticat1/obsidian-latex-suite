@@ -1,13 +1,10 @@
 import { Editor, EditorPosition, EditorSelection, editorViewField, MarkdownView, Plugin } from "obsidian";
 import { EditorView } from "@codemirror/view";
-import { Prec, EditorState } from "@codemirror/state";
+import { Prec } from "@codemirror/state";
 
-import { syntaxTree } from "@codemirror/language";
-import { tokenClassNodeProp } from "@codemirror/stream-parser";
-import { Tree } from "@lezer/common";
-
-import { posFromIndex, getOpenBracket, getCloseBracket, findMatchingBracket, orientAnchorHead, editorToCodeMirrorState } from "./editor_helpers"
-import { DEFAULT_SETTINGS, LatexSuiteSettings, LatexSuiteSettingTab } from "./settings"
+import { isWithinMath, isInsideEnvironment, posFromIndex, getOpenBracket, getCloseBracket, findMatchingBracket, orientAnchorHead, getEquationBounds } from "./editor_helpers"
+import { editorCommands } from "./editor_commands"
+import { LatexSuiteSettings, LatexSuiteSettingTab, DEFAULT_SETTINGS } from "./settings"
 import { Environment, Snippet, SNIPPET_VARIABLES } from "./snippets"
 import { markerStateField } from "./marker_state_field";
 import { SnippetManager } from "./snippet_manager";
@@ -152,149 +149,40 @@ export default class LatexSuitePlugin extends Plugin {
 
 
 	private readonly addEditorCommands = () => {
-
-		this.addCommand({
-			id: "latex-suite-box-equation",
-			name: "Box current equation",
-			editorCheckCallback: (checking: boolean, editor: Editor, view: MarkdownView) => {
-
-				const cursor = editor.getCursor("to");
-				const pos = editor.posToOffset(cursor);
-				const withinMath = this.checkWithinMath(editorToCodeMirrorState(editor), pos-1, editor);
-
-
-				if (withinMath) {
-					if (!checking) {
-						this.boxCurrentEquation(editor, pos);
-					}
-
-					return true;
-				}
-
-				return false;
-			},
-		});
-
-
-		this.addCommand({
-			id: "latex-suite-select-equation",
-			name: "Select current equation",
-			editorCheckCallback: (checking: boolean, editor: Editor, view: MarkdownView) => {
-
-				const cursor = editor.getCursor("to");
-				const pos = editor.posToOffset(cursor);
-				const withinMath = this.checkWithinMath(editorToCodeMirrorState(editor), pos-1, editor);
-
-
-				if (withinMath) {
-					if (!checking) {
-						const result = this.getEquationBounds(editor, pos);
-						if (!result) return false;
-						let {start, end} = result;
-
-						// Don't include newline characters in the selection
-						if (editor.getValue().charAt(start+1) === "\n") start++;
-						if (editor.getValue().charAt(end-1) === "\n") end--;
-
-						editor.setSelection(editor.offsetToPos(start+1), editor.offsetToPos(end));
-					}
-
-					return true;
-				}
-
-				return false;
-			},
-		});
-	}
-
-
-
-
-	private readonly boxCurrentEquation = (editor: Editor, pos: number) => {
-		const result = this.getEquationBounds(editor, pos);
-		if (!result) return false;
-		const {start, end} = result;
-
-		const cursor = editor.offsetToPos(pos);
-		const startPos = editor.offsetToPos(start+1);
-		const endPos = editor.offsetToPos(end);
-
-		let equation = "\\boxed{" + editor.getRange(startPos, endPos) + "}";
-
-
-		// Insert newlines if we're in a block equation
-		const text = editor.getValue();
-		const insideBlockEquation = text.slice(start-1, start+1) === "$$" && text.slice(end, end+2) === "$$";
-
-		if (insideBlockEquation) {
-			equation = "\n" + equation + "\n";
+		for (const command of editorCommands) {
+			this.addCommand(command);
 		}
-
-		editor.replaceRange(equation, startPos, endPos);
-
-		if (insideBlockEquation) {
-			editor.setCursor({...cursor, line: cursor.line + 1});
-		}
-		else {
-			editor.setCursor({...cursor, ch: cursor.ch + "\\boxed{".length});
-		}
-	}
-
-
-
-	private readonly checkWithinMath = (state: EditorState, pos: number, editor: Editor):boolean => {
-
-		let tree: Tree = null;
-		if (!tree) tree = syntaxTree(state);
-
-		const nodeProps = tree.resolveInner(pos, 1).type.prop(tokenClassNodeProp);
-
-        let withinMath = (nodeProps && /math/.test(nodeProps));
-
-		// Check whether within "\text{}"
-        if (withinMath) {
-            withinMath = !(this.isInsideEnvironment(editor, pos+1, {openSymbol: "\\text{", closeSymbol: "}"}));
-        }
-
-		return withinMath;
 	}
 
 
 
 	private readonly onKeydown = (event: KeyboardEvent, cm: EditorView) => {
 		const view = cm.state.field(editorViewField, false);
-		if (!view)
-			return;
+		if (!view) return;
 
 		const editor = view.editor;
 		const cursors = editor.listSelections().map(orientAnchorHead).reverse(); // Last to first
 
 		const cursor = editor.getCursor("to");
 		const pos = editor.posToOffset(cursor);
-		const withinMath = this.checkWithinMath(cm.state, pos-1, editor);
+		const withinMath = isWithinMath(pos-1, editor);
 
 
 		let success = false;
 
 
-		// Snippets
 		if (this.settings.snippetsEnabled) {
-
 			success = this.runSnippets(editor, event, withinMath, cursors);
 
-			if (success) {
-				return;
-			}
+			if (success) return;
 
 		}
 
-		// Tabstops
+
 		if (event.key === "Tab") {
 			success = this.handleTabstops(editor, event, cursor);
 
-			if (success) {
-				return;
-			}
+			if (success) return;
 		}
 
 
@@ -302,9 +190,7 @@ export default class LatexSuitePlugin extends Plugin {
 			if (event.key === "/") {
 				success = this.runAutoFraction(editor, event, cursors);
 
-				if (success) {
-					return;
-				}
+				if (success) return;
 			}
 		}
 
@@ -312,9 +198,7 @@ export default class LatexSuitePlugin extends Plugin {
 		if (this.settings.matrixShortcutsEnabled && withinMath) {
 			success = this.runMatrixShortcuts(editor, event, pos);
 
-			if (success) {
-				return;
-			}
+			if (success) return;
 		}
 
 
@@ -322,9 +206,7 @@ export default class LatexSuitePlugin extends Plugin {
 			if (event.key === "Tab") {
 				success = this.tabout(editor, event, withinMath);
 
-				if (success) {
-					return;
-				}
+				if (success) return;
 			}
 		}
 	}
@@ -549,7 +431,7 @@ export default class LatexSuitePlugin extends Plugin {
 
 			// Don't run autofraction in excluded environments
 			for (const env of this.autofractionExcludedEnvs) {
-				if (this.isInsideEnvironment(editor, editor.posToOffset(head), env)) {
+				if (isInsideEnvironment(editor, editor.posToOffset(head), env)) {
 					return false;
 				}
 			}
@@ -627,7 +509,7 @@ export default class LatexSuitePlugin extends Plugin {
 		const cursor = editor.getCursor();
 		const pos = editor.posToOffset(cursor);
 
-		const result = this.getEquationBounds(editor, pos);
+		const result = getEquationBounds(editor, pos);
 		if (!result) return false;
 		const {start, end} = result;
 		const text = editor.getValue();
@@ -714,67 +596,6 @@ export default class LatexSuitePlugin extends Plugin {
 	}
 
 
-	private readonly getEquationBounds = (editor: Editor, pos: number):{start: number, end: number} => {
-		const text = editor.getValue();
-
-		const left = text.lastIndexOf("$", pos-1);
-		const right = text.indexOf("$", pos);
-
-		if (left === -1 || right === -1) return;
-
-
-		return {start: left, end: right};
-	}
-
-
-	private readonly isInsideEnvironment = (editor: Editor, pos: number, env: Environment):boolean => {
-		const result = this.getEquationBounds(editor, pos);
-		if (!result) return false;
-		const {start, end} = result;
-		const text = editor.getValue();
-		const {openSymbol, closeSymbol} = env;
-
-		// Restrict our search to the equation we're currently in
-		const curText = text.slice(start, end);
-
-		const openBracket = openSymbol.slice(-1);
-		const closeBracket = getCloseBracket(openBracket);
-
-
-		// Take care when the open symbol ends with a bracket {, [, or (
-		// as then the closing symbol, }, ] or ), is not unique to this open symbol
-		let offset;
-		let openSearchSymbol;
-
-		if (["{", "[", "("].contains(openBracket) && closeSymbol === closeBracket) {
-			offset = openSymbol.length - 1;
-			openSearchSymbol = openBracket;
-		}
-		else {
-			offset = 0;
-			openSearchSymbol = openSymbol;
-		}
-
-
-		let left = curText.lastIndexOf(openSymbol, pos - start - 1);
-
-		while (left != -1) {
-			const right = findMatchingBracket(curText, left + offset, openSearchSymbol, closeSymbol, false);
-
-			if (right === -1) return false;
-
-			// Check whether the cursor lies inside the environment symbols
-			if ((right >= pos - start) && (pos - start >= left + openSymbol.length)) {
-				return true;
-			}
-
-			// Find the next open symbol
-			left = curText.lastIndexOf(openSymbol, left - 1);
-		}
-
-		return false;
-	}
-
 
 	private readonly runMatrixShortcuts = (editor: Editor, event: KeyboardEvent, pos: number):boolean => {
 		// Check whether we are inside a matrix / align / case environment
@@ -783,7 +604,7 @@ export default class LatexSuitePlugin extends Plugin {
 		for (const envName of this.matrixShortcutsEnvNames) {
 			const env = {openSymbol: "\\begin{" + envName + "}", closeSymbol: "\\end{" + envName + "}"};
 
-			isInsideAnEnv = this.isInsideEnvironment(editor, pos, env);
+			isInsideAnEnv = isInsideEnvironment(editor, pos, env);
 			if (isInsideAnEnv) break;
 		}
 
