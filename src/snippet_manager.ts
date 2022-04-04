@@ -246,7 +246,8 @@ export class SnippetManager {
 
 
     consumeAndGotoNextTabstop(editor: Editor): boolean {
-        const oldCursor = editor.getCursor();
+        const oldCursorFrom = editor.getCursor("from");
+        const oldCursorTo = editor.getCursor("to");
 
 
         // Remove the tabstop that we're inside of
@@ -256,8 +257,10 @@ export class SnippetManager {
 
 
         // If there are none left, return
-        if (this.currentTabstopReferences.length === 0)
+        if (this.currentTabstopReferences.length === 0) {
+            editor.setCursor(oldCursorTo);
             return false;
+        }
 
 
         // Select the next tabstop
@@ -284,8 +287,10 @@ export class SnippetManager {
 
 
         // If we haven't moved, go again
-        const newCursor = editor.getCursor();
-        if (newCursor.ch === oldCursor.ch)
+        const newCursorFrom = editor.getCursor("from");
+        const newCursorTo = editor.getCursor("to");
+
+        if (newCursorFrom.ch === oldCursorFrom.ch && newCursorTo.ch === oldCursorTo.ch)
             return this.consumeAndGotoNextTabstop(editor);
 
 
