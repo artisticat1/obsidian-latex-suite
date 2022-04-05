@@ -13,9 +13,19 @@ export function isWithinMath(pos: number, editor: Editor):boolean {
     const state = editorToCodeMirrorState(editor);
     if (!tree) tree = syntaxTree(state);
 
-    const token = tree.resolveInner(pos, 1).type.name;
-
+    const token = tree.resolveInner(pos, 1).name;
     let withinMath = (token && token.contains("math"));
+
+    if (!withinMath) {
+        // Allows detection of math mode at beginning of a line
+
+        const tokenLeft = tree.resolveInner(pos - 1, 1).name;
+        const tokenRight = tree.resolveInner(pos + 1, 1).name;
+
+        if (tokenLeft.contains("math") && tokenRight.contains("math")) {
+            withinMath = true;
+        }
+    }
 
     // Check whether within "\text{}"
     if (withinMath) {
