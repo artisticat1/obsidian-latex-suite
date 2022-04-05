@@ -5,6 +5,13 @@ Inspired by [Gilles Castel's setup](https://castel.dev/post/lecture-notes-1/) us
 
 ![demo](gifs/demo.gif)
 
+The plugin's main feature is **snippets**, which help you write LaTeX quicker by expanding "trigger text" into real code. For example, type
+
+- "xdot" instead of "\dot{x}"
+- "a/b" instead of "\frac{a}{b}"
+- "par	x	y" instead of "\frac{\partial x}{\partial y}"
+
+See [here](https://castel.dev/post/lecture-notes-1/) for more information.
 
 ## Features
 - Snippets
@@ -19,7 +26,9 @@ Inspired by [Gilles Castel's setup](https://castel.dev/post/lecture-notes-1/) us
 - Editor commands
 
 You can switch features on/off in settings.
-The plugin comes with a [set of default snippets](https://github.com/artisticat1/obsidian-latex-suite/blob/main/src/default_snippets.ts), loosely based on [Gilles Castel's](https://castel.dev/post/lecture-notes-1/#other-snippets), that can be customised or removed in settings.
+
+
+The plugin comes with a [set of default snippets](https://github.com/artisticat1/obsidian-latex-suite/blob/main/src/default_snippets.ts), loosely based on [Gilles Castel's](https://castel.dev/post/lecture-notes-1/#other-snippets). You can, of course, customise or remove these and write your own instead!
 
 
 ## Documentation
@@ -50,6 +59,8 @@ Multiple options can be used at once.
 - Use the `r` option to create a regex snippet.
 - In the `trigger`, surround an expression with brackets `()` to create a capturing group.
 - Inside the `replacement` string, strings of the form `[[X]]` will be replaced by matches in increasing order of X, starting from 0.
+- Some characters, such as `\`, `+`, and `.`, are special characters in regex. If you want to use these literally, remember to escape them by inserting two backslashes (`\\`) before them!
+  - (One backslash to escape the special character, and another to escape that backlash)
 
 ##### Example
 The snippet
@@ -62,7 +73,7 @@ will expand `x2` to `x_{2}`.
 #### Tabstops
 - Insert tabstops for the cursor to jump to using `$X`, where X is a number starting from 0.
 - Pressing `Tab` will move the cursor to the next tabstop.
-- A tabstop can be a selection. Use the format `${X:text}`, where `text` is the text that will be selected by the cursor on moving to this tabstop.
+- Tabstops can be selections, containing multiple characters. Use the format `${X:text}`, where `text` is the text that will be selected by the cursor on moving to this tabstop.
 - Tabstops with the same number, X, will all be selected at the same time.
 
 ##### Examples
@@ -103,12 +114,15 @@ Recommended for use with the regex option "r".
 
 
 ### Auto-fraction
-Converts the typed text
+Lets you type "1/x" instead of "\frac{1}{x}".
+
+For example, it makes the following expansions:
 
 - `x/` → `\frac{x}{}`
 - `(a + b(c + d))/` → `\frac{a + b(c + d)}{}`
 
 and moves the cursor inside the brackets.
+
 Once done typing the denominator, press `Tab` to exit the fraction.
 
 ![auto-fraction](gifs/auto-fraction.gif)
