@@ -77,14 +77,22 @@ export class SnippetManager {
     }
 
 
-    insertTabstop(editor:Editor, start: EditorPosition, end: EditorPosition, replacement:string, reference: TabstopReference) {
+    getColorClass(colorIndex: number):string {
         const prefix = "latex-suite-suggestion-placeholder";
-        const colorIndex = reference.getColorIndex();
+        const markerClass = prefix + " " + prefix + colorIndex;
 
+        return markerClass;
+    }
+
+
+    insertTabstop(editor:Editor, start: EditorPosition, end: EditorPosition, replacement:string, reference: TabstopReference) {
+
+        const colorIndex = reference.getColorIndex();
 
         const mark = Decoration.mark({
             inclusive: true,
-            class: prefix + " " + prefix + colorIndex,
+            attributes: {},
+            class: this.getColorClass(colorIndex),
             reference: reference
         }).range(
             editor.posToOffset(start),
@@ -96,7 +104,6 @@ export class SnippetManager {
         editorView.dispatch({effects: addMark.of(mark)});
 
         editor.replaceRange(replacement, start, end);
-
     }
 
 
@@ -278,6 +285,23 @@ export class SnippetManager {
             }
             else {
                 this.selectTabstopReference(newTabstop);
+
+
+                // Otherwise, if the new tabstop was positioned at the end of its snippet
+                // i.e. it has 0 width and is aligned with the end of the next tabstop reference
+                // Make it the same color as the next tabstop reference
+
+                if (this.currentTabstopReferences.length > 1) {
+                    const nextTabstopRef = this.currentTabstopReferences[1];
+                    const lastMarker = nextTabstopRef.markers.at(-1);
+
+                    if (newMarker.to === lastMarker.to) {
+                        const colorIndex = nextTabstopRef.colorIndex;
+
+                        newTabstop.colorIndex = colorIndex;
+                        newMarker.value.spec.attributes.class = this.getColorClass(colorIndex);
+                    }
+                }
             }
         }
         else {
