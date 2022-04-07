@@ -162,7 +162,7 @@ export default class LatexSuitePlugin extends Plugin {
 
 	private readonly onUndo = () => {
 		// Remove references to tabstops that were removed in the undo
-		this.snippetManager.clearEmptyTabstopReferences();
+		this.snippetManager.tidyTabstopReferences();
 	}
 
 
