@@ -1,20 +1,57 @@
-import { Text } from "@codemirror/text";
-import { Editor, EditorPosition, EditorSelection } from "obsidian";
 import { Environment } from "./snippets";
-import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
-
+import { EditorSelection, SelectionRange } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
-import { Tree } from "@lezer/common";
 
 
-export function isWithinMath(pos: number, editor: Editor):boolean {
-    let tree: Tree = null;
-    const state = editorToCodeMirrorState(editor);
-    if (!tree) tree = syntaxTree(state);
+export function replaceRange(view: EditorView, start: number, end: number, replacement: string) {
+    view.dispatch({
+        changes: {from: start, to: end, insert: replacement}
+    });
+}
+
+
+export function setCursor(view: EditorView, pos: number) {
+    view.dispatch({
+        selection: {anchor: pos, head: pos}
+    });
+
+    resetCursorBlink();
+}
+
+
+export function setSelection(view: EditorView, start: number, end: number) {
+    view.dispatch({
+        selection: {anchor: start, head: end}
+    });
+
+    resetCursorBlink();
+}
+
+
+export function setSelections(view: EditorView, ranges: SelectionRange[]) {
+    view.dispatch({
+        selection: EditorSelection.create(ranges)
+    });
+
+    resetCursorBlink();
+}
+
+
+function resetCursorBlink() {
+    const cursorLayer = document.getElementsByClassName("cm-cursorLayer")[0] as HTMLElement;
+    const curAnim = cursorLayer.style.animationName;
+
+    cursorLayer.style.animationName = curAnim === "cm-blink" ? "cm-blink2" : "cm-blink";
+}
+
+
+export function isWithinMath(view: EditorView):boolean {
+    const pos = view.state.selection.main.to - 1;
+    const tree = syntaxTree(view.state);
 
     const token = tree.resolveInner(pos, 1).name;
-    let withinMath = (token && token.contains("math"));
+    let withinMath = token.contains("math");
 
     if (!withinMath) {
         // Allows detection of math mode at beginning of a line
@@ -29,7 +66,7 @@ export function isWithinMath(pos: number, editor: Editor):boolean {
 
     // Check whether within "\text{}"
     if (withinMath) {
-        withinMath = !(isInsideEnvironment(editor, pos+1, {openSymbol: "\\text{", closeSymbol: "}"}));
+        withinMath = !(isInsideEnvironment(view, pos+1, {openSymbol: "\\text{", closeSymbol: "}"}));
     }
 
     return withinMath;
@@ -37,11 +74,26 @@ export function isWithinMath(pos: number, editor: Editor):boolean {
 
 
 
-export function isInsideEnvironment(editor: Editor, pos: number, env: Environment):boolean {
-    const result = getEquationBounds(editor, pos);
+export function getEquationBounds(view: EditorView):{start: number, end: number} {
+    const text = view.state.doc.toString();
+    const pos = view.state.selection.main.from;
+
+    const left = text.lastIndexOf("$", pos-1);
+    const right = text.indexOf("$", pos);
+
+    if (left === -1 || right === -1) return;
+
+
+    return {start: left + 1, end: right};
+}
+
+
+
+export function isInsideEnvironment(view: EditorView, pos: number, env: Environment):boolean {
+    const result = getEquationBounds(view);
     if (!result) return false;
     const {start, end} = result;
-    const text = editor.getValue();
+    const text = view.state.doc.toString();
     const {openSymbol, closeSymbol} = env;
 
     // Restrict our search to the equation we're currently in
@@ -86,30 +138,13 @@ export function isInsideEnvironment(editor: Editor, pos: number, env: Environmen
 }
 
 
-export function posFromIndex(doc: Text, offset: number): EditorPosition {
-    const line = doc.lineAt(offset)
-    return {line: line.number - 1, ch: offset - line.from}
-}
-
-export function indexFromPos(doc: Text, pos: EditorPosition): number {
-    const ch = pos.ch;
-    const line = doc.line(pos.line + 1);
-    return Math.min(line.from + Math.max(0, ch), line.to)
-}
-
-export function editorToCodeMirrorState(editor: Editor): EditorState {
-    return (editor as any).cm.state;
-}
-
-export function editorToCodeMirrorView(editor: Editor): EditorView {
-    return (editor as any).cm;
-}
 
 export function reverse(s: string){
     return s.split("").reverse().join("");
 }
 
-export function findMatchingBracket(text: string, start: number, openBracket: string, closeBracket: string, searchBackwards: boolean):number {
+
+export function findMatchingBracket(text: string, start: number, openBracket: string, closeBracket: string, searchBackwards: boolean, end?: number):number {
     if (searchBackwards) {
         const reversedIndex = findMatchingBracket(reverse(text), text.length - (start + closeBracket.length), reverse(closeBracket), reverse(openBracket), false);
 
@@ -119,8 +154,9 @@ export function findMatchingBracket(text: string, start: number, openBracket: st
     }
 
     let brackets = 0;
+    const stop = end ? end : text.length;
 
-    for (let i = start; i < text.length; i++) {
+    for (let i = start; i < stop; i++) {
         if (text.slice(i, i + openBracket.length) === openBracket) {
             brackets++;
         }
@@ -150,30 +186,3 @@ export function getCloseBracket(openBracket: string) {
     return closeBrackets[openBracket];
 }
 
-
-export function orientAnchorHead(selection: EditorSelection):EditorSelection {
-    let {anchor, head} = selection;
-
-    // Account for a selection beginning from either end
-    if ((anchor.line === head.line && anchor.ch > head.ch) || (anchor.line > head.line)) {
-        // Swap anchor and head
-        const temp = anchor;
-        anchor = head;
-        head = temp;
-    }
-
-    return {anchor: anchor, head: head}
-}
-
-
-export function getEquationBounds(editor: Editor, pos: number):{start: number, end: number} {
-    const text = editor.getValue();
-
-    const left = text.lastIndexOf("$", pos-1);
-    const right = text.indexOf("$", pos);
-
-    if (left === -1 || right === -1) return;
-
-
-    return {start: left, end: right};
-}

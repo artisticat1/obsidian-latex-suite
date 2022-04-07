@@ -1,35 +1,25 @@
 import { Editor, MarkdownView } from "obsidian";
-import { isWithinMath, getEquationBounds } from "./editor_helpers";
+import { EditorView } from "@codemirror/view";
+import { isWithinMath, getEquationBounds, replaceRange, setCursor, setSelection } from "./editor_helpers";
 
 
-function boxCurrentEquation(editor: Editor, pos: number) {
-    const result = getEquationBounds(editor, pos);
+function boxCurrentEquation(view: EditorView) {
+    const result = getEquationBounds(view);
     if (!result) return false;
     const {start, end} = result;
 
-    const cursor = editor.offsetToPos(pos);
-    const startPos = editor.offsetToPos(start+1);
-    const endPos = editor.offsetToPos(end);
-
-    let equation = "\\boxed{" + editor.getRange(startPos, endPos) + "}";
+    let equation = "\\boxed{" + view.state.sliceDoc(start, end) + "}";
 
 
-    // Insert newlines if we're in a block equation
-    const text = editor.getValue();
-    const insideBlockEquation = text.slice(start-1, start+1) === "$$" && text.slice(end, end+2) === "$$";
+    // // Insert newlines if we're in a block equation
+    const insideBlockEqn = view.state.sliceDoc(start-2, start) === "$$" && view.state.sliceDoc(end, end+2) === "$$";
 
-    if (insideBlockEquation) {
-        equation = "\n" + equation + "\n";
-    }
+    if (insideBlockEqn) equation = "\n" + equation + "\n";
 
-    editor.replaceRange(equation, startPos, endPos);
 
-    if (insideBlockEquation) {
-        editor.setCursor({...cursor, line: cursor.line + 1});
-    }
-    else {
-        editor.setCursor({...cursor, ch: cursor.ch + "\\boxed{".length});
-    }
+    const pos = view.state.selection.main.to;
+    replaceRange(view, start, end, equation);
+    setCursor(view, pos + "\\boxed{".length + (insideBlockEqn ? 1 : 0));
 }
 
 
@@ -37,22 +27,19 @@ function getBoxEquationCommand() {
     return {
         id: "latex-suite-box-equation",
         name: "Box current equation",
-        editorCheckCallback: (checking: boolean, editor: Editor, view: MarkdownView) => {
+        editorCheckCallback: (checking: boolean, editor: Editor, markdownView: MarkdownView) => {
 
-            const cursor = editor.getCursor("to");
-            const pos = editor.posToOffset(cursor);
-            const withinMath = isWithinMath(pos-1, editor);
+            // @ts-ignore
+            const view = editor.cm;
 
+            if (!checking) {
+                boxCurrentEquation(view);
 
-            if (withinMath) {
-                if (!checking) {
-                    boxCurrentEquation(editor, pos);
-                }
-
-                return true;
+                return;
             }
 
-            return false;
+            const withinMath = isWithinMath(view);
+            return withinMath;
         },
     }
 }
@@ -62,30 +49,30 @@ function getSelectEquationCommand() {
     return {
         id: "latex-suite-select-equation",
         name: "Select current equation",
-        editorCheckCallback: (checking: boolean, editor: Editor, view: MarkdownView) => {
+        editorCheckCallback: (checking: boolean, editor: Editor, markdownView: MarkdownView) => {
 
-            const cursor = editor.getCursor("to");
-            const pos = editor.posToOffset(cursor);
-            const withinMath = isWithinMath(pos-1, editor);
+            // @ts-ignore
+            const view = editor.cm;
+
+            if (!checking) {
+                const result = getEquationBounds(view);
+                if (!result) return false;
+                let {start, end} = result;
+
+                // Don't include newline characters in the selection
+                const doc = view.state.doc.toString();
+
+                if (doc.charAt(start) === "\n") start++;
+                if (doc.charAt(end - 1) === "\n") end--;
 
 
-            if (withinMath) {
-                if (!checking) {
-                    const result = getEquationBounds(editor, pos);
-                    if (!result) return false;
-                    let {start, end} = result;
+                setSelection(view, start, end);
 
-                    // Don't include newline characters in the selection
-                    if (editor.getValue().charAt(start+1) === "\n") start++;
-                    if (editor.getValue().charAt(end-1) === "\n") end--;
-
-                    editor.setSelection(editor.offsetToPos(start+1), editor.offsetToPos(end));
-                }
-
-                return true;
+                return;
             }
 
-            return false;
+            const withinMath = isWithinMath(view);
+            return withinMath;
         },
     }
 }
