@@ -38,7 +38,8 @@ export function setSelections(view: EditorView, ranges: SelectionRange[]) {
 }
 
 
-function resetCursorBlink() {
+
+export function resetCursorBlink() {
     const cursorLayer = document.getElementsByClassName("cm-cursorLayer")[0] as HTMLElement;
     const curAnim = cursorLayer.style.animationName;
 

@@ -1,7 +1,7 @@
 import { Range } from "@codemirror/rangeset";
 import { EditorView, Decoration } from "@codemirror/view";
 import { SelectionRange, EditorSelection } from "@codemirror/state";
-import { replaceRange, setCursor, setSelections, findMatchingBracket } from "./editor_helpers";
+import { replaceRange, setCursor, setSelections, findMatchingBracket, resetCursorBlink } from "./editor_helpers";
 import { addMark, clearMarks, markerStateField, removeMarkBySpecAttribute } from "./marker_state_field";
 
 const COLORS = ["lightskyblue", "orange", "lime", "pink", "cornsilk", "magenta", "navajowhite"];
@@ -106,23 +106,6 @@ export class SnippetManager {
     }
 
 
-    insertTabstop(view: EditorView, tabstop: Tabstop, reference: TabstopReference) {
-        const {from, to, replacement} = tabstop;
-        const colorIndex = reference.getColorIndex();
-
-        const mark = Decoration.mark({
-            inclusive: true,
-            attributes: {},
-            class: this.getColorClass(colorIndex),
-            reference: reference
-        }).range(from, to);
-
-
-        view.dispatch({effects: addMark.of(mark)});
-
-        replaceRange(view, from, to, replacement);
-    }
-
 
     getTabstopsFromSnippet(view: EditorView, start: number, replacement:string):Tabstop[] {
 
@@ -178,8 +161,6 @@ export class SnippetManager {
     insertTabstops(view: EditorView, tabstops: Tabstop[], append=false) {
         if (tabstops.length === 0) return;
 
-        const colorIndex = this.getColorIndex();
-
 
         // Find unique tabstop numbers
         const numbers = Array.from(new Set(tabstops.map((tabstop: Tabstop) => (tabstop.number)))).sort().reverse();
@@ -188,6 +169,8 @@ export class SnippetManager {
         if (!append) {
             // Create a reference for each tabstop number
             // and add it to the list of current references
+            const colorIndex = this.getColorIndex();
+
             for (let i = 0; i < numbers.length; i++) {
                 const reference = new TabstopReference(view, colorIndex);
 
@@ -197,14 +180,50 @@ export class SnippetManager {
 
 
         // Insert the tabstops
-        while (tabstops.length > 0) {
-            const tabstop = tabstops.pop();
-            const tabstopReference = this.currentTabstopReferences[tabstop.number];
+        this.insertTabstopsTransaction(view, tabstops);
+    }
 
-            this.insertTabstop(view, tabstop, tabstopReference);
-        }
 
-        this.selectTabstopReference(this.currentTabstopReferences[0]);
+    insertTabstopsTransaction(view: EditorView, tabstops: Tabstop[]) {
+
+        // Add the markers
+        const effects = tabstops.map((tabstop: Tabstop) => {
+            const reference = this.currentTabstopReferences[tabstop.number];
+
+            const mark = Decoration.mark({
+                    inclusive: true,
+                    attributes: {},
+                    class: this.getColorClass(reference.colorIndex),
+                    reference: reference
+            }).range(tabstop.from, tabstop.to);
+
+            return addMark.of(mark);
+        });
+
+
+        view.dispatch({
+            effects: effects
+        });
+
+
+        // Select the first tabstop
+        const ranges = this.currentTabstopReferences[0].ranges;
+        view.dispatch({
+            selection: EditorSelection.create(ranges)
+        });
+
+
+        // Insert the replacements
+        const changes = tabstops.map((tabstop: Tabstop) => {
+            return {from: tabstop.from, to: tabstop.to, insert: tabstop.replacement}
+        });
+
+        view.dispatch({
+            changes: changes
+        });
+
+
+        resetCursorBlink();
     }
 
 
