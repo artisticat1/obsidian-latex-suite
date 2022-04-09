@@ -1,7 +1,7 @@
 import { Range } from "@codemirror/rangeset";
 import { EditorView, Decoration } from "@codemirror/view";
-import { SelectionRange, EditorSelection } from "@codemirror/state";
-import { replaceRange, setCursor, setSelections, findMatchingBracket, resetCursorBlink } from "./editor_helpers";
+import { SelectionRange, EditorSelection, ChangeSpec, ChangeSet } from "@codemirror/state";
+import { setCursor, setSelections, findMatchingBracket, resetCursorBlink } from "./editor_helpers";
 import { addMark, clearMarks, markerStateField, removeMarkBySpecAttribute } from "./marker_state_field";
 
 const COLORS = ["lightskyblue", "orange", "lime", "pink", "cornsilk", "magenta", "navajowhite"];
@@ -81,6 +81,7 @@ export interface Tabstop {
 
 export class SnippetManager {
     private currentTabstopReferences: TabstopReference[] = [];
+    private snippetsToAdd: {from: number, to: number, insert: string}[] = [];
 
 
     getColorIndex():number {
@@ -156,6 +157,45 @@ export class SnippetManager {
 
         return tabstops;
     }
+
+
+
+    queueSnippet(snippet: {from: number, to: number, insert: string}) {
+        this.snippetsToAdd.push(snippet);
+    }
+
+
+    expandSnippets(view: EditorView):boolean {
+        if (this.snippetsToAdd.length === 0) return false;
+
+        const snippets = this.snippetsToAdd;
+        const changes = snippets as ChangeSpec;
+
+        // Insert the replacements
+        view.dispatch({
+            changes: changes
+        });
+
+
+        // Insert any tabstops
+        // Find the positions of the cursors in the new document
+        const changeSet = ChangeSet.of(changes, view.state.doc.length);
+        const oldPositions = snippets.map(change => change.from);
+        const newPositions = oldPositions.map(pos => changeSet.mapPos(pos));
+
+        let tabstopsToAdd:Tabstop[] = [];
+        for (let i = 0; i < snippets.length; i++) {
+            tabstopsToAdd = tabstopsToAdd.concat(this.getTabstopsFromSnippet(view, newPositions[i], snippets[i].insert));
+        }
+
+
+        this.insertTabstops(view, tabstopsToAdd);
+
+
+        this.snippetsToAdd = [];
+        return true;
+    }
+
 
 
     insertTabstops(view: EditorView, tabstops: Tabstop[], append=false) {

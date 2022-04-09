@@ -305,26 +305,25 @@ export default class LatexSuitePlugin extends Plugin {
 
 
 	private readonly runSnippets = (view: EditorView, event: KeyboardEvent, withinMath: boolean, ranges: SelectionRange[]):boolean => {
-		let append = false;
+
 		this.shouldAutoEnlargeBrackets = false;
 
 		for (const range of ranges) {
-			const success = this.runSnippetCursor(view, event, withinMath, range, append);
-
-			if (success) {
-				append = true;
-			}
+			this.runSnippetCursor(view, event, withinMath, range);
 		}
+
+		const success = this.snippetManager.expandSnippets(view);
+
 
 		if (this.shouldAutoEnlargeBrackets) {
 			this.autoEnlargeBrackets(view);
 		}
 
-		return append;
+		return success;
 	}
 
 
-	private readonly runSnippetCursor = (view: EditorView, event: KeyboardEvent, withinMath: boolean, range: SelectionRange, append:boolean):boolean => {
+	private readonly runSnippetCursor = (view: EditorView, event: KeyboardEvent, withinMath: boolean, range: SelectionRange):boolean => {
 
 		const {from, to} = range;
 		const sel = view.state.sliceDoc(from, to);
@@ -360,15 +359,7 @@ export default class LatexSuitePlugin extends Plugin {
 
 			// Expand the snippet
             const start = triggerPos;
-
-            this.expandSnippet(view, start, to, replacement);
-
-
-			if (replacement.contains("$")) {
-				const tabstops = this.snippetManager.getTabstopsFromSnippet(view, start, replacement);
-
-				this.snippetManager.insertTabstops(view, tabstops, append);
-			}
+			this.snippetManager.queueSnippet({from: start, to: to, insert: replacement});
 
 
 			const containsTrigger = this.autoEnlargeBracketsTriggers.some(word => replacement.contains("\\" + word));
@@ -394,26 +385,23 @@ export default class LatexSuitePlugin extends Plugin {
 
 
 	private readonly runAutoFraction = (view: EditorView, event: KeyboardEvent, ranges: SelectionRange[]):boolean => {
-		let append = false;
 
 		for (const range of ranges) {
-			const success = this.runAutoFractionCursor(view, range, append);
-
-			if (success) {
-				append = true;
-			}
+			this.runAutoFractionCursor(view, range);
 		}
 
-		if (append) {
+		const success = this.snippetManager.expandSnippets(view);
+
+		if (success) {
 			this.autoEnlargeBrackets(view);
 			event.preventDefault();
 		}
 
-		return append;
+		return success;
 	}
 
 
-	private readonly runAutoFractionCursor = (view: EditorView, range: SelectionRange, append: boolean):boolean => {
+	private readonly runAutoFractionCursor = (view: EditorView, range: SelectionRange):boolean => {
 
 			const {from, to} = range;
 
@@ -487,10 +475,8 @@ export default class LatexSuitePlugin extends Plugin {
 
 
 			const replacement = "\\frac{" + numerator + "}{$0}$1";
-			this.expandSnippet(view, start, to, replacement);
 
-			const tabstops = this.snippetManager.getTabstopsFromSnippet(view, start, replacement);
-			this.snippetManager.insertTabstops(view, tabstops, append);
+			this.snippetManager.queueSnippet({from: start, to: to, insert: replacement});
 
 			return true;
 	}
