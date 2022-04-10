@@ -3,7 +3,7 @@
 	"name": "Latex Suite",
 	"version": "1.0.1",
 	"minAppVersion": "0.12.0",
-	"description": "Make typesetting LaTeX as fast as handwriting",
+	"description": "Make typesetting LaTeX math as fast as handwriting",
 	"author": "artisticat",
 	"authorUrl": "https://github.com/artisticat1",
 	"isDesktopOnly": true
