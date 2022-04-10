@@ -1,8 +1,8 @@
 import { Range } from "@codemirror/rangeset";
 import { EditorView, Decoration } from "@codemirror/view";
-import { SelectionRange, EditorSelection } from "@codemirror/state";
-import { replaceRange, setCursor, setSelections, findMatchingBracket } from "./editor_helpers";
-import { addMark, clearMarks, markerStateField, removeMarkBySpecAttribute } from "./marker_state_field";
+import { SelectionRange, EditorSelection, ChangeSpec, ChangeSet } from "@codemirror/state";
+import { setCursor, setSelections, findMatchingBracket, resetCursorBlink } from "./editor_helpers";
+import { addMark, clearMarks, markerStateField, removeMarkBySpecAttribute, startSnippet, endSnippet } from "./marker_state_field";
 
 const COLORS = ["lightskyblue", "orange", "lime", "pink", "cornsilk", "magenta", "navajowhite"];
 
@@ -81,6 +81,7 @@ export interface Tabstop {
 
 export class SnippetManager {
     private currentTabstopReferences: TabstopReference[] = [];
+    private snippetsToAdd: {from: number, to: number, insert: string}[] = [];
 
 
     getColorIndex():number {
@@ -105,23 +106,6 @@ export class SnippetManager {
         return markerClass;
     }
 
-
-    insertTabstop(view: EditorView, tabstop: Tabstop, reference: TabstopReference) {
-        const {from, to, replacement} = tabstop;
-        const colorIndex = reference.getColorIndex();
-
-        const mark = Decoration.mark({
-            inclusive: true,
-            attributes: {},
-            class: this.getColorClass(colorIndex),
-            reference: reference
-        }).range(from, to);
-
-
-        view.dispatch({effects: addMark.of(mark)});
-
-        replaceRange(view, from, to, replacement);
-    }
 
 
     getTabstopsFromSnippet(view: EditorView, start: number, replacement:string):Tabstop[] {
@@ -175,11 +159,51 @@ export class SnippetManager {
     }
 
 
-    insertTabstops(view: EditorView, tabstops: Tabstop[], append=false) {
-        if (tabstops.length === 0) return;
 
-        const colorIndex = this.getColorIndex();
+    queueSnippet(snippet: {from: number, to: number, insert: string}) {
+        this.snippetsToAdd.push(snippet);
+    }
 
+
+    expandSnippets(view: EditorView):boolean {
+        if (this.snippetsToAdd.length === 0) return false;
+
+        const snippets = this.snippetsToAdd;
+        const changes = snippets as ChangeSpec;
+
+        // Insert the replacements
+        view.dispatch({
+            changes: changes,
+            effects: startSnippet.of(null)
+        });
+
+
+        // Insert any tabstops
+        // Find the positions of the cursors in the new document
+        const changeSet = ChangeSet.of(changes, view.state.doc.length);
+        const oldPositions = snippets.map(change => change.from);
+        const newPositions = oldPositions.map(pos => changeSet.mapPos(pos));
+
+        let tabstopsToAdd:Tabstop[] = [];
+        for (let i = 0; i < snippets.length; i++) {
+            tabstopsToAdd = tabstopsToAdd.concat(this.getTabstopsFromSnippet(view, newPositions[i], snippets[i].insert));
+        }
+
+        if (tabstopsToAdd.length === 0) {
+            this.snippetsToAdd = [];
+            return true;
+        }
+
+        this.insertTabstopReferences(view, tabstopsToAdd);
+        this.insertTabstopsTransaction(view, tabstopsToAdd);
+
+        this.snippetsToAdd = [];
+        return true;
+    }
+
+
+
+    insertTabstopReferences(view: EditorView, tabstops: Tabstop[], append=false) {
 
         // Find unique tabstop numbers
         const numbers = Array.from(new Set(tabstops.map((tabstop: Tabstop) => (tabstop.number)))).sort().reverse();
@@ -188,37 +212,76 @@ export class SnippetManager {
         if (!append) {
             // Create a reference for each tabstop number
             // and add it to the list of current references
+            const colorIndex = this.getColorIndex();
+
             for (let i = 0; i < numbers.length; i++) {
                 const reference = new TabstopReference(view, colorIndex);
 
                 this.currentTabstopReferences.unshift(reference);
             }
         }
+    }
 
 
-        // Insert the tabstops
-        while (tabstops.length > 0) {
-            const tabstop = tabstops.pop();
-            const tabstopReference = this.currentTabstopReferences[tabstop.number];
+    insertTabstopsTransaction(view: EditorView, tabstops: Tabstop[]) {
 
-            this.insertTabstop(view, tabstop, tabstopReference);
-        }
+        // Add the markers
+        const effects = tabstops.map((tabstop: Tabstop) => {
+            const reference = this.currentTabstopReferences[tabstop.number];
 
-        this.selectTabstopReference(this.currentTabstopReferences[0]);
+            const mark = Decoration.mark({
+                    inclusive: true,
+                    attributes: {},
+                    class: this.getColorClass(reference.colorIndex),
+                    reference: reference
+            }).range(tabstop.from, tabstop.to);
+
+            return addMark.of(mark);
+        });
+
+
+        view.dispatch({
+            effects: effects
+        });
+
+
+        // Insert the replacements
+        const changes = tabstops.map((tabstop: Tabstop) => {
+            return {from: tabstop.from, to: tabstop.to, insert: tabstop.replacement}
+        });
+
+        view.dispatch({
+            changes: changes
+        });
+
+
+        // Select the first tabstop
+        const selection = EditorSelection.create(this.currentTabstopReferences[0].ranges);
+
+        view.dispatch({
+            selection: selection,
+            effects: endSnippet.of(null)
+        });
+
+        resetCursorBlink();
+        this.removeOnlyTabstop();
     }
 
 
 
     selectTabstopReference(reference: TabstopReference) {
-
         // Select all ranges
         setSelections(reference.view, reference.ranges);
 
+        this.removeOnlyTabstop();
+    }
 
+    removeOnlyTabstop() {
         // Remove all tabstop references if there's just one containing zero width tabstops
         if (this.currentTabstopReferences.length === 1) {
             let shouldClear = true;
 
+            const reference = this.currentTabstopReferences[0];
             const markers = reference.markers;
 
             for (const marker of markers) {
@@ -228,9 +291,8 @@ export class SnippetManager {
                 }
             }
 
-            if (shouldClear) this.clearAllTabstops();
+            if (shouldClear) this.clearAllTabstops(reference.view);
         }
-
     }
 
 
@@ -331,50 +393,16 @@ export class SnippetManager {
     tidyTabstopReferences() {
         // Remove empty tabstop references
         this.currentTabstopReferences = this.currentTabstopReferences.filter(tabstopReference => tabstopReference.markers.length > 0);
-
-
-        // Remove overlapping markers of 0 width that have been created in the undo
-        if (this.currentTabstopReferences.length > 0) {
-
-            const seen:{ [pos:number]: TabstopReference[] } = {};
-
-            for (const ref of this.currentTabstopReferences) {
-                const ranges = ref.ranges;
-
-                if (ranges.length === 1 && ranges[0].empty) {
-                    const pos = ranges[0].to;
-
-                    if (pos in seen) {
-                        seen[pos].push(ref);
-                    }
-                    else {
-                        seen[pos] = [ref];
-                    }
-                }
-            }
-
-            for (const pos in seen) {
-                if (seen[pos].length > 1) {
-                    for (const ref of seen[pos]) {
-                        ref.removeFromEditor();
-                        this.currentTabstopReferences.remove(ref);
-                    }
-                }
-            }
-        }
     }
 
 
-    clearAllTabstops() {
-        if (this.currentTabstopReferences.length === 0)
-            return;
 
-        const firstRef = this.currentTabstopReferences[0];
-
-        const view = firstRef.view;
-        view.dispatch({
-            effects: clearMarks.of(null)
-        });
+    clearAllTabstops(view?: EditorView) {
+        if (view) {
+            view.dispatch({
+                effects: clearMarks.of(null)
+            });
+        }
 
         this.currentTabstopReferences = [];
     }
