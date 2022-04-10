@@ -1,11 +1,12 @@
 import { editorViewField, Plugin } from "obsidian";
-import { EditorView } from "@codemirror/view";
+import { EditorView, ViewUpdate } from "@codemirror/view";
 import { SelectionRange, Prec } from "@codemirror/state";
 import { isWithinMath, replaceRange, setCursor, isInsideEnvironment, getOpenBracket, getCloseBracket, findMatchingBracket, getEquationBounds } from "./editor_helpers"
 
 import { LatexSuiteSettings, LatexSuiteSettingTab, DEFAULT_SETTINGS } from "./settings"
 import { Environment, Snippet, SNIPPET_VARIABLES } from "./snippets"
-import { markerStateField } from "./marker_state_field";
+import { invertedEffects, undo, redo } from "@codemirror/history";
+import { markerStateField, addMark, removeMark, startSnippet, endSnippet, undidStartSnippet, undidEndSnippet } from "./marker_state_field";
 import { SnippetManager } from "./snippet_manager";
 import { editorCommands } from "./editor_commands"
 import { parse } from "json5";
@@ -29,17 +30,17 @@ export default class LatexSuitePlugin extends Plugin {
 	async onload() {
 		await this.loadSettings();
 
-		// This adds a settings tab so the user can configure various aspects of the plugin
 		this.addSettingTab(new LatexSuiteSettingTab(this.app, this));
-
-
 		this.snippetManager = new SnippetManager();
 
 
 		this.registerEditorExtension(markerStateField);
+		this.registerEditorExtension(this.getInvertedEffects());
+
 		this.registerEditorExtension(Prec.highest(EditorView.domEventHandlers({
             "keydown": this.onKeydown
         })));
+
 		this.registerEditorExtension(EditorView.updateListener.of(update => {
             if (update.docChanged) {
                 this.handleDocChange();
@@ -47,12 +48,10 @@ export default class LatexSuitePlugin extends Plugin {
 
             if (update.selectionSet) {
 				const pos = update.state.selection.main.head;
-                this.handleCursorActivity(pos);
+                this.handleCursorActivity(update.view, pos);
             }
 
-			if (update.transactions.some(tr => tr.isUserEvent("undo"))) {
-				this.onUndo();
-			}
+			this.handleUndoRedo(update);
         }));
 
 
@@ -66,18 +65,86 @@ export default class LatexSuitePlugin extends Plugin {
 
 	private readonly handleDocChange = () => {
         this.cursorTriggeredByChange = true;
-    };
+    }
 
-    private readonly handleCursorActivity = (pos: number) => {
+
+    private readonly handleCursorActivity = (view: EditorView, pos: number) => {
         if (this.cursorTriggeredByChange) {
             this.cursorTriggeredByChange = false;
             return;
         }
 
         if (!this.snippetManager.isInsideATabstop(pos)) {
-            this.snippetManager.clearAllTabstops();
+            this.snippetManager.clearAllTabstops(view);
         }
-    };
+    }
+
+
+	private readonly handleUndoRedo = (update: ViewUpdate) => {
+		const undoTr = update.transactions.find(tr => tr.isUserEvent("undo"));
+		const redoTr = update.transactions.find(tr => tr.isUserEvent("redo"));
+
+
+		for (const tr of update.transactions) {
+			for (const effect of tr.effects) {
+
+				if (effect.is(startSnippet)) {
+					if (redoTr) {
+						// Redo the addition of marks, tabstop expansion, and selection
+						redo(update.view);
+						redo(update.view);
+						redo(update.view);
+					}
+				}
+				else if (effect.is(undidEndSnippet)) {
+					if (undoTr) {
+						// Undo the addition of marks, tabstop expansion, and selection
+						undo(update.view);
+						undo(update.view);
+						undo(update.view);
+					}
+				}
+			}
+		}
+
+		if (undoTr) {
+			this.snippetManager.tidyTabstopReferences();
+		}
+	}
+
+
+	private readonly getInvertedEffects = () => {
+		// Enables undoing and redoing snippets, taking care of the tabstops
+
+		return invertedEffects.of(tr => {
+			const effects = [];
+
+			for (const effect of tr.effects) {
+				if (effect.is(addMark)) {
+					effects.push(removeMark.of(effect.value));
+				}
+				else if (effect.is(removeMark)) {
+					effects.push(addMark.of(effect.value));
+				}
+
+				else if (effect.is(startSnippet)) {
+					effects.push(undidStartSnippet.of(null));
+				}
+				else if (effect.is(undidStartSnippet)) {
+					effects.push(startSnippet.of(null));
+				}
+				else if (effect.is(endSnippet)) {
+					effects.push(undidEndSnippet.of(null));
+				}
+				else if (effect.is(undidEndSnippet)) {
+					effects.push(endSnippet.of(null));
+				}
+			}
+
+
+			return effects;
+		})
+	}
 
 
 	async loadSettings() {
@@ -157,12 +224,6 @@ export default class LatexSuitePlugin extends Plugin {
 		for (const command of editorCommands) {
 			this.addCommand(command);
 		}
-	}
-
-
-	private readonly onUndo = () => {
-		// Remove references to tabstops that were removed in the undo
-		this.snippetManager.tidyTabstopReferences();
 	}
 
 
@@ -305,26 +366,25 @@ export default class LatexSuitePlugin extends Plugin {
 
 
 	private readonly runSnippets = (view: EditorView, event: KeyboardEvent, withinMath: boolean, ranges: SelectionRange[]):boolean => {
-		let append = false;
+
 		this.shouldAutoEnlargeBrackets = false;
 
 		for (const range of ranges) {
-			const success = this.runSnippetCursor(view, event, withinMath, range, append);
-
-			if (success) {
-				append = true;
-			}
+			this.runSnippetCursor(view, event, withinMath, range);
 		}
+
+		const success = this.snippetManager.expandSnippets(view);
+
 
 		if (this.shouldAutoEnlargeBrackets) {
 			this.autoEnlargeBrackets(view);
 		}
 
-		return append;
+		return success;
 	}
 
 
-	private readonly runSnippetCursor = (view: EditorView, event: KeyboardEvent, withinMath: boolean, range: SelectionRange, append:boolean):boolean => {
+	private readonly runSnippetCursor = (view: EditorView, event: KeyboardEvent, withinMath: boolean, range: SelectionRange):boolean => {
 
 		const {from, to} = range;
 		const sel = view.state.sliceDoc(from, to);
@@ -360,15 +420,7 @@ export default class LatexSuitePlugin extends Plugin {
 
 			// Expand the snippet
             const start = triggerPos;
-
-            this.expandSnippet(view, start, to, replacement);
-
-
-			if (replacement.contains("$")) {
-				const tabstops = this.snippetManager.getTabstopsFromSnippet(view, start, replacement);
-
-				this.snippetManager.insertTabstops(view, tabstops, append);
-			}
+			this.snippetManager.queueSnippet({from: start, to: to, insert: replacement});
 
 
 			const containsTrigger = this.autoEnlargeBracketsTriggers.some(word => replacement.contains("\\" + word));
@@ -394,26 +446,23 @@ export default class LatexSuitePlugin extends Plugin {
 
 
 	private readonly runAutoFraction = (view: EditorView, event: KeyboardEvent, ranges: SelectionRange[]):boolean => {
-		let append = false;
 
 		for (const range of ranges) {
-			const success = this.runAutoFractionCursor(view, range, append);
-
-			if (success) {
-				append = true;
-			}
+			this.runAutoFractionCursor(view, range);
 		}
 
-		if (append) {
+		const success = this.snippetManager.expandSnippets(view);
+
+		if (success) {
 			this.autoEnlargeBrackets(view);
 			event.preventDefault();
 		}
 
-		return append;
+		return success;
 	}
 
 
-	private readonly runAutoFractionCursor = (view: EditorView, range: SelectionRange, append: boolean):boolean => {
+	private readonly runAutoFractionCursor = (view: EditorView, range: SelectionRange):boolean => {
 
 			const {from, to} = range;
 
@@ -487,10 +536,8 @@ export default class LatexSuitePlugin extends Plugin {
 
 
 			const replacement = "\\frac{" + numerator + "}{$0}$1";
-			this.expandSnippet(view, start, to, replacement);
 
-			const tabstops = this.snippetManager.getTabstopsFromSnippet(view, start, replacement);
-			this.snippetManager.insertTabstops(view, tabstops, append);
+			this.snippetManager.queueSnippet({from: start, to: to, insert: replacement});
 
 			return true;
 	}
