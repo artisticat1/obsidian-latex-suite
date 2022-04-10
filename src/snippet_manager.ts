@@ -189,9 +189,13 @@ export class SnippetManager {
             tabstopsToAdd = tabstopsToAdd.concat(this.getTabstopsFromSnippet(view, newPositions[i], snippets[i].insert));
         }
 
+        if (tabstopsToAdd.length === 0) {
+            this.snippetsToAdd = [];
+            return true;
+        }
 
-        this.insertTabstops(view, tabstopsToAdd);
-
+        this.insertTabstopReferences(view, tabstopsToAdd);
+        this.insertTabstopsTransaction(view, tabstopsToAdd);
 
         this.snippetsToAdd = [];
         return true;
@@ -199,9 +203,7 @@ export class SnippetManager {
 
 
 
-    insertTabstops(view: EditorView, tabstops: Tabstop[], append=false) {
-        if (tabstops.length === 0) return;
-
+    insertTabstopReferences(view: EditorView, tabstops: Tabstop[], append=false) {
 
         // Find unique tabstop numbers
         const numbers = Array.from(new Set(tabstops.map((tabstop: Tabstop) => (tabstop.number)))).sort().reverse();
@@ -218,10 +220,6 @@ export class SnippetManager {
                 this.currentTabstopReferences.unshift(reference);
             }
         }
-
-
-        // Insert the tabstops
-        this.insertTabstopsTransaction(view, tabstops);
     }
 
 
