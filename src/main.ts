@@ -548,15 +548,24 @@ export default class LatexSuitePlugin extends Plugin {
 
 
 
-        // Move to the next closing bracket: }, ), ], >, |, or outside of $
+        // Move to the next closing bracket: }, ), ], >, |
         for (let i = pos; i < end; i++) {
-            if (["}", ")", "]", ">", "|", "$"].contains(text.charAt(i))) {
+            if (["}", ")", "]", ">", "|"].contains(text.charAt(i))) {
                 setCursor(view, i+1);
 
                 event.preventDefault();
                 return true;
             }
         }
+
+
+		// If inside inline math, move outside the closing $
+		if (text.slice(end, end+2) != "$$") {
+			setCursor(view, end+1);
+
+			event.preventDefault();
+			return true;
+		}
 
 
 		// If cursor at end of line/equation, move to next line/outside $$ symbols
