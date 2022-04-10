@@ -264,21 +264,24 @@ export class SnippetManager {
         });
 
         resetCursorBlink();
-
+        this.removeOnlyTabstop();
     }
 
 
 
     selectTabstopReference(reference: TabstopReference) {
-
         // Select all ranges
         setSelections(reference.view, reference.ranges);
 
+        this.removeOnlyTabstop();
+    }
 
+    removeOnlyTabstop() {
         // Remove all tabstop references if there's just one containing zero width tabstops
         if (this.currentTabstopReferences.length === 1) {
             let shouldClear = true;
 
+            const reference = this.currentTabstopReferences[0];
             const markers = reference.markers;
 
             for (const marker of markers) {
@@ -288,9 +291,8 @@ export class SnippetManager {
                 }
             }
 
-            if (shouldClear) this.clearAllTabstops();
+            if (shouldClear) this.clearAllTabstops(reference.view);
         }
-
     }
 
 

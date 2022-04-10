@@ -30,43 +30,12 @@ export default class LatexSuitePlugin extends Plugin {
 	async onload() {
 		await this.loadSettings();
 
-		// This adds a settings tab so the user can configure various aspects of the plugin
 		this.addSettingTab(new LatexSuiteSettingTab(this.app, this));
-
-
 		this.snippetManager = new SnippetManager();
 
 
-		this.registerEditorExtension(invertedEffects.of(tr => {
-			const effects = [];
-
-			for (const effect of tr.effects) {
-				if (effect.is(addMark)) {
-					effects.push(removeMark.of(effect.value));
-				}
-				else if (effect.is(removeMark)) {
-					effects.push(addMark.of(effect.value));
-				}
-
-				else if (effect.is(startSnippet)) {
-					effects.push(undidStartSnippet.of(null));
-				}
-				else if (effect.is(undidStartSnippet)) {
-					effects.push(startSnippet.of(null));
-				}
-				else if (effect.is(endSnippet)) {
-					effects.push(undidEndSnippet.of(null));
-				}
-				else if (effect.is(undidEndSnippet)) {
-					effects.push(endSnippet.of(null));
-				}
-			}
-
-
-			return effects;
-		}));
-
 		this.registerEditorExtension(markerStateField);
+		this.registerEditorExtension(this.getInvertedEffects());
 
 		this.registerEditorExtension(Prec.highest(EditorView.domEventHandlers({
             "keydown": this.onKeydown
@@ -96,7 +65,7 @@ export default class LatexSuitePlugin extends Plugin {
 
 	private readonly handleDocChange = () => {
         this.cursorTriggeredByChange = true;
-    };
+    }
 
 
     private readonly handleCursorActivity = (view: EditorView, pos: number) => {
@@ -108,7 +77,7 @@ export default class LatexSuitePlugin extends Plugin {
         if (!this.snippetManager.isInsideATabstop(pos)) {
             this.snippetManager.clearAllTabstops(view);
         }
-    };
+    }
 
 
 	private readonly handleUndoRedo = (update: ViewUpdate) => {
@@ -120,32 +89,61 @@ export default class LatexSuitePlugin extends Plugin {
 			for (const effect of tr.effects) {
 
 				if (effect.is(startSnippet)) {
-					// console.log("start snippet");
 					if (redoTr) {
+						// Redo the addition of marks, tabstop expansion, and selection
 						redo(update.view);
 						redo(update.view);
 						redo(update.view);
 					}
 				}
-				if (effect.is(undidStartSnippet)) {
-					// console.log("undid start snippet");
-				}
-				if (effect.is(endSnippet)) {
-					// console.log("end snippet");
-				}
-				if (effect.is(undidEndSnippet)) {
-					// console.log("undid end snippet");
+				else if (effect.is(undidEndSnippet)) {
 					if (undoTr) {
+						// Undo the addition of marks, tabstop expansion, and selection
 						undo(update.view);
 						undo(update.view);
 						undo(update.view);
 					}
 				}
-
 			}
 		}
 
-		this.snippetManager.tidyTabstopReferences();
+		if (undoTr) {
+			this.snippetManager.tidyTabstopReferences();
+		}
+	}
+
+
+	private readonly getInvertedEffects = () => {
+		// Enables undoing and redoing snippets, taking care of the tabstops
+
+		return invertedEffects.of(tr => {
+			const effects = [];
+
+			for (const effect of tr.effects) {
+				if (effect.is(addMark)) {
+					effects.push(removeMark.of(effect.value));
+				}
+				else if (effect.is(removeMark)) {
+					effects.push(addMark.of(effect.value));
+				}
+
+				else if (effect.is(startSnippet)) {
+					effects.push(undidStartSnippet.of(null));
+				}
+				else if (effect.is(undidStartSnippet)) {
+					effects.push(startSnippet.of(null));
+				}
+				else if (effect.is(endSnippet)) {
+					effects.push(undidEndSnippet.of(null));
+				}
+				else if (effect.is(undidEndSnippet)) {
+					effects.push(endSnippet.of(null));
+				}
+			}
+
+
+			return effects;
+		})
 	}
 
 
