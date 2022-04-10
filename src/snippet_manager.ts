@@ -173,7 +173,8 @@ export class SnippetManager {
 
         // Insert the replacements
         view.dispatch({
-            changes: changes
+            changes: changes,
+            userEvent: "startSnippet"
         });
 
 
@@ -246,24 +247,20 @@ export class SnippetManager {
         });
 
 
-        // Select the first tabstop
-        const ranges = this.currentTabstopReferences[0].ranges;
-        view.dispatch({
-            selection: EditorSelection.create(ranges)
-        });
-
-
         // Insert the replacements
         const changes = tabstops.map((tabstop: Tabstop) => {
             return {from: tabstop.from, to: tabstop.to, insert: tabstop.replacement}
         });
 
         view.dispatch({
-            changes: changes
+            changes: changes,
+            userEvent: "endSnippet"
         });
 
 
-        resetCursorBlink();
+        // Select the first tabstop
+        this.selectTabstopReference(this.currentTabstopReferences[0]);
+
     }
 
 
@@ -386,42 +383,6 @@ export class SnippetManager {
         return true;
     }
 
-
-    tidyTabstopReferences() {
-        // Remove empty tabstop references
-        this.currentTabstopReferences = this.currentTabstopReferences.filter(tabstopReference => tabstopReference.markers.length > 0);
-
-
-        // Remove overlapping markers of 0 width that have been created in the undo
-        if (this.currentTabstopReferences.length > 0) {
-
-            const seen:{ [pos:number]: TabstopReference[] } = {};
-
-            for (const ref of this.currentTabstopReferences) {
-                const ranges = ref.ranges;
-
-                if (ranges.length === 1 && ranges[0].empty) {
-                    const pos = ranges[0].to;
-
-                    if (pos in seen) {
-                        seen[pos].push(ref);
-                    }
-                    else {
-                        seen[pos] = [ref];
-                    }
-                }
-            }
-
-            for (const pos in seen) {
-                if (seen[pos].length > 1) {
-                    for (const ref of seen[pos]) {
-                        ref.removeFromEditor();
-                        this.currentTabstopReferences.remove(ref);
-                    }
-                }
-            }
-        }
-    }
 
 
     clearAllTabstops() {

@@ -5,7 +5,8 @@ import { isWithinMath, replaceRange, setCursor, isInsideEnvironment, getOpenBrac
 
 import { LatexSuiteSettings, LatexSuiteSettingTab, DEFAULT_SETTINGS } from "./settings"
 import { Environment, Snippet, SNIPPET_VARIABLES } from "./snippets"
-import { markerStateField } from "./marker_state_field";
+import { invertedEffects, undo, redo } from "@codemirror/history";
+import { markerStateField, addMark, removeMark, undidStartSnippet, redoSnippet, undoSnippet } from "./marker_state_field";
 import { SnippetManager } from "./snippet_manager";
 import { editorCommands } from "./editor_commands"
 import { parse } from "json5";
@@ -36,10 +37,38 @@ export default class LatexSuitePlugin extends Plugin {
 		this.snippetManager = new SnippetManager();
 
 
+		this.registerEditorExtension(invertedEffects.of(tr => {
+			const effects = [];
+
+			for (const effect of tr.effects) {
+				if (effect.is(addMark)) {
+					effects.push(removeMark.of(effect.value));
+				}
+				// else if (effect.is(removeMark)) {
+				// 	effects.push(addMark.of(effect.value));
+				// }
+				else if (effect.is(undidStartSnippet)) {
+					effects.push(redoSnippet.of(null));
+				}
+			}
+
+			if (tr.isUserEvent("startSnippet")) {
+				effects.push(undidStartSnippet.of(null));
+			}
+			if (tr.isUserEvent("endSnippet")) {
+				// Undo the addition of marks and the text expansion
+				effects.push(undoSnippet.of(null));
+			}
+
+			return effects;
+		}));
+
 		this.registerEditorExtension(markerStateField);
+
 		this.registerEditorExtension(Prec.highest(EditorView.domEventHandlers({
             "keydown": this.onKeydown
         })));
+
 		this.registerEditorExtension(EditorView.updateListener.of(update => {
             if (update.docChanged) {
                 this.handleDocChange();
@@ -50,8 +79,35 @@ export default class LatexSuitePlugin extends Plugin {
                 this.handleCursorActivity(pos);
             }
 
-			if (update.transactions.some(tr => tr.isUserEvent("undo"))) {
-				this.onUndo();
+			const undoTr = update.transactions.find(tr => tr.isUserEvent("undo"));
+
+			if (undoTr) {
+				for (const effect of undoTr.effects) {
+					if (effect.is(undoSnippet)) {
+						// Undo the addition of marks
+						undo(update.view);
+
+						// Undo the text expansion
+						undo(update.view);
+					}
+				}
+			}
+
+
+			const redoTr = update.transactions.find(tr => tr.isUserEvent("redo"));
+
+			if (redoTr) {
+				for (const effect of redoTr.effects) {
+
+					if (effect.is(redoSnippet)) {
+						// Redo the addition of marks
+						redo(update.view);
+
+						// Redo the text expansion
+						redo(update.view);
+					}
+
+				}
 			}
         }));
 
@@ -157,12 +213,6 @@ export default class LatexSuitePlugin extends Plugin {
 		for (const command of editorCommands) {
 			this.addCommand(command);
 		}
-	}
-
-
-	private readonly onUndo = () => {
-		// Remove references to tabstops that were removed in the undo
-		this.snippetManager.tidyTabstopReferences();
 	}
 
 
