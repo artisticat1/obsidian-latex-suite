@@ -2,7 +2,7 @@ import { Range } from "@codemirror/rangeset";
 import { EditorView, Decoration } from "@codemirror/view";
 import { SelectionRange, EditorSelection, ChangeSpec, ChangeSet } from "@codemirror/state";
 import { setCursor, setSelections, findMatchingBracket, resetCursorBlink } from "./editor_helpers";
-import { addMark, clearMarks, markerStateField, removeMarkBySpecAttribute } from "./marker_state_field";
+import { addMark, clearMarks, markerStateField, removeMarkBySpecAttribute, startSnippet, endSnippet } from "./marker_state_field";
 
 const COLORS = ["lightskyblue", "orange", "lime", "pink", "cornsilk", "magenta", "navajowhite"];
 
@@ -174,7 +174,7 @@ export class SnippetManager {
         // Insert the replacements
         view.dispatch({
             changes: changes,
-            userEvent: "startSnippet"
+            effects: startSnippet.of(null)
         });
 
 
@@ -251,13 +251,19 @@ export class SnippetManager {
         });
 
         view.dispatch({
-            changes: changes,
-            userEvent: "endSnippet"
+            changes: changes
         });
 
 
         // Select the first tabstop
-        this.selectTabstopReference(this.currentTabstopReferences[0]);
+        const selection = EditorSelection.create(this.currentTabstopReferences[0].ranges);
+
+        view.dispatch({
+            selection: selection,
+            effects: endSnippet.of(null)
+        });
+
+        resetCursorBlink();
 
     }
 
@@ -389,16 +395,12 @@ export class SnippetManager {
 
 
 
-    clearAllTabstops() {
-        if (this.currentTabstopReferences.length === 0)
-            return;
-
-        const firstRef = this.currentTabstopReferences[0];
-
-        const view = firstRef.view;
-        view.dispatch({
-            effects: clearMarks.of(null)
-        });
+    clearAllTabstops(view?: EditorView) {
+        if (view) {
+            view.dispatch({
+                effects: clearMarks.of(null)
+            });
+        }
 
         this.currentTabstopReferences = [];
     }

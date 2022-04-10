@@ -1,12 +1,12 @@
 import { editorViewField, Plugin } from "obsidian";
-import { EditorView } from "@codemirror/view";
+import { EditorView, ViewUpdate } from "@codemirror/view";
 import { SelectionRange, Prec } from "@codemirror/state";
 import { isWithinMath, replaceRange, setCursor, isInsideEnvironment, getOpenBracket, getCloseBracket, findMatchingBracket, getEquationBounds } from "./editor_helpers"
 
 import { LatexSuiteSettings, LatexSuiteSettingTab, DEFAULT_SETTINGS } from "./settings"
 import { Environment, Snippet, SNIPPET_VARIABLES } from "./snippets"
 import { invertedEffects, undo, redo } from "@codemirror/history";
-import { markerStateField, addMark, removeMark, undidStartSnippet, redoSnippet, undoSnippet } from "./marker_state_field";
+import { markerStateField, addMark, removeMark, startSnippet, endSnippet, undidStartSnippet, undidEndSnippet } from "./marker_state_field";
 import { SnippetManager } from "./snippet_manager";
 import { editorCommands } from "./editor_commands"
 import { parse } from "json5";
@@ -44,21 +44,24 @@ export default class LatexSuitePlugin extends Plugin {
 				if (effect.is(addMark)) {
 					effects.push(removeMark.of(effect.value));
 				}
-				// else if (effect.is(removeMark)) {
-				// 	effects.push(addMark.of(effect.value));
-				// }
+				else if (effect.is(removeMark)) {
+					effects.push(addMark.of(effect.value));
+				}
+
+				else if (effect.is(startSnippet)) {
+					effects.push(undidStartSnippet.of(null));
+				}
 				else if (effect.is(undidStartSnippet)) {
-					effects.push(redoSnippet.of(null));
+					effects.push(startSnippet.of(null));
+				}
+				else if (effect.is(endSnippet)) {
+					effects.push(undidEndSnippet.of(null));
+				}
+				else if (effect.is(undidEndSnippet)) {
+					effects.push(endSnippet.of(null));
 				}
 			}
 
-			if (tr.isUserEvent("startSnippet")) {
-				effects.push(undidStartSnippet.of(null));
-			}
-			if (tr.isUserEvent("endSnippet")) {
-				// Undo the addition of marks and the text expansion
-				effects.push(undoSnippet.of(null));
-			}
 
 			return effects;
 		}));
@@ -76,41 +79,10 @@ export default class LatexSuitePlugin extends Plugin {
 
             if (update.selectionSet) {
 				const pos = update.state.selection.main.head;
-                this.handleCursorActivity(pos);
+                this.handleCursorActivity(update.view, pos);
             }
 
-			const undoTr = update.transactions.find(tr => tr.isUserEvent("undo"));
-
-			if (undoTr) {
-				for (const effect of undoTr.effects) {
-					if (effect.is(undoSnippet)) {
-						// Undo the addition of marks
-						undo(update.view);
-
-						// Undo the text expansion
-						undo(update.view);
-					}
-				}
-				this.snippetManager.tidyTabstopReferences();
-			}
-
-
-			const redoTr = update.transactions.find(tr => tr.isUserEvent("redo"));
-
-			if (redoTr) {
-				for (const effect of redoTr.effects) {
-
-					if (effect.is(redoSnippet)) {
-						// Redo the addition of marks
-						redo(update.view);
-
-						// Redo the text expansion
-						redo(update.view);
-					}
-
-				}
-				this.snippetManager.tidyTabstopReferences();
-			}
+			this.handleUndoRedo(update);
         }));
 
 
@@ -126,16 +98,55 @@ export default class LatexSuitePlugin extends Plugin {
         this.cursorTriggeredByChange = true;
     };
 
-    private readonly handleCursorActivity = (pos: number) => {
+
+    private readonly handleCursorActivity = (view: EditorView, pos: number) => {
         if (this.cursorTriggeredByChange) {
             this.cursorTriggeredByChange = false;
             return;
         }
 
         if (!this.snippetManager.isInsideATabstop(pos)) {
-            this.snippetManager.clearAllTabstops();
+            this.snippetManager.clearAllTabstops(view);
         }
     };
+
+
+	private readonly handleUndoRedo = (update: ViewUpdate) => {
+		const undoTr = update.transactions.find(tr => tr.isUserEvent("undo"));
+		const redoTr = update.transactions.find(tr => tr.isUserEvent("redo"));
+
+
+		for (const tr of update.transactions) {
+			for (const effect of tr.effects) {
+
+				if (effect.is(startSnippet)) {
+					// console.log("start snippet");
+					if (redoTr) {
+						redo(update.view);
+						redo(update.view);
+						redo(update.view);
+					}
+				}
+				if (effect.is(undidStartSnippet)) {
+					// console.log("undid start snippet");
+				}
+				if (effect.is(endSnippet)) {
+					// console.log("end snippet");
+				}
+				if (effect.is(undidEndSnippet)) {
+					// console.log("undid end snippet");
+					if (undoTr) {
+						undo(update.view);
+						undo(update.view);
+						undo(update.view);
+					}
+				}
+
+			}
+		}
+
+		this.snippetManager.tidyTabstopReferences();
+	}
 
 
 	async loadSettings() {
