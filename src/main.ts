@@ -91,6 +91,7 @@ export default class LatexSuitePlugin extends Plugin {
 						undo(update.view);
 					}
 				}
+				this.snippetManager.tidyTabstopReferences();
 			}
 
 
@@ -108,6 +109,7 @@ export default class LatexSuitePlugin extends Plugin {
 					}
 
 				}
+				this.snippetManager.tidyTabstopReferences();
 			}
         }));
 

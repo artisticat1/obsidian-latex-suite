@@ -384,6 +384,12 @@ export class SnippetManager {
     }
 
 
+    tidyTabstopReferences() {
+        // Remove empty tabstop references
+        this.currentTabstopReferences = this.currentTabstopReferences.filter(tabstopReference => tabstopReference.markers.length > 0);
+    }
+
+
 
     clearAllTabstops() {
         if (this.currentTabstopReferences.length === 0)
