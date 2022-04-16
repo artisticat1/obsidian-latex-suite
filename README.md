@@ -53,8 +53,6 @@ Once these feel familiar, you can check out the [default snippets](https://githu
 
 You can also add your own snippets!
 
-
-## Documentation
 ### Snippets
 Snippets are formatted as follows:
 
@@ -75,65 +73,9 @@ Snippets are formatted as follows:
 - `A` : Auto. Expand this snippet as soon as the trigger is typed. If omitted, the <kbd>Tab</kbd> key must be pressed to expand the snippet
 - `r` : Regex. The `trigger` will be treated as a regular expression
 
-Multiple options can be used at once.
+Insert **tabstops** for the cursor to jump to by writing "$0", "$1", etc. in the `replacement`.
 
-
-#### Regex
-- Use the `r` option to create a regex snippet.
-- In the `trigger`, surround an expression with brackets `()` to create a capturing group.
-- Inside the `replacement` string, strings of the form `[[X]]` will be replaced by matches in increasing order of X, starting from 0.
-- Some characters, such as `\`, `+`, and `.`, are special characters in regex. If you want to use these literally, remember to escape them by inserting two backslashes (`\\`) before them!
-  - (One backslash to escape the special character, and another to escape that backlash)
-
-##### Example
-The snippet
-```typescript
-{trigger: "([A-Za-z])(\\d)", replacement: "[[0]]_{[[1]]}", options: "rA"}
-```
-will expand `x2` to `x_{2}`.
-
-
-#### Tabstops
-- Insert tabstops for the cursor to jump to using `$X`, where X is a number starting from 0.
-- Pressing <kbd>Tab</kbd> will move the cursor to the next tabstop.
-- Tabstops can have placeholders. Use the format `${X:text}`, where `text` is the text that will be selected by the cursor on moving to this tabstop.
-- Tabstops with the same number, X, will all be selected at the same time.
-
-##### Examples
-```typescript
-{trigger: "//", replacement: "\\frac{$0}{$1}$2", options: "mA"}
-
-{trigger: "dint", replacement: "\\int_{${0:0}}^{${1:\\infty}} $2 d${3:x}", options: "mA"}
-
-{trigger: "outp", replacement: "\\ket{${0:\\psi}} \\bra{${0:\\psi}} $1", options: "mA"}
-```
-
-
-#### Variables
-The following variables are available for use in a `trigger` or `replacement`:
-
-- `${VISUAL}` : Can be inserted in a `replacement`. When the snippet is expanded, "${VISUAL}" is replaced with the current selection.
-	- Visual snippets will not expand unless text is selected.
-
-##### Examples
-![visual snippets](gifs/visual_snippets.gif)
-
-
-- `${GREEK}` : Can be inserted in a `trigger`. Shorthand for the following:
-
-```
-alpha|beta|gamma|Gamma|delta|Delta|epsilon|varepsilon|zeta|eta|theta|Theta|iota|kappa|lambda|Lambda|mu|nu|xi|Xi|pi|Pi|rho|sigma|Sigma|tau|upsilon|phi|Phi|chi|psi|Psi|omega|Omega
-```
-
-Recommended for use with the regex option "r".
-
-- `${SYMBOL}` : Can be inserted in a `trigger`. Shorthand for the following:
-
-```
-hbar|ell|nabla
-```
-
-Recommended for use with the regex option "r".
+For more details on writing snippets, including **regex** snippets, [see the documentation here](DOCS.md).
 
 
 ### Auto-fraction
@@ -165,6 +107,17 @@ While inside a matrix, array, align, or cases environment,
 - Pressing <kbd>Shift + Enter</kbd> will move to the end of the next line (can be used to exit the matrix)
 
 ![matrix shortcuts](gifs/matrix_shortcuts.gif)
+
+
+### Visual snippets
+Sometimes you want to annotate math, or cancel or cross out terms. Selecting some math with the cursor and typing
+
+- "U" will surround it with "\\underbrace".
+- "C" will surround it with "\\cancel".
+- "K" will surround it with "\\cancelto".
+- "B" will surround it with "\\underset".
+
+![visual snippets](gifs/visual_snippets.gif)
 
 
 ### Tabout
