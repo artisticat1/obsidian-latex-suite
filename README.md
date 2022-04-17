@@ -1,9 +1,9 @@
 # Obsidian Latex Suite
 A plugin for Obsidian that aims to make typesetting LaTeX as fast as handwriting.
 
-Inspired by [Gilles Castel's setup](https://castel.dev/post/lecture-notes-1/) using UltiSnips.
+Inspired by [Gilles Castel's setup using UltiSnips](https://castel.dev/post/lecture-notes-1/).
 
-![demo](gifs/demo.gif)
+![demo](https://raw.githubusercontent.com/artisticat1/obsidian-latex-suite/main/gifs/demo.gif)
 
 The plugin's main feature is **snippets**, which help you write LaTeX quicker through text expansion. For example, type
 
@@ -90,13 +90,13 @@ and moves the cursor inside the brackets.
 
 Once done typing the denominator, press <kbd>Tab</kbd> to exit the fraction.
 
-![auto-fraction](gifs/auto-fraction.gif)
+![auto-fraction](https://raw.githubusercontent.com/artisticat1/obsidian-latex-suite/main/gifs/auto-fraction.gif)
 
 
 ### Auto-enlarge brackets
 When a snippet containing "\\sum", "\\int" or "\\frac" is triggered, any enclosing brackets will be enlarged with "\\left" and "\\right".
 
-![auto-enlarge brackets](gifs/auto-enlarge_brackets.gif)
+![auto-enlarge brackets](https://raw.githubusercontent.com/artisticat1/obsidian-latex-suite/main/gifs/auto-enlarge_brackets.gif)
 
 
 ### Matrix shortcuts
@@ -106,7 +106,7 @@ While inside a matrix, array, align, or cases environment,
 - Pressing <kbd>Enter</kbd> will insert "\\\\" and move to a new line
 - Pressing <kbd>Shift + Enter</kbd> will move to the end of the next line (can be used to exit the matrix)
 
-![matrix shortcuts](gifs/matrix_shortcuts.gif)
+![matrix shortcuts](https://raw.githubusercontent.com/artisticat1/obsidian-latex-suite/main/gifs/matrix_shortcuts.gif)
 
 
 ### Visual snippets
@@ -117,7 +117,7 @@ Sometimes you want to annotate math, or cancel or cross out terms. Selecting som
 - "K" will surround it with "\\cancelto".
 - "B" will surround it with "\\underset".
 
-![visual snippets](gifs/visual_snippets.gif)
+![visual snippets](https://raw.githubusercontent.com/artisticat1/obsidian-latex-suite/main/gifs/visual_snippets.gif)
 
 
 ### Tabout
