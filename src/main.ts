@@ -1,4 +1,4 @@
-import { Plugin } from "obsidian";
+import { Plugin, Notice } from "obsidian";
 import { EditorView, ViewUpdate } from "@codemirror/view";
 import { SelectionRange, Prec } from "@codemirror/state";
 import { isWithinMath, replaceRange, setCursor, isInsideEnvironment, getOpenBracket, getCloseBracket, findMatchingBracket, getEquationBounds } from "./editor_helpers"
@@ -29,6 +29,15 @@ export default class LatexSuitePlugin extends Plugin {
 
 	async onload() {
 		await this.loadSettings();
+
+		if ((this.app.vault as any).config?.legacyEditor) {
+			const message = "Obsidian Latex Suite: This plugin does not support the legacy editor.";
+
+			new Notice(message, 10000);
+            console.log(message);
+
+			return;
+        }
 
 		this.addSettingTab(new LatexSuiteSettingTab(this.app, this));
 		this.snippetManager = new SnippetManager();

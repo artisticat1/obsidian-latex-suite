@@ -7,11 +7,13 @@ Inspired by [Gilles Castel's setup using UltiSnips](https://castel.dev/post/lect
 
 The plugin's main feature is **snippets**, which help you write LaTeX quicker through text expansion. For example, type
 
-- "xdot" instead of "\dot{x}"
+- "sqx" instead of "\sqrt{x}"
 - "a/b" instead of "\frac{a}{b}"
 - "par x	y	" instead of "\frac{\partial x}{\partial y}"
 
 See [here](https://castel.dev/post/lecture-notes-1/) for more information.
+
+*Works with the new Live Preview editor only.*
 
 
 ## Features
@@ -44,7 +46,7 @@ To get started, type "dm" to enter display math mode. Try typing the following:
 **Have a look at the [cheatsheet](#cheatsheet)** for a list of commonly used default snippets.
 
 
-Once these feel familiar, you can check out the [default snippets](https://github.com/artisticat1/obsidian-latex-suite/blob/main/src/default_snippets.ts) for a fuller set of commands. e.g.
+Once these feel familiar, you can check out the [default snippets](https://github.com/artisticat1/obsidian-latex-suite/blob/main/src/default_snippets.ts) for more commands. e.g.
 
 - "par f <kbd>Tab</kbd> x <kbd>Tab</kbd>" → "\\frac{\\partial f}{\\partial x}".
 
@@ -63,8 +65,8 @@ Snippets are formatted as follows:
 - `trigger` : The text that triggers this snippet.
 - `replacement` : The text to replace the `trigger` with.
 - `options` : See below.
-- `priority` (optional): This snippet's priority. Snippets with higher priority are run first. Can be negative. Defaults to 0.
 - `description` (optional): A description for this snippet.
+- `priority` (optional): This snippet's priority. Defaults to 0. Snippets with higher priority are run first. Can be negative.
 
 
 #### Options
@@ -146,9 +148,11 @@ Sometimes you want to annotate math, or cancel or cross out terms. Selecting som
 | //                | \\frac{ }{ }     |
 | te <kbd>Tab</kbd> | \\text{ }        |
 | x1                | x_{1}            |
+| x,.               | \\mathbf{x}      |
+| x.,               | \\mathbf{x}      |
 | xdot              | \\dot{x}         |
 | xhat              | \\hat{x}         |
-| xbar              | \\overline{x}         |
+| xbar              | \\overline{x}    |
 
 When running a snippet that **moves the cursor inside brackets {}, press <kbd>Tab</kbd> to exit the brackets**.
 
