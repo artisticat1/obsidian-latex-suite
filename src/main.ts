@@ -1,4 +1,4 @@
-import { editorViewField, Plugin } from "obsidian";
+import { Plugin } from "obsidian";
 import { EditorView, ViewUpdate } from "@codemirror/view";
 import { SelectionRange, Prec } from "@codemirror/state";
 import { isWithinMath, replaceRange, setCursor, isInsideEnvironment, getOpenBracket, getCloseBracket, findMatchingBracket, getEquationBounds } from "./editor_helpers"
@@ -230,9 +230,6 @@ export default class LatexSuitePlugin extends Plugin {
 
 	private readonly onKeydown = (event: KeyboardEvent, view: EditorView) => {
 
-		const markdownView = view.state.field(editorViewField, false);
-		if (!markdownView) return;
-
 		const s = view.state.selection;
 
 		const ranges = Array.from(s.ranges).reverse(); // Last to first
@@ -348,10 +345,6 @@ export default class LatexSuitePlugin extends Plugin {
 		return {triggerPos: triggerPos, replacement: replacement};
 	}
 
-
-	private readonly expandSnippet = (view: EditorView, start:number, end: number, replacement:string) => {
-		replaceRange(view, start, end, replacement);
-	}
 
 
 	private readonly insertSnippetVariables = (trigger: string) => {
@@ -480,7 +473,7 @@ export default class LatexSuitePlugin extends Plugin {
 			const eqnStart = result.start;
 
 
-			const curLine = view.state.sliceDoc(0, to);
+			let curLine = view.state.sliceDoc(0, to);
 			let start = eqnStart;
 
 			if (from != to) {
@@ -492,6 +485,14 @@ export default class LatexSuitePlugin extends Plugin {
 			else {
 				// Find the contents of the fraction
                 // Match everything except spaces and +-, but allow these characters in brackets
+
+				// Also, allow spaces after greek letters
+				// By replacing spaces after greek letters with a dummy character (#)
+
+				if (this.settings.autofractionSpaceAfterGreekLetters) {
+					const regex = new RegExp("(" + SNIPPET_VARIABLES["${GREEK}"] + ") ([^ ])", "g");
+					curLine = curLine.replace(regex, "$1#$2");
+				}
 
 
 				for (let i = curLine.length - 1; i >= eqnStart; i--) {
@@ -523,7 +524,7 @@ export default class LatexSuitePlugin extends Plugin {
 			}
 
 			// Run autofraction
-			let numerator = curLine.slice(start);
+			let numerator = view.state.sliceDoc(start, to);
 
 			// Don't run on an empty line
             if (numerator === "") return false;
