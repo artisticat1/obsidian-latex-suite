@@ -1,3 +1,4 @@
+import { Platform } from "obsidian";
 import { Environment } from "./snippets";
 import { EditorView } from "@codemirror/view";
 import { EditorSelection, SelectionRange } from "@codemirror/state";
@@ -40,6 +41,8 @@ export function setSelections(view: EditorView, ranges: SelectionRange[]) {
 
 
 export function resetCursorBlink() {
+    if (Platform.isMobile) return;
+
     const cursorLayer = document.getElementsByClassName("cm-cursorLayer")[0] as HTMLElement;
     const curAnim = cursorLayer.style.animationName;
 
