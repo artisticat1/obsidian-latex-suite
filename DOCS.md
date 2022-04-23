@@ -1,5 +1,5 @@
-## Documentation
-### Snippets
+# Documentation
+## Snippets
 Snippets are formatted as follows:
 
 ```typescript
@@ -13,7 +13,7 @@ Snippets are formatted as follows:
 - `description` (optional): A description for this snippet.
 
 
-#### Options
+### Options
 - `m` : Math mode. Only run this snippet inside math
 - `t` : Text mode. Only run this snippet outside math
 - `A` : Auto. Expand this snippet as soon as the trigger is typed. If omitted, the <kbd>Tab</kbd> key must be pressed to expand the snippet
@@ -22,28 +22,13 @@ Snippets are formatted as follows:
 Multiple options can be used at once.
 
 
-#### Regex
-- Use the `r` option to create a regex snippet.
-- In the `trigger`, surround an expression with brackets `()` to create a capturing group.
-- Inside the `replacement` string, strings of the form `[[X]]` will be replaced by matches in increasing order of X, starting from 0.
-- Some characters, such as `\`, `+`, and `.`, are special characters in regex. If you want to use these literally, remember to escape them by inserting two backslashes (`\\`) before them!
-  - (One backslash to escape the special character, and another to escape that backlash)
-
-##### Example
-The snippet
-```typescript
-{trigger: "([A-Za-z])(\\d)", replacement: "[[0]]_{[[1]]}", options: "rA"}
-```
-will expand `x2` to `x_{2}`.
-
-
-#### Tabstops
+### Tabstops
 - Insert tabstops for the cursor to jump to using `$X`, where X is a number starting from 0.
 - Pressing <kbd>Tab</kbd> will move the cursor to the next tabstop.
 - Tabstops can have placeholders. Use the format `${X:text}`, where `text` is the text that will be selected by the cursor on moving to this tabstop.
 - Tabstops with the same number, X, will all be selected at the same time.
 
-##### Examples
+#### Examples
 ```typescript
 {trigger: "//", replacement: "\\frac{$0}{$1}$2", options: "mA"}
 
@@ -53,13 +38,33 @@ will expand `x2` to `x_{2}`.
 ```
 
 
-#### Variables
+### Regex
+- Use the `r` option to create a regex snippet.
+- In the `trigger`, surround an expression with brackets `()` to create a capturing group.
+- Inside the `replacement` string, strings of the form `[[X]]` will be replaced by matches in increasing order of X, starting from 0.
+- Some characters, such as `\`, `+`, and `.`, are special characters in regex. If you want to use these literally, remember to escape them by inserting two backslashes (`\\`) before them!
+  - (One backslash to escape the special character, and another to escape that backlash)
+
+> ❗ **Warnings**
+> - Some characters, such as `\`, `+`, and `.`, are special characters in regex. If you want to use these literally, remember to escape them by inserting two backslashes (`\\`) before them!
+>   - (One backslash to escape the special character, and another to escape that backslash)
+> - [Lookbehind regex is not supported on iOS.](https://github.com/bicarlsen/obsidian_image_caption/issues/4#issuecomment-982982629) Using lookbehind regex will cause snippets to break on iOS.
+
+#### Example
+The snippet
+```typescript
+{trigger: "([A-Za-z])(\\d)", replacement: "[[0]]_{[[1]]}", options: "rA"}
+```
+will expand `x2` to `x_{2}`.
+
+
+### Variables
 The following variables are available for use in a `trigger` or `replacement`:
 
 - `${VISUAL}` : Can be inserted in a `replacement`. When the snippet is expanded, "${VISUAL}" is replaced with the current selection.
 	- Visual snippets will not expand unless text is selected.
 
-##### Examples
+#### Examples
 ![visual snippets](gifs/visual_snippets.gif)
 
 

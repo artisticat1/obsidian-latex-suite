@@ -28,7 +28,7 @@ export const DEFAULT_SETTINGS: LatexSuiteSettings = {
     `[
         ["^{", "}"],
         ["\\\\pu{", "}"]
-    ]`,
+]`,
     autofractionSpaceAfterGreekLetters: true,
     matrixShortcutsEnabled: true,
     matrixShortcutsEnvNames: "pmatrix, cases, align, bmatrix, Bmatrix, vmatrix, Vmatrix, array, matrix",
