@@ -362,9 +362,11 @@ export class SnippetManager {
 
                 if (this.currentTabstopReferences.length > 1) {
                     const nextTabstopRef = this.currentTabstopReferences[1];
-                    const lastMarker = nextTabstopRef.markers.at(-1);
+                    const ranges = nextTabstopRef.ranges;
+                    const lastRange = ranges[ranges.length - 1];
 
-                    if (newMarker.from === newMarker. to && newMarker.to === lastMarker.to) {
+                    if (newMarker.from === newMarker. to && newMarker.to === lastRange.to) {
+
                         const colorIndex = nextTabstopRef.colorIndex;
 
                         newTabstop.colorIndex = colorIndex;
