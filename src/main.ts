@@ -594,6 +594,8 @@ export default class LatexSuitePlugin extends Plugin {
 
 
 	private readonly tabout = (view: EditorView, event: KeyboardEvent, withinMath: boolean):boolean => {
+		if (!withinMath) return false;
+
 		const pos = view.state.selection.main.to;
 		const result = getEquationBounds(view);
 		if (!result) return false;
@@ -601,7 +603,6 @@ export default class LatexSuitePlugin extends Plugin {
 
 		const d = view.state.doc;
 		const text = d.toString();
-		const line = d.lineAt(pos);
 
 
 
@@ -616,48 +617,42 @@ export default class LatexSuitePlugin extends Plugin {
         }
 
 
-		// If inside inline math, move outside the closing $
-		if (text.slice(end, end+2) != "$$") {
-			setCursor(view, end+1);
-
-			event.preventDefault();
-			return true;
-		}
-
-
 		// If cursor at end of line/equation, move to next line/outside $$ symbols
-		if (!withinMath) return false;
 
-		const linePos = pos - line.from;
+		// Check whether we're at end of equation
+		// Accounting for whitespace, using trim
+		const textBtwnCursorAndEnd = d.sliceString(pos, end);
+		const atEnd = textBtwnCursorAndEnd.trim().length === 0;
+
+		if (!atEnd) return false;
 
 
-		// Check whether we're at end of line
-		if (!(line.text.slice(linePos).trim().length === 0)) {
-			return false;
+		// Check whether we're in inline math or a block eqn
+		const inlineMath = d.sliceString(end, end+2) != "$$";
+
+		if (inlineMath) {
+			setCursor(view, end + 1);
+		}
+		else {
+			// First, locate the $$ symbol
+			const dollarLine = d.lineAt(end+2);
+
+			// If there's no line after the equation, create one
+
+			if (dollarLine.number === d.lines) {
+				replaceRange(view, dollarLine.to, dollarLine.to, "\n");
+			}
+
+			// Finally, move outside the $$ symbol
+			setCursor(view, dollarLine.to + 1);
+
+
+			// Trim whitespace at beginning / end of equation
+			const line = d.lineAt(pos);
+			replaceRange(view, line.from, line.to, line.text.trim());
+
 		}
 
-
-		// Trim whitespace at end of line
-		replaceRange(view, line.from, line.to, line.text.trim());
-
-
-		// If this is the last line, exit
-		if (line.number === d.lines) return false;
-
-
-		// Move outside $$ symbols
-		if (!(text.slice(line.to + 1, line.to + 3) === "$$")) {
-			return false;
-		}
-
-		const nextLine = view.state.doc.line(line.number + 1);
-
-		// If there's no line after the equation, create one
-		if (line.number + 1 === d.lines) {
-			replaceRange(view, nextLine.to, nextLine.to, "\n");
-		}
-
-		setCursor(view, nextLine.to + 1);
 		event.preventDefault();
 		return true;
 	}

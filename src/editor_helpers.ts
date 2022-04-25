@@ -67,6 +67,12 @@ export function isWithinMath(view: EditorView):boolean {
             withinMath = true;
         }
     }
+    else {
+        if (token.contains("end")) {
+            withinMath = false;
+        }
+    }
+
 
     // Check whether within "\text{}"
     if (withinMath) {
