@@ -31,15 +31,15 @@ function getBoxEquationCommand() {
 
             // @ts-ignore
             const view = editor.cm;
-
-            if (!checking) {
-                boxCurrentEquation(view);
-
-                return;
-            }
-
             const withinMath = isWithinMath(view);
-            return withinMath;
+
+            if (checking) return withinMath;
+            if (!withinMath) return;
+
+            boxCurrentEquation(view);
+
+            return;
+
         },
     }
 }
@@ -53,26 +53,26 @@ function getSelectEquationCommand() {
 
             // @ts-ignore
             const view = editor.cm;
-
-            if (!checking) {
-                const result = getEquationBounds(view);
-                if (!result) return false;
-                let {start, end} = result;
-
-                // Don't include newline characters in the selection
-                const doc = view.state.doc.toString();
-
-                if (doc.charAt(start) === "\n") start++;
-                if (doc.charAt(end - 1) === "\n") end--;
-
-
-                setSelection(view, start, end);
-
-                return;
-            }
-
             const withinMath = isWithinMath(view);
-            return withinMath;
+
+            if (checking) return withinMath;
+            if (!withinMath) return;
+
+
+            const result = getEquationBounds(view);
+            if (!result) return false;
+            let {start, end} = result;
+
+            // Don't include newline characters in the selection
+            const doc = view.state.doc.toString();
+
+            if (doc.charAt(start) === "\n") start++;
+            if (doc.charAt(end - 1) === "\n") end--;
+
+
+            setSelection(view, start, end);
+
+            return;
         },
     }
 }
