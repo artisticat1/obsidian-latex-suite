@@ -5,7 +5,7 @@ import { EditorSelection } from "@codemirror/state";
 import { Range } from "@codemirror/rangeset";
 import { syntaxTree } from "@codemirror/language";
 import { getEquationBounds } from "./editor_helpers";
-import { cmd_symbols, greek, map_super, map_sub } from "./conceal_maps";
+import { cmd_symbols, greek, map_super, map_sub, dot, hat, bar } from "./conceal_maps";
 
 
 export interface Concealment {
@@ -46,10 +46,9 @@ function selectionAndRangeOverlap(selection: EditorSelection, rangeFrom:
 
 
 
-function concealSymbols(eqn: string):Concealment[] {
-    const symbols = {...cmd_symbols, ...greek};
-    const symbolNames = Object.keys(symbols);
-    const symbolRegex = new RegExp("\\\\(" + symbolNames.join("|") + ")", "g");
+function concealSymbols(eqn: string, prefix: string, suffix: string, symbolMap: {[key: string]: string}):Concealment[] {
+    const symbolNames = Object.keys(symbolMap);
+    const symbolRegex = new RegExp(prefix + "(" + symbolNames.join("|") + ")" + suffix, "g");
 
     const matches = [...eqn.matchAll(symbolRegex)];
 
@@ -58,7 +57,7 @@ function concealSymbols(eqn: string):Concealment[] {
     for (const match of matches) {
         const symbol = match[1];
 
-        concealments.push({start: match.index, end: match.index + match[0].length, replacement: symbols[symbol]});
+        concealments.push({start: match.index, end: match.index + match[0].length, replacement: symbolMap[symbol]});
     }
 
     return concealments;
@@ -120,7 +119,14 @@ function conceal(view: EditorView) {
             const eqn = view.state.doc.sliceString(bounds.start, bounds.end);
 
 
-            const concealments = [...concealSymbols(eqn), ...concealSupSub(eqn, true, map_super), ...concealSupSub(eqn, false, map_sub)];
+            const concealments = [
+                ...concealSymbols(eqn, "\\\\", "", {...cmd_symbols, ...greek}),
+                ...concealSupSub(eqn, true, map_super),
+                ...concealSupSub(eqn, false, map_sub),
+                ...concealSymbols(eqn, "\\\\dot{", "}", dot),
+                ...concealSymbols(eqn, "\\\\hat{", "}", hat),
+                ...concealSymbols(eqn, "\\\\overline{", "}", bar)
+            ];
 
 
             for (const concealment of concealments) {
