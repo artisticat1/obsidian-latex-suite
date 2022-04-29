@@ -8,7 +8,8 @@ import { Environment, Snippet, SNIPPET_VARIABLES } from "./snippets"
 import { invertedEffects, undo, redo } from "@codemirror/history";
 import { markerStateField, addMark, removeMark, startSnippet, endSnippet, undidStartSnippet, undidEndSnippet } from "./marker_state_field";
 import { SnippetManager } from "./snippet_manager";
-import { editorCommands } from "./editor_commands"
+import { concealPlugin } from "./conceal";
+import { editorCommands } from "./editor_commands";
 import { parse } from "json5";
 
 
@@ -62,6 +63,8 @@ export default class LatexSuitePlugin extends Plugin {
 
 			this.handleUndoRedo(update);
         }));
+
+		this.registerEditorExtension(concealPlugin.extension);
 
 
 		this.addEditorCommands();

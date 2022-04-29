@@ -84,9 +84,11 @@ export function isWithinMath(view: EditorView):boolean {
 
 
 
-export function getEquationBounds(view: EditorView):{start: number, end: number} {
+export function getEquationBounds(view: EditorView, pos?: number):{start: number, end: number} {
     const text = view.state.doc.toString();
-    const pos = view.state.selection.main.from;
+    if (typeof pos === "undefined") {
+        pos = view.state.selection.main.from;
+    }
 
     const left = text.lastIndexOf("$", pos-1);
     const right = text.indexOf("$", pos);
