@@ -13,6 +13,7 @@ export interface LatexSuiteSettings {
     autofractionEnabled: boolean;
     autofractionExcludedEnvs: string,
     autofractionSpaceAfterGreekLetters: boolean,
+    concealEnabled: boolean,
     matrixShortcutsEnabled: boolean;
     matrixShortcutsEnvNames: string;
     taboutEnabled: boolean;
@@ -30,6 +31,7 @@ export const DEFAULT_SETTINGS: LatexSuiteSettings = {
         ["\\\\pu{", "}"]
 ]`,
     autofractionSpaceAfterGreekLetters: true,
+    concealEnabled: false,
     matrixShortcutsEnabled: true,
     matrixShortcutsEnvNames: "pmatrix, cases, align, bmatrix, Bmatrix, vmatrix, Vmatrix, array, matrix",
     taboutEnabled: true,
@@ -213,6 +215,29 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
                 .setValue(this.plugin.settings.autofractionSpaceAfterGreekLetters)
                 .onChange(async (value) => {
                     this.plugin.settings.autofractionSpaceAfterGreekLetters = value;
+                    await this.plugin.saveSettings();
+                }));
+
+
+
+        containerEl.createEl("h4", {text: "Conceal"});
+
+        new Setting(containerEl)
+            .setName("Enabled")
+            .setDesc(`Displays LaTeX code in a pretty format when it isn't being edited.\n e.g. \\dot{x}^{2} + \\dot{y}^{2} will display as ẋ² + ẏ²,
+            and \\sqrt{ 1-\\beta^{2} } will display as √{ 1-β² }.`)
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.concealEnabled)
+                .onChange(async (value) => {
+                    this.plugin.settings.concealEnabled = value;
+
+                    if (value) {
+                        this.plugin.enableConceal();
+                    }
+                    else {
+                        this.plugin.disableConceal();
+                    }
+
                     await this.plugin.saveSettings();
                 }));
 

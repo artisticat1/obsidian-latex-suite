@@ -1,12 +1,13 @@
 import { Plugin, Notice } from "obsidian";
 import { EditorView, ViewUpdate } from "@codemirror/view";
-import { SelectionRange, Prec } from "@codemirror/state";
-import { isWithinMath, replaceRange, setCursor, isInsideEnvironment, getOpenBracket, getCloseBracket, findMatchingBracket, getEquationBounds } from "./editor_helpers"
+import { SelectionRange, Prec, Extension } from "@codemirror/state";
+import { invertedEffects, undo, redo } from "@codemirror/history";
+
 
 import { LatexSuiteSettings, LatexSuiteSettingTab, DEFAULT_SETTINGS } from "./settings"
-import { Environment, Snippet, SNIPPET_VARIABLES } from "./snippets"
-import { invertedEffects, undo, redo } from "@codemirror/history";
+import { isWithinMath, replaceRange, setCursor, isInsideEnvironment, getOpenBracket, getCloseBracket, findMatchingBracket, getEquationBounds } from "./editor_helpers"
 import { markerStateField, addMark, removeMark, startSnippet, endSnippet, undidStartSnippet, undidEndSnippet } from "./marker_state_field";
+import { Environment, Snippet, SNIPPET_VARIABLES } from "./snippets"
 import { SnippetManager } from "./snippet_manager";
 import { concealPlugin } from "./conceal";
 import { editorCommands } from "./editor_commands";
@@ -26,6 +27,8 @@ export default class LatexSuitePlugin extends Plugin {
 
 	// When expanding snippets
 	private shouldAutoEnlargeBrackets = false;
+
+	private concealPluginExt:Extension[] = [];
 
 
 	async onload() {
@@ -64,7 +67,8 @@ export default class LatexSuitePlugin extends Plugin {
 			this.handleUndoRedo(update);
         }));
 
-		this.registerEditorExtension(concealPlugin.extension);
+		this.registerEditorExtension(this.concealPluginExt);
+
 
 
 		this.addEditorCommands();
@@ -159,6 +163,19 @@ export default class LatexSuitePlugin extends Plugin {
 	}
 
 
+	enableConceal() {
+		this.concealPluginExt.push(concealPlugin.extension);
+		this.app.workspace.updateOptions();
+	}
+
+
+	disableConceal() {
+		this.concealPluginExt.pop();
+		this.app.workspace.updateOptions();
+	}
+
+
+
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 
@@ -166,6 +183,8 @@ export default class LatexSuitePlugin extends Plugin {
 		this.setAutofractionExcludedEnvs(this.settings.autofractionExcludedEnvs);
 		this.matrixShortcutsEnvNames = this.settings.matrixShortcutsEnvNames.replace(/\s/g,"").split(",");
 		this.autoEnlargeBracketsTriggers = this.settings.autoEnlargeBracketsTriggers.replace(/\s/g,"").split(",");
+
+		if (this.settings.concealEnabled) this.enableConceal();
 	}
 
 	async saveSettings() {
