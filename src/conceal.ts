@@ -4,7 +4,7 @@ import { EditorView, ViewUpdate, Decoration, DecorationSet, WidgetType, ViewPlug
 import { EditorSelection } from "@codemirror/state";
 import { Range } from "@codemirror/rangeset";
 import { syntaxTree } from "@codemirror/language";
-import { getEquationBounds } from "./editor_helpers";
+import { getEquationBounds, findMatchingBracket } from "./editor_helpers";
 import { cmd_symbols, greek, map_super, map_sub, dot, hat, bar, brackets, mathbb, mathscrcal } from "./conceal_maps";
 
 
@@ -166,9 +166,51 @@ function concealAtoZ(eqn: string, prefix: string, suffix: string, symbolMap: {[k
 
 
 
+
+function concealBraKet(eqn: string, selection: EditorSelection, eqnStartBound: number):Concealment[] {
+    const langle = "〈";
+    const rangle = "〉";
+    const vert = "|";
+
+    const regexStr = "\\\\(braket|bra|ket){";
+    const symbolRegex = new RegExp(regexStr, "g");
+
+    const matches = [...eqn.matchAll(symbolRegex)];
+
+    const concealments:Concealment[] = [];
+
+    for (const match of matches) {
+        const loc = match.index + match[0].length;
+        const j = findMatchingBracket(eqn, loc-1, "{", "}", false);
+
+        if (j === -1) continue;
+
+        const start = match.index;
+        const end = start + match[0].length;
+
+        if (selectionAndRangeOverlap(selection, eqnStartBound + start, eqnStartBound + end)) continue;
+        if (selectionAndRangeOverlap(selection, eqnStartBound + j, eqnStartBound + j + 1)) continue;
+
+
+        const type = match[1];
+        const left = type === "ket" ? vert : langle;
+        const right = type === "bra" ? vert : rangle;
+
+
+        concealments.push({start: start, end: end, replacement: left, class: "cm-bracket"});
+        concealments.push({start: j, end: j + 1, replacement: right, class: "cm-bracket"});
+    }
+
+    return concealments;
+}
+
+
+
+
 function conceal(view: EditorView) {
 
     const widgets: Range<Decoration>[] = []
+    const selection = view.state.selection;
 
 
     for (const { from, to } of view.visibleRanges) {
@@ -195,6 +237,7 @@ function conceal(view: EditorView) {
                 ...concealSymbols(eqn, "\\\\", "", brackets, "cm-bracket"),
                 ...concealAtoZ(eqn, "\\\\mathcal{", "}", mathscrcal),
                 ...concealBoldAndMathBB(eqn, mathbb),
+                ...concealBraKet(eqn, selection, bounds.start)
             ];
 
 
@@ -203,7 +246,7 @@ function conceal(view: EditorView) {
                 const end = bounds.start + concealment.end;
                 const symbol = concealment.replacement;
 
-                if (selectionAndRangeOverlap(view.state.selection, start, end)) continue;
+                if (selectionAndRangeOverlap(selection, start, end)) continue;
 
 
                 widgets.push(
