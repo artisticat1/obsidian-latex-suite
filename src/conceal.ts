@@ -5,7 +5,7 @@ import { EditorSelection } from "@codemirror/state";
 import { Range } from "@codemirror/rangeset";
 import { syntaxTree } from "@codemirror/language";
 import { getEquationBounds } from "./editor_helpers";
-import { cmd_symbols, greek, map_super, map_sub, dot, hat, bar, brackets } from "./conceal_maps";
+import { cmd_symbols, greek, map_super, map_sub, dot, hat, bar, brackets, mathbb, mathscrcal } from "./conceal_maps";
 
 
 export interface Concealment {
@@ -114,9 +114,9 @@ function concealSupSub(eqn: string, superscript: boolean, symbolMap: {[key: stri
 
 
 
-function concealBold(eqn: string):Concealment[] {
+function concealBoldAndMathBB(eqn: string, symbolMap: {[key: string]:string}):Concealment[] {
 
-    const regexStr = "\\\\mathbf{([A-Za-z0-9]+)}";
+    const regexStr = "\\\\(mathbf|mathbb){([A-Za-z0-9]+)}";
     const regex = new RegExp(regexStr, "g");
 
     const matches = [...eqn.matchAll(regex)];
@@ -124,13 +124,45 @@ function concealBold(eqn: string):Concealment[] {
     const concealments:Concealment[] = [];
 
     for (const match of matches) {
-        const value = match[1];
+        const type = match[1];
+        const value = match[2];
 
-        concealments.push({start: match.index, end: match.index + match[0].length, replacement: value, class: "cm-concealed-bold cm-variable-1"});
+        const start = match.index;
+        const end = start + match[0].length;
+
+        if (type === "mathbf") {
+            concealments.push({start: start, end: end, replacement: value, class: "cm-concealed-bold cm-variable-1"});
+        }
+        else {
+            concealments.push({start: start, end: end, replacement: symbolMap[value]});
+        }
+
     }
 
     return concealments;
 }
+
+
+
+function concealAtoZ(eqn: string, prefix: string, suffix: string, symbolMap: {[key: string]: string}, className?: string):Concealment[] {
+
+    const regexStr = prefix + "([A-Z]+)" + suffix;
+    const symbolRegex = new RegExp(regexStr, "g");
+
+
+    const matches = [...eqn.matchAll(symbolRegex)];
+
+    const concealments:Concealment[] = [];
+
+    for (const match of matches) {
+        const symbol = match[1];
+
+        concealments.push({start: match.index, end: match.index + match[0].length, replacement: symbolMap[symbol], class: className});
+    }
+
+    return concealments;
+}
+
 
 
 
@@ -154,14 +186,15 @@ function conceal(view: EditorView) {
 
 
             const concealments = [
-                ...concealSymbols(eqn, "\\\\", "", {...cmd_symbols, ...greek}),
                 ...concealSupSub(eqn, true, map_super),
                 ...concealSupSub(eqn, false, map_sub),
+                ...concealSymbols(eqn, "\\\\", "", {...cmd_symbols, ...greek}),
                 ...concealSymbols(eqn, "\\\\dot{", "}", dot),
                 ...concealSymbols(eqn, "\\\\hat{", "}", hat),
                 ...concealSymbols(eqn, "\\\\overline{", "}", bar),
                 ...concealSymbols(eqn, "\\\\", "", brackets, "cm-bracket"),
-                ...concealBold(eqn)
+                ...concealAtoZ(eqn, "\\\\mathcal{", "}", mathscrcal),
+                ...concealBoldAndMathBB(eqn, mathbb),
             ];
 
 
