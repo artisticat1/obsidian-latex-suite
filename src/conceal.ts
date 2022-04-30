@@ -5,20 +5,24 @@ import { EditorSelection } from "@codemirror/state";
 import { Range } from "@codemirror/rangeset";
 import { syntaxTree } from "@codemirror/language";
 import { getEquationBounds } from "./editor_helpers";
-import { cmd_symbols, greek, map_super, map_sub, dot, hat, bar } from "./conceal_maps";
+import { cmd_symbols, greek, map_super, map_sub, dot, hat, bar, brackets } from "./conceal_maps";
 
 
 export interface Concealment {
     start: number,
     end: number,
-    replacement: string
+    replacement: string,
+    class?: string
 }
 
 
 class ConcealWidget extends WidgetType {
+    private readonly className: string;
 
-    constructor(readonly symbol: string) {
-        super()
+    constructor(readonly symbol: string, className?: string) {
+        super();
+
+        this.className = className ? className : "";
     }
 
     eq(other: ConcealWidget) {
@@ -27,7 +31,7 @@ class ConcealWidget extends WidgetType {
 
     toDOM() {
         const span = document.createElement("span")
-        span.className = "cm-math cm-concealed-sym" /* Formatting to be taken care of*/
+        span.className = "cm-math " + this.className;
         span.textContent = this.symbol
         return span;
     }
@@ -46,9 +50,24 @@ function selectionAndRangeOverlap(selection: EditorSelection, rangeFrom:
 
 
 
-function concealSymbols(eqn: string, prefix: string, suffix: string, symbolMap: {[key: string]: string}):Concealment[] {
+function escapeRegex(regex: string) {
+    const escapeChars = ["\\", "(", ")", "+", "-", "[", "]"];
+
+    for (const escapeChar of escapeChars) {
+        regex = regex.replaceAll(escapeChar, "\\" + escapeChar);
+    }
+
+    return regex;
+}
+
+
+
+function concealSymbols(eqn: string, prefix: string, suffix: string, symbolMap: {[key: string]: string}, className?: string):Concealment[] {
     const symbolNames = Object.keys(symbolMap);
-    const symbolRegex = new RegExp(prefix + "(" + symbolNames.join("|") + ")" + suffix, "g");
+
+    const regexStr = prefix + "(" + escapeRegex(symbolNames.join("|")) + ")" + suffix;
+    const symbolRegex = new RegExp(regexStr, "g");
+
 
     const matches = [...eqn.matchAll(symbolRegex)];
 
@@ -57,7 +76,7 @@ function concealSymbols(eqn: string, prefix: string, suffix: string, symbolMap: 
     for (const match of matches) {
         const symbol = match[1];
 
-        concealments.push({start: match.index, end: match.index + match[0].length, replacement: symbolMap[symbol]});
+        concealments.push({start: match.index, end: match.index + match[0].length, replacement: symbolMap[symbol], class: className});
     }
 
     return concealments;
@@ -69,13 +88,7 @@ function concealSupSub(eqn: string, superscript: boolean, symbolMap: {[key: stri
     const symbolNames = Object.keys(symbolMap);
 
     const prefix = superscript ? "\\^" : "_";
-    let regexStr = prefix + "{([" + symbolNames.join("|") + "]+)}";
-
-    const escapeChars = ["(", ")", "+", "-"];
-    for (const escapeChar of escapeChars) {
-        regexStr = regexStr.replace("|" + escapeChar + "|", "|\\" + escapeChar + "|");
-    }
-
+    const regexStr = prefix + "{([" + escapeRegex(symbolNames.join("|")) + "]+)}";
     const regex = new RegExp(regexStr, "g");
 
     const matches = [...eqn.matchAll(regex)];
@@ -92,7 +105,28 @@ function concealSupSub(eqn: string, superscript: boolean, symbolMap: {[key: stri
             replacement = replacement + symbolMap[letter];
         }
 
-        concealments.push({start: match.index, end: match.index + match[0].length, replacement: replacement});
+        concealments.push({start: match.index, end: match.index + match[0].length, replacement: replacement, class: "cm-number"});
+    }
+
+    return concealments;
+}
+
+
+
+
+function concealBold(eqn: string):Concealment[] {
+
+    const regexStr = "\\\\mathbf{([A-Za-z0-9]+)}";
+    const regex = new RegExp(regexStr, "g");
+
+    const matches = [...eqn.matchAll(regex)];
+
+    const concealments:Concealment[] = [];
+
+    for (const match of matches) {
+        const value = match[1];
+
+        concealments.push({start: match.index, end: match.index + match[0].length, replacement: value, class: "cm-concealed-bold cm-variable-1"});
     }
 
     return concealments;
@@ -125,7 +159,9 @@ function conceal(view: EditorView) {
                 ...concealSupSub(eqn, false, map_sub),
                 ...concealSymbols(eqn, "\\\\dot{", "}", dot),
                 ...concealSymbols(eqn, "\\\\hat{", "}", hat),
-                ...concealSymbols(eqn, "\\\\overline{", "}", bar)
+                ...concealSymbols(eqn, "\\\\overline{", "}", bar),
+                ...concealSymbols(eqn, "\\\\", "", brackets, "cm-bracket"),
+                ...concealBold(eqn)
             ];
 
 
@@ -139,7 +175,7 @@ function conceal(view: EditorView) {
 
                 widgets.push(
                     Decoration.replace({
-                        widget: new ConcealWidget(symbol),
+                        widget: new ConcealWidget(symbol, concealment.class),
                         inclusive: false,
                         block: false,
                     }).range(start, end)

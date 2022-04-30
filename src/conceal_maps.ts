@@ -130,8 +130,8 @@ export const cmd_symbols:{[name:string]: string} =
     "searrow": "↘",
     "setminus": "⧵",
     "sharp": "♯",
-    "sim": "∼",
     "simeq": "⋍",
+    "sim": "∼",
     "smile": "‿",
     "spadesuit": "♠",
     "sqcap": "⊓",
@@ -413,4 +413,15 @@ export const hat = {
     "W": "Ŵ",
     "y": "ŷ",
     "Y": "Ŷ",
+}
+
+
+
+export const brackets = {
+    "left(": "(",
+    "left[": "[",
+    "left\\{": "\\{",
+    "right)": ")",
+    "right]": "]",
+    "right\\}": "\\}"
 }

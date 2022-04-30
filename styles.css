@@ -178,3 +178,10 @@ span.latex-suite-suggestion-placeholder5 span {
 span.latex-suite-suggestion-placeholder6 span {
     border-color: navajowhite;
 }
+
+
+/* Conceal */
+
+.cm-concealed-bold {
+    font-weight: bold;
+}
