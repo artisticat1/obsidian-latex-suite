@@ -293,11 +293,11 @@ export const map_super:{[name: string]:string} = {
 
 export const map_sub =
 {
-    "\\beta":  "ᵦ",
-    "\\rho":   "ᵨ",
-    "\\phi":   "ᵩ",
-    "\\gamma": "ᵧ",
-    "\\chi":   "ᵪ",
+    // "\\beta":  "ᵦ",
+    // "\\rho":   "ᵨ",
+    // "\\phi":   "ᵩ",
+    // "\\gamma": "ᵧ",
+    // "\\chi":   "ᵪ",
     "(":       "₍",
     ")":       "₎",
     "+":       "₊",
