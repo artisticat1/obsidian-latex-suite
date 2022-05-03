@@ -44,8 +44,14 @@ class ConcealWidget extends WidgetType {
 
 function selectionAndRangeOverlap(selection: EditorSelection, rangeFrom:
     number, rangeTo: number) {
-    return (selection.main.from <= rangeTo) &&
-        (selection.main.to) >= rangeFrom;
+
+    for (const range of selection.ranges) {
+        if ((range.from <= rangeTo) && (range.to) >= rangeFrom) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 
