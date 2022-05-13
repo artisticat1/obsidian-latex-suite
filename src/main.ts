@@ -67,7 +67,7 @@ export default class LatexSuitePlugin extends Plugin {
 			this.handleUndoRedo(update);
         }));
 
-		this.registerEditorExtension(this.concealPluginExt);
+		// this.registerEditorExtension(this.concealPluginExt);
 
 
 

@@ -220,26 +220,26 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 
 
-        containerEl.createEl("h4", {text: "Conceal"});
+        // containerEl.createEl("h4", {text: "Conceal"});
 
-        new Setting(containerEl)
-            .setName("Enabled")
-            .setDesc(`Displays LaTeX code in a pretty format when it isn't being edited.\n e.g. \\dot{x}^{2} + \\dot{y}^{2} will display as ẋ² + ẏ²,
-            and \\sqrt{ 1-\\beta^{2} } will display as √{ 1-β² }.`)
-            .addToggle(toggle => toggle
-                .setValue(this.plugin.settings.concealEnabled)
-                .onChange(async (value) => {
-                    this.plugin.settings.concealEnabled = value;
+        // new Setting(containerEl)
+        //     .setName("Enabled")
+        //     .setDesc(`Displays LaTeX code in a pretty format when it isn't being edited.\n e.g. \\dot{x}^{2} + \\dot{y}^{2} will display as ẋ² + ẏ²,
+        //     and \\sqrt{ 1-\\beta^{2} } will display as √{ 1-β² }.`)
+        //     .addToggle(toggle => toggle
+        //         .setValue(this.plugin.settings.concealEnabled)
+        //         .onChange(async (value) => {
+        //             this.plugin.settings.concealEnabled = value;
 
-                    if (value) {
-                        this.plugin.enableConceal();
-                    }
-                    else {
-                        this.plugin.disableConceal();
-                    }
+        //             if (value) {
+        //                 this.plugin.enableConceal();
+        //             }
+        //             else {
+        //                 this.plugin.disableConceal();
+        //             }
 
-                    await this.plugin.saveSettings();
-                }));
+        //             await this.plugin.saveSettings();
+        //         }));
 
 
         containerEl.createEl("h4", {text: "Matrix shortcuts"});
