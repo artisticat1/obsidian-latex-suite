@@ -1,4 +1,4 @@
-import { Plugin, Notice } from "obsidian";
+import { Plugin, Notice, MarkdownView } from "obsidian";
 import { EditorView, ViewUpdate } from "@codemirror/view";
 import { SelectionRange, Prec, Extension } from "@codemirror/state";
 import { invertedEffects, undo, redo } from "@codemirror/history";
@@ -28,6 +28,9 @@ export default class LatexSuitePlugin extends Plugin {
 	// When expanding snippets
 	private shouldAutoEnlargeBrackets = false;
 
+
+	private inVimInsertMode = false;
+
 	private concealPluginExt:Extension[] = [];
 
 
@@ -45,6 +48,10 @@ export default class LatexSuitePlugin extends Plugin {
 
 		this.addSettingTab(new LatexSuiteSettingTab(this.app, this));
 		this.snippetManager = new SnippetManager();
+
+
+		// Handle vim mode
+		this.app.workspace.on("file-open", this.trackVimMode.bind(this));
 
 
 		this.registerEditorExtension(markerStateField);
@@ -76,6 +83,9 @@ export default class LatexSuitePlugin extends Plugin {
 
 	onunload() {
 		this.snippetManager.onunload();
+
+		// Doesn't work for some reason
+		// this.app.workspace.off("file-open", this.vimModeTracker);
 	}
 
 
@@ -176,6 +186,25 @@ export default class LatexSuitePlugin extends Plugin {
 
 
 
+	trackVimMode() {
+		// From https://github.com/esm7/obsidian-vimrc-support/blob/master/main.ts
+
+		const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+		if (!view) return;
+
+		const editor = (view as any).sourceMode?.cmEditor?.cm?.cm;
+		if (!editor) return;
+
+		editor.on("vim-mode-change", (modeObj: any) => {
+			if (!modeObj) return;
+
+			this.inVimInsertMode = (modeObj.mode === "insert");
+			// console.log(this.inVimInsertMode);
+		});
+	}
+
+
+
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 
@@ -262,22 +291,28 @@ export default class LatexSuitePlugin extends Plugin {
 	private readonly onKeydown = (event: KeyboardEvent, view: EditorView) => {
 
 		const s = view.state.selection;
-
-		const ranges = Array.from(s.ranges).reverse(); // Last to first
 		const pos = s.main.to;
+		const ranges = Array.from(s.ranges).reverse(); // Last to first
+
 		const withinMath = isWithinMath(view);
+
+		// @ts-ignore
+		const inVimMode = this.app.vault.getConfig("vimMode");
 
 
 		let success = false;
 
 
 		if (this.settings.snippetsEnabled) {
+			// Only run snippets while in insert mode in vim
+			if ((!inVimMode || this.inVimInsertMode)) {
 
-			// Allows Ctrl + z for undo, instead of triggering a snippet ending with z
-			if (!event.ctrlKey) {
-				success = this.runSnippets(view, event, withinMath, ranges);
+				// Allows Ctrl + z for undo, instead of triggering a snippet ending with z
+				if (!event.ctrlKey) {
+					success = this.runSnippets(view, event, withinMath, ranges);
 
-				if (success) return;
+					if (success) return;
+				}
 			}
 		}
 
