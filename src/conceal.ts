@@ -236,6 +236,8 @@ function conceal(view: EditorView) {
             const concealments = [
                 ...concealSupSub(eqn, true, map_super),
                 ...concealSupSub(eqn, false, map_sub),
+                ...concealSymbols(eqn, "\\^", "", map_super),
+                ...concealSymbols(eqn, "_", "", map_sub),
                 ...concealSymbols(eqn, "\\\\", "", {...greek, ...cmd_symbols}),
                 ...concealSymbols(eqn, "\\\\dot{", "}", dot),
                 ...concealSymbols(eqn, "\\\\hat{", "}", hat),
