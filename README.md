@@ -1,11 +1,11 @@
 # Obsidian Latex Suite
-A plugin for Obsidian that aims to make typesetting LaTeX as fast as handwriting.
+A plugin for Obsidian that aims to make typesetting LaTeX math as fast as handwriting.
 
 Inspired by [Gilles Castel's setup using UltiSnips](https://castel.dev/post/lecture-notes-1/).
 
 ![demo](https://raw.githubusercontent.com/artisticat1/obsidian-latex-suite/main/gifs/demo.gif)
 
-The plugin's main feature is **snippets**, which help you write LaTeX quicker through text expansion. For example, type
+The plugin's main feature is **snippets**, which help you write LaTeX quicker through shortcuts and text expansion! For example, type
 
 - "sqx" instead of "\sqrt{x}"
 - "a/b" instead of "\frac{a}{b}"
@@ -13,7 +13,7 @@ The plugin's main feature is **snippets**, which help you write LaTeX quicker th
 
 See [here](https://castel.dev/post/lecture-notes-1/) for more information.
 
-*Works with the new Live Preview editor only.*
+*Works on mobile! Works with the new Live Preview editor only.*
 
 
 ## Features
@@ -189,3 +189,10 @@ e.g. "pi" → "\\pi"
 - [@tth05](https://github.com/tth05)'s [Obsidian Completr](https://github.com/tth05/obsidian-completr) for the basis of the tabstop code
 - [Dynamic Highlights](https://github.com/nothingislost/obsidian-dynamic-highlights/blob/master/src/settings/ui.ts) for reference
 - [Quick Latex for Obsidian](https://github.com/joeyuping/quick_latex_obsidian) for inspiration
+
+
+
+## Support
+If you like this plugin and want to say thanks, you can buy me a coffee here.
+
+<a href='https://ko-fi.com/J3J6BBZAW' target='_blank'><img height='48' style='border:0px;height:48px;' src='https://cdn.ko-fi.com/cdn/kofi1.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
