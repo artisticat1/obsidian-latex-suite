@@ -317,6 +317,22 @@ export class SnippetManager {
 
 
 
+    isInsideLastTabstop(pos: number):boolean {
+        if (this.currentTabstopReferences.length === 0) return false;
+
+        let isInside = false;
+
+        const lastTabstopRef = this.currentTabstopReferences.at(-1);
+        const ranges = lastTabstopRef.ranges;
+        const lastRange = ranges.at(0);
+
+        isInside = (lastRange.from <= pos) && (pos <= lastRange.to);
+
+        return isInside;
+    }
+
+
+
     consumeAndGotoNextTabstop(view: EditorView): boolean {
         // Check whether there are currently any tabstops
         if (this.currentTabstopReferences.length === 0) return false;

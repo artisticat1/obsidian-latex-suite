@@ -100,7 +100,7 @@ export default class LatexSuitePlugin extends Plugin {
             return;
         }
 
-        if (!this.snippetManager.isInsideATabstop(pos)) {
+        if (!this.snippetManager.isInsideATabstop(pos) || this.snippetManager.isInsideLastTabstop(pos)) {
             this.snippetManager.clearAllTabstops(view);
         }
     }
