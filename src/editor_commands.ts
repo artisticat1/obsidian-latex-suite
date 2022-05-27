@@ -1,6 +1,6 @@
 import { Editor, MarkdownView } from "obsidian";
 import { EditorView } from "@codemirror/view";
-import { isWithinMath, getEquationBounds, replaceRange, setCursor, setSelection } from "./editor_helpers";
+import { isWithinEquation, getEquationBounds, replaceRange, setCursor, setSelection } from "./editor_helpers";
 
 
 function boxCurrentEquation(view: EditorView) {
@@ -31,10 +31,10 @@ function getBoxEquationCommand() {
 
             // @ts-ignore
             const view = editor.cm;
-            const withinMath = isWithinMath(view);
+            const withinEquation = isWithinEquation(view);
 
-            if (checking) return withinMath;
-            if (!withinMath) return;
+            if (checking) return withinEquation;
+            if (!withinEquation) return;
 
             boxCurrentEquation(view);
 
@@ -53,10 +53,10 @@ function getSelectEquationCommand() {
 
             // @ts-ignore
             const view = editor.cm;
-            const withinMath = isWithinMath(view);
+            const withinEquation = isWithinEquation(view);
 
-            if (checking) return withinMath;
-            if (!withinMath) return;
+            if (checking) return withinEquation;
+            if (!withinEquation) return;
 
 
             const result = getEquationBounds(view);

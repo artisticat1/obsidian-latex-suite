@@ -50,36 +50,31 @@ export function resetCursorBlink() {
 }
 
 
-export function isWithinMath(view: EditorView):boolean {
+export function isWithinEquation(view: EditorView):boolean {
     const pos = view.state.selection.main.to - 1;
     const tree = syntaxTree(view.state);
 
     const token = tree.resolveInner(pos, 1).name;
-    let withinMath = token.contains("math");
+    let withinEquation = token.contains("math");
 
-    if (!withinMath) {
+    if (!withinEquation) {
         // Allows detection of math mode at beginning of a line
 
         const tokenLeft = tree.resolveInner(pos - 1, 1).name;
         const tokenRight = tree.resolveInner(pos + 1, 1).name;
 
         if (tokenLeft.contains("math") && tokenRight.contains("math")) {
-            withinMath = true;
+            withinEquation = true;
         }
     }
     else {
         if (token.contains("end")) {
-            withinMath = false;
+            withinEquation = false;
         }
     }
 
 
-    // Check whether within "\text{}"
-    if (withinMath) {
-        withinMath = !(isInsideEnvironment(view, pos+1, {openSymbol: "\\text{", closeSymbol: "}"}));
-    }
-
-    return withinMath;
+    return withinEquation;
 }
 
 

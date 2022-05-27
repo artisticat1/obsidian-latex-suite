@@ -5,7 +5,7 @@ import { invertedEffects, undo, redo } from "@codemirror/history";
 
 
 import { LatexSuiteSettings, LatexSuiteSettingTab, DEFAULT_SETTINGS } from "./settings"
-import { isWithinMath, replaceRange, setCursor, isInsideEnvironment, getOpenBracket, getCloseBracket, findMatchingBracket, getEquationBounds } from "./editor_helpers"
+import { isWithinEquation, replaceRange, setCursor, isInsideEnvironment, getOpenBracket, getCloseBracket, findMatchingBracket, getEquationBounds } from "./editor_helpers"
 import { markerStateField, addMark, removeMark, startSnippet, endSnippet, undidStartSnippet, undidEndSnippet } from "./marker_state_field";
 import { Environment, Snippet, SNIPPET_VARIABLES } from "./snippets"
 import { SnippetManager } from "./snippet_manager";
@@ -294,7 +294,12 @@ export default class LatexSuitePlugin extends Plugin {
 		const pos = s.main.to;
 		const ranges = Array.from(s.ranges).reverse(); // Last to first
 
-		const withinMath = isWithinMath(view);
+		const withinEquation = isWithinEquation(view);
+
+		// Check whether within "\text{}"
+		let withinMath = false;
+		if (withinEquation) withinMath = !isInsideEnvironment(view, pos, {openSymbol: "\\text{", closeSymbol: "}"});
+
 
 		// @ts-ignore
 		const inVimMode = this.app.vault.getConfig("vimMode");
@@ -344,7 +349,7 @@ export default class LatexSuitePlugin extends Plugin {
 
 		if (this.settings.taboutEnabled) {
 			if (event.key === "Tab") {
-				success = this.tabout(view, event, withinMath);
+				success = this.tabout(view, event, withinEquation);
 
 				if (success) return;
 			}
@@ -650,8 +655,8 @@ export default class LatexSuitePlugin extends Plugin {
 	}
 
 
-	private readonly tabout = (view: EditorView, event: KeyboardEvent, withinMath: boolean):boolean => {
-		if (!withinMath) return false;
+	private readonly tabout = (view: EditorView, event: KeyboardEvent, withinEquation: boolean):boolean => {
+		if (!withinEquation) return false;
 
 		const pos = view.state.selection.main.to;
 		const result = getEquationBounds(view);
