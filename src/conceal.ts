@@ -228,6 +228,7 @@ function conceal(view: EditorView) {
             }
 
             const bounds = getEquationBounds(view, to+1);
+            if (!bounds) return;
 
 
             const eqn = view.state.doc.sliceString(bounds.start, bounds.end);
