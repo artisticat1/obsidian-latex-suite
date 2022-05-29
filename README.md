@@ -1,4 +1,6 @@
 # Obsidian Latex Suite
+**New in 1.2.0: Conceal feature! See below for more info.**
+
 *Works with the new Live Preview editor only.*
 
 A plugin for Obsidian that aims to make typesetting LaTeX math as fast as handwriting.
