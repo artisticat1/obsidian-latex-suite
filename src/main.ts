@@ -51,7 +51,7 @@ export default class LatexSuitePlugin extends Plugin {
 
 
 		// Handle vim mode
-		this.app.workspace.on("file-open", this.trackVimMode.bind(this));
+		this.app.workspace.on("file-open", this.trackVimMode);
 
 
 		this.registerEditorExtension(markerStateField);
@@ -84,8 +84,7 @@ export default class LatexSuitePlugin extends Plugin {
 	onunload() {
 		this.snippetManager.onunload();
 
-		// Doesn't work for some reason
-		// this.app.workspace.off("file-open", this.vimModeTracker);
+		this.app.workspace.off("file-open", this.trackVimMode);
 	}
 
 
@@ -186,7 +185,7 @@ export default class LatexSuitePlugin extends Plugin {
 
 
 
-	trackVimMode() {
+	trackVimMode = () => {
 		// From https://github.com/esm7/obsidian-vimrc-support/blob/master/main.ts
 
 		const view = this.app.workspace.getActiveViewOfType(MarkdownView);
