@@ -183,7 +183,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
         const fragment = document.createDocumentFragment();
         const line1 = document.createElement("div");
-        line1.setText("Hide LaTeX markup and instead display it in a pretty format.");
+        line1.setText("Make equations more readable by hiding LaTeX markup and instead displaying it in a pretty format.");
         const line2 = document.createElement("div");
         line2.setText("e.g. \\dot{x}^{2} + \\dot{y}^{2} will display as ẋ² + ẏ², and \\sqrt{ 1-\\beta^{2} } will display as √{ 1-β² }.");
         const line3 = document.createElement("div");

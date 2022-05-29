@@ -1,4 +1,6 @@
 # Obsidian Latex Suite
+*Works with the new Live Preview editor only.*
+
 A plugin for Obsidian that aims to make typesetting LaTeX math as fast as handwriting.
 
 Inspired by [Gilles Castel's setup using UltiSnips](https://castel.dev/post/lecture-notes-1/).
@@ -11,27 +13,10 @@ The plugin's main feature is **snippets**, which help you write LaTeX quicker th
 - "a/b" instead of "\frac{a}{b}"
 - "par x	y	" instead of "\frac{\partial x}{\partial y}"
 
-See [here](https://castel.dev/post/lecture-notes-1/) for more information.
-
-*Works on mobile! Works with the new Live Preview editor only.*
+See [Gilles Castel's writeup](https://castel.dev/post/lecture-notes-1/) for more information.
 
 
-## Features
-- Snippets
-	- Tabstops
-	- Regex
-	- Options
-- Multiple cursor support
-- Auto-fraction
-- Matrix shortcuts
-- Auto-enlarge brackets
-- Tabout
-- Editor commands
-
-You can switch features on/off in settings.
-
-
-The plugin comes with a [set of default snippets](https://github.com/artisticat1/obsidian-latex-suite/blob/main/src/default_snippets.ts), loosely based on [Gilles Castel's](https://castel.dev/post/lecture-notes-1/#other-snippets). You can modify them, remove them, and write your own!
+The plugin comes with a [set of default snippets](https://github.com/artisticat1/obsidian-latex-suite/blob/main/src/default_snippets.ts), loosely based on [Gilles Castel's](https://castel.dev/post/lecture-notes-1/#other-snippets). You can modify them, remove them, and write your own.
 
 
 ## Usage
@@ -53,7 +38,76 @@ Once these feel familiar, you can check out the [default snippets](https://githu
 - "dint <kbd>Tab</kbd> 2pi <kbd>Tab</kbd> sin @t <kbd>Tab</kbd> @t <kbd>Tab</kbd>" → "\\int_{0}^{2\pi} \\sin \\theta \\, d\\theta".
 
 
-You can also add your own snippets!
+You can also add your own snippets! [See here for more info on writing snippets](#snippets).
+
+
+## Features
+### Auto-fraction
+Lets you type "1/x" instead of "\frac{1}{x}".
+
+For example, it makes the following expansions:
+
+- `x/` → `\frac{x}{}`
+- `(a + b(c + d))/` → `\frac{a + b(c + d)}{}`
+
+and moves the cursor inside the brackets.
+
+Once done typing the denominator, press <kbd>Tab</kbd> to exit the fraction.
+
+![auto-fraction](https://raw.githubusercontent.com/artisticat1/obsidian-latex-suite/main/gifs/auto-fraction.gif)
+
+
+### Matrix shortcuts
+While inside a matrix, array, align, or cases environment,
+
+- Pressing <kbd>Tab</kbd> will insert the "&" symbol
+- Pressing <kbd>Enter</kbd> will insert "\\\\" and move to a new line
+- Pressing <kbd>Shift + Enter</kbd> will move to the end of the next line (can be used to exit the matrix)
+
+![matrix shortcuts](https://raw.githubusercontent.com/artisticat1/obsidian-latex-suite/main/gifs/matrix_shortcuts.gif)
+
+
+### Conceal
+*This feature must be enabled in settings!*
+
+The **conceal** feature makes your equations more readable by hiding LaTeX code, instead rendering it in a pretty format.
+
+For example, "\dot{x}^{2} + \dot{y}^{2}" will be displayed as "ẋ² + ẏ²".
+
+To reveal the LaTeX code, move the cursor over it.
+
+#### Examples
+![conceal demo](https://raw.githubusercontent.com/artisticat1/obsidian-latex-suite/main/gifs/conceal.png)
+![conceal demo 2](https://raw.githubusercontent.com/artisticat1/obsidian-latex-suite/main/gifs/conceal.gif)
+
+
+
+### Visual snippets
+Sometimes you want to annotate math, or cancel or cross out terms. Selecting some math with the cursor and typing
+
+- "U" will surround it with "\\underbrace".
+- "C" will surround it with "\\cancel".
+- "K" will surround it with "\\cancelto".
+- "B" will surround it with "\\underset".
+
+![visual snippets](https://raw.githubusercontent.com/artisticat1/obsidian-latex-suite/main/gifs/visual_snippets.gif)
+
+
+### Auto-enlarge brackets
+When a snippet containing "\\sum", "\\int" or "\\frac" is triggered, any enclosing brackets will be enlarged with "\\left" and "\\right".
+
+![auto-enlarge brackets](https://raw.githubusercontent.com/artisticat1/obsidian-latex-suite/main/gifs/auto-enlarge_brackets.gif)
+
+
+### Tabout
+- Pressing <kbd>Tab</kbd> while the cursor is at the end of an equation will move the cursor outside the $ symbols.
+- Otherwise, pressing <kbd>Tab</kbd> will advance the cursor to the next closing bracket: ), ], }, >, or |.
+
+
+### Editor commands
+- Box current equation – surround the equation the cursor is currently in with a box.
+- Select current equation – select the equation the cursor is currently in.
+
 
 ### Snippets
 Snippets are formatted as follows:
@@ -79,57 +133,6 @@ Insert **tabstops** for the cursor to jump to by writing "$0", "$1", etc. in the
 
 For more details on writing snippets, including **regex** snippets, [see the documentation here](DOCS.md).
 
-
-### Auto-fraction
-Lets you type "1/x" instead of "\frac{1}{x}".
-
-For example, it makes the following expansions:
-
-- `x/` → `\frac{x}{}`
-- `(a + b(c + d))/` → `\frac{a + b(c + d)}{}`
-
-and moves the cursor inside the brackets.
-
-Once done typing the denominator, press <kbd>Tab</kbd> to exit the fraction.
-
-![auto-fraction](https://raw.githubusercontent.com/artisticat1/obsidian-latex-suite/main/gifs/auto-fraction.gif)
-
-
-### Auto-enlarge brackets
-When a snippet containing "\\sum", "\\int" or "\\frac" is triggered, any enclosing brackets will be enlarged with "\\left" and "\\right".
-
-![auto-enlarge brackets](https://raw.githubusercontent.com/artisticat1/obsidian-latex-suite/main/gifs/auto-enlarge_brackets.gif)
-
-
-### Matrix shortcuts
-While inside a matrix, array, align, or cases environment,
-
-- Pressing <kbd>Tab</kbd> will insert the "&" symbol
-- Pressing <kbd>Enter</kbd> will insert "\\\\" and move to a new line
-- Pressing <kbd>Shift + Enter</kbd> will move to the end of the next line (can be used to exit the matrix)
-
-![matrix shortcuts](https://raw.githubusercontent.com/artisticat1/obsidian-latex-suite/main/gifs/matrix_shortcuts.gif)
-
-
-### Visual snippets
-Sometimes you want to annotate math, or cancel or cross out terms. Selecting some math with the cursor and typing
-
-- "U" will surround it with "\\underbrace".
-- "C" will surround it with "\\cancel".
-- "K" will surround it with "\\cancelto".
-- "B" will surround it with "\\underset".
-
-![visual snippets](https://raw.githubusercontent.com/artisticat1/obsidian-latex-suite/main/gifs/visual_snippets.gif)
-
-
-### Tabout
-- Pressing <kbd>Tab</kbd> while the cursor is at the end of an equation will move the cursor outside the $ symbols.
-- Otherwise, pressing <kbd>Tab</kbd> will advance the cursor to the next closing bracket: ), ], }, >, or |.
-
-
-### Editor commands
-- Box current equation – surround the equation the cursor is currently in with a box.
-- Select current equation – select the equation the cursor is currently in.
 
 
 
