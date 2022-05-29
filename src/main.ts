@@ -38,9 +38,9 @@ export default class LatexSuitePlugin extends Plugin {
 		await this.loadSettings();
 
 		if ((this.app.vault as any).config?.legacyEditor) {
-			const message = "Obsidian Latex Suite: This plugin does not support the legacy editor.";
+			const message = "Obsidian Latex Suite: This plugin does not support the legacy editor. Switch to Live Preview mode to use this plugin.";
 
-			new Notice(message, 10000);
+			new Notice(message, 100000);
             console.log(message);
 
 			return;
