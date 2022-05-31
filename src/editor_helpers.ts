@@ -137,6 +137,8 @@ export function isInsideEnvironment(view: EditorView, pos: number, env: Environm
             return true;
         }
 
+        if (left <= 0) return false;
+
         // Find the next open symbol
         left = curText.lastIndexOf(openSymbol, left - 1);
     }
