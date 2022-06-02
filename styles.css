@@ -1,3 +1,5 @@
+/* Settings */
+
 .snippets-text-area {
     width: 100%;
     display: inline-block;
@@ -185,3 +187,8 @@ span.latex-suite-suggestion-placeholder6 span {
 .cm-concealed-bold {
     font-weight: bold;
 }
+
+span.cm-math.cm-concealed-mathrm {
+    font-style: normal;
+}
+

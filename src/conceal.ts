@@ -120,9 +120,9 @@ function concealSupSub(eqn: string, superscript: boolean, symbolMap: {[key: stri
 
 
 
-function concealBoldAndMathBB(eqn: string, symbolMap: {[key: string]:string}):Concealment[] {
+function concealBoldMathBbMathRm(eqn: string, symbolMap: {[key: string]:string}):Concealment[] {
 
-    const regexStr = "\\\\(mathbf|mathbb){([A-Za-z0-9]+)}";
+    const regexStr = "\\\\(mathbf|mathbb|mathrm){([A-Za-z0-9]+)}";
     const regex = new RegExp(regexStr, "g");
 
     const matches = [...eqn.matchAll(regex)];
@@ -139,8 +139,11 @@ function concealBoldAndMathBB(eqn: string, symbolMap: {[key: string]:string}):Co
         if (type === "mathbf") {
             concealments.push({start: start, end: end, replacement: value, class: "cm-concealed-bold cm-variable-1"});
         }
-        else {
+        else if (type === "mathbb") {
             concealments.push({start: start, end: end, replacement: symbolMap[value]});
+        }
+        else {
+            concealments.push({start: start, end: end, replacement: value, class: "cm-concealed-mathrm cm-variable-2"});
         }
 
     }
@@ -245,7 +248,7 @@ function conceal(view: EditorView) {
                 ...concealSymbols(eqn, "\\\\overline{", "}", bar),
                 ...concealSymbols(eqn, "\\\\", "", brackets, "cm-bracket"),
                 ...concealAtoZ(eqn, "\\\\mathcal{", "}", mathscrcal),
-                ...concealBoldAndMathBB(eqn, mathbb),
+                ...concealBoldMathBbMathRm(eqn, mathbb),
                 ...concealBraKet(eqn, selection, bounds.start)
             ];
 
