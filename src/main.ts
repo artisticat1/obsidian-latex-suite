@@ -7,7 +7,7 @@ import { invertedEffects, undo, redo } from "@codemirror/history";
 import { LatexSuiteSettings, LatexSuiteSettingTab, DEFAULT_SETTINGS } from "./settings"
 import { isWithinEquation, replaceRange, setCursor, isInsideEnvironment, getOpenBracket, getCloseBracket, findMatchingBracket, getEquationBounds } from "./editor_helpers"
 import { markerStateField, addMark, removeMark, startSnippet, endSnippet, undidStartSnippet, undidEndSnippet } from "./marker_state_field";
-import { Environment, Snippet, SNIPPET_VARIABLES } from "./snippets"
+import { Environment, Snippet, SNIPPET_VARIABLES, EXCLUSIONS } from "./snippets"
 import { SnippetManager } from "./snippet_manager";
 import { concealPlugin } from "./conceal";
 import { editorCommands } from "./editor_commands";
@@ -474,6 +474,13 @@ export default class LatexSuitePlugin extends Plugin {
                 // The snippet must be triggered by the Tab key
                 continue;
             }
+
+			// Check that this snippet is not excluded in a certain environment
+			if (snippet.trigger in EXCLUSIONS) {
+				const environment = EXCLUSIONS[snippet.trigger];
+
+				if (isInsideEnvironment(view, to, environment)) continue;
+			}
 
 
 			const result = this.checkSnippet(snippet, effectiveLine, range, sel);
