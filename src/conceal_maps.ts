@@ -26,8 +26,8 @@ export const cmd_symbols:{[name:string]: string} =
     "bowtie": "⋈",
     "bullet": "•",
     "cap": "∩",
-    "cdot": "·",
     "cdots": "⋯",
+    "cdot": "·",
     "circ": "∘",
     "clubsuit": "♣",
     "cong": "≅",
@@ -418,18 +418,27 @@ export const hat = {
 
 
 export const brackets = {
-    "left(": "(",
-    "left[": "[",
-    "left\\{": "\\{",
-    "right)": ")",
-    "right]": "]",
-    "right\\}": "\\}",
+    // "left(": "(",
+    // "left[": "[",
+    // "left\\{": "\\{",
+    // "right)": ")",
+    // "right]": "]",
+    // "right\\}": "\\}",
+
+
     "left\\langle": "〈",
     "right\\rangle": "〉",
     "left<": "〈",
     "right>": "〉",
     "langle": "〈",
     "rangle": "〉"
+}
+
+
+
+export const leftright = {
+    "left": "",
+    "right": "",
 }
 
 
