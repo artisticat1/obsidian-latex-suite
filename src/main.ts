@@ -10,6 +10,7 @@ import { markerStateField, addMark, removeMark, startSnippet, endSnippet, undidS
 import { Environment, Snippet, SNIPPET_VARIABLES, EXCLUSIONS } from "./snippets"
 import { SnippetManager } from "./snippet_manager";
 import { concealPlugin } from "./conceal";
+import { highlightBracketsPlugin } from "./highlight_brackets";
 import { editorCommands } from "./editor_commands";
 import { parse } from "json5";
 
@@ -75,8 +76,7 @@ export default class LatexSuitePlugin extends Plugin {
         }));
 
 		this.registerEditorExtension(this.concealPluginExt);
-
-
+		this.registerEditorExtension(highlightBracketsPlugin);
 
 		this.addEditorCommands();
 	}
