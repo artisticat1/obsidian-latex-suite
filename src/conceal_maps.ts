@@ -52,7 +52,7 @@ export const cmd_symbols:{[name:string]: string} =
     "flat": "♭",
     "forall": "∀",
     "frown": "⁔",
-    "ge": "≥",
+    // "ge": "≥",
     "geq": "≥",
     "gets": "←",
     "gg": "⟫",
