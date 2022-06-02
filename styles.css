@@ -192,3 +192,19 @@ span.cm-math.cm-concealed-mathrm {
     font-style: normal;
 }
 
+
+/* Highlight brackets */
+
+.latex-suite-highlighted-bracket {
+    color: var(--text-accent);
+    /* color: blue; */
+    /* background-color: var(--text-accent); */
+}
+
+
+/* .latex-suite-highlighted-bracket:before {
+  content: " ";
+  position: absolute;
+  width: 0.4rem;
+  border: 2px solid --var(--text-accent);
+} */
