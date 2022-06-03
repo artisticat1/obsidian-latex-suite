@@ -6,14 +6,19 @@ import { basicSetup } from "./editor/extensions";
 
 import { DEFAULT_SNIPPETS } from "./default_snippets";
 import LatexSuitePlugin from "./main";
+import { concealPlugin } from "./conceal";
+import { colorPairedBracketsPlugin, highlightCursorBracketsPlugin } from "./highlight_brackets";
+
 
 export interface LatexSuiteSettings {
 	snippets: string;
     snippetsEnabled: boolean;
     autofractionEnabled: boolean;
+    concealEnabled: boolean,
+    highlightCursorBracketsEnabled: boolean;
+    colorPairedBracketsEnabled: boolean;
     autofractionExcludedEnvs: string,
     autofractionSpaceAfterGreekLetters: boolean,
-    concealEnabled: boolean,
     matrixShortcutsEnabled: boolean;
     matrixShortcutsEnvNames: string;
     taboutEnabled: boolean;
@@ -24,6 +29,9 @@ export interface LatexSuiteSettings {
 export const DEFAULT_SETTINGS: LatexSuiteSettings = {
 	snippets: DEFAULT_SNIPPETS,
     snippetsEnabled: true,
+    concealEnabled: false,
+    highlightCursorBracketsEnabled: true,
+    colorPairedBracketsEnabled: true,
     autofractionEnabled: true,
     autofractionExcludedEnvs:
     `[
@@ -31,7 +39,6 @@ export const DEFAULT_SETTINGS: LatexSuiteSettings = {
         ["\\\\pu{", "}"]
 ]`,
     autofractionSpaceAfterGreekLetters: true,
-    concealEnabled: false,
     matrixShortcutsEnabled: true,
     matrixShortcutsEnvNames: "pmatrix, cases, align, bmatrix, Bmatrix, vmatrix, Vmatrix, array, matrix",
     taboutEnabled: true,
@@ -204,15 +211,52 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
                     this.plugin.settings.concealEnabled = value;
 
                     if (value) {
-                        this.plugin.enableConceal();
+                        this.plugin.enableExtension(concealPlugin.extension);
                     }
                     else {
-                        this.plugin.disableConceal();
+                        this.plugin.disableExtension(concealPlugin.extension);
                     }
 
                     await this.plugin.saveSettings();
                 }));
 
+
+        containerEl.createEl("h4", {text: "Highlight and color brackets"});
+
+        new Setting(containerEl)
+            .setName("Color paired brackets")
+            .setDesc("Whether to colorize matching brackets, improving readability.")
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.colorPairedBracketsEnabled)
+                .onChange(async (value) => {
+                    this.plugin.settings.colorPairedBracketsEnabled = value;
+
+                    if (value) {
+                        this.plugin.enableExtension(colorPairedBracketsPlugin.extension);
+                    }
+                    else {
+                        this.plugin.disableExtension(colorPairedBracketsPlugin.extension);
+                    }
+
+                    await this.plugin.saveSettings();
+                }));
+        new Setting(containerEl)
+        .setName("Highlight matching bracket beneath cursor")
+        .setDesc("When the cursor is adjacent to a bracket, highlight the matching bracket.")
+        .addToggle(toggle => toggle
+            .setValue(this.plugin.settings.highlightCursorBracketsEnabled)
+            .onChange(async (value) => {
+                this.plugin.settings.highlightCursorBracketsEnabled = value;
+
+                if (value) {
+                    this.plugin.enableExtension(highlightCursorBracketsPlugin.extension);
+                }
+                else {
+                    this.plugin.disableExtension(highlightCursorBracketsPlugin.extension);
+                }
+
+                await this.plugin.saveSettings();
+            }));
 
 
         containerEl.createEl("h4", {text: "Auto-fraction"});

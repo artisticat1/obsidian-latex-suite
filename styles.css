@@ -195,7 +195,7 @@ span.cm-math.cm-concealed-mathrm {
 
 /* Highlight brackets */
 
-.latex-suite-highlighted-bracket {
+.latex-suite-highlighted-bracket, .latex-suite-highlighted-bracket [class^="latex-suite-color-bracket-"] {
     color: var(--text-accent);
     /* color: blue; */
     /* background-color: var(--text-accent); */
