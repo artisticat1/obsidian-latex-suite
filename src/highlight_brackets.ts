@@ -73,10 +73,61 @@ function highlightCursorBracket(view: EditorView) {
 export const highlightBracketsPlugin = ViewPlugin.fromClass(class {
     decorations: DecorationSet
     constructor(view: EditorView) {
-        this.decorations = highlightCursorBracket(view)
+        this.decorations = colorPairedBrackets(view)
     }
     update(update: ViewUpdate) {
         if (update.docChanged || update.viewportChanged || update.selectionSet)
-            this.decorations = highlightCursorBracket(update.view)
+            this.decorations = colorPairedBrackets(update.view)
     }
 }, { decorations: v => v.decorations, });
+
+
+
+function colorPairedBrackets(view: EditorView) {
+
+    const widgets: Range<Decoration>[] = []
+    const selection = view.state.selection;
+
+    if (!isWithinEquation(view)) {
+        return Decoration.set(widgets, true);
+    }
+
+    const bounds = getEquationBounds(view, selection.main.to);
+    if (!bounds) return;
+    const eqn = view.state.doc.sliceString(bounds.start, bounds.end);
+
+
+    const openBrackets = ["{", "[", "("];
+    const closeBrackets = ["}", "]", ")"];
+
+    const bracketsStack = [];
+    const bracketsPosStack = [];
+
+    for (let i = 0; i < eqn.length; i++) {
+        const char = eqn.charAt(i);
+
+        if (openBrackets.contains(char)) {
+            bracketsStack.push(char);
+            bracketsPosStack.push(i);
+        }
+        else if (closeBrackets.contains(char)) {
+            const lastBracket = bracketsStack.at(-1);
+
+            if (getCloseBracket(lastBracket) === char) {
+                bracketsStack.pop();
+                const lastBracketPos = bracketsPosStack.pop();
+                const depth = bracketsStack.length;
+                const className = "latex-suite-color-bracket-" + depth;
+
+                const j = lastBracketPos + bounds.start;
+                const k = i + bounds.start;
+
+                widgets.push(getHighlightBracketMark(j, className));
+                widgets.push(getHighlightBracketMark(k, className));
+            }
+        }
+    }
+
+
+    return Decoration.set(widgets, true);
+}
