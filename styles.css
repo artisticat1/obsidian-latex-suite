@@ -208,3 +208,25 @@ span.cm-math.cm-concealed-mathrm {
   width: 0.4rem;
   border: 2px solid --var(--text-accent);
 } */
+
+
+
+.latex-suite-color-bracket-0 {
+    color: cyan;
+}
+
+.latex-suite-color-bracket-1 {
+    color: magenta;
+}
+
+.latex-suite-color-bracket-2 {
+    color: yellow;
+}
+
+.latex-suite-color-bracket-3 {
+    color: limegreen;
+}
+
+.latex-suite-color-bracket-4 {
+    color: orange;
+}
