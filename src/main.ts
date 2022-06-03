@@ -10,7 +10,7 @@ import { markerStateField, addMark, removeMark, startSnippet, endSnippet, undidS
 import { Environment, Snippet, SNIPPET_VARIABLES, EXCLUSIONS } from "./snippets"
 import { SnippetManager } from "./snippet_manager";
 import { concealPlugin } from "./conceal";
-import { highlightBracketsPlugin } from "./highlight_brackets";
+import { colorPairedBracketsPlugin, highlightCursorBracketsPlugin } from "./highlight_brackets";
 import { editorCommands } from "./editor_commands";
 import { parse } from "json5";
 
@@ -98,7 +98,6 @@ export default class LatexSuitePlugin extends Plugin {
         }));
 
 		this.registerEditorExtension(this.concealPluginExt);
-		this.registerEditorExtension(highlightBracketsPlugin);
 
 		this.addEditorCommands();
 	}
@@ -194,14 +193,15 @@ export default class LatexSuitePlugin extends Plugin {
 	}
 
 
-	enableConceal() {
-		this.concealPluginExt.push(concealPlugin.extension);
+	enableExtension(extension: Extension) {
+		this.concealPluginExt.push(extension);
 		this.app.workspace.updateOptions();
+
 	}
 
 
-	disableConceal() {
-		this.concealPluginExt.pop();
+	disableExtension(extension: Extension) {
+		this.concealPluginExt.remove(extension);
 		this.app.workspace.updateOptions();
 	}
 
@@ -234,7 +234,10 @@ export default class LatexSuitePlugin extends Plugin {
 		this.matrixShortcutsEnvNames = this.settings.matrixShortcutsEnvNames.replace(/\s/g,"").split(",");
 		this.autoEnlargeBracketsTriggers = this.settings.autoEnlargeBracketsTriggers.replace(/\s/g,"").split(",");
 
-		if (this.settings.concealEnabled) this.enableConceal();
+
+		if (this.settings.concealEnabled) this.enableExtension(concealPlugin.extension);
+		if (this.settings.colorPairedBracketsEnabled) this.enableExtension(colorPairedBracketsPlugin.extension);
+		if (this.settings.highlightCursorBracketsEnabled) this.enableExtension(highlightCursorBracketsPlugin.extension);
 	}
 
 	async saveSettings() {
