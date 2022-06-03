@@ -108,21 +108,21 @@
 
 
 
-.latex-suite-suggestion-item {
+/* .latex-suite-suggestion-item {
     padding: 5px 10px 5px 10px;
 }
 
 .latex-suite-suggestion-placeholder {
     border-width: 1px 0 1px 0;
     border-style: solid;
-}
+} */
 
 
 /**
 Snippet color classes.
 ["lightskyblue", "orange", "lime", "pink", "cornsilk", "magenta", "navajowhite"]
  */
-
+/*
 .latex-suite-suggestion-placeholder0 {
     border-color: lightskyblue;
 }
@@ -179,7 +179,7 @@ span.latex-suite-suggestion-placeholder5 span {
 
 span.latex-suite-suggestion-placeholder6 span {
     border-color: navajowhite;
-}
+} */
 
 
 /* Conceal */
@@ -211,22 +211,64 @@ span.cm-math.cm-concealed-mathrm {
 
 
 
-.latex-suite-color-bracket-0 {
-    color: cyan;
+/* Panda Syntax theme */
+/* .latex-suite-color-bracket-0 {
+    color: #FFB86C;
 }
 
 .latex-suite-color-bracket-1 {
-    color: magenta;
+    color: #FF75B5;
 }
 
 .latex-suite-color-bracket-2 {
-    color: yellow;
+    color: #45A9F9;
 }
 
 .latex-suite-color-bracket-3 {
-    color: limegreen;
+    color: #B084EB;
 }
 
 .latex-suite-color-bracket-4 {
-    color: orange;
+    color: #19f9d8;
+} */
+
+
+/* VScode */
+/* .latex-suite-color-bracket-0 {
+    color: #5caeef;
 }
+
+.latex-suite-color-bracket-1 {
+    color: #dfb976;
+}
+
+.latex-suite-color-bracket-2 {
+    color: #c172d9;
+}
+
+.latex-suite-color-bracket-3 {
+    color: #4fb1bc;
+}
+
+.latex-suite-color-bracket-4 {
+    color: #97c26c;
+} */
+
+
+/* Custom colors */
+
+.latex-suite-color-bracket-0 {
+    color: #f7d65e;
+}
+
+.latex-suite-color-bracket-1 {
+    color: #fc5dba;
+}
+
+.latex-suite-color-bracket-2 {
+    color: #30a0fc;
+}
+
+/* .latex-suite-color-bracket-3 {
+    color: #8de15c;
+} */
