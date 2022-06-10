@@ -283,6 +283,35 @@ export default class LatexSuitePlugin extends Plugin {
 		for (const command of editorCommands) {
 			this.addCommand(command);
 		}
+
+		this.addCommand({
+			id: "latex-suite-enable-all-features",
+			name: "Enable all features",
+			callback: async () => {
+				this.settings.snippetsEnabled = true;
+				this.settings.autofractionEnabled = true;
+				this.settings.matrixShortcutsEnabled = true;
+				this.settings.taboutEnabled = true;
+				this.settings.autoEnlargeBrackets = true;
+
+				await this.saveSettings();
+			},
+		});
+
+		this.addCommand({
+			id: "latex-suite-disable-all-features",
+			name: "Disable all features",
+			callback: async () => {
+				this.settings.snippetsEnabled = false;
+				this.settings.autofractionEnabled = false;
+				this.settings.matrixShortcutsEnabled = false;
+				this.settings.taboutEnabled = false;
+				this.settings.autoEnlargeBrackets = false;
+
+				await this.saveSettings();
+			},
+		});
+
 	}
 
 
