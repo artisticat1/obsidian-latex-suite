@@ -78,6 +78,19 @@ export function isWithinEquation(view: EditorView):boolean {
 }
 
 
+export function isWithinInlineEquation(view: EditorView):boolean {
+    const result = getEquationBounds(view);
+    if (!result) return false;
+    const end = result.end;
+
+    const d = view.state.doc;
+
+    // Check whether we're in inline math or a block eqn
+    const inlineMath = d.sliceString(end, end+2) != "$$";
+
+    return inlineMath;
+}
+
 
 export function getEquationBounds(view: EditorView, pos?: number):{start: number, end: number} {
     const text = view.state.doc.toString();

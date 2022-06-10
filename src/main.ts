@@ -5,7 +5,7 @@ import { invertedEffects, undo, redo } from "@codemirror/history";
 
 
 import { LatexSuiteSettings, LatexSuiteSettingTab, DEFAULT_SETTINGS } from "./settings"
-import { isWithinEquation, replaceRange, setCursor, isInsideEnvironment, getOpenBracket, getCloseBracket, findMatchingBracket, getEquationBounds } from "./editor_helpers"
+import { isWithinEquation, isWithinInlineEquation, replaceRange, setCursor, isInsideEnvironment, getOpenBracket, getCloseBracket, findMatchingBracket, getEquationBounds } from "./editor_helpers"
 import { markerStateField, addMark, removeMark, startSnippet, endSnippet, undidStartSnippet, undidEndSnippet } from "./marker_state_field";
 import { Environment, Snippet, SNIPPET_VARIABLES, EXCLUSIONS } from "./snippets"
 import { SnippetManager } from "./snippet_manager";
@@ -99,7 +99,7 @@ export default class LatexSuitePlugin extends Plugin {
             return;
         }
 
-        if (!this.snippetManager.isInsideATabstop(pos) || this.snippetManager.isInsideLastTabstop(pos)) {
+        if (!this.snippetManager.isInsideATabstop(pos) || this.snippetManager.isInsideLastTabstop(view)) {
             this.snippetManager.clearAllTabstops(view);
         }
     }
@@ -485,8 +485,35 @@ export default class LatexSuitePlugin extends Plugin {
 
 			const result = this.checkSnippet(snippet, effectiveLine, range, sel);
 			if (result === null) continue;
-			const { triggerPos, replacement } = result;
+			const triggerPos = result.triggerPos;
+			let replacement = result.replacement;
 
+
+			// When in inline math, remove any spaces at the end of the replacement
+			if (withinMath) {
+				let spaceIndex = 0;
+				if (replacement.endsWith(" ")) {
+					spaceIndex = -1;
+				}
+				else if (replacement.at(-3) === " " && replacement.at(-2) === "$" && !isNaN(parseInt(replacement.at(-1)))) {
+					spaceIndex = -3;
+				}
+
+				if (spaceIndex != 0) {
+
+					const inlineMath = isWithinInlineEquation(view);
+
+					if (inlineMath) {
+						if (spaceIndex === 0) {
+							replacement = replacement.trimEnd();
+						}
+						else {
+							replacement = replacement.slice(0, -3) + replacement.slice(-2)
+						}
+					}
+				}
+
+			}
 
 			// Expand the snippet
             const start = triggerPos;
