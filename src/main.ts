@@ -533,10 +533,10 @@ export default class LatexSuitePlugin extends Plugin {
 					const inlineMath = isWithinInlineEquation(view);
 
 					if (inlineMath) {
-						if (spaceIndex === 0) {
+						if (spaceIndex === -1) {
 							replacement = replacement.trimEnd();
 						}
-						else {
+						else if (spaceIndex === -3){
 							replacement = replacement.slice(0, -3) + replacement.slice(-2)
 						}
 					}
