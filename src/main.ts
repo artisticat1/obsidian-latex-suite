@@ -716,9 +716,11 @@ export default class LatexSuitePlugin extends Plugin {
 			}
 
 			// Enlarge the brackets
-			replaceRange(view, j, j+1, " " + right + close);
-			replaceRange(view, i, i+1, left + open + " ");
+			this.snippetManager.queueSnippet({from: i, to: i+1, insert: left + open + " "});
+			this.snippetManager.queueSnippet({from: j, to: j+1, insert: " " + right + close});
 		}
+
+		this.snippetManager.expandSnippets(view);
 	}
 
 
