@@ -322,9 +322,9 @@ export class SnippetManager {
 
         let isInside = false;
 
-        const lastTabstopRef = this.currentTabstopReferences.at(-1);
+        const lastTabstopRef = this.currentTabstopReferences.slice(-1)[0];
         const ranges = lastTabstopRef.ranges;
-        const lastRange = ranges.at(0);
+        const lastRange = ranges[0];
 
         const sel = view.state.selection.main;
 

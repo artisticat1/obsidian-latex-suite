@@ -524,8 +524,13 @@ export default class LatexSuitePlugin extends Plugin {
 				if (replacement.endsWith(" ")) {
 					spaceIndex = -1;
 				}
-				else if (replacement.at(-3) === " " && replacement.at(-2) === "$" && !isNaN(parseInt(replacement.at(-1)))) {
-					spaceIndex = -3;
+				else {
+					const lastThreeChars = replacement.slice(-3);
+					const lastChar = lastThreeChars.slice(-1);
+
+					if (lastThreeChars.slice(0, 2) === " $" && !isNaN(parseInt(lastChar))) {
+						spaceIndex = -3;
+					}
 				}
 
 				if (spaceIndex != 0) {
