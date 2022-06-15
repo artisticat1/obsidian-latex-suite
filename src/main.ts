@@ -735,7 +735,9 @@ export default class LatexSuitePlugin extends Plugin {
 
 
 
-        // Move to the next closing bracket: }, ), ], >, |
+        // Move to the next closing bracket: }, ), ], >, |, or \\rangle
+		const rangle = "\\rangle";
+
         for (let i = pos; i < end; i++) {
             if (["}", ")", "]", ">", "|"].contains(text.charAt(i))) {
                 setCursor(view, i+1);
@@ -743,6 +745,12 @@ export default class LatexSuitePlugin extends Plugin {
                 event.preventDefault();
                 return true;
             }
+			else if (text.slice(i, i + rangle.length) === rangle) {
+				setCursor(view, i + rangle.length);
+
+				event.preventDefault();
+				return true;
+			}
         }
 
 
