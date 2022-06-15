@@ -173,6 +173,8 @@ export const cmd_symbols:{[name:string]: string} =
     "sqrt": "√",
     "colon": ":",
     "coloneqq": "≔",
+
+    "displaystyle": ""
 };
 
 
