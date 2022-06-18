@@ -1,7 +1,7 @@
 import { Plugin, Notice, MarkdownView } from "obsidian";
 import { EditorView, ViewUpdate } from "@codemirror/view";
 import { SelectionRange, Prec, Extension } from "@codemirror/state";
-import { invertedEffects, undo, redo } from "@codemirror/history";
+import { invertedEffects, undo, redo } from "@codemirror/commands";
 
 
 import { LatexSuiteSettings, LatexSuiteSettingTab, DEFAULT_SETTINGS } from "./settings"

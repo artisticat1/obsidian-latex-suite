@@ -1,8 +1,7 @@
 // https://discuss.codemirror.net/t/concealing-syntax/3135
 
 import { EditorView, ViewUpdate, Decoration, DecorationSet, WidgetType, ViewPlugin } from "@codemirror/view";
-import { EditorSelection } from "@codemirror/state";
-import { Range } from "@codemirror/rangeset";
+import { EditorSelection, Range } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
 import { getEquationBounds, findMatchingBracket } from "./editor_helpers";
 import { cmd_symbols, greek, map_super, map_sub, dot, hat, bar, brackets, mathbb, mathscrcal } from "./conceal_maps";
@@ -224,7 +223,9 @@ function conceal(view: EditorView) {
 
     for (const { from, to } of view.visibleRanges) {
 
-        syntaxTree(view.state).iterate({ from, to, enter: (type, from, to) => {
+        syntaxTree(view.state).iterate({ from, to, enter: (node) => {
+            const type = node.type;
+            const to = node.to;
 
             if (!(type.name.contains("begin") && type.name.contains("math"))) {
                 return;

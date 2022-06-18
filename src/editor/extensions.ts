@@ -4,20 +4,15 @@ import {
     drawSelection,
     dropCursor,
     EditorView,
+    lineNumbers,
+    rectangularSelection
   } from "@codemirror/view";
   import { Extension, EditorState } from "@codemirror/state";
-  import { history, historyKeymap } from "@codemirror/history";
-  import { foldGutter, foldKeymap } from "@codemirror/fold";
   import { javascript } from "@codemirror/lang-javascript";
-  import { indentOnInput, indentUnit } from "@codemirror/language";
-  import { lineNumbers } from "@codemirror/gutter";
-  import { defaultKeymap, indentWithTab } from "@codemirror/commands";
-  import { bracketMatching } from "@codemirror/matchbrackets";
-  import { closeBrackets, closeBracketsKeymap } from "@codemirror/closebrackets";
+  import { indentOnInput, indentUnit, bracketMatching, syntaxHighlighting, defaultHighlightStyle } from "@codemirror/language";
+  import { defaultKeymap, indentWithTab, history, historyKeymap } from "@codemirror/commands";
+  import { closeBrackets, closeBracketsKeymap } from "@codemirror/autocomplete";
   import { searchKeymap, highlightSelectionMatches } from "@codemirror/search";
-  import { commentKeymap } from "@codemirror/comment";
-  import { rectangularSelection } from "@codemirror/rectangular-selection";
-  import { defaultHighlightStyle } from "@codemirror/highlight";
   import { lintKeymap } from "@codemirror/lint";
   import { obsidian } from "./obsidian_theme";
 
@@ -27,13 +22,12 @@ import {
     highlightSpecialChars(),
     history(),
     javascript(),
-    foldGutter(),
     drawSelection(),
     dropCursor(),
     EditorState.allowMultipleSelections.of(true),
     indentOnInput(),
     indentUnit.of("    "),
-    defaultHighlightStyle.fallback,
+    syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
     EditorView.lineWrapping,
     bracketMatching(),
     closeBrackets(),
@@ -46,8 +40,6 @@ import {
       ...searchKeymap,
       ...historyKeymap,
       indentWithTab,
-      ...foldKeymap,
-      ...commentKeymap,
       ...lintKeymap,
     ]),
   ].filter(ext => ext);

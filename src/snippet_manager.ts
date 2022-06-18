@@ -1,6 +1,5 @@
-import { Range } from "@codemirror/rangeset";
 import { EditorView, Decoration } from "@codemirror/view";
-import { SelectionRange, EditorSelection, ChangeSpec, ChangeSet } from "@codemirror/state";
+import { Range, SelectionRange, EditorSelection, ChangeSpec, ChangeSet } from "@codemirror/state";
 import { setCursor, setSelections, findMatchingBracket, resetCursorBlink } from "./editor_helpers";
 import { addMark, clearMarks, markerStateField, removeMarkBySpecAttribute, startSnippet, endSnippet } from "./marker_state_field";
 
