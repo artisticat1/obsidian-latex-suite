@@ -1,5 +1,5 @@
 import { Plugin, Notice, MarkdownView } from "obsidian";
-import { EditorView, ViewUpdate } from "@codemirror/view";
+import { EditorView, keymap, ViewUpdate } from "@codemirror/view";
 import { SelectionRange, Prec, Extension } from "@codemirror/state";
 import { invertedEffects, undo, redo } from "@codemirror/commands";
 
@@ -36,6 +36,28 @@ export default class LatexSuitePlugin extends Plugin {
 
 	async onload() {
 		await this.loadSettings();
+
+		this.registerEditorExtension(Prec.highest(keymap.of([{
+			key: "Tab",
+			run: (view: EditorView):boolean => {
+				const success = this.handleKeydown("Tab", false, false, view);
+
+				return success;
+			}
+		},
+		{
+			key: "Enter",
+			run: (view: EditorView):boolean => {
+				const success = this.handleKeydown("Enter", false, false, view);
+
+				return success;
+			},
+			shift: (view: EditorView):boolean => {
+				const success = this.handleKeydown("Enter", true, false, view);
+
+				return success;
+			}
+		}])));
 
 		if ((this.app.vault as any).config?.legacyEditor) {
 			const message = "Obsidian Latex Suite: This plugin does not support the legacy editor. Switch to Live Preview mode to use this plugin.";
@@ -315,8 +337,14 @@ export default class LatexSuitePlugin extends Plugin {
 	}
 
 
-
 	private readonly onKeydown = (event: KeyboardEvent, view: EditorView) => {
+		const success = this.handleKeydown(event.key, event.shiftKey, event.ctrlKey, view);
+
+		if (success) event.preventDefault();
+	}
+
+
+	private readonly handleKeydown = (key: string, shiftKey: boolean, ctrlKey: boolean, view: EditorView) => {
 
 		const s = view.state.selection;
 		const pos = s.main.to;
@@ -341,47 +369,49 @@ export default class LatexSuitePlugin extends Plugin {
 			if ((!inVimMode || this.inVimInsertMode)) {
 
 				// Allows Ctrl + z for undo, instead of triggering a snippet ending with z
-				if (!event.ctrlKey) {
-					success = this.runSnippets(view, event, withinMath, ranges);
+				if (!ctrlKey) {
+					success = this.runSnippets(view, key, withinMath, ranges);
 
-					if (success) return;
+					if (success) return true;
 				}
 			}
 		}
 
 
-		if (event.key === "Tab") {
-			success = this.handleTabstops(view, event);
+		if (key === "Tab") {
+			success = this.handleTabstops(view);
 
-			if (success) return;
+			if (success) return true;
 		}
 
 
 		if (this.settings.autofractionEnabled && withinMath) {
-			if (event.key === "/") {
-				success = this.runAutoFraction(view, event, ranges);
+			if (key === "/") {
+				success = this.runAutoFraction(view, ranges);
 
-				if (success) return;
+				if (success) return true;
 			}
 		}
 
 
 		if (this.settings.matrixShortcutsEnabled && withinMath) {
-			if (["Tab", "Enter"].contains(event.key)) {
-				success = this.runMatrixShortcuts(view, event, pos);
+			if (["Tab", "Enter"].contains(key)) {
+				success = this.runMatrixShortcuts(view, key, shiftKey, pos);
 
-				if (success) return;
+				if (success) return true;
 			}
 		}
 
 
 		if (this.settings.taboutEnabled) {
-			if (event.key === "Tab") {
-				success = this.tabout(view, event, withinEquation);
+			if (key === "Tab") {
+				success = this.tabout(view, withinEquation);
 
-				if (success) return;
+				if (success) return true;
 			}
 		}
+
+		return false;
 	}
 
 
@@ -457,12 +487,12 @@ export default class LatexSuitePlugin extends Plugin {
 
 
 
-	private readonly runSnippets = (view: EditorView, event: KeyboardEvent, withinMath: boolean, ranges: SelectionRange[]):boolean => {
+	private readonly runSnippets = (view: EditorView, key: string, withinMath: boolean, ranges: SelectionRange[]):boolean => {
 
 		this.shouldAutoEnlargeBrackets = false;
 
 		for (const range of ranges) {
-			this.runSnippetCursor(view, event, withinMath, range);
+			this.runSnippetCursor(view, key, withinMath, range);
 		}
 
 		const success = this.snippetManager.expandSnippets(view);
@@ -476,7 +506,7 @@ export default class LatexSuitePlugin extends Plugin {
 	}
 
 
-	private readonly runSnippetCursor = (view: EditorView, event: KeyboardEvent, withinMath: boolean, range: SelectionRange):boolean => {
+	private readonly runSnippetCursor = (view: EditorView, key: string, withinMath: boolean, range: SelectionRange):boolean => {
 
 		const {from, to} = range;
 		const sel = view.state.sliceDoc(from, to);
@@ -495,11 +525,11 @@ export default class LatexSuitePlugin extends Plugin {
 
             if (snippet.options.contains("A") || snippet.replacement.contains("${VISUAL}")) {
                 // If the key pressed wasn't a text character, continue
-                if (!(event.key.length === 1)) continue;
+                if (!(key.length === 1)) continue;
 
-                effectiveLine += event.key;
+                effectiveLine += key;
             }
-            else if (!(event.key === "Tab")) {
+            else if (!(key === "Tab")) {
                 // The snippet must be triggered by the Tab key
                 continue;
             }
@@ -567,16 +597,14 @@ export default class LatexSuitePlugin extends Plugin {
 	}
 
 
-	private readonly handleTabstops = (view: EditorView, event: KeyboardEvent):boolean => {
+	private readonly handleTabstops = (view: EditorView):boolean => {
         const success = this.snippetManager.consumeAndGotoNextTabstop(view);
-
-		if (success) event.preventDefault();
 
 		return success;
     }
 
 
-	private readonly runAutoFraction = (view: EditorView, event: KeyboardEvent, ranges: SelectionRange[]):boolean => {
+	private readonly runAutoFraction = (view: EditorView, ranges: SelectionRange[]):boolean => {
 
 		for (const range of ranges) {
 			this.runAutoFractionCursor(view, range);
@@ -586,7 +614,6 @@ export default class LatexSuitePlugin extends Plugin {
 
 		if (success) {
 			this.autoEnlargeBrackets(view);
-			event.preventDefault();
 		}
 
 		return success;
@@ -724,7 +751,7 @@ export default class LatexSuitePlugin extends Plugin {
 	}
 
 
-	private readonly tabout = (view: EditorView, event: KeyboardEvent, withinEquation: boolean):boolean => {
+	private readonly tabout = (view: EditorView, withinEquation: boolean):boolean => {
 		if (!withinEquation) return false;
 
 		const pos = view.state.selection.main.to;
@@ -744,13 +771,11 @@ export default class LatexSuitePlugin extends Plugin {
             if (["}", ")", "]", ">", "|"].contains(text.charAt(i))) {
                 setCursor(view, i+1);
 
-                event.preventDefault();
                 return true;
             }
 			else if (text.slice(i, i + rangle.length) === rangle) {
 				setCursor(view, i + rangle.length);
 
-				event.preventDefault();
 				return true;
 			}
         }
@@ -792,13 +817,11 @@ export default class LatexSuitePlugin extends Plugin {
 
 		}
 
-		event.preventDefault();
 		return true;
 	}
 
 
-
-	private readonly runMatrixShortcuts = (view: EditorView, event: KeyboardEvent, pos: number):boolean => {
+	private readonly runMatrixShortcuts = (view: EditorView, key: string, shiftKey: boolean, pos: number):boolean => {
 		// Check whether we are inside a matrix / align / case environment
 		let isInsideAnEnv = false;
 
@@ -812,14 +835,13 @@ export default class LatexSuitePlugin extends Plugin {
 		if (!isInsideAnEnv) return false;
 
 
-		if (event.key === "Tab") {
+		if (key === "Tab") {
 			view.dispatch(view.state.replaceSelection(" & "));
 
-			event.preventDefault();
 			return true;
 		}
-		else if (event.key === "Enter") {
-			if (event.shiftKey) {
+		else if (key === "Enter") {
+			if (shiftKey) {
 				// Move cursor to end of next line
 				const d = view.state.doc;
 
@@ -832,7 +854,6 @@ export default class LatexSuitePlugin extends Plugin {
 				view.dispatch(view.state.replaceSelection(" \\\\\n"));
 			}
 
-			event.preventDefault();
 			return true;
 		}
 		else {
