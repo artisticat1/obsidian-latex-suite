@@ -139,7 +139,9 @@ function concealBoldMathBbMathRm(eqn: string, symbolMap: {[key: string]:string})
             concealments.push({start: start, end: end, replacement: value, class: "cm-concealed-bold cm-variable-1"});
         }
         else if (type === "mathbb") {
-            concealments.push({start: start, end: end, replacement: symbolMap[value]});
+            const letters = Array.from(value);
+            const replacement = letters.map(el => symbolMap[el]).join("");
+            concealments.push({start: start, end: end, replacement: replacement});
         }
         else {
             concealments.push({start: start, end: end, replacement: value, class: "cm-concealed-mathrm cm-variable-2"});
@@ -164,8 +166,10 @@ function concealAtoZ(eqn: string, prefix: string, suffix: string, symbolMap: {[k
 
     for (const match of matches) {
         const symbol = match[1];
+        const letters = Array.from(symbol);
+        const replacement = letters.map(el => symbolMap[el]).join("");
 
-        concealments.push({start: match.index, end: match.index + match[0].length, replacement: symbolMap[symbol], class: className});
+        concealments.push({start: match.index, end: match.index + match[0].length, replacement: replacement, class: className});
     }
 
     return concealments;
