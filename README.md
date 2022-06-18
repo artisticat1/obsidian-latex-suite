@@ -1,5 +1,5 @@
 # Obsidian Latex Suite
-**🌟 New in 1.2.0: Conceal feature! See below for more info.**
+**New in 1.3.0: Now supports the new CM v6.0 editor on Obsidian 0.15.0.**
 
 *Works with the new Live Preview editor only.*
 
@@ -158,6 +158,7 @@ For more details on writing snippets, including **regex** snippets, [see the doc
 | xdot              | \\dot{x}         |
 | xhat              | \\hat{x}         |
 | xbar              | \\overline{x}    |
+| ee                | e^{ }            |
 
 When running a snippet that **moves the cursor inside brackets {}, press <kbd>Tab</kbd> to exit the brackets**.
 
