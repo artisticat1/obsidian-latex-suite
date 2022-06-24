@@ -1,6 +1,9 @@
 import { EditorView, ViewUpdate, Decoration, DecorationSet, ViewPlugin } from "@codemirror/view";
-import { Range } from "@codemirror/rangeset";
+import { Range, Text } from "@codemirror/state";
 import { isWithinEquation, getEquationBounds, findMatchingBracket, getOpenBracket, getCloseBracket } from "./editor_helpers";
+import { syntaxTree } from "@codemirror/language";
+
+const Ncolors = 3;
 
 
 function getHighlightBracketMark(pos: number, className: string):Range<Decoration> {
@@ -15,51 +18,62 @@ function getHighlightBracketMark(pos: number, className: string):Range<Decoratio
 function colorPairedBrackets(view: EditorView) {
 
     const widgets: Range<Decoration>[] = []
-    const selection = view.state.selection;
 
-    if (!isWithinEquation(view)) {
-        return Decoration.set(widgets, true);
-    }
+    for (const { from, to } of view.visibleRanges) {
 
-    const bounds = getEquationBounds(view, selection.main.to);
-    if (!bounds) return;
-    const eqn = view.state.doc.sliceString(bounds.start, bounds.end);
+        syntaxTree(view.state).iterate({ from, to, enter: (node) => {
+            const type = node.type;
+            const to = node.to;
 
-
-    const openBrackets = ["{", "[", "("];
-    const closeBrackets = ["}", "]", ")"];
-
-    const bracketsStack = [];
-    const bracketsPosStack = [];
-
-    for (let i = 0; i < eqn.length; i++) {
-        const char = eqn.charAt(i);
-
-        if (openBrackets.contains(char)) {
-            bracketsStack.push(char);
-            bracketsPosStack.push(i);
-        }
-        else if (closeBrackets.contains(char)) {
-            const lastBracket = bracketsStack.at(-1);
-
-            if (getCloseBracket(lastBracket) === char) {
-                bracketsStack.pop();
-                const lastBracketPos = bracketsPosStack.pop();
-                const depth = bracketsStack.length; // TODO: take modulo N
-
-                const className = "latex-suite-color-bracket-" + depth;
-
-                const j = lastBracketPos + bounds.start;
-                const k = i + bounds.start;
-
-                widgets.push(getHighlightBracketMark(j, className));
-                widgets.push(getHighlightBracketMark(k, className));
+            if (!(type.name.contains("begin") && type.name.contains("math"))) {
+                return;
             }
+
+            const bounds = getEquationBounds(view, to+1);
+            if (!bounds) return;
+
+
+            const eqn = view.state.doc.sliceString(bounds.start, bounds.end);
+
+
+            const openBrackets = ["{", "[", "("];
+            const closeBrackets = ["}", "]", ")"];
+
+            const bracketsStack = [];
+            const bracketsPosStack = [];
+
+            for (let i = 0; i < eqn.length; i++) {
+                const char = eqn.charAt(i);
+
+                if (openBrackets.contains(char)) {
+                    bracketsStack.push(char);
+                    bracketsPosStack.push(i);
+                }
+                else if (closeBrackets.contains(char)) {
+                    const lastBracket = bracketsStack.at(-1);
+
+                    if (getCloseBracket(lastBracket) === char) {
+                        bracketsStack.pop();
+                        const lastBracketPos = bracketsPosStack.pop();
+                        const depth = bracketsStack.length % Ncolors;
+
+                        const className = "latex-suite-color-bracket-" + depth;
+
+                        const j = lastBracketPos + bounds.start;
+                        const k = i + bounds.start;
+
+                        widgets.push(getHighlightBracketMark(j, className));
+                        widgets.push(getHighlightBracketMark(k, className));
+                    }
+                }
+            }
+
         }
+
+        });
     }
 
-
-    return Decoration.set(widgets, true);
+    return Decoration.set(widgets, true)
 }
 
 

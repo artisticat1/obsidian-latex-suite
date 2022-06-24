@@ -252,7 +252,7 @@ function conceal(view: EditorView) {
                 ...concealSymbols(eqn, "\\\\hat{", "}", hat),
                 ...concealSymbols(eqn, "\\\\overline{", "}", bar),
                 ...concealSymbols(eqn, "\\\\", "", leftright),
-                ...concealSymbols(eqn, "\\\\", "", brackets, "cm-bracket"),
+                // ...concealSymbols(eqn, "\\\\", "", brackets, "cm-bracket"),
                 ...concealAtoZ(eqn, "\\\\mathcal{", "}", mathscrcal),
                 ...concealBoldMathBbMathRm(eqn, mathbb),
                 ...concealBraKet(eqn, selection, bounds.start)

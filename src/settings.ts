@@ -15,8 +15,8 @@ export interface LatexSuiteSettings {
     snippetsEnabled: boolean;
     autofractionEnabled: boolean;
     concealEnabled: boolean,
-    highlightCursorBracketsEnabled: boolean;
     colorPairedBracketsEnabled: boolean;
+    highlightCursorBracketsEnabled: boolean;
     autofractionExcludedEnvs: string,
     autofractionSpaceAfterGreekLetters: boolean,
     matrixShortcutsEnabled: boolean;
@@ -30,8 +30,8 @@ export const DEFAULT_SETTINGS: LatexSuiteSettings = {
 	snippets: DEFAULT_SNIPPETS,
     snippetsEnabled: true,
     concealEnabled: false,
-    highlightCursorBracketsEnabled: true,
     colorPairedBracketsEnabled: true,
+    highlightCursorBracketsEnabled: true,
     autofractionEnabled: true,
     autofractionExcludedEnvs:
     `[
