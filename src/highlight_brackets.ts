@@ -141,9 +141,26 @@ export const colorPairedBracketsPlugin = ViewPlugin.fromClass(class {
         this.decorations = colorPairedBrackets(view)
     }
     update(update: ViewUpdate) {
-        // TODO: color pair brackets: only update when bracket inserted/removed or cursor moved to new equation
-        if (update.docChanged || update.viewportChanged || update.selectionSet)
-            this.decorations = colorPairedBrackets(update.view)
+
+        if (update.docChanged) {
+            this.decorations = colorPairedBrackets(update.view);
+            // this.decorations = this.decorations.map(update.changes);
+
+            // // Only update when a bracket was inserted
+            // let shouldUpdate = false;
+
+            // update.changes.iterChanges((fromA: number, toA: number, fromB: number, toB: number, inserted: Text) => {
+            //     const insertion = inserted.toString();
+            //     const brackets = ["(", "{", "[", ")", "}", "]"];
+
+            //     if (brackets.some(bracket => insertion.contains(bracket))) {
+            //         shouldUpdate = true;
+            //     }
+            // });
+
+            // console.log("Should update", shouldUpdate);
+            // if (shouldUpdate) this.decorations = colorPairedBrackets(update.view);
+        }
     }
 }, { decorations: v => v.decorations, });
 
@@ -154,8 +171,7 @@ export const highlightCursorBracketsPlugin = ViewPlugin.fromClass(class {
         this.decorations = highlightCursorBrackets(view)
     }
     update(update: ViewUpdate) {
-        // TODO: only update when bracket inserted/removed
-        if (update.docChanged || update.viewportChanged || update.selectionSet)
+        if (update.docChanged || update.selectionSet)
             this.decorations = highlightCursorBrackets(update.view)
     }
 }, { decorations: v => v.decorations, });
