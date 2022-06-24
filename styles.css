@@ -195,10 +195,12 @@ span.cm-math.cm-concealed-mathrm {
 
 /* Highlight brackets */
 
-.latex-suite-highlighted-bracket, .latex-suite-highlighted-bracket [class^="latex-suite-color-bracket-"] {
-    color: var(--text-accent);
-    /* color: blue; */
-    /* background-color: var(--text-accent); */
+.theme-light .latex-suite-highlighted-bracket, .theme-light .latex-suite-highlighted-bracket [class^="latex-suite-color-bracket-"] {
+    background-color: rgba(106, 188, 255, 0.16);
+}
+
+.theme-dark .latex-suite-highlighted-bracket, .theme-dark .latex-suite-highlighted-bracket [class^="latex-suite-color-bracket-"] {
+    background-color: rgba(0, 110, 255, 0.169);
 }
 
 
@@ -258,7 +260,8 @@ span.cm-math.cm-concealed-mathrm {
 /* Custom colors */
 
 .latex-suite-color-bracket-0 {
-    color: #f7d65e;
+    color: #7fb500;
+    /* #f7d65e; */
 }
 
 .latex-suite-color-bracket-1 {
