@@ -657,10 +657,9 @@ export default class LatexSuitePlugin extends Plugin {
 				// Also, allow spaces after greek letters
 				// By replacing spaces after greek letters with a dummy character (#)
 
-				if (this.settings.autofractionSpaceAfterGreekLetters) {
-					const regex = new RegExp("(" + SNIPPET_VARIABLES["${GREEK}"] + ") ([^ ])", "g");
-					curLine = curLine.replace(regex, "$1#$2");
-				}
+				const regex = new RegExp("(" + SNIPPET_VARIABLES["${GREEK}"] + ") ([^ ])", "g");
+				curLine = curLine.replace(regex, "$1#$2");
+
 
 
 				for (let i = curLine.length - 1; i >= eqnStart; i--) {

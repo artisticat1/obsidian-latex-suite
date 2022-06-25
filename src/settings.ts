@@ -18,7 +18,6 @@ export interface LatexSuiteSettings {
     colorPairedBracketsEnabled: boolean;
     highlightCursorBracketsEnabled: boolean;
     autofractionExcludedEnvs: string,
-    autofractionSpaceAfterGreekLetters: boolean,
     matrixShortcutsEnabled: boolean;
     matrixShortcutsEnvNames: string;
     taboutEnabled: boolean;
@@ -38,7 +37,6 @@ export const DEFAULT_SETTINGS: LatexSuiteSettings = {
         ["^{", "}"],
         ["\\\\pu{", "}"]
 ]`,
-    autofractionSpaceAfterGreekLetters: true,
     matrixShortcutsEnabled: true,
     matrixShortcutsEnvNames: "pmatrix, cases, align, bmatrix, Bmatrix, vmatrix, Vmatrix, array, matrix",
     taboutEnabled: true,
@@ -285,18 +283,6 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					this.plugin.settings.autofractionExcludedEnvs = value;
 					await this.plugin.saveSettings();
 				}));
-
-
-        new Setting(containerEl)
-            .setName("Allow spaces after greek letters")
-            .setDesc(`When enabled, expands "\\pi R/" to "\\frac{\\pi R}{}". When disabled, expands "\\pi R/" to "\\pi \\frac{R}{}".
-            Enables greek letters to be used inside of numerators.`)
-            .addToggle(toggle => toggle
-                .setValue(this.plugin.settings.autofractionSpaceAfterGreekLetters)
-                .onChange(async (value) => {
-                    this.plugin.settings.autofractionSpaceAfterGreekLetters = value;
-                    await this.plugin.saveSettings();
-                }));
 
 
 
