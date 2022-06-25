@@ -4,7 +4,7 @@ import { EditorView, ViewUpdate, Decoration, DecorationSet, WidgetType, ViewPlug
 import { EditorSelection, Range } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
 import { getEquationBounds, findMatchingBracket } from "./editor_helpers";
-import { cmd_symbols, greek, map_super, map_sub, dot, hat, bar, brackets, mathbb, mathscrcal } from "./conceal_maps";
+import { cmd_symbols, greek, map_super, map_sub, dot, hat, bar, leftright, brackets, mathbb, mathscrcal } from "./conceal_maps";
 
 
 export interface Concealment {
@@ -252,6 +252,7 @@ function conceal(view: EditorView) {
                 ...concealSymbols(eqn, "\\\\hat{", "}", hat),
                 ...concealSymbols(eqn, "\\\\overline{", "}", bar),
                 ...concealSymbols(eqn, "\\\\", "", brackets, "cm-bracket"),
+                ...concealSymbols(eqn, "\\\\", "", leftright),
                 ...concealAtoZ(eqn, "\\\\mathcal{", "}", mathscrcal),
                 ...concealBoldMathBbMathRm(eqn, mathbb),
                 ...concealBraKet(eqn, selection, bounds.start)

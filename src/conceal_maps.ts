@@ -422,16 +422,15 @@ export const hat = {
 
 
 export const brackets = {
-    "left(": "(",
-    "left[": "[",
-    "left\\{": "\\{",
-    "right)": ")",
-    "right]": "]",
-    "right\\}": "\\}",
+    // "left(": "(",
+    // "left[": "[",
+    // "left\\{": "\\{",
+    // "right)": ")",
+    // "right]": "]",
+    // "right\\}": "\\}",
+    // "left\\langle": "〈",
+    // "right\\rangle": "〉",
 
-
-    "left\\langle": "〈",
-    "right\\rangle": "〉",
     "left<": "〈",
     "right>": "〉",
     "langle": "〈",
@@ -440,10 +439,10 @@ export const brackets = {
 
 
 
-// export const leftright = {
-//     "left": "",
-//     "right": "",
-// }
+export const leftright = {
+    "left": "",
+    "right": "",
+}
 
 
 

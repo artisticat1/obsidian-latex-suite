@@ -107,11 +107,6 @@
 }
 
 
-
-.latex-suite-suggestion-item {
-    padding: 5px 10px 5px 10px;
-}
-
 .latex-suite-suggestion-placeholder {
     border-width: 1px 0 1px 0;
     border-style: solid;
@@ -179,7 +174,7 @@ span.latex-suite-suggestion-placeholder5 span {
 
 span.latex-suite-suggestion-placeholder6 span {
     border-color: navajowhite;
-}
+} */
 
 
 /* Conceal */
@@ -192,3 +187,97 @@ span.cm-math.cm-concealed-mathrm {
     font-style: normal;
 }
 
+
+/* Highlight brackets */
+/* TODO: Change these colors to be distinct from selection color */
+.theme-light .latex-suite-highlighted-bracket, .theme-light .latex-suite-highlighted-bracket [class^="latex-suite-color-bracket-"] {
+    background-color: rgba(106, 188, 255, 0.16);
+}
+
+.theme-dark .latex-suite-highlighted-bracket, .theme-dark .latex-suite-highlighted-bracket [class^="latex-suite-color-bracket-"] {
+    background-color: rgba(0, 110, 255, 0.169);
+}
+
+
+/* .latex-suite-highlighted-bracket:before {
+  content: " ";
+  position: absolute;
+  width: 0.4rem;
+  border: 2px solid --var(--text-accent);
+} */
+
+
+
+/* Panda Syntax theme */
+/* .latex-suite-color-bracket-0 {
+    color: #FFB86C;
+}
+
+.latex-suite-color-bracket-1 {
+    color: #FF75B5;
+}
+
+.latex-suite-color-bracket-2 {
+    color: #45A9F9;
+}
+
+.latex-suite-color-bracket-3 {
+    color: #B084EB;
+}
+
+.latex-suite-color-bracket-4 {
+    color: #19f9d8;
+} */
+
+
+/* VScode */
+/* .latex-suite-color-bracket-0 {
+    color: #5caeef;
+}
+
+.latex-suite-color-bracket-1 {
+    color: #dfb976;
+}
+
+.latex-suite-color-bracket-2 {
+    color: #c172d9;
+}
+
+.latex-suite-color-bracket-3 {
+    color: #4fb1bc;
+}
+
+.latex-suite-color-bracket-4 {
+    color: #97c26c;
+} */
+
+
+/* Custom colors */
+
+.theme-light .latex-suite-color-bracket-0 {
+    color: #3287ff;
+}
+
+.theme-dark .latex-suite-color-bracket-0 {
+    color: #6acaff;
+}
+
+.theme-light .latex-suite-color-bracket-1 {
+    color: #ff50b7;
+}
+
+.theme-dark .latex-suite-color-bracket-1 {
+    color: #ff55cd;
+}
+
+.theme-light .latex-suite-color-bracket-2 {
+    color: #2eba00;
+}
+
+.theme-dark .latex-suite-color-bracket-2 {
+    color: #77e728;
+}
+
+/* .latex-suite-color-bracket-3 {
+    color: #8de15c;
+} */

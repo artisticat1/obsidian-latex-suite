@@ -255,7 +255,8 @@ export class SnippetManager {
 
 
         // Select the first tabstop
-        const selection = EditorSelection.create(this.currentTabstopReferences[0].ranges);
+        const firstRef = this.currentTabstopReferences[0];
+        const selection = EditorSelection.create(firstRef.ranges);
 
         view.dispatch({
             selection: selection,
@@ -263,6 +264,8 @@ export class SnippetManager {
         });
 
         resetCursorBlink();
+
+        firstRef.removeFromEditor();
         this.removeOnlyTabstop();
     }
 
@@ -272,6 +275,7 @@ export class SnippetManager {
         // Select all ranges
         setSelections(reference.view, reference.ranges);
 
+        reference.removeFromEditor();
         this.removeOnlyTabstop();
     }
 
@@ -343,9 +347,7 @@ export class SnippetManager {
 
 
         // Remove the tabstop that we're inside of
-        const oldTabstop = this.currentTabstopReferences.shift();
-        const oldMarkers = oldTabstop.markers;
-        oldTabstop.removeFromEditor();
+        this.currentTabstopReferences.shift();
 
 
         // If there are none left, return
@@ -360,42 +362,22 @@ export class SnippetManager {
         const newTabstop = this.currentTabstopReferences[0];
         const newMarkers = newTabstop.markers;
 
-        const oldMarker = oldMarkers[0];
+        const cursor = view.state.selection.main;
         const newMarker = newMarkers[0];
 
         // If the new tabstop has a single cursor, and
         // the old tabstop is inside of the new one, we just move the cursor
         if (newTabstop.markers.length === 1) {
-            if (newMarker.from <= oldMarker.from && newMarker.to >= oldMarker.to) {
+            if (newMarker.from <= cursor.from && newMarker.to >= cursor.to) {
                 setCursor(view, newMarker.to)
             }
             else {
                 this.selectTabstopReference(newTabstop);
-
-
-                // Otherwise, if the new tabstop was positioned at the end of its snippet
-                // i.e. it has 0 width and is aligned with the end of the next tabstop reference
-                // Make it the same color as the next tabstop reference
-
-                if (this.currentTabstopReferences.length > 1) {
-                    const nextTabstopRef = this.currentTabstopReferences[1];
-                    const ranges = nextTabstopRef.ranges;
-                    const lastRange = ranges[ranges.length - 1];
-
-                    if (newMarker.from === newMarker. to && newMarker.to === lastRange.to) {
-
-                        const colorIndex = nextTabstopRef.colorIndex;
-
-                        newTabstop.colorIndex = colorIndex;
-                        newMarker.value.spec.attributes.class = this.getColorClass(colorIndex);
-                    }
-                }
             }
         }
         else {
             this.selectTabstopReference(newTabstop);
         }
-
 
 
         // If we haven't moved, go again
