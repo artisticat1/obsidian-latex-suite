@@ -90,7 +90,7 @@ function highlightCursorBrackets(view: EditorView) {
 
 
     const bounds = getEquationBounds(view, selection.main.to);
-    if (!bounds) return;
+    if (!bounds) return Decoration.set(widgets, true);
     const eqn = view.state.doc.sliceString(bounds.start, bounds.end);
 
 
