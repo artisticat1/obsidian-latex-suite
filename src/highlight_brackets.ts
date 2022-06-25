@@ -1,5 +1,5 @@
 import { EditorView, ViewUpdate, Decoration, DecorationSet, ViewPlugin } from "@codemirror/view";
-import { Range, Text } from "@codemirror/state";
+import { Range } from "@codemirror/state";
 import { isWithinEquation, getEquationBounds, findMatchingBracket, getOpenBracket, getCloseBracket } from "./editor_helpers";
 import { syntaxTree } from "@codemirror/language";
 
@@ -142,7 +142,7 @@ export const colorPairedBracketsPlugin = ViewPlugin.fromClass(class {
     }
     update(update: ViewUpdate) {
 
-        if (update.docChanged) {
+        if (update.docChanged || update.viewportChanged) {
             this.decorations = colorPairedBrackets(update.view);
             // this.decorations = this.decorations.map(update.changes);
 

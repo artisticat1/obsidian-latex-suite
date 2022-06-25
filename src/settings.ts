@@ -225,7 +225,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
         new Setting(containerEl)
             .setName("Color paired brackets")
-            .setDesc("Whether to colorize matching brackets, improving readability.")
+            .setDesc("Whether to colorize matching brackets.")
             .addToggle(toggle => toggle
                 .setValue(this.plugin.settings.colorPairedBracketsEnabled)
                 .onChange(async (value) => {
