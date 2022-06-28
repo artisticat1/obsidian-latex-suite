@@ -548,6 +548,25 @@ export default class LatexSuitePlugin extends Plugin {
 			const result = this.checkSnippet(snippet, effectiveLine, range, sel);
 			if (result === null) continue;
 			const triggerPos = result.triggerPos;
+
+
+			if (snippet.options.contains("w")) {
+				// Check that the trigger is preceded and followed by a word delimiter
+
+				const prevChar = view.state.sliceDoc(triggerPos-1, triggerPos);
+				const nextChar = view.state.sliceDoc(to, to+1);
+
+				const wordDelimiters = this.settings.wordDelimiters.replace("\\n", "\n");
+
+
+				const prevCharIsWordDelimiter = wordDelimiters.contains(prevChar);
+				const nextCharIsWordDelimiter = wordDelimiters.contains(nextChar);
+
+				if (!(prevCharIsWordDelimiter && nextCharIsWordDelimiter)) {
+					continue;
+				}
+			}
+
 			let replacement = result.replacement;
 
 
@@ -591,7 +610,6 @@ export default class LatexSuitePlugin extends Plugin {
 			if (containsTrigger) this.shouldAutoEnlargeBrackets = true;
 
 
-            event.preventDefault();
 			return true;
 		}
 

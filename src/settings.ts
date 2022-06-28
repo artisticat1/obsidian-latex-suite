@@ -23,6 +23,7 @@ export interface LatexSuiteSettings {
     taboutEnabled: boolean;
     autoEnlargeBrackets: boolean;
     autoEnlargeBracketsTriggers: string;
+    wordDelimiters: string;
 }
 
 export const DEFAULT_SETTINGS: LatexSuiteSettings = {
@@ -41,7 +42,8 @@ export const DEFAULT_SETTINGS: LatexSuiteSettings = {
     matrixShortcutsEnvNames: "pmatrix, cases, align, bmatrix, Bmatrix, vmatrix, Vmatrix, array, matrix",
     taboutEnabled: true,
     autoEnlargeBrackets: true,
-    autoEnlargeBracketsTriggers: "sum, int, frac, prod"
+    autoEnlargeBracketsTriggers: "sum, int, frac, prod",
+    wordDelimiters: "., -\\n:;!?\\/{}[]()=~"
 }
 
 
@@ -351,6 +353,21 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
                     await this.plugin.saveSettings();
                 }));
+
+
+        containerEl.createEl("h4", {text: "Misc"});
+
+        new Setting(containerEl)
+        .setName("Word delimiters")
+        .setDesc("Symbols that will be treated as word delimiters, for use with the \"w\" snippet option.")
+        .addText(text => text
+            .setPlaceholder(DEFAULT_SETTINGS.wordDelimiters)
+            .setValue(this.plugin.settings.wordDelimiters)
+            .onChange(async (value) => {
+                this.plugin.settings.wordDelimiters = value;
+
+                await this.plugin.saveSettings();
+            }));
 	}
 }
 
