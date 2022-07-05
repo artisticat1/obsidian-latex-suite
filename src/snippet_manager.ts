@@ -365,6 +365,12 @@ export class SnippetManager {
         const cursor = view.state.selection.main;
         const newMarker = newMarkers[0];
 
+
+        // If the next tabstop is empty, go again
+        if (newMarkers.length === 0)
+            return this.consumeAndGotoNextTabstop(view);
+
+
         // If the new tabstop has a single cursor, and
         // the old tabstop is inside of the new one, we just move the cursor
         if (newTabstop.markers.length === 1) {
