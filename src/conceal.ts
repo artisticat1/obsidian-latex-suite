@@ -5,6 +5,7 @@ import { EditorSelection, Range } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
 import { getEquationBounds, findMatchingBracket } from "./editor_helpers";
 import { cmd_symbols, greek, map_super, map_sub, leftright, brackets, mathbb, mathscrcal } from "./conceal_maps";
+// import { SNIPPET_VARIABLES } from "./snippets";
 
 
 export interface Concealment {
@@ -89,6 +90,8 @@ function concealSymbols(eqn: string, prefix: string, suffix: string, symbolMap: 
 
 
 function concealModifier(eqn: string, modifier: string, combiningCharacter: string):Concealment[] {
+    // const greekList = SNIPPET_VARIABLES["${GREEK}"];
+    // const regexStr = ("\\\\" + modifier + "{([A-Za-z]|\\\\(?:GREEK))}").replace("GREEK", greekList);
     const regexStr = ("\\\\" + modifier + "{([A-Za-z])}");
     const symbolRegex = new RegExp(regexStr, "g");
 
@@ -99,6 +102,16 @@ function concealModifier(eqn: string, modifier: string, combiningCharacter: stri
 
     for (const match of matches) {
         const symbol = match[1];
+        // let symbol = match[1];
+
+        // // Check whether this is a greek letter
+        // if (symbol.length > 1) {
+        //     // Trim the leading "\"
+        //     symbol = symbol.slice(1)
+
+        //     // Convert to the corresponding greek letter in unicode
+        //     symbol = greek[symbol];
+        // }
 
         concealments.push({start: match.index, end: match.index + match[0].length, replacement: symbol + combiningCharacter, class: "latex-suite-unicode"});
     }
