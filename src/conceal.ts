@@ -4,7 +4,7 @@ import { EditorView, ViewUpdate, Decoration, DecorationSet, WidgetType, ViewPlug
 import { EditorSelection, Range } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
 import { getEquationBounds, findMatchingBracket } from "./editor_helpers";
-import { cmd_symbols, greek, map_super, map_sub, dot, hat, bar, leftright, brackets, mathbb, mathscrcal } from "./conceal_maps";
+import { cmd_symbols, greek, map_super, map_sub, leftright, brackets, mathbb, mathscrcal } from "./conceal_maps";
 
 
 export interface Concealment {
@@ -82,6 +82,25 @@ function concealSymbols(eqn: string, prefix: string, suffix: string, symbolMap: 
         const symbol = match[1];
 
         concealments.push({start: match.index, end: match.index + match[0].length, replacement: symbolMap[symbol], class: className});
+    }
+
+    return concealments;
+}
+
+
+function concealModifier(eqn: string, modifier: string, combiningCharacter: string):Concealment[] {
+    const regexStr = ("\\\\" + modifier + "{([A-Za-z])}");
+    const symbolRegex = new RegExp(regexStr, "g");
+
+
+    const matches = [...eqn.matchAll(symbolRegex)];
+
+    const concealments:Concealment[] = [];
+
+    for (const match of matches) {
+        const symbol = match[1];
+
+        concealments.push({start: match.index, end: match.index + match[0].length, replacement: symbol + combiningCharacter, class: "latex-suite-unicode"});
     }
 
     return concealments;
@@ -248,9 +267,10 @@ function conceal(view: EditorView) {
                 ...concealSymbols(eqn, "\\^", "", map_super),
                 ...concealSymbols(eqn, "_", "", map_sub),
                 ...concealSymbols(eqn, "\\\\", "", {...greek, ...cmd_symbols}),
-                ...concealSymbols(eqn, "\\\\dot{", "}", dot),
-                ...concealSymbols(eqn, "\\\\hat{", "}", hat),
-                ...concealSymbols(eqn, "\\\\overline{", "}", bar),
+                ...concealModifier(eqn, "hat", "\u0302"),
+                ...concealModifier(eqn, "dot", "\u0307"),
+                ...concealModifier(eqn, "ddot", "\u0308"),
+                ...concealModifier(eqn, "overline", "\u0304"),
                 ...concealSymbols(eqn, "\\\\", "", brackets, "cm-bracket"),
                 ...concealSymbols(eqn, "\\\\", "", leftright),
                 ...concealAtoZ(eqn, "\\\\mathcal{", "}", mathscrcal),
