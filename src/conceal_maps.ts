@@ -174,7 +174,10 @@ export const cmd_symbols:{[name:string]: string} =
     "colon": ":",
     "coloneqq": "≔",
 
-    "displaystyle": ""
+    "displaystyle": " ",
+    ",": " ",
+    ":": " ",
+    ";": " "
 };
 
 
