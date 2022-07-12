@@ -1,5 +1,5 @@
 # Obsidian Latex Suite
-**New in 1.3.0: Now supports the new CM v6.0 editor on Obsidian 0.15.0.**
+**🌟 New in 1.4.0: Color and highlight matching brackets! See below for more info.**
 
 *Works with the new Live Preview editor only.*
 
@@ -72,7 +72,7 @@ While inside a matrix, array, align, or cases environment,
 ### Conceal
 *This feature must be enabled in settings!*
 
-The **conceal** feature makes your equations more readable by hiding LaTeX code, instead rendering it in a pretty format.
+Make your equations more readable by hiding LaTeX code, instead rendering it in a pretty format.
 
 For example, "\dot{x}^{2} + \dot{y}^{2}" will be displayed as "ẋ² + ẏ²".
 
@@ -82,6 +82,17 @@ To reveal the LaTeX code, move the cursor over it.
 ![conceal demo](https://raw.githubusercontent.com/artisticat1/obsidian-latex-suite/main/gifs/conceal.png)
 ![conceal demo 2](https://raw.githubusercontent.com/artisticat1/obsidian-latex-suite/main/gifs/conceal.gif)
 
+
+### Tabout
+- Pressing <kbd>Tab</kbd> while the cursor is at the end of an equation will move the cursor outside the $ symbols.
+- Otherwise, pressing <kbd>Tab</kbd> will advance the cursor to the next closing bracket: ), ], }, >, or |.
+
+
+### Color & highlight matching brackets
+- Pairs of matching brackets will be rendered in the same color, to aid readability.
+- When the cursor is adjacent to a bracket, that bracket and its pair will be highlighted.
+
+![color and highlight matching brackets demo](gifs/color_brackets.gif)
 
 
 ### Visual snippets
@@ -99,11 +110,6 @@ Sometimes you want to annotate math, or cancel or cross out terms. Selecting som
 When a snippet containing "\\sum", "\\int" or "\\frac" is triggered, any enclosing brackets will be enlarged with "\\left" and "\\right".
 
 ![auto-enlarge brackets](https://raw.githubusercontent.com/artisticat1/obsidian-latex-suite/main/gifs/auto-enlarge_brackets.gif)
-
-
-### Tabout
-- Pressing <kbd>Tab</kbd> while the cursor is at the end of an equation will move the cursor outside the $ symbols.
-- Otherwise, pressing <kbd>Tab</kbd> will advance the cursor to the next closing bracket: ), ], }, >, or |.
 
 
 ### Editor commands
@@ -130,7 +136,7 @@ Snippets are formatted as follows:
 - `t` : Text mode. Only run this snippet outside math
 - `A` : Auto. Expand this snippet as soon as the trigger is typed. If omitted, the <kbd>Tab</kbd> key must be pressed to expand the snippet
 - `r` : Regex. The `trigger` will be treated as a regular expression
-<!-- - `w` : Word boundary. Only run this snippet when the trigger is preceded (and followed by) a word delimiter, such as `.`, `,`, or `-`. -->
+- `w` : Word boundary. Only run this snippet when the trigger is preceded (and followed by) a word delimiter, such as `.`, `,`, or `-`.
 
 Insert **tabstops** for the cursor to jump to by writing "$0", "$1", etc. in the `replacement`.
 

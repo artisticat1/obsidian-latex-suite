@@ -255,11 +255,11 @@ span.cm-math.cm-concealed-mathrm {
 /* Custom colors */
 
 .theme-light .latex-suite-color-bracket-0 {
-    color: #3287ff;
+    color: #527aff;
 }
 
 .theme-dark .latex-suite-color-bracket-0 {
-    color: #6acaff;
+    color: #47b8ff;
 }
 
 .theme-light .latex-suite-color-bracket-1 {
@@ -271,11 +271,11 @@ span.cm-math.cm-concealed-mathrm {
 }
 
 .theme-light .latex-suite-color-bracket-2 {
-    color: #2eba00;
+    color: #69ba00;
 }
 
 .theme-dark .latex-suite-color-bracket-2 {
-    color: #77e728;
+    color: #73ff63;
 }
 
 /* .latex-suite-color-bracket-3 {

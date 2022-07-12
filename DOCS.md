@@ -18,7 +18,7 @@ Snippets are formatted as follows:
 - `t` : Text mode. Only run this snippet outside math
 - `A` : Auto. Expand this snippet as soon as the trigger is typed. If omitted, the <kbd>Tab</kbd> key must be pressed to expand the snippet
 - `r` : Regex. The `trigger` will be treated as a regular expression
-<!-- - `w` : Word boundary. Only run this snippet when the trigger is preceded by (and followed by) a word delimiter, such as `.`, `,`, or `-`. -->
+- `w` : Word boundary. Only run this snippet when the trigger is preceded by (and followed by) a word delimiter, such as `.`, `,`, or `-`.
 
 Multiple options can be used at once.
 
@@ -43,8 +43,7 @@ Multiple options can be used at once.
 - Use the `r` option to create a regex snippet.
 - In the `trigger`, surround an expression with brackets `()` to create a capturing group.
 - Inside the `replacement` string, strings of the form `[[X]]` will be replaced by matches in increasing order of X, starting from 0.
-- Some characters, such as `\`, `+`, and `.`, are special characters in regex. If you want to use these literally, remember to escape them by inserting two backslashes (`\\`) before them!
-  - (One backslash to escape the special character, and another to escape that backlash)
+
 
 > ❗ **Warnings**
 > - Some characters, such as `\`, `+`, and `.`, are special characters in regex. If you want to use these literally, remember to escape them by inserting two backslashes (`\\`) before them!
