@@ -92,7 +92,7 @@ To reveal the LaTeX code, move the cursor over it.
 - Pairs of matching brackets will be rendered in the same color, to aid readability.
 - When the cursor is adjacent to a bracket, that bracket and its pair will be highlighted.
 
-![color and highlight matching brackets demo](gifs/color_brackets.gif)
+![color and highlight matching brackets demo](https://raw.githubusercontent.com/artisticat1/obsidian-latex-suite/main/gifs/color_brackets.gif)
 
 
 ### Visual snippets
