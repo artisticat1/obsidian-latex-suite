@@ -742,14 +742,20 @@ export default class LatexSuitePlugin extends Plugin {
 
 
 		for (let i = start; i < end; i++) {
-			if (!["[", "("].contains(text.charAt(i))) continue;
 
-			const open = text.charAt(i);
+			const is1CharBracket = ["[", "("].contains(text.charAt(i));
+			const isCurlyBracket = (text.slice(i, i+2) == "\\{");
+			if (!(is1CharBracket || isCurlyBracket)) continue;
+			const bracketSize = is1CharBracket ? 1 : 2;
+
+			const open = is1CharBracket ? text.charAt(i) : "\\{";
 			const close = getCloseBracket(open);
 
 			const j = findMatchingBracket(text, i, open, close, false, end);
 			if (j === -1) continue;
 
+
+			// If \left and \right already inserted, ignore
 			if ((text.slice(i-left.length, i) === left) && (text.slice(j-right.length, j) === right)) continue;
 
 
@@ -763,8 +769,8 @@ export default class LatexSuitePlugin extends Plugin {
 			}
 
 			// Enlarge the brackets
-			this.snippetManager.queueSnippet({from: i, to: i+1, insert: left + open + " "});
-			this.snippetManager.queueSnippet({from: j, to: j+1, insert: " " + right + close});
+			this.snippetManager.queueSnippet({from: i, to: i+bracketSize, insert: left + open + " "});
+			this.snippetManager.queueSnippet({from: j, to: j+bracketSize, insert: " " + right + close});
 		}
 
 		this.snippetManager.expandSnippets(view);
