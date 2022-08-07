@@ -89,8 +89,9 @@ To reveal the LaTeX code, move the cursor over it.
 
 
 ### Color & highlight matching brackets
-- Pairs of matching brackets will be rendered in the same color, to aid readability.
+- Matching brackets are rendered in the same color, to help with readability.
 - When the cursor is adjacent to a bracket, that bracket and its pair will be highlighted.
+- When the cursor is inside brackets, the enclosing brackets will be highlighted.
 
 ![color and highlight matching brackets demo](https://raw.githubusercontent.com/artisticat1/obsidian-latex-suite/main/gifs/color_brackets.gif)
 

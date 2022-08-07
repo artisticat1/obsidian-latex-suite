@@ -160,6 +160,46 @@ export function isInsideEnvironment(view: EditorView, pos: number, env: Environm
 }
 
 
+export function getEnclosingBracketsPos(view: EditorView, pos: number) {
+    
+    const result = getEquationBounds(view);
+    if (!result) return -1;
+    const {start, end} = result;
+    const text = view.state.doc.sliceString(start, end);
+
+
+    for (let i = pos-start; i > 0; i--) {
+        let curChar = text.charAt(i);
+        
+        
+        if ([")", "]", "}"].contains(curChar)) {
+            const closeBracket = curChar;
+            const openBracket = getOpenBracket(closeBracket);
+            
+            const j = findMatchingBracket(text, i, openBracket, closeBracket, true);
+            
+            if (j === -1) return -1;
+            
+            // Skip to the beginnning of the bracket
+            i = j;
+            curChar = text.charAt(i);
+        }
+        else {
+
+            if (!["{", "(", "["].contains(curChar)) continue;
+    
+            const j = findMatchingBracket(text, i, curChar, getCloseBracket(curChar), false);
+            if (j === -1) continue;
+    
+            return {left: i + start, right: j + start};
+        
+        }
+    }
+
+    return -1;
+}
+
+
 
 export function reverse(s: string){
     return s.split("").reverse().join("");

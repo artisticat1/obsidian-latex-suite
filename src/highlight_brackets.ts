@@ -1,6 +1,6 @@
 import { EditorView, ViewUpdate, Decoration, DecorationSet, ViewPlugin } from "@codemirror/view";
 import { Range } from "@codemirror/state";
-import { isWithinEquation, getEquationBounds, findMatchingBracket, getOpenBracket, getCloseBracket } from "./editor_helpers";
+import { isWithinEquation, getEquationBounds, findMatchingBracket, getOpenBracket, getCloseBracket, getEnclosingBracketsPos } from "./editor_helpers";
 import { syntaxTree } from "@codemirror/language";
 
 const Ncolors = 3;
@@ -98,6 +98,9 @@ function highlightCursorBrackets(view: EditorView) {
     const brackets = ["{", "[", "(", "}", "]", ")"];
 
 
+    let done = false;
+
+
     for (const range of ranges) {
 
         for (let i = range.to; i > range.from - 2; i--) {
@@ -126,9 +129,27 @@ function highlightCursorBrackets(view: EditorView) {
 
             widgets.push(getHighlightBracketMark(i, "latex-suite-highlighted-bracket"));
             widgets.push(getHighlightBracketMark(j, "latex-suite-highlighted-bracket"));
-
+            done = true;
             break;
         }
+
+        if (done) break;
+        
+        
+        // Highlight brackets enclosing the cursor
+        if (range.empty) {
+            const pos = range.from - 1;
+
+            const result = getEnclosingBracketsPos(view, pos);
+            if (result === -1) continue;
+            
+            widgets.push(getHighlightBracketMark(result.left, "latex-suite-highlighted-bracket"));
+            widgets.push(getHighlightBracketMark(result.right, "latex-suite-highlighted-bracket"));
+            done = true;
+            break;
+        }
+
+        if (done) break;
     }
 
     return Decoration.set(widgets, true);
