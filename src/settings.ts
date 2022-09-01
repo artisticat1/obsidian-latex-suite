@@ -67,7 +67,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 		containerEl.empty();
 
-		containerEl.createEl("h4", {text: "Snippets"});
+        containerEl.createEl('div', {text: "Snippets"}).addClasses(["setting-item", "setting-item-heading", "setting-item-name"]);
 
 
         new Setting(containerEl)
@@ -185,8 +185,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
         });
 
 
-
-        containerEl.createEl("h4", {text: "Conceal"});
+        containerEl.createEl('div', {text: "Conceal"}).addClasses(["setting-item", "setting-item-heading", "setting-item-name"]);
 
         const fragment = document.createDocumentFragment();
         const line1 = document.createElement("div");
@@ -221,7 +220,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
                 }));
 
 
-        containerEl.createEl("h4", {text: "Highlight and color brackets"});
+        containerEl.createEl('div', {text: "Highlight and color brackets"}).addClasses(["setting-item", "setting-item-heading", "setting-item-name"]);
 
         new Setting(containerEl)
             .setName("Color paired brackets")
@@ -259,7 +258,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
             }));
 
 
-        containerEl.createEl("h4", {text: "Auto-fraction"});
+        containerEl.createEl('div', {text: "Auto-fraction"}).addClasses(["setting-item", "setting-item-heading", "setting-item-name"]);
 
         new Setting(containerEl)
             .setName("Enabled")
@@ -288,7 +287,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 
 
-        containerEl.createEl("h4", {text: "Matrix shortcuts"});
+        containerEl.createEl('div', {text: "Matrix shortcuts"}).addClasses(["setting-item", "setting-item-heading", "setting-item-name"]);
 
         new Setting(containerEl)
             .setName("Enabled")
@@ -315,7 +314,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
                 }));
 
 
-        containerEl.createEl("h4", {text: "Tabout"});
+        containerEl.createEl('div', {text: "Tabout"}).addClasses(["setting-item", "setting-item-heading", "setting-item-name"]);
 
         new Setting(containerEl)
             .setName("Enabled")
@@ -328,7 +327,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
                 }));
 
 
-        containerEl.createEl("h4", {text: "Auto-enlarge brackets"});
+        containerEl.createEl('div', {text: "Auto-enlarge brackets"}).addClasses(["setting-item", "setting-item-heading", "setting-item-name"]);
 
         new Setting(containerEl)
             .setName("Enabled")
@@ -355,7 +354,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
                 }));
 
 
-        containerEl.createEl("h4", {text: "Misc"});
+        containerEl.createEl('div', {text: "Misc"}).addClasses(["setting-item", "setting-item-heading", "setting-item-name"]);
 
         new Setting(containerEl)
         .setName("Word delimiters")
