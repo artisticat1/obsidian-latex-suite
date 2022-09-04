@@ -4,7 +4,7 @@ import { EditorView, ViewUpdate, Decoration, DecorationSet, WidgetType, ViewPlug
 import { EditorSelection, Range } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
 import { getEquationBounds, findMatchingBracket } from "./editor_helpers";
-import { cmd_symbols, greek, map_super, map_sub, leftright, brackets, mathbb, mathscrcal } from "./conceal_maps";
+import { cmd_symbols, greek, map_super, map_sub, leftright, brackets, mathbb, mathscrcal, fractions } from "./conceal_maps";
 // import { SNIPPET_VARIABLES } from "./snippets";
 
 
@@ -57,7 +57,7 @@ function selectionAndRangeOverlap(selection: EditorSelection, rangeFrom:
 
 
 function escapeRegex(regex: string) {
-    const escapeChars = ["\\", "(", ")", "+", "-", "[", "]"];
+    const escapeChars = ["\\", "(", ")", "+", "-", "[", "]", "{", "}"];
 
     for (const escapeChar of escapeChars) {
         regex = regex.replaceAll(escapeChar, "\\" + escapeChar);
@@ -279,6 +279,7 @@ function conceal(view: EditorView) {
                 ...concealSupSub(eqn, false, map_sub),
                 ...concealSymbols(eqn, "\\^", "", map_super),
                 ...concealSymbols(eqn, "_", "", map_sub),
+                ...concealSymbols(eqn, "\\\\frac", "", fractions),
                 ...concealSymbols(eqn, "\\\\", "", {...leftright, ...greek, ...cmd_symbols}),
                 ...concealModifier(eqn, "hat", "\u0302"),
                 ...concealModifier(eqn, "dot", "\u0307"),

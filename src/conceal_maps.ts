@@ -181,6 +181,24 @@ export const cmd_symbols:{[name:string]: string} =
 };
 
 
+export const fractions:{[name: string]:string} = {
+    "{1}{2}": "½",
+    "{1}{3}": "⅓",
+    "{2}{3}": "⅔",
+    "{1}{4}": "¼",
+    "{1}{5}": "⅕",
+    "{2}{5}": "⅖",
+    "{3}{5}": "⅗",
+    "{4}{5}": "⅘",
+    "{1}{6}": "⅙",
+    "{5}{6}": "⅚",
+    "{1}{8}": "⅛",
+    "{3}{8}": "⅜",
+    "{5}{8}": "⅝",
+    "{7}{8}": "⅞",
+};
+
+
 export const greek:{[name: string]:string} =
 {
     "alpha":      "α",
