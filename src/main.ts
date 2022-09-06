@@ -5,7 +5,7 @@ import { invertedEffects, undo, redo } from "@codemirror/commands";
 
 
 import { LatexSuiteSettings, LatexSuiteSettingTab, DEFAULT_SETTINGS } from "./settings"
-import { isWithinEquation, isWithinInlineEquation, replaceRange, setCursor, isInsideEnvironment, getOpenBracket, getCloseBracket, findMatchingBracket, getEquationBounds } from "./editor_helpers"
+import { isWithinEquation, isWithinInlineEquation, replaceRange, setCursor, isInsideEnvironment, getOpenBracket, getCloseBracket, findMatchingBracket, getEquationBounds, getCharacterAtPos } from "./editor_helpers"
 import { markerStateField, addMark, removeMark, startSnippet, endSnippet, undidStartSnippet, undidEndSnippet } from "./marker_state_field";
 import { Environment, Snippet, SNIPPET_VARIABLES, EXCLUSIONS } from "./snippets"
 import { SnippetManager } from "./snippet_manager";
@@ -381,7 +381,9 @@ export default class LatexSuitePlugin extends Plugin {
 		}
 
 
-		if (key === "Tab") {
+		const shouldTaboutByCloseBracket = this.shouldTaboutByCloseBracket(view, key);
+
+		if (key === "Tab" || shouldTaboutByCloseBracket) {
 			success = this.handleTabstops(view);
 
 			if (success) return true;
@@ -886,5 +888,22 @@ export default class LatexSuitePlugin extends Plugin {
 			return false;
 		}
 
+	}
+
+
+	private readonly shouldTaboutByCloseBracket = (view: EditorView, keyPressed: string) => {
+		const sel = view.state.selection.main;
+		if (!sel.empty) return;
+		const pos = sel.from;
+
+		const c = getCharacterAtPos(view, pos);
+		const brackets = [")", "]", "}"];
+
+		if ((c === keyPressed) && brackets.contains(c)) {
+			return true;
+		}
+		else {
+			return false;
+		}
 	}
 }

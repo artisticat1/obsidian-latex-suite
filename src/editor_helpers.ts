@@ -10,6 +10,13 @@ export function replaceRange(view: EditorView, start: number, end: number, repla
         changes: {from: start, to: end, insert: replacement}
     });
 }
+ 
+
+export function getCharacterAtPos(view: EditorView, pos: number) {
+    const doc = view.state.doc;
+
+    return doc.slice(pos, pos+1).toString();
+}
 
 
 export function setCursor(view: EditorView, pos: number) {
