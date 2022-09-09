@@ -1,5 +1,4 @@
 # Obsidian Latex Suite
-**🌟 New in 1.4.0: Color and highlight matching brackets! See below for more info.**
 
 *Works with the new Live Preview editor only.*
 
@@ -40,7 +39,7 @@ Once these feel familiar, you can check out the [default snippets](https://githu
 - "dint <kbd>Tab</kbd> 2pi <kbd>Tab</kbd> sin @t <kbd>Tab</kbd> @t <kbd>Tab</kbd>" → "\\int_{0}^{2\pi} \\sin \\theta \\, d\\theta".
 
 
-You can also add your own snippets! [See here for more info on writing snippets](#snippets).
+You can also add your own snippets! [See here for more info on writing snippets](#snippets). You can [view snippets written by others and share your own snippets here](https://github.com/artisticat1/obsidian-latex-suite/discussions/50).
 
 
 ## Features
@@ -141,7 +140,7 @@ Snippets are formatted as follows:
 
 Insert **tabstops** for the cursor to jump to by writing "$0", "$1", etc. in the `replacement`.
 
-For more details on writing snippets, including **regex** snippets, [see the documentation here](DOCS.md).
+For more details on writing snippets, including **regex** snippets, [see the documentation here](DOCS.md). You can [view snippets written by others and share your own snippets here](https://github.com/artisticat1/obsidian-latex-suite/discussions/50).
 
 
 
@@ -209,4 +208,4 @@ e.g. "pi" → "\\pi"
 ## Support
 If you like this plugin and want to say thanks, you can buy me a coffee here.
 
-<a href='https://ko-fi.com/J3J6BBZAW' target='_blank'><img height='48' style='border:0px;height:48px;' src='https://cdn.ko-fi.com/cdn/kofi1.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
+<a href='https://ko-fi.com/J3J6BBZAW' target='_blank'><img height='56' style='border:0px;height:56px;' src='https://cdn.ko-fi.com/cdn/kofi1.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
