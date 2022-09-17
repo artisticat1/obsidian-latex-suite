@@ -4,7 +4,7 @@ import { EditorView, ViewUpdate, Decoration, DecorationSet, WidgetType, ViewPlug
 import { EditorSelection, Range } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
 import { getEquationBounds, findMatchingBracket } from "./editor_helpers";
-import { cmd_symbols, greek, map_super, map_sub, leftright, brackets, mathbb, mathscrcal, fractions } from "./conceal_maps";
+import { cmd_symbols, greek, map_super, map_sub, leftright, brackets, mathbb, mathscrcal, fractions, operators } from "./conceal_maps";
 // import { SNIPPET_VARIABLES } from "./snippets";
 
 
@@ -93,8 +93,7 @@ function concealSymbols(eqn: string, prefix: string, suffix: string, symbolMap: 
 
 
 function concealModifier(eqn: string, modifier: string, combiningCharacter: string):Concealment[] {
-    // const greekList = SNIPPET_VARIABLES["${GREEK}"];
-    // const regexStr = ("\\\\" + modifier + "{([A-Za-z]|\\\\(?:GREEK))}").replace("GREEK", greekList);
+
     const regexStr = ("\\\\" + modifier + "{([A-Za-z])}");
     const symbolRegex = new RegExp(regexStr, "g");
 
@@ -105,16 +104,6 @@ function concealModifier(eqn: string, modifier: string, combiningCharacter: stri
 
     for (const match of matches) {
         const symbol = match[1];
-        // let symbol = match[1];
-
-        // // Check whether this is a greek letter
-        // if (symbol.length > 1) {
-        //     // Trim the leading "\"
-        //     symbol = symbol.slice(1)
-
-        //     // Convert to the corresponding greek letter in unicode
-        //     symbol = greek[symbol];
-        // }
 
         concealments.push({start: match.index, end: match.index + match[0].length, replacement: symbol + combiningCharacter, class: "latex-suite-unicode"});
     }
@@ -179,6 +168,29 @@ function concealBoldMathBbMathRm(eqn: string, symbolMap: {[key: string]:string})
             concealments.push({start: start, end: end, replacement: value, class: "cm-concealed-mathrm cm-variable-2"});
         }
 
+    }
+
+    return concealments;
+}
+
+
+function concealOperators(eqn: string, symbols: string[]):Concealment[] {
+
+    const regexStr = "\\\\(" + symbols.join("|") + ")";
+    const regex = new RegExp(regexStr, "g");
+
+    const matches = [...eqn.matchAll(regex)];
+
+    const concealments:Concealment[] = [];
+
+    for (const match of matches) {
+        const value = match[1];
+
+        const start = match.index;
+        const end = start + match[0].length;
+
+        concealments.push({start: start, end: end, replacement: value, class: "cm-concealed-mathrm cm-variable-2"});
+        
     }
 
     return concealments;
@@ -289,7 +301,8 @@ function conceal(view: EditorView) {
                 ...concealSymbols(eqn, "\\\\", "", brackets, "cm-bracket"),
                 ...concealAtoZ(eqn, "\\\\mathcal{", "}", mathscrcal),
                 ...concealBoldMathBbMathRm(eqn, mathbb),
-                ...concealBraKet(eqn, selection, bounds.start)
+                ...concealBraKet(eqn, selection, bounds.start),
+                ...concealOperators(eqn, operators)
             ];
 
 

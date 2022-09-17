@@ -183,7 +183,44 @@ export const cmd_symbols:{[name:string]: string} =
 };
 
 
-export const fractions:{[name: string]:string} = {
+export const operators:string[] =
+// From https://www.overleaf.com/learn/latex/Operators
+[
+    "arcsin",
+    "arccos",
+    "arctan",
+    "sinh",
+    "cosh",
+    "tanh",
+    "coth",
+    "sin",
+    "cos",
+    "tan",
+    "sec",
+    "csc",
+    "cot",
+    "exp",
+    "ker",
+    "limsup",
+    "lim",
+    "sup",
+    "deg",
+    "gcd",
+    "log",
+    "lg",
+    "ln",
+    "Pr",
+    "det",
+    "hom",
+    "arg",
+    "dim",
+    "liminf",
+    "min",
+    "max",
+    ];
+
+
+export const fractions: { [name: string]: string } = {
     "{1}{2}": "½",
     "{1}{3}": "⅓",
     "{2}{3}": "⅔",
