@@ -241,7 +241,8 @@ function concealBraKet(eqn: string, selection: EditorSelection, eqnStartBound: n
         const right = type === "bra" ? vert : rangle;
 
 
-        concealments.push({start: start, end: end, replacement: left, class: "cm-bracket"});
+        concealments.push({start: start, end: end - 1, replacement: ""});
+        concealments.push({start: end - 1, end: end, replacement: left, class: "cm-bracket"});
         concealments.push({start: j, end: j + 1, replacement: right, class: "cm-bracket"});
     }
 
