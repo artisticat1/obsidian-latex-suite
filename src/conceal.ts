@@ -12,17 +12,20 @@ export interface Concealment {
     start: number,
     end: number,
     replacement: string,
-    class?: string
+    class?: string,
+    elementType?: string
 }
 
 
 class ConcealWidget extends WidgetType {
     private readonly className: string;
+    private readonly elementType: string;
 
-    constructor(readonly symbol: string, className?: string) {
+    constructor(readonly symbol: string, className?: string, elementType?: string) {
         super();
 
         this.className = className ? className : "";
+        this.elementType = elementType ? elementType : "span";
     }
 
     eq(other: ConcealWidget) {
@@ -30,7 +33,7 @@ class ConcealWidget extends WidgetType {
     }
 
     toDOM() {
-        const span = document.createElement("span")
+        const span = document.createElement(this.elementType);
         span.className = "cm-math " + this.className;
         span.textContent = this.symbol
         return span;
@@ -122,10 +125,9 @@ function concealModifier(eqn: string, modifier: string, combiningCharacter: stri
 
 
 function concealSupSub(eqn: string, superscript: boolean, symbolMap: {[key: string]:string}):Concealment[] {
-    const symbolNames = Object.keys(symbolMap);
 
     const prefix = superscript ? "\\^" : "_";
-    const regexStr = prefix + "{([" + escapeRegex(symbolNames.join("|")) + "]+)}";
+    const regexStr = prefix + "{([A-Za-z0-9\\()/+-=<>:;]+)}";
     const regex = new RegExp(regexStr, "g");
 
     const matches = [...eqn.matchAll(regex)];
@@ -136,13 +138,11 @@ function concealSupSub(eqn: string, superscript: boolean, symbolMap: {[key: stri
     for (const match of matches) {
 
         const exponent = match[1];
-        let replacement = "";
+        const replacement = exponent;
+        const elementType = superscript ? "sup" : "sub";
 
-        for (const letter of exponent.split("")) {
-            replacement = replacement + symbolMap[letter];
-        }
 
-        concealments.push({start: match.index, end: match.index + match[0].length, replacement: replacement, class: "cm-number"});
+        concealments.push({start: match.index, end: match.index + match[0].length, replacement: replacement, class: "cm-number", elementType: elementType});
     }
 
     return concealments;
@@ -303,7 +303,7 @@ function conceal(view: EditorView) {
 
                 widgets.push(
                     Decoration.replace({
-                        widget: new ConcealWidget(symbol, concealment.class),
+                        widget: new ConcealWidget(symbol, concealment.class, concealment.elementType),
                         inclusive: false,
                         block: false,
                     }).range(start, end)

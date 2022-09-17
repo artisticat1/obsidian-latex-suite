@@ -281,3 +281,14 @@ span.cm-math.cm-concealed-mathrm {
 /* .latex-suite-color-bracket-3 {
     color: #8de15c;
 } */
+
+
+/* Conceal superscripts without changing line height */
+sup.cm-math {
+    line-height: 0;
+}
+
+
+sup.cm-math, sub.cm-math {
+    font-style: italic;
+}
