@@ -1,6 +1,6 @@
 import { App, PluginSettingTab, Setting, Modal, ButtonComponent, ExtraButtonComponent } from "obsidian";
 import { EditorView, ViewUpdate } from "@codemirror/view";
-import { EditorState, Extension } from "@codemirror/state";
+import { EditorState, Extension, Prec } from "@codemirror/state";
 import { basicSetup } from "./editor/extensions";
 
 
@@ -231,7 +231,8 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
                     this.plugin.settings.colorPairedBracketsEnabled = value;
 
                     if (value) {
-                        this.plugin.enableExtension(colorPairedBracketsPlugin.extension);
+                        // Use Prec.lowest so that "color matching brackets" still works when "conceal" is enabled after it
+                        this.plugin.enableExtension(Prec.lowest(colorPairedBracketsPlugin.extension));
                     }
                     else {
                         this.plugin.disableExtension(colorPairedBracketsPlugin.extension);

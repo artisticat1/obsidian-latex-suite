@@ -32,7 +32,7 @@ export default class LatexSuitePlugin extends Plugin {
 
 	private inVimInsertMode = false;
 
-	private concealPluginExt:Extension[] = [];
+	private editorExtensions:Extension[] = [];
 
 
 	async onload() {
@@ -97,7 +97,7 @@ export default class LatexSuitePlugin extends Plugin {
 			this.handleUndoRedo(update);
         }));
 
-		this.registerEditorExtension(this.concealPluginExt);
+		this.registerEditorExtension(this.editorExtensions);
 
 		this.addEditorCommands();
 	}
@@ -194,14 +194,14 @@ export default class LatexSuitePlugin extends Plugin {
 
 
 	enableExtension(extension: Extension) {
-		this.concealPluginExt.push(extension);
+		this.editorExtensions.push(extension);
 		this.app.workspace.updateOptions();
 
 	}
 
 
 	disableExtension(extension: Extension) {
-		this.concealPluginExt.remove(extension);
+		this.editorExtensions.remove(extension);
 		this.app.workspace.updateOptions();
 	}
 
@@ -236,7 +236,7 @@ export default class LatexSuitePlugin extends Plugin {
 
 
 		if (this.settings.concealEnabled) this.enableExtension(concealPlugin.extension);
-		if (this.settings.colorPairedBracketsEnabled) this.enableExtension(colorPairedBracketsPlugin.extension);
+		if (this.settings.colorPairedBracketsEnabled) this.enableExtension(Prec.lowest(colorPairedBracketsPlugin.extension));
 		if (this.settings.highlightCursorBracketsEnabled) this.enableExtension(highlightCursorBracketsPlugin.extension);
 	}
 
