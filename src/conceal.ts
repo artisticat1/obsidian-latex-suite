@@ -29,18 +29,41 @@ class ConcealWidget extends WidgetType {
     }
 
     eq(other: ConcealWidget) {
-        return (other.symbol == this.symbol)
+        return (other.symbol == this.symbol);
     }
 
     toDOM() {
         const span = document.createElement(this.elementType);
         span.className = "cm-math " + this.className;
-        span.textContent = this.symbol
+        span.textContent = this.symbol;
         return span;
     }
 
     ignoreEvent() {
-        return false
+        return false;
+    }
+}
+
+
+class TextWidget extends WidgetType {
+    
+    constructor(readonly symbol: string) {
+        super();
+    }
+    
+    eq(other: TextWidget) {
+        return (other.symbol == this.symbol);
+    }
+    
+    toDOM() {
+        const span = document.createElement("span");
+        span.className = "cm-math";
+        span.textContent = this.symbol;
+        return span;
+    }
+    
+    ignoreEvent() {
+        return false;
     }
 }
 
@@ -263,6 +286,46 @@ function concealBraKet(eqn: string, selection: EditorSelection, eqnStartBound: n
 
 
 
+function concealFraction(eqn: string, selection: EditorSelection, eqnStartBound: number):Concealment[] {
+
+    const regexStr = "\\\\(frac){";
+    const symbolRegex = new RegExp(regexStr, "g");
+
+    const matches = [...eqn.matchAll(symbolRegex)];
+
+    const concealments:Concealment[] = [];
+
+    for (const match of matches) {
+        const loc = match.index + match[0].length;
+        const j = findMatchingBracket(eqn, loc-1, "{", "}", false);
+        if (j === -1) continue;
+
+        const charAfterFirstBracket = eqn.charAt(j+1);
+        if (charAfterFirstBracket != "{") continue;
+        const k = findMatchingBracket(eqn, j+1, "{", "}", false);
+        if (k === -1) continue;
+
+        const start = match.index;
+        const end = start + match[0].length;
+
+        if (selectionAndRangeOverlap(selection, eqnStartBound + start, eqnStartBound + end)) continue;
+        if (selectionAndRangeOverlap(selection, eqnStartBound + j, eqnStartBound + j + 2)) continue;
+        if (selectionAndRangeOverlap(selection, eqnStartBound + k, eqnStartBound + k + 1)) continue;
+
+
+        concealments.push({start: start, end: end - 1, replacement: ""});
+        concealments.push({start: end - 1, end: end, replacement: "(", class: "cm-bracket"});
+        concealments.push({start: j, end: j + 1, replacement: ")", class: "cm-bracket"});
+        concealments.push({start: j + 1, end: j + 1, replacement: "/", class: "cm-bracket"});
+        concealments.push({start: j + 1, end: j + 2, replacement: "(", class: "cm-bracket"});
+        concealments.push({start: k, end: k + 1, replacement: ")", class: "cm-bracket"});
+    }
+
+    return concealments;
+}
+
+
+
 
 function conceal(view: EditorView) {
 
@@ -302,6 +365,7 @@ function conceal(view: EditorView) {
                 ...concealAtoZ(eqn, "\\\\mathcal{", "}", mathscrcal),
                 ...concealBoldMathBbMathRm(eqn, mathbb),
                 ...concealBraKet(eqn, selection, bounds.start),
+                ...concealFraction(eqn, selection, bounds.start),
                 ...concealOperators(eqn, operators)
             ];
 
@@ -313,14 +377,24 @@ function conceal(view: EditorView) {
 
                 if (selectionAndRangeOverlap(selection, start, end)) continue;
 
-
-                widgets.push(
-                    Decoration.replace({
-                        widget: new ConcealWidget(symbol, concealment.class, concealment.elementType),
-                        inclusive: false,
-                        block: false,
-                    }).range(start, end)
-                );
+                if (start === end) {
+                    // Add an additional "/" symbol, as part of concealing \\frac{}{} -> ()/()
+                    widgets.push(
+                        Decoration.widget({
+                            widget: new TextWidget(symbol),
+                            block: false
+                        }).range(start, end)
+                    );
+                }
+                else {
+                    widgets.push(
+                        Decoration.replace({
+                            widget: new ConcealWidget(symbol, concealment.class, concealment.elementType),
+                            inclusive: false,
+                            block: false,
+                        }).range(start, end)
+                    );
+                }
             }
         }
 
