@@ -1,5 +1,5 @@
 import { EditorView, ViewUpdate, Decoration, DecorationSet, ViewPlugin } from "@codemirror/view";
-import { Range } from "@codemirror/state";
+import { Prec, Range } from "@codemirror/state";
 import { isWithinEquation, getEquationBounds, findMatchingBracket, getOpenBracket, getCloseBracket, getEnclosingBracketsPos } from "./editor_helpers";
 import { syntaxTree } from "@codemirror/language";
 
@@ -184,6 +184,9 @@ export const colorPairedBracketsPlugin = ViewPlugin.fromClass(class {
         }
     }
 }, { decorations: v => v.decorations, });
+
+
+export const colorPairedBracketsPluginLowestPrec = Prec.lowest(colorPairedBracketsPlugin.extension);
 
 
 export const highlightCursorBracketsPlugin = ViewPlugin.fromClass(class {

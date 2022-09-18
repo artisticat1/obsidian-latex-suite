@@ -7,7 +7,7 @@ import { basicSetup } from "./editor/extensions";
 import { DEFAULT_SNIPPETS } from "./default_snippets";
 import LatexSuitePlugin from "./main";
 import { concealPlugin } from "./conceal";
-import { colorPairedBracketsPlugin, highlightCursorBracketsPlugin } from "./highlight_brackets";
+import { colorPairedBracketsPlugin, colorPairedBracketsPluginLowestPrec, highlightCursorBracketsPlugin } from "./highlight_brackets";
 
 
 export interface LatexSuiteSettings {
@@ -232,10 +232,10 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
                     if (value) {
                         // Use Prec.lowest so that "color matching brackets" still works when "conceal" is enabled after it
-                        this.plugin.enableExtension(Prec.lowest(colorPairedBracketsPlugin.extension));
+                        this.plugin.enableExtension(colorPairedBracketsPluginLowestPrec);
                     }
                     else {
-                        this.plugin.disableExtension(colorPairedBracketsPlugin.extension);
+                        this.plugin.disableExtension(colorPairedBracketsPluginLowestPrec);
                     }
 
                     await this.plugin.saveSettings();

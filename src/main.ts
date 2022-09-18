@@ -10,7 +10,7 @@ import { markerStateField, addMark, removeMark, startSnippet, endSnippet, undidS
 import { Environment, Snippet, SNIPPET_VARIABLES, EXCLUSIONS } from "./snippets"
 import { SnippetManager } from "./snippet_manager";
 import { concealPlugin } from "./conceal";
-import { colorPairedBracketsPlugin, highlightCursorBracketsPlugin } from "./highlight_brackets";
+import { colorPairedBracketsPlugin, colorPairedBracketsPluginLowestPrec, highlightCursorBracketsPlugin } from "./highlight_brackets";
 import { editorCommands } from "./editor_commands";
 import { parse } from "json5";
 
@@ -236,7 +236,7 @@ export default class LatexSuitePlugin extends Plugin {
 
 
 		if (this.settings.concealEnabled) this.enableExtension(concealPlugin.extension);
-		if (this.settings.colorPairedBracketsEnabled) this.enableExtension(Prec.lowest(colorPairedBracketsPlugin.extension));
+		if (this.settings.colorPairedBracketsEnabled) this.enableExtension(colorPairedBracketsPluginLowestPrec);
 		if (this.settings.highlightCursorBracketsEnabled) this.enableExtension(highlightCursorBracketsPlugin.extension);
 	}
 
