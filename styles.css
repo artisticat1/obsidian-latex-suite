@@ -1,4 +1,4 @@
-/* Settings */
+/* Settings panel */
 
 .snippets-text-area {
     width: 100%;
@@ -113,17 +113,17 @@
 }
 
 
-/**
+/*
 Snippet color classes.
-["lightskyblue", "orange", "lime", "pink", "cornsilk", "magenta", "navajowhite"]
- */
+*/
 
 .latex-suite-suggestion-placeholder0 {
     border-color: lightskyblue;
 }
 
 /* These extra selectors enforce their color on all children, because CodeMirror does weird nesting of spans when
- nesting multiple decorations. */
+nesting multiple decorations. */
+
 span.latex-suite-suggestion-placeholder0 span {
     border-color: lightskyblue;
 }
@@ -174,12 +174,12 @@ span.latex-suite-suggestion-placeholder5 span {
 
 span.latex-suite-suggestion-placeholder6 span {
     border-color: navajowhite;
-} */
+}
 
 
 /* Conceal */
 
-.cm-concealed-bold {
+span.cm-math.cm-concealed-bold {
     font-weight: bold;
 }
 
