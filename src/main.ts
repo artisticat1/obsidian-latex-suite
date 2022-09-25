@@ -30,7 +30,6 @@ export default class LatexSuitePlugin extends Plugin {
 	private shouldAutoEnlargeBrackets = false;
 
 
-	private inVimInsertMode = false;
 
 	private editorExtensions:Extension[] = [];
 
@@ -73,8 +72,6 @@ export default class LatexSuitePlugin extends Plugin {
 		this.snippetManager = new SnippetManager();
 
 
-		// Handle vim mode
-		this.app.workspace.on("file-open", this.trackVimMode);
 
 
 		this.registerEditorExtension(markerStateField);
@@ -106,7 +103,6 @@ export default class LatexSuitePlugin extends Plugin {
 	onunload() {
 		this.snippetManager.onunload();
 
-		this.app.workspace.off("file-open", this.trackVimMode);
 	}
 
 
@@ -204,25 +200,6 @@ export default class LatexSuitePlugin extends Plugin {
 	disableExtension(extension: Extension) {
 		this.editorExtensions.remove(extension);
 		this.app.workspace.updateOptions();
-	}
-
-
-
-	trackVimMode = () => {
-		// From https://github.com/esm7/obsidian-vimrc-support/blob/master/main.ts
-
-		const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-		if (!view) return;
-
-		const editor = (view as any).sourceMode?.cmEditor?.cm?.cm;
-		if (!editor) return;
-
-		editor.on("vim-mode-change", (modeObj: any) => {
-			if (!modeObj) return;
-
-			this.inVimInsertMode = (modeObj.mode === "insert");
-			// console.log(this.inVimInsertMode);
-		});
 	}
 
 
@@ -365,24 +342,18 @@ export default class LatexSuitePlugin extends Plugin {
 		if (withinEquation) withinMath = !isInsideEnvironment(view, pos, {openSymbol: "\\text{", closeSymbol: "}"});
 
 
-		// @ts-ignore
-		const inVimMode = this.app.vault.getConfig("vimMode");
-
-
 		let success = false;
 
 
 		if (this.settings.snippetsEnabled) {
-			// Only run snippets while in insert mode in vim
-			if ((!inVimMode || this.inVimInsertMode)) {
 
-				// Allows Ctrl + z for undo, instead of triggering a snippet ending with z
-				if (!ctrlKey) {
-					success = this.runSnippets(view, key, withinMath, ranges);
+			// Allows Ctrl + z for undo, instead of triggering a snippet ending with z
+			if (!ctrlKey) {
+				success = this.runSnippets(view, key, withinMath, ranges);
 
-					if (success) return true;
-				}
+				if (success) return true;
 			}
+			
 		}
 
 
