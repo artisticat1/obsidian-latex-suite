@@ -7,7 +7,8 @@ import { basicSetup } from "./editor/extensions";
 import { DEFAULT_SNIPPETS } from "./default_snippets";
 import LatexSuitePlugin from "./main";
 import { concealPlugin } from "./conceal";
-import { colorPairedBracketsPlugin, colorPairedBracketsPluginLowestPrec, highlightCursorBracketsPlugin } from "./highlight_brackets";
+import { colorPairedBracketsPluginLowestPrec, highlightCursorBracketsPlugin } from "./highlight_brackets";
+import { cursorTooltipBaseTheme, cursorTooltipField } from "./inline_math_tooltip";
 
 
 export interface LatexSuiteSettings {
@@ -17,6 +18,7 @@ export interface LatexSuiteSettings {
     concealEnabled: boolean,
     colorPairedBracketsEnabled: boolean;
     highlightCursorBracketsEnabled: boolean;
+    inlineMathPreviewEnabled: boolean;
     autofractionExcludedEnvs: string,
     matrixShortcutsEnabled: boolean;
     matrixShortcutsEnvNames: string;
@@ -27,11 +29,12 @@ export interface LatexSuiteSettings {
 }
 
 export const DEFAULT_SETTINGS: LatexSuiteSettings = {
-	snippets: DEFAULT_SNIPPETS,
+    snippets: DEFAULT_SNIPPETS,
     snippetsEnabled: true,
     concealEnabled: false,
     colorPairedBracketsEnabled: true,
     highlightCursorBracketsEnabled: true,
+    inlineMathPreviewEnabled: true,
     autofractionEnabled: true,
     autofractionExcludedEnvs:
     `[
@@ -257,6 +260,31 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
                 await this.plugin.saveSettings();
             }));
+
+
+
+        containerEl.createEl('div', {text: "Inline math preview"}).addClasses(["setting-item", "setting-item-heading", "setting-item-name"]);
+
+            new Setting(containerEl)
+                .setName("Enabled")
+                .setDesc("When inside inline math, show a popup preview window of the rendered math.")
+                .addToggle(toggle => toggle
+                    .setValue(this.plugin.settings.inlineMathPreviewEnabled)
+                    .onChange(async (value) => {
+                        this.plugin.settings.inlineMathPreviewEnabled = value;
+    
+                        if (value) {
+                            this.plugin.enableExtension(cursorTooltipField);
+                            this.plugin.enableExtension(cursorTooltipBaseTheme);
+                        }
+                        else {
+                            this.plugin.disableExtension(cursorTooltipField);
+                            this.plugin.disableExtension(cursorTooltipBaseTheme);
+                        }
+    
+                        await this.plugin.saveSettings();
+                    }));
+
 
 
         containerEl.createEl('div', {text: "Auto-fraction"}).addClasses(["setting-item", "setting-item-heading", "setting-item-name"]);

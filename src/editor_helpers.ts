@@ -1,7 +1,7 @@
 import { Platform } from "obsidian";
 import { Environment } from "./snippets";
 import { EditorView } from "@codemirror/view";
-import { EditorSelection, SelectionRange } from "@codemirror/state";
+import { EditorSelection, SelectionRange, EditorState } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
 
 
@@ -57,9 +57,10 @@ export function resetCursorBlink() {
 }
 
 
-export function isWithinEquation(view: EditorView):boolean {
-    const pos = view.state.selection.main.to - 1;
-    const tree = syntaxTree(view.state);
+export function isWithinEquation(view: EditorView | EditorState):boolean {
+    const s = view instanceof EditorView ? view.state : view;
+    const pos = s.selection.main.to - 1;
+    const tree = syntaxTree(s);
 
     const token = tree.resolveInner(pos, 1).name;
     let withinEquation = token.contains("math");
@@ -99,10 +100,26 @@ export function isWithinInlineEquation(view: EditorView):boolean {
 }
 
 
-export function getEquationBounds(view: EditorView, pos?: number):{start: number, end: number} {
-    const text = view.state.doc.toString();
+export function isWithinInlineEquationState(state: EditorState):boolean {
+    const result = getEquationBounds(state);
+    if (!result) return false;
+    const end = result.end;
+
+    const d = state.doc;
+
+    // Check whether we're in inline math or a block eqn
+    const inlineMath = d.sliceString(end, end+2) != "$$";
+
+    return inlineMath;
+}
+
+
+export function getEquationBounds(view: EditorView | EditorState, pos?: number):{start: number, end: number} {
+    const s = view instanceof EditorView ? view.state : view;
+
+    const text = s.doc.toString();
     if (typeof pos === "undefined") {
-        pos = view.state.selection.main.from;
+        pos = s.selection.main.from;
     }
 
     const left = text.lastIndexOf("$", pos-1);

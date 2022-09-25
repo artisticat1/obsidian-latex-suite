@@ -1,8 +1,7 @@
 import { Plugin, Notice, MarkdownView } from "obsidian";
-import { EditorView, keymap, ViewUpdate } from "@codemirror/view";
+import { EditorView, keymap, ViewUpdate, tooltips } from "@codemirror/view";
 import { SelectionRange, Prec, Extension } from "@codemirror/state";
 import { invertedEffects, undo, redo } from "@codemirror/commands";
-
 
 import { LatexSuiteSettings, LatexSuiteSettingTab, DEFAULT_SETTINGS } from "./settings"
 import { isWithinEquation, isWithinInlineEquation, replaceRange, setCursor, isInsideEnvironment, getOpenBracket, getCloseBracket, findMatchingBracket, getEquationBounds, getCharacterAtPos } from "./editor_helpers"
@@ -10,7 +9,8 @@ import { markerStateField, addMark, removeMark, startSnippet, endSnippet, undidS
 import { Environment, Snippet, SNIPPET_VARIABLES, EXCLUSIONS } from "./snippets"
 import { SnippetManager } from "./snippet_manager";
 import { concealPlugin } from "./conceal";
-import { colorPairedBracketsPlugin, colorPairedBracketsPluginLowestPrec, highlightCursorBracketsPlugin } from "./highlight_brackets";
+import { colorPairedBracketsPluginLowestPrec, highlightCursorBracketsPlugin } from "./highlight_brackets";
+import { cursorTooltipBaseTheme, cursorTooltipField } from "./inline_math_tooltip";
 import { editorCommands } from "./editor_commands";
 import { parse } from "json5";
 
@@ -97,6 +97,7 @@ export default class LatexSuitePlugin extends Plugin {
 			this.handleUndoRedo(update);
         }));
 
+		this.registerEditorExtension(tooltips({position: "absolute"}));
 		this.registerEditorExtension(this.editorExtensions);
 
 		this.addEditorCommands();
@@ -238,6 +239,10 @@ export default class LatexSuitePlugin extends Plugin {
 		if (this.settings.concealEnabled) this.enableExtension(concealPlugin.extension);
 		if (this.settings.colorPairedBracketsEnabled) this.enableExtension(colorPairedBracketsPluginLowestPrec);
 		if (this.settings.highlightCursorBracketsEnabled) this.enableExtension(highlightCursorBracketsPlugin.extension);
+		if (this.settings.inlineMathPreviewEnabled) {
+			this.enableExtension(cursorTooltipField);
+			this.enableExtension(cursorTooltipBaseTheme);
+		}
 	}
 
 	async saveSettings() {
