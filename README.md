@@ -1,6 +1,5 @@
 # Obsidian Latex Suite
-
-*Works with the new Live Preview editor only.*
+**🌟 New in 1.5.0: Pop-up preview window for inline math.**
 
 A plugin for Obsidian that aims to make typesetting LaTeX math as fast as handwriting.
 
@@ -93,6 +92,14 @@ To reveal the LaTeX code, move the cursor over it.
 - When the cursor is inside brackets, the enclosing brackets will be highlighted.
 
 ![color and highlight matching brackets demo](https://raw.githubusercontent.com/artisticat1/obsidian-latex-suite/main/gifs/color_brackets.gif)
+
+
+### Preview inline math
+When the cursor is inside inline math, a popup window showing the rendered math will be displayed.
+
+![inline math preview demo 1](./gifs/inline_math_preview_1.png)
+![inline math preview demo 2](./gifs/inline_math_preview_2.png)
+
 
 
 ### Visual snippets
