@@ -97,9 +97,8 @@ To reveal the LaTeX code, move the cursor over it.
 ### Preview inline math
 When the cursor is inside inline math, a popup window showing the rendered math will be displayed.
 
-![inline math preview demo 1](./gifs/inline_math_preview_1.png)
-![inline math preview demo 2](./gifs/inline_math_preview_2.png)
-
+<img width=500 src="https://raw.githubusercontent.com/artisticat1/obsidian-latex-suite/main/gifs/inline_math_preview_1.png">
+<img width=650 src="https://raw.githubusercontent.com/artisticat1/obsidian-latex-suite/main/gifs/inline_math_preview_2.png">
 
 
 ### Visual snippets
