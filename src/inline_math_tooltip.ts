@@ -1,6 +1,6 @@
 import {Tooltip, showTooltip, EditorView} from "@codemirror/view"
 import {StateField, EditorState} from "@codemirror/state"
-import { getEquationBounds, isWithinEquation, isWithinInlineEquationState } from "./editor_helpers";
+import { getEquationBounds, isTouchingInlineEquation, isWithinEquation, isWithinInlineEquationState } from "./editor_helpers";
 import { MarkdownRenderer } from "obsidian";
 
 export const cursorTooltipField = StateField.define<readonly Tooltip[]>({
@@ -17,9 +17,25 @@ export const cursorTooltipField = StateField.define<readonly Tooltip[]>({
 
 
 function getCursorTooltips(state: EditorState): readonly Tooltip[] {
+	const isInsideInlineEqn = (isWithinEquation(state) && isWithinInlineEquationState(state));
+	let shouldShowTooltip = isInsideInlineEqn;
+	let isTouchingInlineEqn;
+	let pos = state.selection.main.from;
+	
+	if (!isInsideInlineEqn) {
+		isTouchingInlineEqn = isTouchingInlineEquation(state, pos - 1);
 
-    if (isWithinEquation(state) && isWithinInlineEquationState(state)) {
-        const bounds = getEquationBounds(state);
+		if (isTouchingInlineEqn != 0) {
+			pos += isTouchingInlineEqn;
+			shouldShowTooltip = true;
+		}
+	}
+
+	
+	
+    if (shouldShowTooltip) {
+
+        const bounds = getEquationBounds(state, pos);
         if (!bounds) return [];
 
         // Don't render an empty equation

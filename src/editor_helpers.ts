@@ -114,6 +114,31 @@ export function isWithinInlineEquationState(state: EditorState):boolean {
 }
 
 
+export function isTouchingInlineEquation(state: EditorState, pos: number):number {
+    // Returns 0 if pos is not touching a $ that marks an inline equation
+    // Returns 1 if pos+1 is inside an inline eqn
+    // Returns -1 if pos-1 is inside an inline eqn
+
+    const tree = syntaxTree(state);
+    const prevToken = tree.resolveInner(pos-1, 1).name;
+    const token = tree.resolveInner(pos, 1).name;
+    const nextToken = tree.resolveInner(pos+1, 1).name;
+    
+    if (token.contains("math-end") && !(prevToken.contains("math-end")) && !(nextToken.contains("math-end"))) {
+        return -1;
+    }
+    else if (!(token.contains("math-begin")) && nextToken.contains("math-begin")) {
+        const nextNextToken = tree.resolveInner(pos+2, 1).name;
+
+        if (!(nextNextToken.contains("math-begin"))) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+
 export function getEquationBounds(view: EditorView | EditorState, pos?: number):{start: number, end: number} {
     const s = view instanceof EditorView ? view.state : view;
 
