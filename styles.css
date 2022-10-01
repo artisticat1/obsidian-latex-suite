@@ -297,7 +297,7 @@ sup.cm-math, sub.cm-math {
 /* Inline math tooltip styling */
 
 .theme-light .cm-tooltip.cm-tooltip-cursor {
-    box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.028), 0px 3.4px 6.7px rgba(0, 0, 0, .042), 0px 10px 30px rgba(0, 0, 0, .07);
+    box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.028), 0px 3.4px 6.7px rgba(0, 0, 0, .042), 0px 5px 20px rgba(0, 0, 0, .07);
 }
 
 .theme-dark .cm-tooltip.cm-tooltip-cursor {
