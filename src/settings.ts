@@ -20,6 +20,7 @@ export interface LatexSuiteSettings {
     highlightCursorBracketsEnabled: boolean;
     inlineMathPreviewEnabled: boolean;
     autofractionExcludedEnvs: string,
+    autofractionBreakingChars: string;
     matrixShortcutsEnabled: boolean;
     matrixShortcutsEnvNames: string;
     taboutEnabled: boolean;
@@ -41,6 +42,7 @@ export const DEFAULT_SETTINGS: LatexSuiteSettings = {
         ["^{", "}"],
         ["\\\\pu{", "}"]
 ]`,
+    autofractionBreakingChars: "+-=",
     matrixShortcutsEnabled: true,
     matrixShortcutsEnvNames: "pmatrix, cases, align, bmatrix, Bmatrix, vmatrix, Vmatrix, array, matrix",
     taboutEnabled: true,
@@ -314,6 +316,18 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
+
+        new Setting(containerEl)
+            .setName("Breaking characters")
+            .setDesc(`A list of characters that denote the start/end of a fraction. e.g. if + is included in the list, "a+b/c" will expand to "a+\\frac{b}{c}". If + is not in the list, it will expand to "\\frac{a+b}{c}".`)
+            .addText(text => text
+                .setPlaceholder(DEFAULT_SETTINGS.autofractionBreakingChars)
+                .setValue(this.plugin.settings.autofractionBreakingChars)
+                .onChange(async (value) => {
+                    this.plugin.settings.autofractionBreakingChars = value;
+
+                    await this.plugin.saveSettings();
+                }));
 
 
         containerEl.createEl('div', {text: "Matrix shortcuts"}).addClasses(["setting-item", "setting-item-heading", "setting-item-name"]);

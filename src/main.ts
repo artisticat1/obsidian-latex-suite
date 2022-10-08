@@ -679,7 +679,8 @@ export default class LatexSuitePlugin extends Plugin {
 
                     }
 
-					if ([" ", "+", "-", "=", "$", "(", "[", "{", "\n"].contains(curChar)) {
+
+					if (" $([{\n".concat(this.settings.autofractionBreakingChars).contains(curChar)) {
 						start = i+1;
 						break;
 					}
