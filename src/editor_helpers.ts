@@ -10,7 +10,7 @@ export function replaceRange(view: EditorView, start: number, end: number, repla
         changes: {from: start, to: end, insert: replacement}
     });
 }
- 
+
 
 export function getCharacterAtPos(view: EditorView, pos: number) {
     const doc = view.state.doc;

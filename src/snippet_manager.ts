@@ -2,6 +2,7 @@ import { EditorView, Decoration } from "@codemirror/view";
 import { Range, SelectionRange, EditorSelection, ChangeSpec, ChangeSet } from "@codemirror/state";
 import { setCursor, setSelections, findMatchingBracket, resetCursorBlink } from "./editor_helpers";
 import { addMark, clearMarks, markerStateField, removeMarkBySpecAttribute, startSnippet, endSnippet } from "./marker_state_field";
+import { isolateHistory } from "@codemirror/commands";
 
 const COLORS = ["lightskyblue", "orange", "lime", "pink", "cornsilk", "magenta", "navajowhite"];
 
@@ -80,7 +81,7 @@ export interface Tabstop {
 
 export class SnippetManager {
     private currentTabstopReferences: TabstopReference[] = [];
-    private snippetsToAdd: {from: number, to: number, insert: string}[] = [];
+    private snippetsToAdd: {from: number, to: number, insert: string, keyPressed?: string}[] = [];
 
 
     getColorIndex():number {
@@ -159,7 +160,7 @@ export class SnippetManager {
 
 
 
-    queueSnippet(snippet: {from: number, to: number, insert: string}) {
+    queueSnippet(snippet: {from: number, to: number, insert: string, keyPressed?: string}) {
         this.snippetsToAdd.push(snippet);
     }
 
@@ -167,12 +168,39 @@ export class SnippetManager {
     expandSnippets(view: EditorView):boolean {
         if (this.snippetsToAdd.length === 0) return false;
 
+        const docLength = view.state.doc.length;
         const snippets = this.snippetsToAdd;
         const changes = snippets as ChangeSpec;
 
-        // Insert the replacements
+
+        let keyPresses: {from: number, to: number, insert: string}[] = [];
+        for (const snippet of snippets) {
+            if (snippet.keyPressed && (snippet.keyPressed.length === 1)) {
+                // Use prevChar so that cursors are placed at the end of the added text
+                const prevChar = view.state.doc.sliceString(snippet.to-1, snippet.to);
+
+                keyPresses.push({from: snippet.to-1, to: snippet.to, insert: prevChar + snippet.keyPressed});
+            }
+        }
+
+        
+        // Insert the keypresses
+        // Use isolateHistory to allow users to undo the triggering of a snippet,
+        // but keep the text inserted by the trigger key
         view.dispatch({
-            changes: changes,
+            changes: keyPresses,
+            annotations: isolateHistory.of("full")
+        });
+        
+        
+        // Undo the keypresses, and insert the replacements
+        const undoKeyPresses = ChangeSet.of(keyPresses, docLength).invert(view.state.doc);
+        const changesAsChangeSet = ChangeSet.of(changes, docLength);
+        const combinedChanges = undoKeyPresses.compose(changesAsChangeSet);
+
+
+        view.dispatch({
+            changes: combinedChanges,
             effects: startSnippet.of(null)
         });
 

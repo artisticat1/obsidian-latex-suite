@@ -581,7 +581,7 @@ export default class LatexSuitePlugin extends Plugin {
 
 			// Expand the snippet
             const start = triggerPos;
-			this.snippetManager.queueSnippet({from: start, to: to, insert: replacement});
+			this.snippetManager.queueSnippet({from: start, to: to, insert: replacement, keyPressed: key});
 
 
 			const containsTrigger = this.autoEnlargeBracketsTriggers.some(word => replacement.contains("\\" + word));
@@ -701,7 +701,7 @@ export default class LatexSuitePlugin extends Plugin {
 
 			const replacement = "\\frac{" + numerator + "}{$0}$1";
 
-			this.snippetManager.queueSnippet({from: start, to: to, insert: replacement});
+			this.snippetManager.queueSnippet({from: start, to: to, insert: replacement, keyPressed: "/"});
 
 			return true;
 	}
