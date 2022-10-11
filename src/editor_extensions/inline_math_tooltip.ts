@@ -1,6 +1,6 @@
 import {Tooltip, showTooltip, EditorView} from "@codemirror/view"
 import {StateField, EditorState} from "@codemirror/state"
-import { getEquationBounds, isTouchingInlineEquation, isWithinEquation, isWithinInlineEquationState } from "./editor_helpers";
+import { getEquationBounds, isTouchingInlineEquation, isWithinEquation, isWithinInlineEquationState } from "./../editor_helpers";
 import { MarkdownRenderer } from "obsidian";
 
 export const cursorTooltipField = StateField.define<readonly Tooltip[]>({

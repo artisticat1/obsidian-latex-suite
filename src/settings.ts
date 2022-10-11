@@ -1,14 +1,14 @@
 import { App, PluginSettingTab, Setting, Modal, ButtonComponent, ExtraButtonComponent } from "obsidian";
 import { EditorView, ViewUpdate } from "@codemirror/view";
 import { EditorState, Extension, Prec } from "@codemirror/state";
-import { basicSetup } from "./editor/extensions";
+import { basicSetup } from "./snippets_editor/extensions";
 
 
 import { DEFAULT_SNIPPETS } from "./default_snippets";
 import LatexSuitePlugin from "./main";
-import { concealPlugin } from "./conceal";
-import { colorPairedBracketsPluginLowestPrec, highlightCursorBracketsPlugin } from "./highlight_brackets";
-import { cursorTooltipBaseTheme, cursorTooltipField } from "./inline_math_tooltip";
+import { concealPlugin } from "./editor_extensions/conceal";
+import { colorPairedBracketsPluginLowestPrec, highlightCursorBracketsPlugin } from "./editor_extensions/highlight_brackets";
+import { cursorTooltipBaseTheme, cursorTooltipField } from "./editor_extensions/inline_math_tooltip";
 
 
 export interface LatexSuiteSettings {

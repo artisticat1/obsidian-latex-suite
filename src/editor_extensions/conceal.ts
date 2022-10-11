@@ -3,7 +3,7 @@
 import { EditorView, ViewUpdate, Decoration, DecorationSet, WidgetType, ViewPlugin } from "@codemirror/view";
 import { EditorSelection, Range } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
-import { getEquationBounds, findMatchingBracket } from "./editor_helpers";
+import { getEquationBounds, findMatchingBracket } from "./../editor_helpers";
 import { cmd_symbols, greek, map_super, map_sub, leftright, brackets, mathbb, mathscrcal, fractions, operators } from "./conceal_maps";
 // import { SNIPPET_VARIABLES } from "./snippets";
 

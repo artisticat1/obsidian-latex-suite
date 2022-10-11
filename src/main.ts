@@ -8,9 +8,9 @@ import { isWithinEquation, isWithinInlineEquation, replaceRange, setCursor, isIn
 import { markerStateField, addMark, removeMark, startSnippet, endSnippet, undidStartSnippet, undidEndSnippet } from "./marker_state_field";
 import { Environment, Snippet, SNIPPET_VARIABLES, EXCLUSIONS } from "./snippets"
 import { SnippetManager } from "./snippet_manager";
-import { concealPlugin } from "./conceal";
-import { colorPairedBracketsPluginLowestPrec, highlightCursorBracketsPlugin } from "./highlight_brackets";
-import { cursorTooltipBaseTheme, cursorTooltipField } from "./inline_math_tooltip";
+import { concealPlugin } from "./editor_extensions/conceal";
+import { colorPairedBracketsPluginLowestPrec, highlightCursorBracketsPlugin } from "./editor_extensions/highlight_brackets";
+import { cursorTooltipBaseTheme, cursorTooltipField } from "./editor_extensions/inline_math_tooltip";
 import { editorCommands } from "./editor_commands";
 import { parse } from "json5";
 

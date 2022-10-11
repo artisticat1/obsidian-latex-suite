@@ -1,6 +1,6 @@
 import { EditorView, ViewUpdate, Decoration, DecorationSet, ViewPlugin } from "@codemirror/view";
 import { Prec, Range } from "@codemirror/state";
-import { isWithinEquation, getEquationBounds, findMatchingBracket, getOpenBracket, getCloseBracket, getEnclosingBracketsPos } from "./editor_helpers";
+import { isWithinEquation, getEquationBounds, findMatchingBracket, getOpenBracket, getCloseBracket, getEnclosingBracketsPos } from "./../editor_helpers";
 import { syntaxTree } from "@codemirror/language";
 
 const Ncolors = 3;
