@@ -1,4 +1,4 @@
-import { Plugin, Notice, MarkdownView } from "obsidian";
+import { Plugin, Notice, TFile } from "obsidian";
 import { EditorView, keymap, ViewUpdate, tooltips } from "@codemirror/view";
 import { SelectionRange, Prec, Extension } from "@codemirror/state";
 import { invertedEffects, undo, redo } from "@codemirror/commands";
@@ -98,11 +98,38 @@ export default class LatexSuitePlugin extends Plugin {
 		this.registerEditorExtension(this.editorExtensions);
 
 		this.addEditorCommands();
+
+
+		// Watch for changes to the snippets file
+		// @ts-ignore
+		this.registerEvent( this.app.vault.on("modify", this.onFileChange.bind(this)) );
+
 	}
+
 
 	onunload() {
 		this.snippetManager.onunload();
 
+	}
+
+
+	async onFileChange(file: TFile) {
+
+		if (!(this.settings.loadSnippetsFromFile)) {
+			return;
+		}
+
+		if (file.path === this.settings.snippetsFileLocation) {
+
+			try {
+				await this.setSnippetsFromFile(file.path);
+				new Notice("Successfully reloaded snippets.", 5000);
+			}
+			catch {
+				new Notice("Failed to load snippets: there are syntax errors in the file " + + this.settings.snippetsFileLocation, 5000);
+			}
+		}
+		
 	}
 
 
@@ -207,7 +234,16 @@ export default class LatexSuitePlugin extends Plugin {
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 
-		this.setSnippets(this.settings.snippets);
+		if (this.settings.loadSnippetsFromFile) {
+			// Use onLayoutReady so that we don't try to read the snippets file too early
+			this.app.workspace.onLayoutReady(() => {
+				this.setSnippetsFromFile(this.settings.snippetsFileLocation);
+			});
+		}
+		else {
+			this.setSnippets(this.settings.snippets);
+		}
+
 		this.setAutofractionExcludedEnvs(this.settings.autofractionExcludedEnvs);
 		this.matrixShortcutsEnvNames = this.settings.matrixShortcutsEnvNames.replace(/\s/g,"").split(",");
 		this.autoEnlargeBracketsTriggers = this.settings.autoEnlargeBracketsTriggers.replace(/\s/g,"").split(",");
@@ -225,6 +261,17 @@ export default class LatexSuitePlugin extends Plugin {
 	async saveSettings() {
 		await this.saveData(this.settings);
 	}
+
+
+
+	async setSnippetsFromFile(filePath: string) {
+
+		const file = this.app.vault.getAbstractFileByPath(filePath);
+		const content = await this.app.vault.cachedRead(file as TFile);
+
+		this.setSnippets(content);
+	}
+
 
 
 	setSnippets(snippetsStr:string) {

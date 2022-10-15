@@ -5,6 +5,12 @@
     display: inline-block;
 }
 
+
+.hidden {
+    display: none;
+}
+
+
 .snippets-text-area .setting-item-info {
     margin-bottom: 0.75rem;
 }
