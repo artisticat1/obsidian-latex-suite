@@ -86,19 +86,19 @@ To reveal the LaTeX code, move the cursor over it.
 - Otherwise, pressing <kbd>Tab</kbd> will advance the cursor to the next closing bracket: ), ], }, >, or |.
 
 
+### Preview inline math
+When the cursor is inside inline math, a popup window showing the rendered math will be displayed.
+
+<img width=500 src="https://raw.githubusercontent.com/artisticat1/obsidian-latex-suite/main/gifs/inline_math_preview_1.png">
+<img width=650 src="https://raw.githubusercontent.com/artisticat1/obsidian-latex-suite/main/gifs/inline_math_preview_2.png">
+
+
 ### Color & highlight matching brackets
 - Matching brackets are rendered in the same color, to help with readability.
 - When the cursor is adjacent to a bracket, that bracket and its pair will be highlighted.
 - When the cursor is inside brackets, the enclosing brackets will be highlighted.
 
 ![color and highlight matching brackets demo](https://raw.githubusercontent.com/artisticat1/obsidian-latex-suite/main/gifs/color_brackets.gif)
-
-
-### Preview inline math
-When the cursor is inside inline math, a popup window showing the rendered math will be displayed.
-
-<img width=500 src="https://raw.githubusercontent.com/artisticat1/obsidian-latex-suite/main/gifs/inline_math_preview_1.png">
-<img width=650 src="https://raw.githubusercontent.com/artisticat1/obsidian-latex-suite/main/gifs/inline_math_preview_2.png">
 
 
 ### Visual snippets
