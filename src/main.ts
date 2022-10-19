@@ -13,6 +13,7 @@ import { colorPairedBracketsPluginLowestPrec, highlightCursorBracketsPlugin } fr
 import { cursorTooltipBaseTheme, cursorTooltipField } from "./editor_extensions/inline_math_tooltip";
 import { editorCommands } from "./editor_commands";
 import { parse } from "json5";
+import { JsfileView, JSFILE_VIEW_TYPE } from "./ui/js_file_view";
 
 
 export default class LatexSuitePlugin extends Plugin {
@@ -103,7 +104,8 @@ export default class LatexSuitePlugin extends Plugin {
 		// Watch for changes to the snippets file
 		// @ts-ignore
 		this.registerEvent( this.app.vault.on("modify", this.onFileChange.bind(this)) );
-
+		this.registerView(JSFILE_VIEW_TYPE, (leaf) => new JsfileView(leaf, this));
+		this.registerExtensions(["js"], JSFILE_VIEW_TYPE)
 	}
 
 
