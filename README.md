@@ -1,5 +1,5 @@
 # Obsidian Latex Suite
-**🌟 New in 1.5.0: Pop-up preview window for inline math.**
+**🌟 New in 1.6.0: You can now load your snippets from a separate file.**
 
 A plugin for Obsidian that aims to make typesetting LaTeX math as fast as handwriting.
 
