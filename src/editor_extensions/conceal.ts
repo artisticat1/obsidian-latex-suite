@@ -29,7 +29,7 @@ class ConcealWidget extends WidgetType {
     }
 
     eq(other: ConcealWidget) {
-        return (other.symbol == this.symbol);
+        return ((other.symbol == this.symbol) && (other.elementType === this.elementType));
     }
 
     toDOM() {
@@ -139,7 +139,7 @@ function concealModifier(eqn: string, modifier: string, combiningCharacter: stri
 function concealSupSub(eqn: string, superscript: boolean, symbolMap: {[key: string]:string}):Concealment[] {
 
     const prefix = superscript ? "\\^" : "_";
-    const regexStr = prefix + "{([A-Za-z0-9\\()/+-=<>:;]+)}";
+    const regexStr = prefix + "{([A-Za-z0-9\\()/+-=<>':;\\\\ *]+)}";
     const regex = new RegExp(regexStr, "g");
 
     const matches = [...eqn.matchAll(regex)];
@@ -150,8 +150,18 @@ function concealSupSub(eqn: string, superscript: boolean, symbolMap: {[key: stri
     for (const match of matches) {
 
         const exponent = match[1];
-        const replacement = exponent;
         const elementType = superscript ? "sup" : "sub";
+
+
+        // Conceal super/subscript symbols as well
+        const symbolNames = Object.keys(symbolMap);
+
+        const symbolRegexStr = "\\\\(" + escapeRegex(symbolNames.join("|")) + ")";
+        const symbolRegex = new RegExp(symbolRegexStr, "g");
+
+        const replacement = exponent.replace(symbolRegex, (a, b) => {
+            return symbolMap[b];
+        });
 
 
         concealments.push({start: match.index, end: match.index + match[0].length, replacement: replacement, class: "cm-number", elementType: elementType});
@@ -350,13 +360,15 @@ function conceal(view: EditorView) {
             const eqn = view.state.doc.sliceString(bounds.start, bounds.end);
 
 
+            const ALL_SYMBOLS = {...leftright, ...greek, ...cmd_symbols};
+
             const concealments = [
-                ...concealSupSub(eqn, true, map_super),
-                ...concealSupSub(eqn, false, map_sub),
                 ...concealSymbols(eqn, "\\^", "", map_super),
                 ...concealSymbols(eqn, "_", "", map_sub),
                 ...concealSymbols(eqn, "\\\\frac", "", fractions),
-                ...concealSymbols(eqn, "\\\\", "", {...leftright, ...greek, ...cmd_symbols}),
+                ...concealSymbols(eqn, "\\\\", "", ALL_SYMBOLS),
+                ...concealSupSub(eqn, true, ALL_SYMBOLS),
+                ...concealSupSub(eqn, false, ALL_SYMBOLS),
                 ...concealModifier(eqn, "hat", "\u0302"),
                 ...concealModifier(eqn, "dot", "\u0307"),
                 ...concealModifier(eqn, "ddot", "\u0308"),
