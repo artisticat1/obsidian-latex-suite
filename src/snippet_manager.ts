@@ -207,7 +207,7 @@ export class SnippetManager {
 
         // Insert any tabstops
         // Find the positions of the cursors in the new document
-        const changeSet = ChangeSet.of(changes, view.state.doc.length);
+        const changeSet = ChangeSet.of(changes, docLength);
         const oldPositions = snippets.map(change => change.from);
         const newPositions = oldPositions.map(pos => changeSet.mapPos(pos));
 
