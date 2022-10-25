@@ -360,7 +360,7 @@ function conceal(view: EditorView) {
             const eqn = view.state.doc.sliceString(bounds.start, bounds.end);
 
 
-            const ALL_SYMBOLS = {...leftright, ...greek, ...cmd_symbols};
+            const ALL_SYMBOLS = {...greek, ...cmd_symbols, ...leftright};
 
             const concealments = [
                 ...concealSymbols(eqn, "\\^", "", map_super),
