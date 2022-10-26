@@ -373,6 +373,7 @@ function conceal(view: EditorView) {
                 ...concealModifier(eqn, "dot", "\u0307"),
                 ...concealModifier(eqn, "ddot", "\u0308"),
                 ...concealModifier(eqn, "overline", "\u0304"),
+                ...concealModifier(eqn, "bar", "\u0304"),
                 ...concealSymbols(eqn, "\\\\", "", brackets, "cm-bracket"),
                 ...concealAtoZ(eqn, "\\\\mathcal{", "}", mathscrcal),
                 ...concealBoldMathBbMathRm(eqn, mathbb),
