@@ -142,6 +142,7 @@ export const cmd_symbols:{[name:string]: string} =
     "sqsubset": "⊏",
     "sqsupseteq": "⊒",
     "sqsupset": "⊐",
+    "square": "□", // ▢◻
     "star": "✫",
     "subseteq": "⊆",
     "subset": "⊂",
