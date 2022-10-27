@@ -1,4 +1,4 @@
-import { Plugin, Notice, TFile } from "obsidian";
+import { Plugin, Notice, TFile, TFolder } from "obsidian";
 import { EditorView, keymap, ViewUpdate, tooltips } from "@codemirror/view";
 import { SelectionRange, Prec, Extension } from "@codemirror/state";
 import { invertedEffects, undo, redo } from "@codemirror/commands";
@@ -122,7 +122,7 @@ export default class LatexSuitePlugin extends Plugin {
 		if (file.path === this.settings.snippetsFileLocation) {
 
 			try {
-				await this.setSnippetsFromFile(file.path);
+				await this.setSnippetsFromFileOrFolder(file.path);
 				new Notice("Successfully reloaded snippets.", 5000);
 			}
 			catch {
@@ -237,7 +237,7 @@ export default class LatexSuitePlugin extends Plugin {
 		if (this.settings.loadSnippetsFromFile) {
 			// Use onLayoutReady so that we don't try to read the snippets file too early
 			this.app.workspace.onLayoutReady(() => {
-				this.setSnippetsFromFile(this.settings.snippetsFileLocation);
+				this.setSnippetsFromFileOrFolder(this.settings.snippetsFileLocation);
 			});
 		}
 		else {
@@ -264,15 +264,46 @@ export default class LatexSuitePlugin extends Plugin {
 
 
 
-	async setSnippetsFromFile(filePath: string) {
+	async setSnippetsFromFileOrFolder(filePath: string) {
+		this.snippets = [];
 
-		const file = this.app.vault.getAbstractFileByPath(filePath);
-		const content = await this.app.vault.cachedRead(file as TFile);
+		const file_or_folder = this.app.vault.getAbstractFileByPath(filePath);
 
-		this.setSnippets(content);
+		if (file_or_folder instanceof TFolder) {
+			this.setSnippetFromFolderRec(file_or_folder as TFolder);
+		} else {
+			const content = await this.app.vault.cachedRead(file_or_folder as TFile);
+			this.setSnippets(content);
+		}
+	}
+
+	async setSnippetFromFolderRec(folder: TFolder) {
+			for (const file_or_folder of folder.children) {
+				if (file_or_folder instanceof TFile) {
+					const content = await this.app.vault.cachedRead(file_or_folder as TFile);
+					try {
+						this.appendSnippets(content);
+					}
+					catch (e) {
+					  console.log(`Failed to load snippet file: ${file_or_folder.path}`);
+					  new Notice(`Failed to load snippet file ${file_or_folder.name}`);
+					};
+				} else {
+				  this.setSnippetFromFolderRec(file_or_folder as TFolder);
+				}
+			}
 	}
 
 
+	appendSnippets(snippetsStr: string) {
+		const snippets = parse(snippetsStr);
+
+		if (!this.validateSnippets(snippets)) throw "Invalid snippet format.";
+
+		this.sortSnippets(snippets);
+
+		this.snippets.push(snippets);
+	}
 
 	setSnippets(snippetsStr:string) {
 		const snippets = parse(snippetsStr);

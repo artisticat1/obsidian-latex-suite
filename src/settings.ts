@@ -198,7 +198,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
         const debouncedSetSnippets = debounce(async () => {
             try {
-                await this.plugin.setSnippetsFromFile(this.plugin.settings.snippetsFileLocation);
+                await this.plugin.setSnippetsFromFileOrFolder(this.plugin.settings.snippetsFileLocation);
 				new Notice("Successfully loaded snippets from " + this.plugin.settings.snippetsFileLocation + ".", 5000);
 			}
 			catch {
@@ -211,8 +211,8 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
         let snippetsFileLocEl:HTMLElement;
 
         new Setting(containerEl)
-        .setName("Load snippets from file")
-        .setDesc("Whether to load snippets from a specified file, instead of from the plugin settings.")
+        .setName("Load snippets from file or folder")
+        .setDesc("Whether to load snippets from a specified file or folder, instead of from the plugin settings.")
         .addToggle(toggle => toggle
             .setValue(this.plugin.settings.loadSnippetsFromFile)
             .onChange(async (value) => {
@@ -222,7 +222,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
                 snippetsFileLocEl.toggleClass("hidden", !value);
 
                 if (value) {
-                    this.plugin.setSnippetsFromFile(this.plugin.settings.snippetsFileLocation);
+                    this.plugin.setSnippetsFromFileOrFolder(this.plugin.settings.snippetsFileLocation);
                 }
                 else {
                     this.plugin.setSnippets(this.plugin.settings.snippets);
@@ -233,8 +233,8 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 
         const snippetsFileLoc = new Setting(containerEl)
-        .setName("Snippets file location")
-        .setDesc("The file to load snippets from.");
+        .setName("Snippets file/folder location")
+        .setDesc("The file or folder to load snippets from.");
 
 
         let inputEl;
