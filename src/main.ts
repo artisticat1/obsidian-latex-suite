@@ -267,31 +267,38 @@ export default class LatexSuitePlugin extends Plugin {
 	async setSnippetsFromFileOrFolder(filePath: string) {
 		this.snippets = [];
 
-		const file_or_folder = this.app.vault.getAbstractFileByPath(filePath);
+		const fileOrFolder = this.app.vault.getAbstractFileByPath(filePath);
 
-		if (file_or_folder instanceof TFolder) {
-			this.setSnippetFromFolderRec(file_or_folder as TFolder);
+		if (fileOrFolder instanceof TFolder) {
+			this.setSnippetFromFolderRec(fileOrFolder as TFolder);
+			// Sorting needs to happen after all the snippet files have been parsed
+			this.sortSnippets(this.snippets);
+
 		} else {
-			const content = await this.app.vault.cachedRead(file_or_folder as TFile);
+			const content = await this.app.vault.cachedRead(fileOrFolder as TFile);
 			this.setSnippets(content);
 		}
 	}
 
 	async setSnippetFromFolderRec(folder: TFolder) {
-			for (const file_or_folder of folder.children) {
-				if (file_or_folder instanceof TFile) {
-					const content = await this.app.vault.cachedRead(file_or_folder as TFile);
-					try {
-						this.appendSnippets(content);
-					}
-					catch (e) {
-					  console.log(`Failed to load snippet file: ${file_or_folder.path}`);
-					  new Notice(`Failed to load snippet file ${file_or_folder.name}`);
-					};
-				} else {
-				  this.setSnippetFromFolderRec(file_or_folder as TFolder);
+		for (const fileOrFolder of folder.children) {
+			if (fileOrFolder instanceof TFile) {
+
+				const content = await this.app.vault.cachedRead(fileOrFolder as TFile);
+
+				try {
+					this.appendSnippets(content);
 				}
+				catch (e) {
+					console.log(`Failed to load snippet file: ${fileOrFolder.path}`);
+					new Notice(`Failed to load snippet file ${fileOrFolder.name}`);
+				};
+
+			} else {
+
+				this.setSnippetFromFolderRec(fileOrFolder as TFolder);
 			}
+		}
 	}
 
 
@@ -299,8 +306,6 @@ export default class LatexSuitePlugin extends Plugin {
 		const snippets = parse(snippetsStr);
 
 		if (!this.validateSnippets(snippets)) throw "Invalid snippet format.";
-
-		this.sortSnippets(snippets);
 
 		this.snippets.push(snippets);
 	}
