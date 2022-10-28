@@ -273,7 +273,6 @@ export default class LatexSuitePlugin extends Plugin {
 			this.setSnippetFromFolderRec(fileOrFolder as TFolder);
 			// Sorting needs to happen after all the snippet files have been parsed
 			this.sortSnippets(this.snippets);
-
 		} else {
 			const content = await this.app.vault.cachedRead(fileOrFolder as TFile);
 			this.setSnippets(content);
@@ -307,7 +306,9 @@ export default class LatexSuitePlugin extends Plugin {
 
 		if (!this.validateSnippets(snippets)) throw "Invalid snippet format.";
 
-		this.snippets.push(snippets);
+		for (const s of snippets) {
+			this.snippets.push(s);
+		}
 	}
 
 	setSnippets(snippetsStr:string) {
