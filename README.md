@@ -1,5 +1,4 @@
 # Obsidian Latex Suite
-**🌟 New in 1.6.0: You can now load your snippets from a separate file.**
 
 A plugin for Obsidian that aims to make typesetting LaTeX math as fast as handwriting.
 
@@ -76,7 +75,6 @@ For example, "\dot{x}^{2} + \dot{y}^{2}" will be displayed as "ẋ² + ẏ²".
 
 To reveal the LaTeX code, move the cursor over it.
 
-#### Examples
 ![conceal demo](https://raw.githubusercontent.com/artisticat1/obsidian-latex-suite/main/gifs/conceal.png)
 ![conceal demo 2](https://raw.githubusercontent.com/artisticat1/obsidian-latex-suite/main/gifs/conceal.gif)
 
@@ -153,26 +151,26 @@ For more details on writing snippets, including **regex** snippets, [see the doc
 
 ## Cheatsheet
 
-| Trigger           | Replacement      |
-| ----------------- | ---------------- |
-| mk                | \$ \$            |
-| dm                | \$\$<br><br>\$\$ |
-| sr                | ^{2}             |
-| cb                | ^{3}             |
-| rd                | ^{ }             |
-| \_                | \_{ }            |
-| sq                | \\sqrt{ }        |
-| x/y               | \\frac{x}{y}     |
-| //                | \\frac{ }{ }     |
-| te <kbd>Tab</kbd> | \\text{ }        |
-| x1                | x_{1}            |
-| x,.               | \\mathbf{x}      |
-| x.,               | \\mathbf{x}      |
-| xdot              | \\dot{x}         |
-| xhat              | \\hat{x}         |
-| xbar              | \\overline{x}    |
-| ee                | e^{ }            |
-
+| Trigger            | Replacement      |
+| ------------------ | ---------------- |
+| mk                 | \$ \$            |
+| dm                 | \$\$<br><br>\$\$ |
+| sr                 | ^{2}             |
+| cb                 | ^{3}             |
+| rd                 | ^{ }             |
+| \_                 | \_{ }            |
+| sq                 | \\sqrt{ }        |
+| x/y <kbd>Tab</kbd> | \\frac{x}{y}     |
+| //                 | \\frac{ }{ }     |
+| te <kbd>Tab</kbd>  | \\text{ }        |
+| x1                 | x_{1}            |
+| x,.                | \\mathbf{x}      |
+| x.,                | \\mathbf{x}      |
+| xdot               | \\dot{x}         |
+| xhat               | \\hat{x}         |
+| xbar               | \\bar{x}         |
+| ee                 | e^{ }            |
+ 
 When running a snippet that **moves the cursor inside brackets {}, press <kbd>Tab</kbd> to exit the brackets**.
 
 
@@ -199,8 +197,13 @@ When running a snippet that **moves the cursor inside brackets {}, press <kbd>Ta
 | @o      | \\omega      |         |             |
 | ome     | \\omega      |         |             |
 
-For greek letters with short names (2-3 characters), just type their name!
+For greek letters with short names (2-3 characters), just type their name,
 e.g. "pi" → "\\pi"
+
+
+
+## Contributing
+Any contributions and PRs are welcome!
 
 
 
@@ -212,6 +215,6 @@ e.g. "pi" → "\\pi"
 
 
 ## Support
-If you like this plugin and want to say thanks, you can buy me a coffee here.
+If you like this plugin and want to say thanks, you can buy me a coffee here!
 
 <a href='https://ko-fi.com/J3J6BBZAW' target='_blank'><img height='56' style='border:0px;height:56px;' src='https://cdn.ko-fi.com/cdn/kofi1.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
