@@ -119,8 +119,10 @@ export default class LatexSuitePlugin extends Plugin {
 			return;
 		}
 
-		if (file.path === this.settings.snippetsFileLocation) {
+		const snippetDir = this.app.vault.getAbstractFileByPath(this.settings.snippetsFileLocation);
+		const isFolder = snippetDir instanceof TFolder;
 
+		if (file.path === this.settings.snippetsFileLocation || (isFolder && this.isInFolder(file, snippetDir))  ) {
 			try {
 				await this.setSnippetsFromFileOrFolder(file.path);
 				new Notice("Successfully reloaded snippets.", 5000);
@@ -129,7 +131,20 @@ export default class LatexSuitePlugin extends Plugin {
 				new Notice("Failed to load snippets: there are syntax errors in the file " + + this.settings.snippetsFileLocation, 5000);
 			}
 		}
-		
+	}
+
+	private readonly isInFolder = (file: TFile, dir: TFolder) => {
+		for(const c of dir.children) {
+			if (c instanceof TFile && c.path === file.path) {
+				return true;
+			} else if (c instanceof TFolder) {
+				if(this.isInFolder(file, c)) {
+					return true;
+				}
+			}
+		}
+
+		return false;
 	}
 
 
