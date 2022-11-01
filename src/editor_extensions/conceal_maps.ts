@@ -84,6 +84,7 @@ export const cmd_symbols:{[name:string]: string} =
     "rhd": "▷",
     "leftarrow": "←",
     "Leftarrow": "⇐",
+    "left": "",
     "leq": "≤",
     "le": "≤",
     "ll": "≪",
@@ -122,6 +123,7 @@ export const cmd_symbols:{[name:string]: string} =
     "propto": "∝",
     "rceil": "⌉",
     "Re": "ℜ",
+    "right": "",
     "qquad": " ",
     "quad": " ",
     "rightarrow": "→",
@@ -496,13 +498,6 @@ export const brackets = {
     "right>": "〉",
     "langle": "〈",
     "rangle": "〉"
-}
-
-
-
-export const leftright = {
-    "left": "",
-    "right": "",
 }
 
 
