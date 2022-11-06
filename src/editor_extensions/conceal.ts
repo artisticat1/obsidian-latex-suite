@@ -139,7 +139,7 @@ function concealModifier(eqn: string, modifier: string, combiningCharacter: stri
 function concealSupSub(eqn: string, superscript: boolean, symbolMap: {[key: string]:string}):Concealment[] {
 
     const prefix = superscript ? "\\^" : "_";
-    const regexStr = prefix + "{([A-Za-z0-9\\()/+-=<>':;\\\\ *]+)}";
+    const regexStr = prefix + "{([A-Za-z0-9\\()\\[\\]/+-=<>':;\\\\ *]+)}";
     const regex = new RegExp(regexStr, "g");
 
     const matches = [...eqn.matchAll(regex)];
