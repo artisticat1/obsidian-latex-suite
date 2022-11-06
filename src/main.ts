@@ -7,7 +7,7 @@ import { undo, redo } from "@codemirror/commands";
 import { isWithinEquation, isWithinInlineEquation, replaceRange, setCursor, isInsideEnvironment, getOpenBracket, getCloseBracket, findMatchingBracket, getEquationBounds, getCharacterAtPos } from "./editor_helpers";
 
 import { Environment, Snippet, SNIPPET_VARIABLES, EXCLUSIONS } from "./snippets/snippets";
-import { sortSnippets, validateSnippets, isInFolder, snippetInvertedEffects } from "./snippets/snippet_helper_functions";
+import { sortSnippets, getSnippetsFromString, isInFolder, snippetInvertedEffects } from "./snippets/snippet_helper_functions";
 import { SnippetManager } from "./snippets/snippet_manager";
 import { markerStateField, startSnippet, undidEndSnippet } from "./snippets/marker_state_field";
 
@@ -16,7 +16,7 @@ import { colorPairedBracketsPluginLowestPrec, highlightCursorBracketsPlugin } fr
 import { cursorTooltipBaseTheme, cursorTooltipField } from "./editor_extensions/inline_math_tooltip";
 
 import { editorCommands } from "./editor_commands";
-import { parse } from "json5";
+
 
 
 export default class LatexSuitePlugin extends Plugin {
@@ -128,11 +128,11 @@ export default class LatexSuitePlugin extends Plugin {
 
 		if (file.path === this.settings.snippetsFileLocation || (isFolder && isInFolder(file, snippetDir))  ) {
 			try {
-				await this.setSnippetsFromFileOrFolder(file.path);
+				await this.setSnippetsFromFileOrFolder(this.settings.snippetsFileLocation);
 				new Notice("Successfully reloaded snippets.", 5000);
 			}
 			catch {
-				new Notice("Failed to load snippets: there are syntax errors in the file " + + this.settings.snippetsFileLocation, 5000);
+				new Notice("Failed to load snippets.", 5000);
 			}
 		}
 	}
@@ -235,63 +235,60 @@ export default class LatexSuitePlugin extends Plugin {
 
 
 
-	async setSnippetsFromFileOrFolder(filePath: string) {
-		this.snippets = [];
+	async setSnippetsFromFileOrFolder(path: string) {
+		let snippets:Snippet[];
+		const fileOrFolder = this.app.vault.getAbstractFileByPath(path);
 
-		const fileOrFolder = this.app.vault.getAbstractFileByPath(filePath);
 
 		if (fileOrFolder instanceof TFolder) {
-			this.setSnippetFromFolderRec(fileOrFolder as TFolder);
-			// Sorting needs to happen after all the snippet files have been parsed
-			sortSnippets(this.snippets);
+			snippets = await this.getSnippetsWithinFolder(fileOrFolder as TFolder);
+			
 		} else {
 			const content = await this.app.vault.cachedRead(fileOrFolder as TFile);
-			this.setSnippets(content);
+			snippets = await getSnippetsFromString(content);
 		}
+		
+
+		// Sorting needs to happen after all the snippet files have been parsed
+		sortSnippets(snippets);
+		this.snippets = snippets;
 	}
 
-	async setSnippetFromFolderRec(folder: TFolder) {
+
+	async getSnippetsWithinFolder(folder: TFolder) {
+		let snippets:Snippet[] = [];
+
 		for (const fileOrFolder of folder.children) {
 			if (fileOrFolder instanceof TFile) {
 
 				const content = await this.app.vault.cachedRead(fileOrFolder as TFile);
 
 				try {
-					this.appendSnippets(content);
+					snippets.push(...getSnippetsFromString(content));
 				}
 				catch (e) {
-					console.log(`Failed to load snippet file: ${fileOrFolder.path}`);
+					console.log(`Failed to load snippet file ${fileOrFolder.path}:`, e);
 					new Notice(`Failed to load snippet file ${fileOrFolder.name}`);
 				};
 
 			}
 			else {
-				this.setSnippetFromFolderRec(fileOrFolder as TFolder);
+				const newSnippets = await this.getSnippetsWithinFolder(fileOrFolder as TFolder);
+				snippets.push(...newSnippets);
 			}
 		}
+
+		return snippets;
 	}
 
-
-	appendSnippets(snippetsStr: string) {
-		const snippets = parse(snippetsStr);
-
-		if (!validateSnippets(snippets)) throw "Invalid snippet format.";
-
-		for (const s of snippets) {
-			this.snippets.push(s);
-		}
-	}
-
-	setSnippets(snippetsStr:string) {
-		const snippets = parse(snippetsStr);
-
-		if (!validateSnippets(snippets)) throw "Invalid snippet format.";
-
+	
+	
+	setSnippets(snippetsStr: string) {
+		const snippets = getSnippetsFromString(snippetsStr);
+		
 		sortSnippets(snippets);
-
 		this.snippets = snippets;
 	}
-
 
 
 	setAutofractionExcludedEnvs(envsStr: string) {

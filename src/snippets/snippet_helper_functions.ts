@@ -4,6 +4,8 @@ import { TFile, TFolder } from "obsidian";
 import { invertedEffects } from "@codemirror/commands";
 import { addMark, removeMark, startSnippet, undidStartSnippet, endSnippet, undidEndSnippet } from "./marker_state_field";
 
+import { parse } from "json5";
+
 
 export function sortSnippets(snippets:Snippet[]) {
     // Sort snippets in order of priority
@@ -25,6 +27,14 @@ export function sortSnippets(snippets:Snippet[]) {
 }
 
 
+export function getSnippetsFromString(snippetsStr: string) {
+    const snippets = parse(snippetsStr);
+
+    if (!validateSnippets(snippets)) throw "Invalid snippet format.";
+    
+    return snippets;
+}
+
 
 export function validateSnippets(snippets: Snippet[]):boolean {
     let valid = true;
@@ -45,11 +55,14 @@ export function validateSnippets(snippets: Snippet[]):boolean {
 export function isInFolder(file: TFile, dir: TFolder) {
 
     let cur = file.parent;
+    let cnt = 0;
+    
+    while ((!cur.isRoot()) && (cnt < 100)) {
 
-    while (!cur.isRoot) {
         if (cur.path === dir.path) return true;
         
         cur = cur.parent;
+        cnt++;
     }
 
     return false;
