@@ -1,18 +1,22 @@
-import { Plugin, Notice, TFile } from "obsidian";
+import { Plugin, Notice, TFile, TFolder, debounce } from "obsidian";
+import { LatexSuiteSettings, LatexSuiteSettingTab, DEFAULT_SETTINGS } from "./settings";
+
 import { EditorView, keymap, ViewUpdate, tooltips } from "@codemirror/view";
 import { SelectionRange, Prec, Extension } from "@codemirror/state";
-import { invertedEffects, undo, redo } from "@codemirror/commands";
+import { undo, redo } from "@codemirror/commands";
+import { isWithinEquation, isWithinInlineEquation, replaceRange, setCursor, isInsideEnvironment, getOpenBracket, getCloseBracket, findMatchingBracket, getEquationBounds, getCharacterAtPos } from "./editor_helpers";
 
-import { LatexSuiteSettings, LatexSuiteSettingTab, DEFAULT_SETTINGS } from "./settings"
-import { isWithinEquation, isWithinInlineEquation, replaceRange, setCursor, isInsideEnvironment, getOpenBracket, getCloseBracket, findMatchingBracket, getEquationBounds, getCharacterAtPos } from "./editor_helpers"
-import { markerStateField, addMark, removeMark, startSnippet, endSnippet, undidStartSnippet, undidEndSnippet } from "./marker_state_field";
-import { Environment, Snippet, SNIPPET_VARIABLES, EXCLUSIONS } from "./snippets"
-import { SnippetManager } from "./snippet_manager";
+import { Environment, Snippet, SNIPPET_VARIABLES, EXCLUSIONS } from "./snippets/snippets";
+import { sortSnippets, getSnippetsFromString, isInFolder, snippetInvertedEffects, debouncedSetSnippetsFromFileOrFolder } from "./snippets/snippet_helper_functions";
+import { SnippetManager } from "./snippets/snippet_manager";
+import { markerStateField, startSnippet, undidEndSnippet } from "./snippets/marker_state_field";
+
 import { concealPlugin } from "./editor_extensions/conceal";
 import { colorPairedBracketsPluginLowestPrec, highlightCursorBracketsPlugin } from "./editor_extensions/highlight_brackets";
 import { cursorTooltipBaseTheme, cursorTooltipField } from "./editor_extensions/inline_math_tooltip";
+
 import { editorCommands } from "./editor_commands";
-import { parse } from "json5";
+
 
 
 export default class LatexSuitePlugin extends Plugin {
@@ -75,7 +79,7 @@ export default class LatexSuitePlugin extends Plugin {
 
 
 		this.registerEditorExtension(markerStateField);
-		this.registerEditorExtension(this.getInvertedEffects());
+		this.registerEditorExtension(snippetInvertedEffects);
 
 		this.registerEditorExtension(Prec.highest(EditorView.domEventHandlers({
             "keydown": this.onKeydown
@@ -101,9 +105,21 @@ export default class LatexSuitePlugin extends Plugin {
 
 
 		// Watch for changes to the snippets file
-		// @ts-ignore
-		this.registerEvent( this.app.vault.on("modify", this.onFileChange.bind(this)) );
+		this.registerEvent(this.app.vault.on("modify", this.onFileChange.bind(this)));
+		this.registerEvent(this.app.vault.on("delete", (file) => {
+			
+			const snippetDir = this.app.vault.getAbstractFileByPath(this.settings.snippetsFileLocation);
+			const isFolder = snippetDir instanceof TFolder;
 
+			if (file instanceof TFile && (isFolder && file.path.contains(snippetDir.path))) {
+				debouncedSetSnippetsFromFileOrFolder(this);
+			}
+		}));
+		this.registerEvent(this.app.vault.on("create", (file) => {
+			if (file instanceof TFile && this.fileIsInSnippetsFolder(file)) {
+				debouncedSetSnippetsFromFileOrFolder(this);
+			}
+		}));
 	}
 
 
@@ -114,22 +130,27 @@ export default class LatexSuitePlugin extends Plugin {
 
 
 	async onFileChange(file: TFile) {
-
+		
 		if (!(this.settings.loadSnippetsFromFile)) {
 			return;
 		}
 
-		if (file.path === this.settings.snippetsFileLocation) {
-
+		if (file.path === this.settings.snippetsFileLocation || this.fileIsInSnippetsFolder(file)) {
 			try {
-				await this.setSnippetsFromFile(file.path);
-				new Notice("Successfully reloaded snippets.", 5000);
+				await debouncedSetSnippetsFromFileOrFolder(this);
 			}
 			catch {
-				new Notice("Failed to load snippets: there are syntax errors in the file " + + this.settings.snippetsFileLocation, 5000);
+				new Notice("Failed to load snippets.", 5000);
 			}
 		}
-		
+	}
+
+
+	private readonly fileIsInSnippetsFolder = (file: TFile) => {
+		const snippetDir = this.app.vault.getAbstractFileByPath(this.settings.snippetsFileLocation);
+		const isFolder = snippetDir instanceof TFolder;
+
+		return (isFolder && isInFolder(file, snippetDir));
 	}
 
 
@@ -183,40 +204,6 @@ export default class LatexSuitePlugin extends Plugin {
 	}
 
 
-	private readonly getInvertedEffects = () => {
-		// Enables undoing and redoing snippets, taking care of the tabstops
-
-		return invertedEffects.of(tr => {
-			const effects = [];
-
-			for (const effect of tr.effects) {
-				if (effect.is(addMark)) {
-					effects.push(removeMark.of(effect.value));
-				}
-				else if (effect.is(removeMark)) {
-					effects.push(addMark.of(effect.value));
-				}
-
-				else if (effect.is(startSnippet)) {
-					effects.push(undidStartSnippet.of(null));
-				}
-				else if (effect.is(undidStartSnippet)) {
-					effects.push(startSnippet.of(null));
-				}
-				else if (effect.is(endSnippet)) {
-					effects.push(undidEndSnippet.of(null));
-				}
-				else if (effect.is(undidEndSnippet)) {
-					effects.push(endSnippet.of(null));
-				}
-			}
-
-
-			return effects;
-		})
-	}
-
-
 	enableExtension(extension: Extension) {
 		this.editorExtensions.push(extension);
 		this.app.workspace.updateOptions();
@@ -237,7 +224,7 @@ export default class LatexSuitePlugin extends Plugin {
 		if (this.settings.loadSnippetsFromFile) {
 			// Use onLayoutReady so that we don't try to read the snippets file too early
 			this.app.workspace.onLayoutReady(() => {
-				this.setSnippetsFromFile(this.settings.snippetsFileLocation);
+				debouncedSetSnippetsFromFileOrFolder(this);
 			});
 		}
 		else {
@@ -262,64 +249,12 @@ export default class LatexSuitePlugin extends Plugin {
 		await this.saveData(this.settings);
 	}
 
-
-
-	async setSnippetsFromFile(filePath: string) {
-
-		const file = this.app.vault.getAbstractFileByPath(filePath);
-		const content = await this.app.vault.cachedRead(file as TFile);
-
-		this.setSnippets(content);
-	}
-
-
-
-	setSnippets(snippetsStr:string) {
-		const snippets = parse(snippetsStr);
-
-		if (!this.validateSnippets(snippets)) throw "Invalid snippet format.";
-
-		this.sortSnippets(snippets);
-
+	setSnippets(snippetsStr: string) {
+		const snippets = getSnippetsFromString(snippetsStr);
+		
+		sortSnippets(snippets);
 		this.snippets = snippets;
 	}
-
-
-	validateSnippets(snippets: Snippet[]):boolean {
-		let valid = true;
-
-		for (const snippet of snippets) {
-			// Check that the snippet trigger, replacement and options are defined
-
-			if (!(snippet.trigger && snippet.replacement && snippet.options != undefined)) {
-				valid = false;
-				break;
-			}
-		}
-
-		return valid;
-	}
-
-
-	sortSnippets(snippets:Snippet[]) {
-		// Sort snippets in order of priority
-
-		function compare( a:Snippet, b:Snippet ) {
-			const aPriority = a.priority === undefined ? 0 : a.priority;
-			const bPriority = b.priority === undefined ? 0 : b.priority;
-
-			if ( aPriority < bPriority ){
-				return 1;
-			}
-			if ( aPriority > bPriority ){
-				return -1;
-			}
-			return 0;
-		}
-
-		snippets.sort(compare);
-	}
-
 
 
 	setAutofractionExcludedEnvs(envsStr: string) {

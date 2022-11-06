@@ -1,4 +1,4 @@
-import { App, PluginSettingTab, Setting, Modal, ButtonComponent, ExtraButtonComponent, debounce, Notice } from "obsidian";
+import { App, PluginSettingTab, Setting, Modal, ButtonComponent, ExtraButtonComponent } from "obsidian";
 import { EditorView, ViewUpdate } from "@codemirror/view";
 import { EditorState, Extension } from "@codemirror/state";
 import { basicSetup } from "./snippets_editor/extensions";
@@ -10,6 +10,7 @@ import { concealPlugin } from "./editor_extensions/conceal";
 import { colorPairedBracketsPluginLowestPrec, highlightCursorBracketsPlugin } from "./editor_extensions/highlight_brackets";
 import { cursorTooltipBaseTheme, cursorTooltipField } from "./editor_extensions/inline_math_tooltip";
 import { FileSuggest } from "./ui/file_suggest";
+import { debouncedSetSnippetsFromFileOrFolder } from "./snippets/snippet_helper_functions";
 
 
 export interface LatexSuiteSettings {
@@ -196,23 +197,11 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 
 
-        const debouncedSetSnippets = debounce(async () => {
-            try {
-                await this.plugin.setSnippetsFromFile(this.plugin.settings.snippetsFileLocation);
-				new Notice("Successfully loaded snippets from " + this.plugin.settings.snippetsFileLocation + ".", 5000);
-			}
-			catch {
-                
-			}
-            
-        }, 1000, true);
-
-
         let snippetsFileLocEl:HTMLElement;
 
         new Setting(containerEl)
-        .setName("Load snippets from file")
-        .setDesc("Whether to load snippets from a specified file, instead of from the plugin settings.")
+        .setName("Load snippets from file or folder")
+        .setDesc("Whether to load snippets from a specified file or from all files within a folder, instead of from the plugin settings.")
         .addToggle(toggle => toggle
             .setValue(this.plugin.settings.loadSnippetsFromFile)
             .onChange(async (value) => {
@@ -222,7 +211,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
                 snippetsFileLocEl.toggleClass("hidden", !value);
 
                 if (value) {
-                    this.plugin.setSnippetsFromFile(this.plugin.settings.snippetsFileLocation);
+                    debouncedSetSnippetsFromFileOrFolder(this.plugin);
                 }
                 else {
                     this.plugin.setSnippets(this.plugin.settings.snippets);
@@ -233,8 +222,8 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 
         const snippetsFileLoc = new Setting(containerEl)
-        .setName("Snippets file location")
-        .setDesc("The file to load snippets from.");
+        .setName("Snippets file/folder location")
+        .setDesc("The file or folder to load snippets from.");
 
 
         let inputEl;
@@ -245,7 +234,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
                 .onChange(async (value) => {
                     this.plugin.settings.snippetsFileLocation = value;
 
-                    debouncedSetSnippets();
+                    debouncedSetSnippetsFromFileOrFolder(this.plugin);
 
                     await this.plugin.saveSettings();
                 });
