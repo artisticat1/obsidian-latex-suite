@@ -175,7 +175,7 @@ function concealSupSub(eqn: string, superscript: boolean, symbolMap: {[key: stri
 
 function concealBoldMathBbMathRm(eqn: string, symbolMap: {[key: string]:string}):Concealment[] {
 
-    const regexStr = "\\\\(mathbf|mathbb|mathrm){([A-Za-z0-9]+)}";
+    const regexStr = "\\\\(mathbf|boldsymbol|mathbb|mathrm){([A-Za-z0-9]+)}";
     const regex = new RegExp(regexStr, "g");
 
     const matches = [...eqn.matchAll(regex)];
@@ -189,7 +189,7 @@ function concealBoldMathBbMathRm(eqn: string, symbolMap: {[key: string]:string})
         const start = match.index;
         const end = start + match[0].length;
 
-        if (type === "mathbf") {
+        if (type === "mathbf" || type === "boldsymbol") {
             concealments.push({start: start, end: end, replacement: value, class: "cm-concealed-bold cm-variable-1"});
         }
         else if (type === "mathbb") {
