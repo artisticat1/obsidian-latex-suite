@@ -1,16 +1,20 @@
 import { Plugin, Notice, TFile, TFolder } from "obsidian";
+import { LatexSuiteSettings, LatexSuiteSettingTab, DEFAULT_SETTINGS } from "./settings";
+
 import { EditorView, keymap, ViewUpdate, tooltips } from "@codemirror/view";
 import { SelectionRange, Prec, Extension } from "@codemirror/state";
-import { invertedEffects, undo, redo } from "@codemirror/commands";
+import { undo, redo } from "@codemirror/commands";
+import { isWithinEquation, isWithinInlineEquation, replaceRange, setCursor, isInsideEnvironment, getOpenBracket, getCloseBracket, findMatchingBracket, getEquationBounds, getCharacterAtPos } from "./editor_helpers";
 
-import { LatexSuiteSettings, LatexSuiteSettingTab, DEFAULT_SETTINGS } from "./settings"
-import { isWithinEquation, isWithinInlineEquation, replaceRange, setCursor, isInsideEnvironment, getOpenBracket, getCloseBracket, findMatchingBracket, getEquationBounds, getCharacterAtPos } from "./editor_helpers"
-import { markerStateField, addMark, removeMark, startSnippet, endSnippet, undidStartSnippet, undidEndSnippet } from "./snippets/marker_state_field";
-import { Environment, Snippet, SNIPPET_VARIABLES, EXCLUSIONS } from "./snippets/snippets"
+import { Environment, Snippet, SNIPPET_VARIABLES, EXCLUSIONS } from "./snippets/snippets";
+import { sortSnippets, validateSnippets, isInFolder, snippetInvertedEffects } from "./snippets/snippet_helper_functions";
 import { SnippetManager } from "./snippets/snippet_manager";
+import { markerStateField, startSnippet, undidEndSnippet } from "./snippets/marker_state_field";
+
 import { concealPlugin } from "./editor_extensions/conceal";
 import { colorPairedBracketsPluginLowestPrec, highlightCursorBracketsPlugin } from "./editor_extensions/highlight_brackets";
 import { cursorTooltipBaseTheme, cursorTooltipField } from "./editor_extensions/inline_math_tooltip";
+
 import { editorCommands } from "./editor_commands";
 import { parse } from "json5";
 
@@ -75,7 +79,7 @@ export default class LatexSuitePlugin extends Plugin {
 
 
 		this.registerEditorExtension(markerStateField);
-		this.registerEditorExtension(this.getInvertedEffects());
+		this.registerEditorExtension(snippetInvertedEffects);
 
 		this.registerEditorExtension(Prec.highest(EditorView.domEventHandlers({
             "keydown": this.onKeydown
@@ -122,7 +126,7 @@ export default class LatexSuitePlugin extends Plugin {
 		const snippetDir = this.app.vault.getAbstractFileByPath(this.settings.snippetsFileLocation);
 		const isFolder = snippetDir instanceof TFolder;
 
-		if (file.path === this.settings.snippetsFileLocation || (isFolder && this.isInFolder(file, snippetDir))  ) {
+		if (file.path === this.settings.snippetsFileLocation || (isFolder && isInFolder(file, snippetDir))  ) {
 			try {
 				await this.setSnippetsFromFileOrFolder(file.path);
 				new Notice("Successfully reloaded snippets.", 5000);
@@ -131,20 +135,6 @@ export default class LatexSuitePlugin extends Plugin {
 				new Notice("Failed to load snippets: there are syntax errors in the file " + + this.settings.snippetsFileLocation, 5000);
 			}
 		}
-	}
-
-	private readonly isInFolder = (file: TFile, dir: TFolder) => {
-		for(const c of dir.children) {
-			if (c instanceof TFile && c.path === file.path) {
-				return true;
-			} else if (c instanceof TFolder) {
-				if(this.isInFolder(file, c)) {
-					return true;
-				}
-			}
-		}
-
-		return false;
 	}
 
 
@@ -195,40 +185,6 @@ export default class LatexSuitePlugin extends Plugin {
 		if (undoTr) {
 			this.snippetManager.tidyTabstopReferences();
 		}
-	}
-
-
-	private readonly getInvertedEffects = () => {
-		// Enables undoing and redoing snippets, taking care of the tabstops
-
-		return invertedEffects.of(tr => {
-			const effects = [];
-
-			for (const effect of tr.effects) {
-				if (effect.is(addMark)) {
-					effects.push(removeMark.of(effect.value));
-				}
-				else if (effect.is(removeMark)) {
-					effects.push(addMark.of(effect.value));
-				}
-
-				else if (effect.is(startSnippet)) {
-					effects.push(undidStartSnippet.of(null));
-				}
-				else if (effect.is(undidStartSnippet)) {
-					effects.push(startSnippet.of(null));
-				}
-				else if (effect.is(endSnippet)) {
-					effects.push(undidEndSnippet.of(null));
-				}
-				else if (effect.is(undidEndSnippet)) {
-					effects.push(endSnippet.of(null));
-				}
-			}
-
-
-			return effects;
-		})
 	}
 
 
@@ -287,7 +243,7 @@ export default class LatexSuitePlugin extends Plugin {
 		if (fileOrFolder instanceof TFolder) {
 			this.setSnippetFromFolderRec(fileOrFolder as TFolder);
 			// Sorting needs to happen after all the snippet files have been parsed
-			this.sortSnippets(this.snippets);
+			sortSnippets(this.snippets);
 		} else {
 			const content = await this.app.vault.cachedRead(fileOrFolder as TFile);
 			this.setSnippets(content);
@@ -308,8 +264,8 @@ export default class LatexSuitePlugin extends Plugin {
 					new Notice(`Failed to load snippet file ${fileOrFolder.name}`);
 				};
 
-			} else {
-
+			}
+			else {
 				this.setSnippetFromFolderRec(fileOrFolder as TFolder);
 			}
 		}
@@ -319,7 +275,7 @@ export default class LatexSuitePlugin extends Plugin {
 	appendSnippets(snippetsStr: string) {
 		const snippets = parse(snippetsStr);
 
-		if (!this.validateSnippets(snippets)) throw "Invalid snippet format.";
+		if (!validateSnippets(snippets)) throw "Invalid snippet format.";
 
 		for (const s of snippets) {
 			this.snippets.push(s);
@@ -329,47 +285,11 @@ export default class LatexSuitePlugin extends Plugin {
 	setSnippets(snippetsStr:string) {
 		const snippets = parse(snippetsStr);
 
-		if (!this.validateSnippets(snippets)) throw "Invalid snippet format.";
+		if (!validateSnippets(snippets)) throw "Invalid snippet format.";
 
-		this.sortSnippets(snippets);
+		sortSnippets(snippets);
 
 		this.snippets = snippets;
-	}
-
-
-	validateSnippets(snippets: Snippet[]):boolean {
-		let valid = true;
-
-		for (const snippet of snippets) {
-			// Check that the snippet trigger, replacement and options are defined
-
-			if (!(snippet.trigger && snippet.replacement && snippet.options != undefined)) {
-				valid = false;
-				break;
-			}
-		}
-
-		return valid;
-	}
-
-
-	sortSnippets(snippets:Snippet[]) {
-		// Sort snippets in order of priority
-
-		function compare( a:Snippet, b:Snippet ) {
-			const aPriority = a.priority === undefined ? 0 : a.priority;
-			const bPriority = b.priority === undefined ? 0 : b.priority;
-
-			if ( aPriority < bPriority ){
-				return 1;
-			}
-			if ( aPriority > bPriority ){
-				return -1;
-			}
-			return 0;
-		}
-
-		snippets.sort(compare);
 	}
 
 
