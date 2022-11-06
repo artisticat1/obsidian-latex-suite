@@ -1,4 +1,4 @@
-import { Plugin, Notice, TFile, TFolder } from "obsidian";
+import { Plugin, Notice, TFile, TFolder, debounce } from "obsidian";
 import { LatexSuiteSettings, LatexSuiteSettingTab, DEFAULT_SETTINGS } from "./settings";
 
 import { EditorView, keymap, ViewUpdate, tooltips } from "@codemirror/view";
@@ -7,7 +7,7 @@ import { undo, redo } from "@codemirror/commands";
 import { isWithinEquation, isWithinInlineEquation, replaceRange, setCursor, isInsideEnvironment, getOpenBracket, getCloseBracket, findMatchingBracket, getEquationBounds, getCharacterAtPos } from "./editor_helpers";
 
 import { Environment, Snippet, SNIPPET_VARIABLES, EXCLUSIONS } from "./snippets/snippets";
-import { sortSnippets, getSnippetsFromString, isInFolder, snippetInvertedEffects } from "./snippets/snippet_helper_functions";
+import { sortSnippets, getSnippetsFromString, isInFolder, snippetInvertedEffects, debouncedSetSnippetsFromFileOrFolder } from "./snippets/snippet_helper_functions";
 import { SnippetManager } from "./snippets/snippet_manager";
 import { markerStateField, startSnippet, undidEndSnippet } from "./snippets/marker_state_field";
 
@@ -105,9 +105,21 @@ export default class LatexSuitePlugin extends Plugin {
 
 
 		// Watch for changes to the snippets file
-		// @ts-ignore
-		this.registerEvent( this.app.vault.on("modify", this.onFileChange.bind(this)) );
+		this.registerEvent(this.app.vault.on("modify", this.onFileChange.bind(this)));
+		this.registerEvent(this.app.vault.on("delete", (file) => {
+			
+			const snippetDir = this.app.vault.getAbstractFileByPath(this.settings.snippetsFileLocation);
+			const isFolder = snippetDir instanceof TFolder;
 
+			if (file instanceof TFile && (isFolder && file.path.contains(snippetDir.path))) {
+				debouncedSetSnippetsFromFileOrFolder(this);
+			}
+		}));
+		this.registerEvent(this.app.vault.on("create", (file) => {
+			if (file instanceof TFile && this.fileIsInSnippetsFolder(file)) {
+				debouncedSetSnippetsFromFileOrFolder(this);
+			}
+		}));
 	}
 
 
@@ -118,23 +130,27 @@ export default class LatexSuitePlugin extends Plugin {
 
 
 	async onFileChange(file: TFile) {
-
+		
 		if (!(this.settings.loadSnippetsFromFile)) {
 			return;
 		}
 
-		const snippetDir = this.app.vault.getAbstractFileByPath(this.settings.snippetsFileLocation);
-		const isFolder = snippetDir instanceof TFolder;
-
-		if (file.path === this.settings.snippetsFileLocation || (isFolder && isInFolder(file, snippetDir))  ) {
+		if (file.path === this.settings.snippetsFileLocation || this.fileIsInSnippetsFolder(file)) {
 			try {
-				await this.setSnippetsFromFileOrFolder(this.settings.snippetsFileLocation);
-				new Notice("Successfully reloaded snippets.", 5000);
+				await debouncedSetSnippetsFromFileOrFolder(this);
 			}
 			catch {
 				new Notice("Failed to load snippets.", 5000);
 			}
 		}
+	}
+
+
+	private readonly fileIsInSnippetsFolder = (file: TFile) => {
+		const snippetDir = this.app.vault.getAbstractFileByPath(this.settings.snippetsFileLocation);
+		const isFolder = snippetDir instanceof TFolder;
+
+		return (isFolder && isInFolder(file, snippetDir));
 	}
 
 
@@ -208,7 +224,7 @@ export default class LatexSuitePlugin extends Plugin {
 		if (this.settings.loadSnippetsFromFile) {
 			// Use onLayoutReady so that we don't try to read the snippets file too early
 			this.app.workspace.onLayoutReady(() => {
-				this.setSnippetsFromFileOrFolder(this.settings.snippetsFileLocation);
+				debouncedSetSnippetsFromFileOrFolder(this);
 			});
 		}
 		else {
@@ -233,56 +249,6 @@ export default class LatexSuitePlugin extends Plugin {
 		await this.saveData(this.settings);
 	}
 
-
-
-	async setSnippetsFromFileOrFolder(path: string) {
-		let snippets:Snippet[];
-		const fileOrFolder = this.app.vault.getAbstractFileByPath(path);
-
-
-		if (fileOrFolder instanceof TFolder) {
-			snippets = await this.getSnippetsWithinFolder(fileOrFolder as TFolder);
-			
-		} else {
-			const content = await this.app.vault.cachedRead(fileOrFolder as TFile);
-			snippets = await getSnippetsFromString(content);
-		}
-		
-
-		// Sorting needs to happen after all the snippet files have been parsed
-		sortSnippets(snippets);
-		this.snippets = snippets;
-	}
-
-
-	async getSnippetsWithinFolder(folder: TFolder) {
-		let snippets:Snippet[] = [];
-
-		for (const fileOrFolder of folder.children) {
-			if (fileOrFolder instanceof TFile) {
-
-				const content = await this.app.vault.cachedRead(fileOrFolder as TFile);
-
-				try {
-					snippets.push(...getSnippetsFromString(content));
-				}
-				catch (e) {
-					console.log(`Failed to load snippet file ${fileOrFolder.path}:`, e);
-					new Notice(`Failed to load snippet file ${fileOrFolder.name}`);
-				};
-
-			}
-			else {
-				const newSnippets = await this.getSnippetsWithinFolder(fileOrFolder as TFolder);
-				snippets.push(...newSnippets);
-			}
-		}
-
-		return snippets;
-	}
-
-	
-	
 	setSnippets(snippetsStr: string) {
 		const snippets = getSnippetsFromString(snippetsStr);
 		
