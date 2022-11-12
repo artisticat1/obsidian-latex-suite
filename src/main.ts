@@ -704,13 +704,23 @@ export default class LatexSuitePlugin extends Plugin {
 
 		for (let i = start; i < end; i++) {
 
-			const is1CharBracket = ["[", "("].contains(text.charAt(i));
-			const isCurlyBracket = (text.slice(i, i+2) == "\\{");
-			if (!(is1CharBracket || isCurlyBracket)) continue;
-			const bracketSize = is1CharBracket ? 1 : 2;
+			const brackets:{[open: string]: string} = {"(": ")", "[": "]", "\\{": "\\}", "\\langle": "\\rangle", "\\lvert": "\\rvert"};
+			const openBrackets = Object.keys(brackets);
+			let found = false;
+			let open = "";
 
-			const open = is1CharBracket ? text.charAt(i) : "\\{";
-			const close = getCloseBracket(open);
+			for (const openBracket of openBrackets) {
+				if (text.slice(i, i + openBracket.length) === openBracket) {
+					found = true;
+					open = openBracket;
+					break;
+				}
+			}
+
+			if (!found) continue;
+			const bracketSize = open.length;
+			const close = brackets[open];
+
 
 			const j = findMatchingBracket(text, i, open, close, false, end);
 			if (j === -1) continue;

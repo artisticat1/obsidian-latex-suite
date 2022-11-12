@@ -292,7 +292,7 @@ export function getOpenBracket(closeBracket: string) {
 
 
 export function getCloseBracket(openBracket: string) {
-    const closeBrackets:{[openBracket: string]: string} = {"(": ")", "[": "]", "{": "}", "\\{": "\\}"};
+    const closeBrackets:{[openBracket: string]: string} = {"(": ")", "[": "]", "{": "}"};
 
     return closeBrackets[openBracket];
 }
