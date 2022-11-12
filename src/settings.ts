@@ -201,7 +201,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
         new Setting(containerEl)
         .setName("Load snippets from file or folder")
-        .setDesc("Whether to load snippets from a specified file or from all files within a folder, instead of from the plugin settings.")
+        .setDesc("Whether to load snippets from a specified file, or from all files within a folder (instead of from the plugin settings).")
         .addToggle(toggle => toggle
             .setValue(this.plugin.settings.loadSnippetsFromFile)
             .onChange(async (value) => {
