@@ -497,7 +497,9 @@ export const brackets = {
     "left<": "〈",
     "right>": "〉",
     "langle": "〈",
-    "rangle": "〉"
+    "rangle": "〉",
+    "lvert": "|",
+    "rvert": "|"
 }
 
 
