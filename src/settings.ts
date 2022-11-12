@@ -222,7 +222,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 
         const snippetsFileLoc = new Setting(containerEl)
-        .setName("Snippets file/folder location")
+        .setName("Snippets file or folder location")
         .setDesc("The file or folder to load snippets from.");
 
 
