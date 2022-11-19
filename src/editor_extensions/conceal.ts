@@ -207,6 +207,31 @@ function concealBoldMathBbMathRm(eqn: string, symbolMap: {[key: string]:string})
 }
 
 
+
+function concealText(eqn: string):Concealment[] {
+
+    const regexStr = "\\\\text{([A-Za-z0-9-.!?() ]+)}";
+    const regex = new RegExp(regexStr, "g");
+
+    const matches = [...eqn.matchAll(regex)];
+
+    const concealments:Concealment[] = [];
+
+    for (const match of matches) {
+        const value = match[1];
+
+        const start = match.index;
+        const end = start + match[0].length;
+
+        concealments.push({start: start, end: end, replacement: value, class: "cm-concealed-mathrm cm-variable-2"});
+
+    }
+
+    return concealments;
+}
+
+
+
 function concealOperators(eqn: string, symbols: string[]):Concealment[] {
 
     const regexStr = "\\\\(" + symbols.join("|") + ")";
@@ -377,6 +402,7 @@ function conceal(view: EditorView) {
                 ...concealSymbols(eqn, "\\\\", "", brackets, "cm-bracket"),
                 ...concealAtoZ(eqn, "\\\\mathcal{", "}", mathscrcal),
                 ...concealBoldMathBbMathRm(eqn, mathbb),
+                ...concealText(eqn),
                 ...concealBraKet(eqn, selection, bounds.start),
                 ...concealFraction(eqn, selection, bounds.start),
                 ...concealOperators(eqn, operators)
