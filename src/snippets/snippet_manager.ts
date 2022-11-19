@@ -179,7 +179,8 @@ export class SnippetManager {
                 // Use prevChar so that cursors are placed at the end of the added text
                 const prevChar = view.state.doc.sliceString(snippet.to-1, snippet.to);
 
-                keyPresses.push({from: snippet.to-1, to: snippet.to, insert: prevChar + snippet.keyPressed});
+                const from = snippet.to === 0 ? 0 : snippet.to-1;
+                keyPresses.push({from: from, to: snippet.to, insert: prevChar + snippet.keyPressed});
             }
         }
 
