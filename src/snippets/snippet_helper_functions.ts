@@ -9,6 +9,22 @@ import { parse } from "json5";
 
 
 export function sortSnippets(snippets:Snippet[]) {
+    // Sort snippets by trigger length so longer snippets will have higher priority
+
+    function compareTriggerLength( a:Snippet, b:Snippet ) {
+        const aTriggerLength= a.trigger.length;
+        const bTriggerLength= b.trigger.length;
+
+        if ( aTriggerLength < bTriggerLength ){
+           return 1;
+        }
+        if ( aTriggerLength > bTriggerLength ){
+            return -1;
+        }
+        return 0;
+    }
+    snippets.sort(compareTriggerLength);
+
     // Sort snippets in order of priority
 
     function compare( a:Snippet, b:Snippet ) {
