@@ -220,6 +220,7 @@ export const operators:string[] =
     "liminf",
     "min",
     "max",
+    "inf"
     ];
 
 
@@ -499,7 +500,8 @@ export const brackets = {
     "langle": "〈",
     "rangle": "〉",
     "lvert": "|",
-    "rvert": "|"
+    "rvert": "|",
+    "vert": "|"
 }
 
 
