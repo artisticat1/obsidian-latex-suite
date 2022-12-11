@@ -79,7 +79,15 @@ Recommended for use with the regex option "r".
 - `${SYMBOL}` : Can be inserted in a `trigger`. Shorthand for the following:
 
 ```
-hbar|ell|nabla|infty|dots|to|leftrightarrow|mapsto|setminus|mid|cap|cup|subset|implies|impliedby|iff|exists|equiv|square|neq|geq|leq|gg|ll|sim|simeq|approx|propto|times|cdot|oplus|otimes|star|perp|det|exp|ln|log
+hbar|ell|nabla|infty|dots|leftrightarrow|mapsto|setminus|mid|cap|cup|land|lor|subseteq|subset|implies|impliedby|iff|exists|equiv|square|neq|geq|leq|gg|ll|sim|simeq|approx|propto|cdot|oplus|otimes|times|star|perp|det|exp|ln|log|partial
+```
+
+Recommended for use with the regex option "r".
+
+- `${SHORT_SYMBOL}` : Can be inserted in a `trigger`. Shorthand for the following:
+
+```
+to|pm|mp
 ```
 
 Recommended for use with the regex option "r".
