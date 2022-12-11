@@ -136,7 +136,7 @@ export async function getSnippetsWithinFolder(folder: TFolder) {
 
         }
         else {
-            const newSnippets = await this.getSnippetsWithinFolder(fileOrFolder as TFolder);
+            const newSnippets = await getSnippetsWithinFolder(fileOrFolder as TFolder);
             snippets.push(...newSnippets);
         }
     }
