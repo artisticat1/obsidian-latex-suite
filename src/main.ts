@@ -305,7 +305,7 @@ export default class LatexSuitePlugin extends Plugin {
 
 
 	private readonly onKeydown = (event: KeyboardEvent, view: EditorView) => {
-		const success = this.handleKeydown(event.key, event.shiftKey, event.ctrlKey, view);
+		const success = this.handleKeydown(event.key, event.shiftKey, event.ctrlKey||event.metaKey, view);
 
 		if (success) event.preventDefault();
 	}
