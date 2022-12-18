@@ -195,13 +195,12 @@ span.cm-math.cm-concealed-mathrm {
 
 
 /* Highlight brackets */
-/* TODO: Change these colors to be distinct from selection color */
 .theme-light .latex-suite-highlighted-bracket, .theme-light .latex-suite-highlighted-bracket [class^="latex-suite-color-bracket-"] {
-    background-color: rgba(106, 188, 255, 0.16);
+    background-color: hsl(var(--accent-h), var(--accent-s), var(--accent-l), 0.25);
 }
 
 .theme-dark .latex-suite-highlighted-bracket, .theme-dark .latex-suite-highlighted-bracket [class^="latex-suite-color-bracket-"] {
-    background-color: rgba(0, 110, 255, 0.169);
+    background-color: hsl(var(--accent-h), var(--accent-s), calc(var(--accent-l) - 7%), 0.3);
 }
 
 
