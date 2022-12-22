@@ -29,7 +29,7 @@ class ConcealWidget extends WidgetType {
     }
 
     eq(other: ConcealWidget) {
-        return ((other.symbol == this.symbol) && (other.elementType === this.elementType));
+        return ((other.symbol == this.symbol) && (other.className === this.className) && (other.elementType === this.elementType));
     }
 
     toDOM() {
@@ -173,9 +173,9 @@ function concealSupSub(eqn: string, superscript: boolean, symbolMap: {[key: stri
 
 
 
-function concealBoldMathBbMathRm(eqn: string, symbolMap: {[key: string]:string}):Concealment[] {
+function concealModified_A_to_Z_0_to_9(eqn: string, mathBBsymbolMap: {[key: string]:string}):Concealment[] {
 
-    const regexStr = "\\\\(mathbf|boldsymbol|mathbb|mathrm){([A-Za-z0-9]+)}";
+    const regexStr = "\\\\(mathbf|boldsymbol|underline|mathrm|mathbb){([A-Za-z0-9]+)}";
     const regex = new RegExp(regexStr, "g");
 
     const matches = [...eqn.matchAll(regex)];
@@ -190,17 +190,47 @@ function concealBoldMathBbMathRm(eqn: string, symbolMap: {[key: string]:string})
         const end = start + match[0].length;
 
         if (type === "mathbf" || type === "boldsymbol") {
-            concealments.push({start: start, end: end, replacement: value, class: "cm-concealed-bold cm-variable-1"});
+            concealments.push({start: start, end: end, replacement: value, class: "cm-concealed-bold"});
+        }
+        else if (type === "underline") {
+            concealments.push({start: start, end: end, replacement: value, class: "cm-concealed-underline"});
+        }
+        else if (type === "mathrm") {
+            concealments.push({start: start, end: end, replacement: value, class: "cm-concealed-mathrm"});
         }
         else if (type === "mathbb") {
             const letters = Array.from(value);
-            const replacement = letters.map(el => symbolMap[el]).join("");
+            const replacement = letters.map(el => mathBBsymbolMap[el]).join("");
             concealments.push({start: start, end: end, replacement: replacement});
         }
-        else {
-            concealments.push({start: start, end: end, replacement: value, class: "cm-concealed-mathrm cm-variable-2"});
-        }
 
+    }
+
+    return concealments;
+}
+
+
+
+function concealModifiedGreekLetters(eqn: string, greekSymbolMap: {[key: string]:string}):Concealment[] {
+
+    const greekSymbolNames = Object.keys(greekSymbolMap);
+    const regexStr = "\\\\(underline){\\\\(" + escapeRegex(greekSymbolNames.join("|"))  + ")}";
+    const regex = new RegExp(regexStr, "g");
+
+    const matches = [...eqn.matchAll(regex)];
+
+    const concealments:Concealment[] = [];
+
+    for (const match of matches) {
+        const type = match[1];
+        const value = match[2];
+
+        const start = match.index;
+        const end = start + match[0].length;
+
+        if (type === "underline") {
+            concealments.push({start: start, end: end, replacement: greekSymbolMap[value], class: "cm-concealed-underline"});
+        }
     }
 
     return concealments;
@@ -401,7 +431,8 @@ function conceal(view: EditorView) {
                 ...concealModifier(eqn, "bar", "\u0304"),
                 ...concealSymbols(eqn, "\\\\", "", brackets, "cm-bracket"),
                 ...concealAtoZ(eqn, "\\\\mathcal{", "}", mathscrcal),
-                ...concealBoldMathBbMathRm(eqn, mathbb),
+                ...concealModifiedGreekLetters(eqn, greek),
+                ...concealModified_A_to_Z_0_to_9(eqn, mathbb),
                 ...concealText(eqn),
                 ...concealBraKet(eqn, selection, bounds.start),
                 ...concealFraction(eqn, selection, bounds.start),
