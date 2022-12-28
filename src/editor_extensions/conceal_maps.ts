@@ -220,7 +220,7 @@ export const operators:string[] =
     "liminf",
     "min",
     "max",
-    "inf"
+    // "inf" // Fix "\\infty" being concealed as "inf∞"
     ];
 
 
