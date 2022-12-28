@@ -214,7 +214,7 @@ function concealModified_A_to_Z_0_to_9(eqn: string, mathBBsymbolMap: {[key: stri
 function concealModifiedGreekLetters(eqn: string, greekSymbolMap: {[key: string]:string}):Concealment[] {
 
     const greekSymbolNames = Object.keys(greekSymbolMap);
-    const regexStr = "\\\\(underline){\\\\(" + escapeRegex(greekSymbolNames.join("|"))  + ")}";
+    const regexStr = "\\\\(underline|boldsymbol){\\\\(" + escapeRegex(greekSymbolNames.join("|"))  + ")}";
     const regex = new RegExp(regexStr, "g");
 
     const matches = [...eqn.matchAll(regex)];
@@ -230,6 +230,9 @@ function concealModifiedGreekLetters(eqn: string, greekSymbolMap: {[key: string]
 
         if (type === "underline") {
             concealments.push({start: start, end: end, replacement: greekSymbolMap[value], class: "cm-concealed-underline"});
+        }
+        else if (type === "boldsymbol") {
+            concealments.push({start: start, end: end, replacement: greekSymbolMap[value], class: "cm-concealed-bold"});
         }
     }
 
