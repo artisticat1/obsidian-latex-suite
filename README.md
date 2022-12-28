@@ -169,6 +169,7 @@ For more details on writing snippets, including **regex** snippets, [see the doc
 | xdot               | \\dot{x}         |
 | xhat               | \\hat{x}         |
 | xbar               | \\bar{x}         |
+| xund               | \\underline{x}   |
 | ee                 | e^{ }            |
  
 When running a snippet that **moves the cursor inside brackets {}, press <kbd>Tab</kbd> to exit the brackets**.
