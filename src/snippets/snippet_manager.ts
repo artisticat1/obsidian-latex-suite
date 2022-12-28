@@ -168,7 +168,8 @@ export class SnippetManager {
     expandSnippets(view: EditorView):boolean {
         if (this.snippetsToAdd.length === 0) return false;
 
-        const docLength = view.state.doc.length;
+        const originalDoc = view.state.doc;
+        const originalDocLength = view.state.doc.length;
         const snippets = this.snippetsToAdd;
         const changes = snippets as ChangeSpec;
 
@@ -195,8 +196,8 @@ export class SnippetManager {
         
         
         // Undo the keypresses, and insert the replacements
-        const undoKeyPresses = ChangeSet.of(keyPresses, docLength).invert(view.state.doc);
-        const changesAsChangeSet = ChangeSet.of(changes, docLength);
+        const undoKeyPresses = ChangeSet.of(keyPresses, originalDocLength).invert(originalDoc);
+        const changesAsChangeSet = ChangeSet.of(changes, originalDocLength);
         const combinedChanges = undoKeyPresses.compose(changesAsChangeSet);
 
 
@@ -208,7 +209,7 @@ export class SnippetManager {
 
         // Insert any tabstops
         // Find the positions of the cursors in the new document
-        const changeSet = ChangeSet.of(changes, docLength);
+        const changeSet = ChangeSet.of(changes, originalDocLength);
         const oldPositions = snippets.map(change => change.from);
         const newPositions = oldPositions.map(pos => changeSet.mapPos(pos));
 
