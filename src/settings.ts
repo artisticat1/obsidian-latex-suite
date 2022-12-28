@@ -61,6 +61,7 @@ export const DEFAULT_SETTINGS: LatexSuiteSettings = {
 export class LatexSuiteSettingTab extends PluginSettingTab {
 	plugin: LatexSuitePlugin;
     snippetsEditor: EditorView;
+    snippetsFileLocEl: HTMLElement;
 
 	constructor(app: App, plugin: LatexSuitePlugin) {
 		super(app, plugin);
@@ -78,7 +79,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 		containerEl.empty();
 
-        containerEl.createEl('div', {text: "Snippets"}).addClasses(["setting-item", "setting-item-heading", "setting-item-name"]);
+        containerEl.createEl("div", {text: "Snippets"}).addClasses(["setting-item", "setting-item-heading", "setting-item-name"]);
 
 
         new Setting(containerEl)
@@ -197,7 +198,6 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 
 
-        let snippetsFileLocEl:HTMLElement;
 
         new Setting(containerEl)
         .setName("Load snippets from file or folder")
@@ -208,7 +208,8 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
                 this.plugin.settings.loadSnippetsFromFile = value;
 
                 snippetsSetting.settingEl.toggleClass("hidden", value);
-                snippetsFileLocEl.toggleClass("hidden", !value);
+                if (this.snippetsFileLocEl != undefined)
+                    this.snippetsFileLocEl.toggleClass("hidden", !value);
 
                 if (value) {
                     debouncedSetSnippetsFromFileOrFolder(this.plugin);
@@ -243,18 +244,18 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
             }
         );
 
-        snippetsFileLocEl = snippetsFileLoc.settingEl;
+        this.snippetsFileLocEl = snippetsFileLoc.settingEl;
         new FileSuggest(this.app, inputEl);
         
 
         // Hide settings that are not relevant when "loadSnippetsFromFile" is set to true/false
         const loadSnippetsFromFile = this.plugin.settings.loadSnippetsFromFile;
         snippetsSetting.settingEl.toggleClass("hidden", loadSnippetsFromFile);
-        snippetsFileLocEl.toggleClass("hidden", !loadSnippetsFromFile);
+        this.snippetsFileLocEl.toggleClass("hidden", !loadSnippetsFromFile);
 
 
 
-        containerEl.createEl('div', {text: "Conceal"}).addClasses(["setting-item", "setting-item-heading", "setting-item-name"]);
+        containerEl.createEl("div", {text: "Conceal"}).addClasses(["setting-item", "setting-item-heading", "setting-item-name"]);
 
         const fragment = document.createDocumentFragment();
         const line1 = document.createElement("div");
@@ -289,7 +290,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
                 }));
 
 
-        containerEl.createEl('div', {text: "Highlight and color brackets"}).addClasses(["setting-item", "setting-item-heading", "setting-item-name"]);
+        containerEl.createEl("div", {text: "Highlight and color brackets"}).addClasses(["setting-item", "setting-item-heading", "setting-item-name"]);
 
         new Setting(containerEl)
             .setName("Color paired brackets")
@@ -329,7 +330,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 
 
-        containerEl.createEl('div', {text: "Inline math preview"}).addClasses(["setting-item", "setting-item-heading", "setting-item-name"]);
+        containerEl.createEl("div", {text: "Inline math preview"}).addClasses(["setting-item", "setting-item-heading", "setting-item-name"]);
 
             new Setting(containerEl)
                 .setName("Enabled")
@@ -353,7 +354,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 
 
-        containerEl.createEl('div', {text: "Auto-fraction"}).addClasses(["setting-item", "setting-item-heading", "setting-item-name"]);
+        containerEl.createEl("div", {text: "Auto-fraction"}).addClasses(["setting-item", "setting-item-heading", "setting-item-name"]);
 
         new Setting(containerEl)
             .setName("Enabled")
@@ -383,7 +384,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
         new Setting(containerEl)
             .setName("Breaking characters")
-            .setDesc(`A list of characters that denote the start/end of a fraction. e.g. if + is included in the list, "a+b/c" will expand to "a+\\frac{b}{c}". If + is not in the list, it will expand to "\\frac{a+b}{c}".`)
+            .setDesc("A list of characters that denote the start/end of a fraction. e.g. if + is included in the list, \"a+b/c\" will expand to \"a+\\frac{b}{c}\". If + is not in the list, it will expand to \"\\frac{a+b}{c}\".")
             .addText(text => text
                 .setPlaceholder(DEFAULT_SETTINGS.autofractionBreakingChars)
                 .setValue(this.plugin.settings.autofractionBreakingChars)
@@ -394,7 +395,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
                 }));
 
 
-        containerEl.createEl('div', {text: "Matrix shortcuts"}).addClasses(["setting-item", "setting-item-heading", "setting-item-name"]);
+        containerEl.createEl("div", {text: "Matrix shortcuts"}).addClasses(["setting-item", "setting-item-heading", "setting-item-name"]);
 
         new Setting(containerEl)
             .setName("Enabled")
@@ -421,7 +422,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
                 }));
 
 
-        containerEl.createEl('div', {text: "Tabout"}).addClasses(["setting-item", "setting-item-heading", "setting-item-name"]);
+        containerEl.createEl("div", {text: "Tabout"}).addClasses(["setting-item", "setting-item-heading", "setting-item-name"]);
 
         new Setting(containerEl)
             .setName("Enabled")
@@ -434,7 +435,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
                 }));
 
 
-        containerEl.createEl('div', {text: "Auto-enlarge brackets"}).addClasses(["setting-item", "setting-item-heading", "setting-item-name"]);
+        containerEl.createEl("div", {text: "Auto-enlarge brackets"}).addClasses(["setting-item", "setting-item-heading", "setting-item-name"]);
 
         new Setting(containerEl)
             .setName("Enabled")
@@ -461,7 +462,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
                 }));
 
 
-        containerEl.createEl('div', {text: "Misc"}).addClasses(["setting-item", "setting-item-heading", "setting-item-name"]);
+        containerEl.createEl("div", {text: "Misc"}).addClasses(["setting-item", "setting-item-heading", "setting-item-name"]);
 
         new Setting(containerEl)
         .setName("Word delimiters")
