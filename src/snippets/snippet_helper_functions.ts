@@ -119,7 +119,7 @@ export const snippetInvertedEffects = invertedEffects.of(tr => {
 
 
 export async function getSnippetsWithinFolder(folder: TFolder) {
-    let snippets:Snippet[] = [];
+    const snippets:Snippet[] = [];
 
     for (const fileOrFolder of folder.children) {
         if (fileOrFolder instanceof TFile) {
@@ -132,7 +132,7 @@ export async function getSnippetsWithinFolder(folder: TFolder) {
             catch (e) {
                 console.log(`Failed to load snippet file ${fileOrFolder.path}:`, e);
                 new Notice(`Failed to load snippet file ${fileOrFolder.name}`);
-            };
+            }
 
         }
         else {

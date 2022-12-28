@@ -173,7 +173,7 @@ export class SnippetManager {
         const changes = snippets as ChangeSpec;
 
 
-        let keyPresses: {from: number, to: number, insert: string}[] = [];
+        const keyPresses: {from: number, to: number, insert: string}[] = [];
         for (const snippet of snippets) {
             if (snippet.keyPressed && (snippet.keyPressed.length === 1)) {
                 // Use prevChar so that cursors are placed at the end of the added text

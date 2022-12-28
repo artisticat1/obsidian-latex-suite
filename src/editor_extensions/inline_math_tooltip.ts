@@ -50,7 +50,7 @@ function getCursorTooltips(state: EditorState): readonly Tooltip[] {
 				strictSide: true,
 				arrow: true,
 				create: () => {
-					let dom = document.createElement("div");
+					const dom = document.createElement("div");
 					dom.className = "cm-tooltip-cursor";
 					MarkdownRenderer.renderMarkdown("$" + eqn + "$", dom, "", null);
 
@@ -83,6 +83,6 @@ export const cursorTooltipBaseTheme = EditorView.baseTheme(
 				marginTop: "2px",
 				marginBottom: "2px"
 			}
-    	}
+		}
 	}
 );

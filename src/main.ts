@@ -1,10 +1,10 @@
-import { Plugin, Notice, TFile, TFolder, debounce } from "obsidian";
+import { Plugin, Notice, TFile, TFolder } from "obsidian";
 import { LatexSuiteSettings, LatexSuiteSettingTab, DEFAULT_SETTINGS } from "./settings";
 
 import { EditorView, keymap, ViewUpdate, tooltips } from "@codemirror/view";
 import { SelectionRange, Prec, Extension } from "@codemirror/state";
 import { undo, redo } from "@codemirror/commands";
-import { isWithinEquation, isWithinInlineEquation, replaceRange, setCursor, isInsideEnvironment, getOpenBracket, getCloseBracket, findMatchingBracket, getEquationBounds, getCharacterAtPos } from "./editor_helpers";
+import { isWithinEquation, isWithinInlineEquation, replaceRange, setCursor, isInsideEnvironment, getOpenBracket, findMatchingBracket, getEquationBounds, getCharacterAtPos } from "./editor_helpers";
 
 import { Environment, Snippet, SNIPPET_VARIABLES, EXCLUSIONS } from "./snippets/snippets";
 import { sortSnippets, getSnippetsFromString, isInFolder, snippetInvertedEffects, debouncedSetSnippetsFromFileOrFolder } from "./snippets/snippet_helper_functions";
@@ -107,7 +107,7 @@ export default class LatexSuitePlugin extends Plugin {
 		// Watch for changes to the snippets file
 		this.registerEvent(this.app.vault.on("modify", this.onFileChange.bind(this)));
 		this.registerEvent(this.app.vault.on("delete", (file) => {
-			
+
 			const snippetDir = this.app.vault.getAbstractFileByPath(this.settings.snippetsFileLocation);
 			const isFolder = snippetDir instanceof TFolder;
 
@@ -130,7 +130,7 @@ export default class LatexSuitePlugin extends Plugin {
 
 
 	async onFileChange(file: TFile) {
-		
+
 		if (!(this.settings.loadSnippetsFromFile)) {
 			return;
 		}
@@ -251,7 +251,7 @@ export default class LatexSuitePlugin extends Plugin {
 
 	setSnippets(snippetsStr: string) {
 		const snippets = getSnippetsFromString(snippetsStr);
-		
+
 		sortSnippets(snippets);
 		this.snippets = snippets;
 	}
@@ -335,7 +335,7 @@ export default class LatexSuitePlugin extends Plugin {
 
 				if (success) return true;
 			}
-			
+
 		}
 
 
