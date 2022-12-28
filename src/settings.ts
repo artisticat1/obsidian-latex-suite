@@ -54,7 +54,7 @@ export const DEFAULT_SETTINGS: LatexSuiteSettings = {
     taboutEnabled: true,
     autoEnlargeBrackets: true,
     autoEnlargeBracketsTriggers: "sum, int, frac, prod",
-    wordDelimiters: "., -\\n:;!?\\/{}[]()=~"
+    wordDelimiters: "., -\\n:;!?\\/{}[]()=~$"
 }
 
 
