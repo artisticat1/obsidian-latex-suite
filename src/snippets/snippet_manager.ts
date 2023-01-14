@@ -165,6 +165,11 @@ export class SnippetManager {
     }
 
 
+    clearSnippetQueue() {
+        this.snippetsToAdd = [];
+    }
+
+
     expandSnippets(view: EditorView):boolean {
         if (this.snippetsToAdd.length === 0) return false;
 

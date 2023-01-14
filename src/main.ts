@@ -331,9 +331,15 @@ export default class LatexSuitePlugin extends Plugin {
 
 			// Allows Ctrl + z for undo, instead of triggering a snippet ending with z
 			if (!ctrlKey) {
-				success = this.runSnippets(view, key, withinMath, ranges);
+				try {
+					success = this.runSnippets(view, key, withinMath, ranges);
+					if (success) return true;
+				}
+				catch (e) {
+					this.snippetManager.clearSnippetQueue();
+					console.error(e);
+				}
 
-				if (success) return true;
 			}
 
 		}
