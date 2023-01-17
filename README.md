@@ -1,4 +1,4 @@
-# Obsidian Latex Suite
+# Obsidian LaTeX Suite
 
 A plugin for Obsidian that aims to make typesetting LaTeX math as fast as handwriting.
 
