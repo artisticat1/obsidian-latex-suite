@@ -175,7 +175,7 @@ function concealSupSub(eqn: string, superscript: boolean, symbolMap: {[key: stri
 
 function concealModified_A_to_Z_0_to_9(eqn: string, mathBBsymbolMap: {[key: string]:string}):Concealment[] {
 
-    const regexStr = "\\\\(mathbf|boldsymbol|underline|mathrm|mathbb){([A-Za-z0-9]+)}";
+    const regexStr = "\\\\(mathbf|boldsymbol|underline|mathrm|text|mathbb){([A-Za-z0-9 ]+)}";
     const regex = new RegExp(regexStr, "g");
 
     const matches = [...eqn.matchAll(regex)];
@@ -197,6 +197,12 @@ function concealModified_A_to_Z_0_to_9(eqn: string, mathBBsymbolMap: {[key: stri
         }
         else if (type === "mathrm") {
             concealments.push({start: start, end: end, replacement: value, class: "cm-concealed-mathrm"});
+        }
+        else if (type === "text") {
+            // Conceal _\text{}
+            if (start > 0 && eqn.charAt(start - 1) === "_") {
+                concealments.push({start: start - 1, end: end, replacement: value, class: "cm-concealed-mathrm", elementType: "sub"});
+            }
         }
         else if (type === "mathbb") {
             const letters = Array.from(value);

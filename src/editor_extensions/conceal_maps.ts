@@ -507,6 +507,7 @@ export const brackets = {
 
 
 export const mathbb = {
+    " ": " ",
     "0": "𝟘",
     "1": "𝟙",
     "2": "𝟚",

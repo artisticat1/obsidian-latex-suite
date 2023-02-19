@@ -193,7 +193,7 @@ span.cm-math.cm-concealed-underline {
     text-decoration: underline;
 }
 
-span.cm-math.cm-concealed-mathrm {
+span.cm-math.cm-concealed-mathrm, sub.cm-math.cm-concealed-mathrm {
     font-style: normal;
 }
 
