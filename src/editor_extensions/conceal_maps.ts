@@ -91,6 +91,7 @@ export const cmd_symbols:{[name:string]: string} =
     "lmoustache": "╭",
     "lor": "∨",
     "mapsto": "↦",
+    "middle": "",
     "mid": "∣",
     "models": "⊨",
     "mp": "∓",
