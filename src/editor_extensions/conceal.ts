@@ -438,6 +438,7 @@ function conceal(view: EditorView) {
                 ...concealModifier(eqn, "ddot", "\u0308"),
                 ...concealModifier(eqn, "overline", "\u0304"),
                 ...concealModifier(eqn, "bar", "\u0304"),
+                ...concealModifier(eqn, "tilde", "\u0303"),
                 ...concealSymbols(eqn, "\\\\", "", brackets, "cm-bracket"),
                 ...concealAtoZ(eqn, "\\\\mathcal{", "}", mathscrcal),
                 ...concealModifiedGreekLetters(eqn, greek),
