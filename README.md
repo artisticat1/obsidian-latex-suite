@@ -170,6 +170,7 @@ For more details on writing snippets, including **regex** snippets, [see the doc
 | xhat               | \\hat{x}         |
 | xbar               | \\bar{x}         |
 | xvec               | \\vec{x}         |
+| xtilde             | \\tilde{x}       |
 | xund               | \\underline{x}   |
 | ee                 | e^{ }            |
  
