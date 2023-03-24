@@ -18,7 +18,7 @@ Snippets are formatted as follows:
 
 - `m` : Math mode. Only run this snippet inside math
 - `t` : Text mode. Only run this snippet outside math
-- `A` : Auto. Expand this snippet as soon as the trigger is typed. If omitted, the <kbd>Tab</kbd> key must be pressed to expand the snippet
+- `A` : Auto. Expand this snippet as soon as the trigger is typed. If omitted, the <kbd>Tab</kbd> key (can be changed in the settings) must be pressed to expand the snippet
 - `r` : Regex. The `trigger` will be treated as a regular expression
 - `w` : Word boundary. Only run this snippet when the trigger is preceded by (and followed by) a word delimiter, such as `.`, `,`, or `-`.
 
