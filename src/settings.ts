@@ -25,39 +25,38 @@ import { FileSuggest } from "./ui/file_suggest";
 import { debouncedSetSnippetsFromFileOrFolder } from "./snippets/snippet_helper_functions";
 
 export interface LatexSuiteSettings {
-    snippets: string;
-    snippetsEnabled: boolean;
-    removeSnippetWhitespace: boolean;
-    loadSnippetsFromFile: boolean;
-    snippetsFileLocation: string;
-    autofractionEnabled: boolean;
-    concealEnabled: boolean,
-    colorPairedBracketsEnabled: boolean;
-    highlightCursorBracketsEnabled: boolean;
-    inlineMathPreviewEnabled: boolean;
-    autofractionExcludedEnvs: string,
-    autofractionBreakingChars: string;
-    matrixShortcutsEnabled: boolean;
-    matrixShortcutsEnvNames: string;
-    taboutEnabled: boolean;
-    autoEnlargeBrackets: boolean;
-    autoEnlargeBracketsTriggers: string;
-    wordDelimiters: string;
+	snippets: string;
+	snippetsEnabled: boolean;
+	snippetTrigger: "Tab" | "Space";
+	loadSnippetsFromFile: boolean;
+	snippetsFileLocation: string;
+	autofractionEnabled: boolean;
+	concealEnabled: boolean;
+	colorPairedBracketsEnabled: boolean;
+	highlightCursorBracketsEnabled: boolean;
+	inlineMathPreviewEnabled: boolean;
+	autofractionExcludedEnvs: string;
+	autofractionBreakingChars: string;
+	matrixShortcutsEnabled: boolean;
+	matrixShortcutsEnvNames: string;
+	taboutEnabled: boolean;
+	autoEnlargeBrackets: boolean;
+	autoEnlargeBracketsTriggers: string;
+	wordDelimiters: string;
 }
 
 export const DEFAULT_SETTINGS: LatexSuiteSettings = {
-    snippets: DEFAULT_SNIPPETS,
-    snippetsEnabled: true,
-    removeSnippetWhitespace: true,
-    loadSnippetsFromFile: false,
-    snippetsFileLocation: "",
-    concealEnabled: false,
-    colorPairedBracketsEnabled: true,
-    highlightCursorBracketsEnabled: true,
-    inlineMathPreviewEnabled: true,
-    autofractionEnabled: true,
-    autofractionExcludedEnvs:
-    `[
+	snippets: DEFAULT_SNIPPETS,
+	snippetsEnabled: true,
+	snippetTrigger: "Tab",
+	loadSnippetsFromFile: false,
+	snippetsFileLocation: "",
+	concealEnabled: false,
+	colorPairedBracketsEnabled: true,
+	highlightCursorBracketsEnabled: true,
+	inlineMathPreviewEnabled: true,
+	autofractionEnabled: true,
+	autofractionExcludedEnvs: `[
         ["^{", "}"],
         ["\\\\pu{", "}"]
 ]`,
@@ -97,6 +96,34 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				"setting-item-heading",
 				"setting-item-name",
 			]);
+
+		new Setting(containerEl)
+			.setName("Enabled")
+			.setDesc("Whether snippets are enabled.")
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.snippetsEnabled)
+					.onChange(async (value) => {
+						this.plugin.settings.snippetsEnabled = value;
+						await this.plugin.saveSettings();
+					})
+			);
+
+		new Setting(containerEl)
+			.setName("Key-Trigger")
+			.setDesc("What key to press to expand non-auto snippets.")
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOption("Tab", "Tab")
+					.addOption("Space", "Space")
+					.setValue(this.plugin.settings.snippetTrigger)
+					.onChange(async (value) => {
+						this.plugin.settings.snippetTrigger = value as
+							| "Tab"
+							| "Space";
+						await this.plugin.saveSettings();
+					})
+			);
 
 		const snippetsSetting = new Setting(containerEl)
 			.setName("Snippets")

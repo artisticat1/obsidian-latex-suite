@@ -18,7 +18,7 @@ Snippets are formatted as follows:
 
 - `m` : Math mode. Only run this snippet inside math
 - `t` : Text mode. Only run this snippet outside math
-- `A` : Auto. Expand this snippet as soon as the trigger is typed. If omitted, the <kbd>Tab</kbd> key must be pressed to expand the snippet
+- `A` : Auto. Expand this snippet as soon as the trigger is typed. If omitted, the <kbd>Tab</kbd> key (can be changed in the settings) must be pressed to expand the snippet
 - `r` : Regex. The `trigger` will be treated as a regular expression
 - `w` : Word boundary. Only run this snippet when the trigger is preceded by (and followed by) a word delimiter, such as `.`, `,`, or `-`.
 
@@ -75,13 +75,13 @@ The following variables are available for use in a `trigger` or `replacement`:
 - `${SYMBOL}` : Can be inserted in a `trigger`. Shorthand for the following:
 
 ```txt
-hbar|ell|nabla|infty|dots|leftrightarrow|mapsto|setminus|mid|cap|cup|land|lor|subseteq|subset|implies|impliedby|iff|exists|equiv|square|neq|geq|leq|gg|ll|sim|simeq|approx|propto|cdot|oplus|otimes|times|star|perp|det|exp|ln|log|partial
+approx|arccos|arccot|arccsc|arcsec|arcsin|arctan|cap|cdot|circ|cos|cot|csc|cup|det|dots|ell|equiv|exists|exp|forall|ge|gg|hbar|iff|impliedby|implies|infty|land|leftarrow|Leftarrow|leftrightarrow|Leftrightarrow|ll|ln|log|lor|mapsto|mid|mp|nabla|ne|not|oplus|otimes|partial|perp|pm|propto|Rightarrow|setminus|simeq|sin|square|star|subseteq|tan|times|to
 ```
 
-- `${SHORT_SYMBOL}` : Can be inserted in a `trigger`. Shorthand for the following:
+- `${SHORT_SYMBOL}` : Can be inserted in a `trigger`. Symbols which overlap with symbols from `${SYMBOL}`. Shorthand for the following:
 
 ```txt
-to|pm|mp
+in|le|sim|subset
 ```
 
 #### Examples

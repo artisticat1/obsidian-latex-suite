@@ -5,6 +5,8 @@
 	"main": "main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
+		"prettify": "prettier --write \"./**/*.{ts,json}\"",
+		"lint": "eslint \"./**/*.ts\"",
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
 		"version": "node version-bump.mjs && git add manifest.json versions.json"
 	},
@@ -12,8 +14,6 @@
 	"author": "",
 	"license": "MIT",
 	"devDependencies": {
-		"@popperjs/core": "2.11.5",
-		"codemirror": "^6.0.0",
 		"@codemirror/autocomplete": "^6.0.0",
 		"@codemirror/commands": "^6.0.0",
 		"@codemirror/lang-javascript": "^6.0.0",
@@ -22,14 +22,17 @@
 		"@codemirror/search": "^6.0.0",
 		"@codemirror/state": "^6.0.0",
 		"@codemirror/view": "^6.0.0",
+		"@popperjs/core": "2.11.5",
 		"@types/node": "^16.11.6",
 		"@typescript-eslint/eslint-plugin": "^5.2.0",
 		"@typescript-eslint/parser": "^5.2.0",
 		"builtin-modules": "^3.2.0",
+		"codemirror": "^6.0.0",
 		"esbuild": "0.13.12",
-		"eslint": "^8.12.0",
+		"eslint": "^8.36.0",
 		"json5": "^2.2.1",
 		"obsidian": "^0.15.0",
+		"prettier": "^2.8.7",
 		"tslib": "2.3.1",
 		"typescript": "4.4.4"
 	}
