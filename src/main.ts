@@ -462,7 +462,7 @@ export default class LatexSuitePlugin extends Plugin {
 				if (success) return true;
 			}
 		}
-		
+
 		return false;
 	};
 

@@ -118,7 +118,9 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					.addOption("Space", "Space")
 					.setValue(this.plugin.settings.snippetTrigger)
 					.onChange(async (value) => {
-						this.plugin.settings.snippetTrigger = value as "Tab" | "Space";
+						this.plugin.settings.snippetTrigger = value as
+							| "Tab"
+							| "Space";
 						await this.plugin.saveSettings();
 					})
 			);
