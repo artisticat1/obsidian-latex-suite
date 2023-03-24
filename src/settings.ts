@@ -27,7 +27,7 @@ import { debouncedSetSnippetsFromFileOrFolder } from "./snippets/snippet_helper_
 export interface LatexSuiteSettings {
 	snippets: string;
 	snippetsEnabled: boolean;
-	snippetTrigger: "tab" | "space";
+	snippetTrigger: "Tab" | "Space";
 	loadSnippetsFromFile: boolean;
 	snippetsFileLocation: string;
 	autofractionEnabled: boolean;
@@ -48,7 +48,7 @@ export interface LatexSuiteSettings {
 export const DEFAULT_SETTINGS: LatexSuiteSettings = {
 	snippets: DEFAULT_SNIPPETS,
 	snippetsEnabled: true,
-	snippetTrigger: "tab",
+	snippetTrigger: "Tab",
 	loadSnippetsFromFile: false,
 	snippetsFileLocation: "",
 	concealEnabled: false,
@@ -114,11 +114,11 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			.setDesc("What key to press to expand non-auto snippets.")
 			.addDropdown((dropdown) =>
 				dropdown
-					.addOption("tab", "Tab")
-					.addOption("space", "Space")
+					.addOption("Tab", "Tab")
+					.addOption("Space", "Space")
 					.setValue(this.plugin.settings.snippetTrigger)
 					.onChange(async (value) => {
-						this.plugin.settings.snippetTrigger = value as "tab" | "space";
+						this.plugin.settings.snippetTrigger = value as "Tab" | "Space";
 						await this.plugin.saveSettings();
 					})
 			);

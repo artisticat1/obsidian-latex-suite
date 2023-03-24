@@ -87,6 +87,19 @@ export default class LatexSuitePlugin extends Plugin {
 						},
 					},
 					{
+						key: "Space",
+						run: (view: EditorView): boolean => {
+							const success = this.handleKeydown(
+								"Space",
+								false,
+								false,
+								view
+							);
+
+							return success;
+						},
+					},
+					{
 						key: "Enter",
 						run: (view: EditorView): boolean => {
 							const success = this.handleKeydown(
@@ -449,7 +462,7 @@ export default class LatexSuitePlugin extends Plugin {
 				if (success) return true;
 			}
 		}
-
+		
 		return false;
 	};
 
@@ -570,8 +583,8 @@ export default class LatexSuitePlugin extends Plugin {
 				if (!(key.length === 1)) continue;
 
 				effectiveLine += key;
-			} else if (!(key === "Tab")) {
-				// The snippet must be triggered by the Tab key
+			} else if (!(key === this.settings.snippetTrigger)) {
+				// The snippet must be triggered by a key
 				continue;
 			}
 
