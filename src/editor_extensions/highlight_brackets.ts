@@ -46,7 +46,7 @@ function colorPairedBrackets(view: EditorView) {
 					return;
 				}
 
-				const bounds = getEquationBounds(view, to + 1);
+				const bounds = getEquationBounds(view.state, to + 1);
 				if (!bounds) return;
 
 				const eqn = view.state.doc.sliceString(
@@ -102,7 +102,7 @@ function highlightCursorBrackets(view: EditorView) {
 		return Decoration.set(widgets, true);
 	}
 
-	const bounds = getEquationBounds(view, selection.main.to);
+	const bounds = getEquationBounds(view.state, selection.main.to);
 	if (!bounds) return Decoration.set(widgets, true);
 	const eqn = view.state.doc.sliceString(bounds.start, bounds.end);
 

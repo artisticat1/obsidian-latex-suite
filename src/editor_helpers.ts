@@ -144,15 +144,10 @@ export function isTouchingEquation(state: EditorState, pos: number): number {
 }
 
 export function getEquationBounds(
-	view: EditorView | EditorState,
-	pos?: number
+	state: EditorState,
+	pos: number = state.selection.main.from
 ): { start: number; end: number } {
-	const s = view instanceof EditorView ? view.state : view;
-
-	let text = s.doc.toString();
-	if (typeof pos === "undefined") {
-		pos = s.selection.main.from;
-	}
+	let text = state.doc.toString();
 
 	// ignore \$
 	text = text.replaceAll("\\$", "\\R");
@@ -170,7 +165,7 @@ export function isInsideEnvironment(
 	pos: number,
 	env: Environment
 ): boolean {
-	const result = getEquationBounds(view);
+	const result = getEquationBounds(view.state);
 	if (!result) return false;
 	const { start, end } = result;
 	const text = view.state.doc.toString();
@@ -223,7 +218,7 @@ export function isInsideEnvironment(
 }
 
 export function getEnclosingBracketsPos(view: EditorView, pos: number) {
-	const result = getEquationBounds(view);
+	const result = getEquationBounds(view.state);
 	if (!result) return -1;
 	const { start, end } = result;
 	const text = view.state.doc.sliceString(start, end);

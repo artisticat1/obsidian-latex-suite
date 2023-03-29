@@ -56,7 +56,8 @@ export const DEFAULT_SETTINGS: LatexSuiteSettings = {
 	highlightCursorBracketsEnabled: true,
 	mathPreviewEnabled: true,
 	autofractionEnabled: true,
-	autofractionExcludedEnvs: "[\n\t[\"^{\", \"}\"],\n\t        [\"\\\\pu{\", \"}\"]\n]",
+	autofractionExcludedEnvs:
+		'[\n\t["^{", "}"],\n\t        ["\\\\pu{", "}"]\n]',
 	autofractionBreakingChars: "+-=\t",
 	matrixShortcutsEnabled: true,
 	matrixShortcutsEnvNames:
@@ -125,7 +126,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		const snippetsSetting = new Setting(containerEl)
 			.setName("Snippets")
 			.setDesc(
-				"Enter snippets here.  Remember to add a comma after each snippet, and escape all backslashes with an extra \\. Lines starting with \"//\" will be treated as comments and ignored."
+				'Enter snippets here.  Remember to add a comma after each snippet, and escape all backslashes with an extra \\. Lines starting with "//" will be treated as comments and ignored.'
 			)
 			.setClass("snippets-text-area");
 
@@ -472,11 +473,11 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setName("Excluded environments")
 			.setDesc(
-				"A list of environments to exclude auto-fraction from running in. For example, to exclude auto-fraction from running while inside an exponent, such as e^{...}, use  [\"^{\", \"}\"]"
+				'A list of environments to exclude auto-fraction from running in. For example, to exclude auto-fraction from running while inside an exponent, such as e^{...}, use  ["^{", "}"]'
 			)
 			.addTextArea((text) =>
 				text
-					.setPlaceholder("[ [\"^{\", \"}] ]")
+					.setPlaceholder('[ ["^{", "}] ]')
 					.setValue(this.plugin.settings.autofractionExcludedEnvs)
 					.onChange(async (value) => {
 						this.plugin.setAutofractionExcludedEnvs(value);
@@ -489,7 +490,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setName("Breaking characters")
 			.setDesc(
-				"A list of characters that denote the start/end of a fraction. e.g. if + is included in the list, \"a+b/c\" will expand to \"a+\\frac{b}{c}\". If + is not in the list, it will expand to \"\\frac{a+b}{c}\"."
+				'A list of characters that denote the start/end of a fraction. e.g. if + is included in the list, "a+b/c" will expand to "a+\\frac{b}{c}". If + is not in the list, it will expand to "\\frac{a+b}{c}".'
 			)
 			.addText((text) =>
 				text
@@ -616,7 +617,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setName("Word delimiters")
 			.setDesc(
-				"Symbols that will be treated as word delimiters, for use with the \"w\" snippet option."
+				'Symbols that will be treated as word delimiters, for use with the "w" snippet option.'
 			)
 			.addText((text) =>
 				text

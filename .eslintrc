@@ -15,11 +15,11 @@
     },
     "rules": {
       "no-unused-vars": "off",
+      "quotes": "off",
       "no-prototype-builtins": "off",
       "@typescript-eslint/no-unused-vars": ["error", { "args": "none" }],
       "@typescript-eslint/no-explicit-any": ["off"],
       "@typescript-eslint/ban-ts-comment": "off",
-      "@typescript-eslint/no-empty-function": "off",
-      "quotes": ["warn", "double"]
+      "@typescript-eslint/no-empty-function": "off"
     }
   }

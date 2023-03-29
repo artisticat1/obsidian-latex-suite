@@ -719,7 +719,7 @@ export default class LatexSuitePlugin extends Plugin {
 		}
 
 		// Get the bounds of the equation
-		const result = getEquationBounds(view);
+		const result = getEquationBounds(view.state);
 		if (!result) return false;
 		const eqnStart = result.start;
 
@@ -807,7 +807,7 @@ export default class LatexSuitePlugin extends Plugin {
 	private readonly autoEnlargeBrackets = (view: EditorView) => {
 		if (!this.settings.autoEnlargeBrackets) return;
 
-		const result = getEquationBounds(view);
+		const result = getEquationBounds(view.state);
 		if (!result) return false;
 		const { start, end } = result;
 
@@ -883,7 +883,7 @@ export default class LatexSuitePlugin extends Plugin {
 		if (!withinEquation) return false;
 
 		const pos = view.state.selection.main.to;
-		const result = getEquationBounds(view);
+		const result = getEquationBounds(view.state);
 		if (!result) return false;
 		const end = result.end;
 

@@ -9,7 +9,7 @@ import {
 } from "./editor_helpers";
 
 function boxCurrentEquation(view: EditorView) {
-	const result = getEquationBounds(view);
+	const result = getEquationBounds(view.state);
 	if (!result) return false;
 	const { start, end } = result;
 
@@ -38,7 +38,7 @@ function getBoxEquationCommand() {
 		) => {
 			// @ts-ignore
 			const view = editor.cm;
-			const withinEquation = isWithinEquation(view);
+			const withinEquation = isWithinEquation(view.state);
 
 			if (checking) return withinEquation;
 			if (!withinEquation) return;
@@ -60,12 +60,12 @@ function getSelectEquationCommand() {
 		) => {
 			// @ts-ignore
 			const view = editor.cm;
-			const withinEquation = isWithinEquation(view);
+			const withinEquation = isWithinEquation(view.state);
 
 			if (checking) return withinEquation;
 			if (!withinEquation) return;
 
-			const result = getEquationBounds(view);
+			const result = getEquationBounds(view.state);
 			if (!result) return false;
 			let { start, end } = result;
 
