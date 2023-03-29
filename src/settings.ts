@@ -20,7 +20,7 @@ import {
 import {
 	cursorTooltipBaseTheme,
 	cursorTooltipField,
-} from "./editor_extensions/inline_math_tooltip";
+} from "./editor_extensions/math_tooltip";
 import { FileSuggest } from "./ui/file_suggest";
 import { debouncedSetSnippetsFromFileOrFolder } from "./snippets/snippet_helper_functions";
 
@@ -34,7 +34,7 @@ export interface LatexSuiteSettings {
 	concealEnabled: boolean;
 	colorPairedBracketsEnabled: boolean;
 	highlightCursorBracketsEnabled: boolean;
-	inlineMathPreviewEnabled: boolean;
+	mathPreviewEnabled: boolean;
 	autofractionExcludedEnvs: string;
 	autofractionBreakingChars: string;
 	matrixShortcutsEnabled: boolean;
@@ -54,12 +54,9 @@ export const DEFAULT_SETTINGS: LatexSuiteSettings = {
 	concealEnabled: false,
 	colorPairedBracketsEnabled: true,
 	highlightCursorBracketsEnabled: true,
-	inlineMathPreviewEnabled: true,
+	mathPreviewEnabled: true,
 	autofractionEnabled: true,
-	autofractionExcludedEnvs: `[
-        ["^{", "}"],
-        ["\\\\pu{", "}"]
-]`,
+	autofractionExcludedEnvs: "[\n\t[\"^{\", \"}\"],\n\t        [\"\\\\pu{\", \"}\"]\n]",
 	autofractionBreakingChars: "+-=\t",
 	matrixShortcutsEnabled: true,
 	matrixShortcutsEnvNames:
@@ -128,7 +125,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		const snippetsSetting = new Setting(containerEl)
 			.setName("Snippets")
 			.setDesc(
-				'Enter snippets here.  Remember to add a comma after each snippet, and escape all backslashes with an extra \\. Lines starting with "//" will be treated as comments and ignored.'
+				"Enter snippets here.  Remember to add a comma after each snippet, and escape all backslashes with an extra \\. Lines starting with \"//\" will be treated as comments and ignored."
 			)
 			.setClass("snippets-text-area");
 
@@ -236,9 +233,8 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 							.setButtonText("Remove all snippets")
 							.setWarning(),
 					async () => {
-						const value = `[
+						const value = "[\n\n]";
 
-]`;
 						this.snippetsEditor.setState(
 							EditorState.create({
 								doc: value,
@@ -435,9 +431,9 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			)
 			.addToggle((toggle) =>
 				toggle
-					.setValue(this.plugin.settings.inlineMathPreviewEnabled)
+					.setValue(this.plugin.settings.mathPreviewEnabled)
 					.onChange(async (value) => {
-						this.plugin.settings.inlineMathPreviewEnabled = value;
+						this.plugin.settings.mathPreviewEnabled = value;
 
 						if (value) {
 							this.plugin.enableExtension(cursorTooltipField);
@@ -476,11 +472,11 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setName("Excluded environments")
 			.setDesc(
-				'A list of environments to exclude auto-fraction from running in. For example, to exclude auto-fraction from running while inside an exponent, such as e^{...}, use  ["^{", "}"]'
+				"A list of environments to exclude auto-fraction from running in. For example, to exclude auto-fraction from running while inside an exponent, such as e^{...}, use  [\"^{\", \"}\"]"
 			)
 			.addTextArea((text) =>
 				text
-					.setPlaceholder('[ ["^{", "}] ]')
+					.setPlaceholder("[ [\"^{\", \"}] ]")
 					.setValue(this.plugin.settings.autofractionExcludedEnvs)
 					.onChange(async (value) => {
 						this.plugin.setAutofractionExcludedEnvs(value);
@@ -493,7 +489,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setName("Breaking characters")
 			.setDesc(
-				'A list of characters that denote the start/end of a fraction. e.g. if + is included in the list, "a+b/c" will expand to "a+\\frac{b}{c}". If + is not in the list, it will expand to "\\frac{a+b}{c}".'
+				"A list of characters that denote the start/end of a fraction. e.g. if + is included in the list, \"a+b/c\" will expand to \"a+\\frac{b}{c}\". If + is not in the list, it will expand to \"\\frac{a+b}{c}\"."
 			)
 			.addText((text) =>
 				text
@@ -620,7 +616,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setName("Word delimiters")
 			.setDesc(
-				'Symbols that will be treated as word delimiters, for use with the "w" snippet option.'
+				"Symbols that will be treated as word delimiters, for use with the \"w\" snippet option."
 			)
 			.addText((text) =>
 				text

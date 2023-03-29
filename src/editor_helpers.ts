@@ -61,10 +61,9 @@ export function resetCursorBlink() {
 		curAnim === "cm-blink" ? "cm-blink2" : "cm-blink";
 }
 
-export function isWithinEquation(view: EditorView | EditorState): boolean {
-	const s = view instanceof EditorView ? view.state : view;
-	const pos = s.selection.main.to - 1;
-	const tree = syntaxTree(s);
+export function isWithinEquation(state: EditorState): boolean {
+	const pos = state.selection.main.to - 1;
+	const tree = syntaxTree(state);
 
 	const token = tree.resolveInner(pos, 1).name;
 	let withinEquation = token.contains("math");
@@ -78,30 +77,18 @@ export function isWithinEquation(view: EditorView | EditorState): boolean {
 		if (tokenLeft.contains("math") && tokenRight.contains("math")) {
 			withinEquation = true;
 		}
-	} else {
-		if (token.contains("end")) {
-			withinEquation = false;
-		}
+	} else if (token.contains("end")) {
+		withinEquation = false;
 	}
 
 	return withinEquation;
 }
 
-export function isWithinInlineEquation(view: EditorView): boolean {
-	const result = getEquationBounds(view);
-	if (!result) return false;
-	const end = result.end;
-
-	const d = view.state.doc;
-
-	// Check whether we're in inline math or a block eqn
-	const inlineMath = d.sliceString(end, end + 2) != "$$";
-
-	return inlineMath;
-}
-
-export function isWithinInlineEquationState(state: EditorState): boolean {
-	const result = getEquationBounds(state);
+export function isWithinInlineEquation(
+	state: EditorState,
+	pos: number = state.selection.main.from
+): boolean {
+	const result = getEquationBounds(state, pos);
 	if (!result) return false;
 	const end = result.end;
 
@@ -113,18 +100,28 @@ export function isWithinInlineEquationState(state: EditorState): boolean {
 	return inlineMath;
 }
 
-export function isTouchingInlineEquation(
-	state: EditorState,
-	pos: number
-): number {
-	// Returns 0 if pos is not touching a $ that marks an inline equation
-	// Returns 1 if pos+1 is inside an inline eqn
-	// Returns -1 if pos-1 is inside an inline eqn
-
+/**
+ * Returns 0 if pos is not touching a $ or $$ that marks an equation
+ * Returns n if pos+n is inside an eqn
+ *  */
+export function isTouchingEquation(state: EditorState, pos: number): number {
 	const tree = syntaxTree(state);
 	const prevToken = tree.resolveInner(pos - 1, 1).name;
 	const token = tree.resolveInner(pos, 1).name;
 	const nextToken = tree.resolveInner(pos + 1, 1).name;
+
+	console.log(
+		"Begin: ",
+		prevToken.contains("math-begin"),
+		token.contains("math-begin"),
+		nextToken.contains("math-begin")
+	);
+	console.log(
+		"End: ",
+		prevToken.contains("math-end"),
+		token.contains("math-end"),
+		nextToken.contains("math-end")
+	);
 
 	if (
 		token.contains("math-end") &&
@@ -152,10 +149,13 @@ export function getEquationBounds(
 ): { start: number; end: number } {
 	const s = view instanceof EditorView ? view.state : view;
 
-	const text = s.doc.toString();
+	let text = s.doc.toString();
 	if (typeof pos === "undefined") {
 		pos = s.selection.main.from;
 	}
+
+	// ignore \$
+	text = text.replaceAll("\\$", "\\R");
 
 	const left = text.lastIndexOf("$", pos - 1);
 	const right = text.indexOf("$", pos);

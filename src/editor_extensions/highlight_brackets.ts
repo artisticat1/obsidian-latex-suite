@@ -98,7 +98,7 @@ function highlightCursorBrackets(view: EditorView) {
 	const ranges = selection.ranges;
 	const text = view.state.doc.toString();
 
-	if (!isWithinEquation(view)) {
+	if (!isWithinEquation(view.state)) {
 		return Decoration.set(widgets, true);
 	}
 

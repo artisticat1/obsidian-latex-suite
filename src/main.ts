@@ -48,7 +48,7 @@ import {
 import {
 	cursorTooltipBaseTheme,
 	cursorTooltipField,
-} from "./editor_extensions/inline_math_tooltip";
+} from "./editor_extensions/math_tooltip";
 
 import { editorCommands } from "./editor_commands";
 
@@ -322,7 +322,7 @@ export default class LatexSuitePlugin extends Plugin {
 			this.enableExtension(colorPairedBracketsPluginLowestPrec);
 		if (this.settings.highlightCursorBracketsEnabled)
 			this.enableExtension(highlightCursorBracketsPlugin.extension);
-		if (this.settings.inlineMathPreviewEnabled) {
+		if (this.settings.mathPreviewEnabled) {
 			this.enableExtension(cursorTooltipField);
 			this.enableExtension(cursorTooltipBaseTheme);
 		}
@@ -403,7 +403,7 @@ export default class LatexSuitePlugin extends Plugin {
 		const pos = s.main.to;
 		const ranges = Array.from(s.ranges).reverse(); // Last to first
 
-		const withinEquation = isWithinEquation(view);
+		const withinEquation = isWithinEquation(view.state);
 
 		// Check whether within "\text{}"
 		let withinMath = false;
@@ -648,7 +648,7 @@ export default class LatexSuitePlugin extends Plugin {
 				}
 
 				if (spaceIndex != 0) {
-					const inlineMath = isWithinInlineEquation(view);
+					const inlineMath = isWithinInlineEquation(view.state);
 
 					if (inlineMath) {
 						if (spaceIndex === -1) {

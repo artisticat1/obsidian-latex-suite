@@ -2,10 +2,9 @@ import { Tooltip, showTooltip, EditorView } from "@codemirror/view";
 import { StateField, EditorState } from "@codemirror/state";
 import {
 	getEquationBounds,
-	isTouchingInlineEquation,
 	isWithinEquation,
-	isWithinInlineEquationState,
-} from "./../editor_helpers";
+	isWithinInlineEquation,
+} from "../editor_helpers";
 import { MarkdownRenderer } from "obsidian";
 
 export const cursorTooltipField = StateField.define<readonly Tooltip[]>({
@@ -20,29 +19,16 @@ export const cursorTooltipField = StateField.define<readonly Tooltip[]>({
 });
 
 function getCursorTooltips(state: EditorState): readonly Tooltip[] {
-	const isInsideInlineEqn =
-		isWithinEquation(state) && isWithinInlineEquationState(state);
-	let shouldShowTooltip = isInsideInlineEqn;
-	let isTouchingInlineEqn;
-	let pos = state.selection.main.from;
+	const pos = state.selection.main.from;
 
-	if (!isInsideInlineEqn) {
-		isTouchingInlineEqn = isTouchingInlineEquation(state, pos - 1);
-
-		if (isTouchingInlineEqn != 0) {
-			pos += isTouchingInlineEqn;
-			shouldShowTooltip = true;
-		}
-	}
-
-	if (shouldShowTooltip) {
+	if (isWithinEquation(state)) {
 		const bounds = getEquationBounds(state, pos);
 		if (!bounds) return [];
 
-		// Don't render an empty equation
-		if (bounds.start === bounds.end) return [];
-
 		const eqn = state.sliceDoc(bounds.start, bounds.end);
+
+		// Don't render an empty equation
+		if (eqn.trim() === "") return [];
 
 		return [
 			{
@@ -51,10 +37,13 @@ function getCursorTooltips(state: EditorState): readonly Tooltip[] {
 				strictSide: true,
 				arrow: true,
 				create: () => {
+					const delimiter = isWithinInlineEquation(state, pos)
+						? "$"
+						: "$$";
 					const dom = document.createElement("div");
 					dom.className = "cm-tooltip-cursor";
 					MarkdownRenderer.renderMarkdown(
-						"$" + eqn + "$",
+						delimiter + eqn + delimiter,
 						dom,
 						"",
 						null
@@ -74,7 +63,7 @@ export const cursorTooltipBaseTheme = EditorView.baseTheme({
 		backgroundColor: "var(--background-primary)",
 		color: "var(--text-normal)",
 		border: "1px solid var(--background-modifier-border)",
-		padding: "2px 7px",
+		padding: "4px 6px",
 		borderRadius: "6px",
 		"& .cm-tooltip-arrow:before": {
 			borderTopColor: "var(--background-modifier-border)",
@@ -83,8 +72,10 @@ export const cursorTooltipBaseTheme = EditorView.baseTheme({
 			borderTopColor: "var(--background-primary)",
 		},
 		"& p": {
-			marginTop: "2px",
-			marginBottom: "2px",
+			margin: "0px",
+		},
+		"& mjx-container": {
+			padding: "2px !important",
 		},
 	},
 });
