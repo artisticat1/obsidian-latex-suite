@@ -13,7 +13,7 @@ import { markerStateField, startSnippet, undidEndSnippet } from "./snippets/mark
 
 import { concealPlugin } from "./editor_extensions/conceal";
 import { colorPairedBracketsPluginLowestPrec, highlightCursorBracketsPlugin } from "./editor_extensions/highlight_brackets";
-import { cursorTooltipBaseTheme, cursorTooltipField } from "./editor_extensions/inline_math_tooltip";
+import { cursorTooltipBaseTheme, cursorTooltipField } from "./editor_extensions/math_tooltip";
 
 import { editorCommands } from "./editor_commands";
 
@@ -239,7 +239,7 @@ export default class LatexSuitePlugin extends Plugin {
 		if (this.settings.concealEnabled) this.enableExtension(concealPlugin.extension);
 		if (this.settings.colorPairedBracketsEnabled) this.enableExtension(colorPairedBracketsPluginLowestPrec);
 		if (this.settings.highlightCursorBracketsEnabled) this.enableExtension(highlightCursorBracketsPlugin.extension);
-		if (this.settings.inlineMathPreviewEnabled) {
+		if (this.settings.mathPreviewEnabled) {
 			this.enableExtension(cursorTooltipField);
 			this.enableExtension(cursorTooltipBaseTheme);
 		}
@@ -317,7 +317,7 @@ export default class LatexSuitePlugin extends Plugin {
 		const pos = s.main.to;
 		const ranges = Array.from(s.ranges).reverse(); // Last to first
 
-		const withinEquation = isWithinEquation(view);
+		const withinEquation = isWithinEquation(view.state);
 
 		// Check whether within "\text{}"
 		let withinMath = false;
@@ -553,7 +553,7 @@ export default class LatexSuitePlugin extends Plugin {
 
 				if (spaceIndex != 0) {
 
-					const inlineMath = isWithinInlineEquation(view);
+					const inlineMath = isWithinInlineEquation(view.state);
 
 					if (inlineMath) {
 						if (spaceIndex === -1) {
@@ -620,7 +620,7 @@ export default class LatexSuitePlugin extends Plugin {
 			}
 
 			// Get the bounds of the equation
-			const result = getEquationBounds(view);
+			const result = getEquationBounds(view.state);
 			if (!result) return false;
 			const eqnStart = result.start;
 
@@ -699,7 +699,7 @@ export default class LatexSuitePlugin extends Plugin {
 	private readonly autoEnlargeBrackets = (view: EditorView) => {
 		if (!this.settings.autoEnlargeBrackets) return;
 
-		const result = getEquationBounds(view);
+		const result = getEquationBounds(view.state);
 		if (!result) return false;
 		const {start, end} = result;
 
@@ -758,7 +758,7 @@ export default class LatexSuitePlugin extends Plugin {
 		if (!withinEquation) return false;
 
 		const pos = view.state.selection.main.to;
-		const result = getEquationBounds(view);
+		const result = getEquationBounds(view.state);
 		if (!result) return false;
 		const end = result.end;
 

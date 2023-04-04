@@ -4,7 +4,7 @@ import { isWithinEquation, getEquationBounds, replaceRange, setCursor, setSelect
 
 
 function boxCurrentEquation(view: EditorView) {
-    const result = getEquationBounds(view);
+    const result = getEquationBounds(view.state);
     if (!result) return false;
     const {start, end} = result;
 
@@ -59,7 +59,7 @@ function getSelectEquationCommand() {
             if (!withinEquation) return;
 
 
-            const result = getEquationBounds(view);
+            const result = getEquationBounds(view.state);
             if (!result) return false;
             let {start, end} = result;
 
