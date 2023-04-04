@@ -28,6 +28,7 @@ export interface LatexSuiteSettings {
 	snippets: string;
 	snippetsEnabled: boolean;
 	snippetTrigger: "Tab" | "Space";
+	removeSnippetWhitespace: boolean;
 	loadSnippetsFromFile: boolean;
 	snippetsFileLocation: string;
 	autofractionEnabled: boolean;
@@ -49,6 +50,7 @@ export const DEFAULT_SETTINGS: LatexSuiteSettings = {
 	snippets: DEFAULT_SNIPPETS,
 	snippetsEnabled: true,
 	snippetTrigger: "Tab",
+	removeSnippetWhitespace: true,
 	loadSnippetsFromFile: false,
 	snippetsFileLocation: "",
 	concealEnabled: false,
@@ -632,6 +634,16 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 						await this.plugin.saveSettings();
 					})
 			);
+
+        new Setting(containerEl)
+            .setName("Remove trailing whitespaces in snippets in inline math")
+            .setDesc("Whether to remove trailing whitespaces when expanding snippets at the end of inline math blocks.")
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.removeSnippetWhitespace)
+                .onChange(async (value) => {
+                    this.plugin.settings.removeSnippetWhitespace = value;
+                    await this.plugin.saveSettings();
+                }));
 	}
 }
 
