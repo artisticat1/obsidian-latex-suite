@@ -28,6 +28,7 @@ export interface LatexSuiteSettings {
 	snippets: string;
 	snippetsEnabled: boolean;
 	snippetTrigger: "Tab" | "Space";
+	removeSnippetWhitespace: boolean;
 	loadSnippetsFromFile: boolean;
 	snippetsFileLocation: string;
 	autofractionEnabled: boolean;
@@ -49,6 +50,7 @@ export const DEFAULT_SETTINGS: LatexSuiteSettings = {
 	snippets: DEFAULT_SNIPPETS,
 	snippetsEnabled: true,
 	snippetTrigger: "Tab",
+	removeSnippetWhitespace: true,
 	loadSnippetsFromFile: false,
 	snippetsFileLocation: "",
 	concealEnabled: false,
