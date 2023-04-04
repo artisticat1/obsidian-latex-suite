@@ -537,7 +537,7 @@ export default class LatexSuitePlugin extends Plugin {
 
 
 			// When in inline math, remove any spaces at the end of the replacement
-			if (withinMath) {
+			if (withinMath && this.settings.removeSnippetWhitespace) {
 				let spaceIndex = 0;
 				if (replacement.endsWith(" ")) {
 					spaceIndex = -1;
