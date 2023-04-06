@@ -319,11 +319,11 @@ export default class LatexSuitePlugin extends Plugin {
 
 		const withinEquation = isWithinEquation(view);
 
-		// Check whether within "\text{}"
+		// Check whether within "\text{}" or "\tag{}"
 		let withinMath = false;
-		if (withinEquation) withinMath = !isInsideEnvironment(view, pos, {openSymbol: "\\text{", closeSymbol: "}"});
+		if (withinEquation) withinMath = !(isInsideEnvironment(view, pos, {openSymbol: "\\text{", closeSymbol: "}"}) || isInsideEnvironment(view, pos, {openSymbol: "\\tag{", closeSymbol: "}"}));
 
-
+		
 		let success = false;
 
 
