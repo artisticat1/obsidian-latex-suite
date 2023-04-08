@@ -1,7 +1,7 @@
 import { Plugin, Notice } from "obsidian";
 import { LatexSuiteSettings, LatexSuiteSettingTab, DEFAULT_SETTINGS } from "./settings";
 
-import { EditorView, keymap, tooltips } from "@codemirror/view";
+import { EditorView, ViewUpdate, keymap, tooltips } from "@codemirror/view";
 import { SelectionRange, Prec, Extension } from "@codemirror/state";
 import { isWithinEquation, isWithinInlineEquation, replaceRange, setCursor, isInsideEnvironment, getOpenBracket, findMatchingBracket, getEquationBounds, getCharacterAtPos } from "./editor_helpers";
 
@@ -18,7 +18,6 @@ import { colorPairedBracketsPluginLowestPrec, highlightCursorBracketsPlugin } fr
 import { cursorTooltipBaseTheme, cursorTooltipField } from "./editor_extensions/inline_math_tooltip";
 
 import { editorCommands } from "./editor_commands";
-
 
 
 export default class LatexSuitePlugin extends Plugin {
@@ -40,7 +39,11 @@ export default class LatexSuitePlugin extends Plugin {
 
 	async onload() {
 		await this.loadSettings();
+		this.addSettingTab(new LatexSuiteSettingTab(this.app, this));
 
+		this.legacyEditorWarning();
+
+		// Register keymaps
 		this.registerEditorExtension(Prec.highest(keymap.of([
 		{
 			key: "Tab",
@@ -64,53 +67,59 @@ export default class LatexSuitePlugin extends Plugin {
 			}
 		}])));
 
-		if ((this.app.vault as any).config?.legacyEditor) {
-			const message = "Obsidian Latex Suite: This plugin does not support the legacy editor. Switch to Live Preview mode to use this plugin.";
-
-			new Notice(message, 100000);
-            console.log(message);
-
-			return;
-        }
-
-		this.addSettingTab(new LatexSuiteSettingTab(this.app, this));
-
-
-		this.registerEditorExtension([markerStateField, tabstopsStateField, snippetQueueStateField]);
-		this.registerEditorExtension(snippetInvertedEffects);
-
 		this.registerEditorExtension(Prec.highest(EditorView.domEventHandlers({
             "keydown": this.onKeydown
         })));
 
-		this.registerEditorExtension(EditorView.updateListener.of(update => {
-            if (update.docChanged) {
-                this.handleDocChange();
-            }
 
-            if (update.selectionSet) {
-				const pos = update.state.selection.main.head;
-                this.handleCursorActivity(update.view, pos);
-            }
+		// Register editor extensions required for snippets
+		this.registerEditorExtension([markerStateField, tabstopsStateField, snippetQueueStateField, snippetInvertedEffects]);
+		this.registerEditorExtension(EditorView.updateListener.of(this.handleUpdate));
 
-			handleUndoRedo(update);
-        }));
 
+		// Register editor extensions for editor enhancements
 		this.registerEditorExtension(tooltips({position: "absolute"}));
 		this.registerEditorExtension(this.editorExtensions);
-
-		this.addEditorCommands();
-
+		
 
 		// Watch for changes to the snippets file
 		this.registerEvent(this.app.vault.on("modify", (file) => onFileChange(this, file)));
 		this.registerEvent(this.app.vault.on("delete", (file) => onFileDelete(this, file)));
 		this.registerEvent(this.app.vault.on("create", (file) => onFileCreate(this, file)));
+
+
+		this.addEditorCommands();
 	}
 
 
 	onunload() {
 
+	}
+
+
+	legacyEditorWarning() {
+		if ((this.app.vault as any).config?.legacyEditor) {
+			const message = "Obsidian Latex Suite: This plugin does not support the legacy editor. Switch to Live Preview mode to use this plugin.";
+
+			new Notice(message, 100000);
+			console.log(message);
+
+			return;
+		}
+	}
+
+
+	private readonly handleUpdate = (update: ViewUpdate) => {
+		if (update.docChanged) {
+			this.handleDocChange();
+		}
+
+		if (update.selectionSet) {
+			const pos = update.state.selection.main.head;
+			this.handleCursorActivity(update.view, pos);
+		}
+
+		handleUndoRedo(update);
 	}
 
 
