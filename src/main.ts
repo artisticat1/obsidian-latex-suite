@@ -1,6 +1,5 @@
 import { Plugin, Notice } from "obsidian";
 import { LatexSuiteSettings, LatexSuiteSettingTab, DEFAULT_SETTINGS } from "./settings";
-import { editorCommands } from "./editor_commands";
 
 import { EditorView, ViewUpdate, tooltips } from "@codemirror/view";
 import { Prec, Extension } from "@codemirror/state";
@@ -22,6 +21,7 @@ import { runSnippets } from "./features/run_snippets";
 import { runAutoFraction } from "./features/autofraction";
 import { tabout, shouldTaboutByCloseBracket } from "./features/tabout";
 import { runMatrixShortcuts } from "./features/matrix_shortcuts";
+import { getEditorCommands } from "./features/editor_commands";
 
 
 export default class LatexSuitePlugin extends Plugin {
@@ -179,38 +179,9 @@ export default class LatexSuitePlugin extends Plugin {
 
 
 	private readonly addEditorCommands = () => {
-		for (const command of editorCommands) {
+		for (const command of getEditorCommands(this)) {
 			this.addCommand(command);
 		}
-
-		this.addCommand({
-			id: "latex-suite-enable-all-features",
-			name: "Enable all features",
-			callback: async () => {
-				this.settings.snippetsEnabled = true;
-				this.settings.autofractionEnabled = true;
-				this.settings.matrixShortcutsEnabled = true;
-				this.settings.taboutEnabled = true;
-				this.settings.autoEnlargeBrackets = true;
-
-				await this.saveSettings();
-			},
-		});
-
-		this.addCommand({
-			id: "latex-suite-disable-all-features",
-			name: "Disable all features",
-			callback: async () => {
-				this.settings.snippetsEnabled = false;
-				this.settings.autofractionEnabled = false;
-				this.settings.matrixShortcutsEnabled = false;
-				this.settings.taboutEnabled = false;
-				this.settings.autoEnlargeBrackets = false;
-
-				await this.saveSettings();
-			},
-		});
-
 	}
 
 
