@@ -1,6 +1,4 @@
-import LatexSuitePlugin from "./../main";
 import { Snippet } from "./snippets";
-import { TFile, TFolder, debounce, Notice } from "obsidian";
 
 import { ViewUpdate } from "@codemirror/view";
 import { invertedEffects, undo, redo } from "@codemirror/commands";
@@ -71,23 +69,6 @@ export function validateSnippets(snippets: Snippet[]):boolean {
 }
 
 
-export function isInFolder(file: TFile, dir: TFolder) {
-
-    let cur = file.parent;
-    let cnt = 0;
-    
-    while (cur && (!cur.isRoot()) && (cnt < 100)) {
-
-        if (cur.path === dir.path) return true;
-        
-        cur = cur.parent;
-        cnt++;
-    }
-
-    return false;
-}
-
-
 // Enables undoing and redoing snippets, taking care of the tabstops
 export const snippetInvertedEffects = invertedEffects.of(tr => {
     const effects = [];
@@ -150,56 +131,3 @@ export const handleUndoRedo = (update: ViewUpdate) => {
         removeEmptyTabstops(update.view);
     }
 }
-
-
-export async function getSnippetsWithinFolder(folder: TFolder) {
-    const snippets:Snippet[] = [];
-
-    for (const fileOrFolder of folder.children) {
-        if (fileOrFolder instanceof TFile) {
-
-            const content = await this.app.vault.cachedRead(fileOrFolder as TFile);
-
-            try {
-                snippets.push(...getSnippetsFromString(content));
-            }
-            catch (e) {
-                console.log(`Failed to load snippet file ${fileOrFolder.path}:`, e);
-                new Notice(`Failed to load snippet file ${fileOrFolder.name}`);
-            }
-
-        }
-        else {
-            const newSnippets = await getSnippetsWithinFolder(fileOrFolder as TFolder);
-            snippets.push(...newSnippets);
-        }
-    }
-
-    return snippets;
-}
-
-
-
-export const debouncedSetSnippetsFromFileOrFolder = debounce(async (plugin: LatexSuitePlugin, path?: string) => {
-
-    if (!path) path = plugin.settings.snippetsFileLocation;
-
-    let snippets:Snippet[];
-    const fileOrFolder = plugin.app.vault.getAbstractFileByPath(path);
-
-
-    if (fileOrFolder instanceof TFolder) {
-        snippets = await getSnippetsWithinFolder(fileOrFolder as TFolder);
-        
-    } else {
-        const content = await plugin.app.vault.cachedRead(fileOrFolder as TFile);
-        snippets = await getSnippetsFromString(content);
-    }
-    
-
-    // Sorting needs to happen after all the snippet files have been parsed
-    sortSnippets(snippets);
-    plugin.snippets = snippets;
-
-    new Notice("Successfully reloaded snippets.", 5000);
-}, 500, true);

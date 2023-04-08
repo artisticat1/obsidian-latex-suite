@@ -10,7 +10,7 @@ import { concealPlugin } from "./editor_extensions/conceal";
 import { colorPairedBracketsPluginLowestPrec, highlightCursorBracketsPlugin } from "./editor_extensions/highlight_brackets";
 import { cursorTooltipBaseTheme, cursorTooltipField } from "./editor_extensions/inline_math_tooltip";
 import { FileSuggest } from "./ui/file_suggest";
-import { debouncedSetSnippetsFromFileOrFolder } from "./snippets/snippet_helper_functions";
+import { debouncedSetSnippetsFromFileOrFolder } from "./snippets/file_watch";
 
 
 export interface LatexSuiteSettings {

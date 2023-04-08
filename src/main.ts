@@ -1,4 +1,4 @@
-import { Plugin, Notice, TFile, TFolder } from "obsidian";
+import { Plugin, Notice } from "obsidian";
 import { LatexSuiteSettings, LatexSuiteSettingTab, DEFAULT_SETTINGS } from "./settings";
 
 import { EditorView, keymap, tooltips } from "@codemirror/view";
@@ -6,7 +6,8 @@ import { SelectionRange, Prec, Extension } from "@codemirror/state";
 import { isWithinEquation, isWithinInlineEquation, replaceRange, setCursor, isInsideEnvironment, getOpenBracket, findMatchingBracket, getEquationBounds, getCharacterAtPos } from "./editor_helpers";
 
 import { Environment, Snippet, SNIPPET_VARIABLES, EXCLUSIONS } from "./snippets/snippets";
-import { sortSnippets, getSnippetsFromString, isInFolder, snippetInvertedEffects, handleUndoRedo, debouncedSetSnippetsFromFileOrFolder } from "./snippets/snippet_helper_functions";
+import { onFileCreate, onFileChange, onFileDelete, debouncedSetSnippetsFromFileOrFolder } from "./snippets/file_watch";
+import { sortSnippets, getSnippetsFromString, snippetInvertedEffects, handleUndoRedo } from "./snippets/snippet_helper_functions";
 import { expandSnippets, isInsideATabstop, isInsideLastTabstop, removeAllTabstops, consumeAndGotoNextTabstop } from "./snippets/snippet_management";
 import { markerStateField } from "./snippets/marker_state_field";
 import { tabstopsStateField } from "./snippets/tabstops_state_field";
@@ -34,14 +35,14 @@ export default class LatexSuitePlugin extends Plugin {
 	private shouldAutoEnlargeBrackets = false;
 
 
-
 	private editorExtensions:Extension[] = [];
 
 
 	async onload() {
 		await this.loadSettings();
 
-		this.registerEditorExtension(Prec.highest(keymap.of([{
+		this.registerEditorExtension(Prec.highest(keymap.of([
+		{
 			key: "Tab",
 			run: (view: EditorView):boolean => {
 				const success = this.handleKeydown("Tab", false, false, view);
@@ -102,51 +103,14 @@ export default class LatexSuitePlugin extends Plugin {
 
 
 		// Watch for changes to the snippets file
-		this.registerEvent(this.app.vault.on("modify", this.onFileChange.bind(this)));
-		this.registerEvent(this.app.vault.on("delete", (file) => {
-
-			const snippetDir = this.app.vault.getAbstractFileByPath(this.settings.snippetsFileLocation);
-			const isFolder = snippetDir instanceof TFolder;
-
-			if (file instanceof TFile && (isFolder && file.path.contains(snippetDir.path))) {
-				debouncedSetSnippetsFromFileOrFolder(this);
-			}
-		}));
-		this.registerEvent(this.app.vault.on("create", (file) => {
-			if (file instanceof TFile && this.fileIsInSnippetsFolder(file)) {
-				debouncedSetSnippetsFromFileOrFolder(this);
-			}
-		}));
+		this.registerEvent(this.app.vault.on("modify", (file) => onFileChange(this, file)));
+		this.registerEvent(this.app.vault.on("delete", (file) => onFileDelete(this, file)));
+		this.registerEvent(this.app.vault.on("create", (file) => onFileCreate(this, file)));
 	}
 
 
 	onunload() {
 
-	}
-
-
-	async onFileChange(file: TFile) {
-
-		if (!(this.settings.loadSnippetsFromFile)) {
-			return;
-		}
-
-		if (file.path === this.settings.snippetsFileLocation || this.fileIsInSnippetsFolder(file)) {
-			try {
-				await debouncedSetSnippetsFromFileOrFolder(this);
-			}
-			catch {
-				new Notice("Failed to load snippets.", 5000);
-			}
-		}
-	}
-
-
-	private readonly fileIsInSnippetsFolder = (file: TFile) => {
-		const snippetDir = this.app.vault.getAbstractFileByPath(this.settings.snippetsFileLocation);
-		const isFolder = snippetDir instanceof TFolder;
-
-		return (isFolder && isInFolder(file, snippetDir));
 	}
 
 
