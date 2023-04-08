@@ -1,21 +1,22 @@
 import { Plugin, Notice, TFile, TFolder } from "obsidian";
 import { LatexSuiteSettings, LatexSuiteSettingTab, DEFAULT_SETTINGS } from "./settings";
 
-import { EditorView, keymap, ViewUpdate, tooltips } from "@codemirror/view";
+import { EditorView, keymap, tooltips } from "@codemirror/view";
 import { SelectionRange, Prec, Extension } from "@codemirror/state";
-import { undo, redo } from "@codemirror/commands";
 import { isWithinEquation, isWithinInlineEquation, replaceRange, setCursor, isInsideEnvironment, getOpenBracket, findMatchingBracket, getEquationBounds, getCharacterAtPos } from "./editor_helpers";
 
 import { Environment, Snippet, SNIPPET_VARIABLES, EXCLUSIONS } from "./snippets/snippets";
-import { sortSnippets, getSnippetsFromString, isInFolder, snippetInvertedEffects, debouncedSetSnippetsFromFileOrFolder } from "./snippets/snippet_helper_functions";
+import { sortSnippets, getSnippetsFromString, isInFolder, snippetInvertedEffects, handleUndoRedo, debouncedSetSnippetsFromFileOrFolder } from "./snippets/snippet_helper_functions";
 import { SnippetManager } from "./snippets/snippet_manager";
-import { markerStateField, startSnippet, undidEndSnippet } from "./snippets/marker_state_field";
+import { markerStateField } from "./snippets/marker_state_field";
+import { clearSnippetQueue, queueSnippet, snippetQueueStateField } from "./snippets/snippet_queue_state_field";
 
 import { concealPlugin } from "./editor_extensions/conceal";
 import { colorPairedBracketsPluginLowestPrec, highlightCursorBracketsPlugin } from "./editor_extensions/highlight_brackets";
 import { cursorTooltipBaseTheme, cursorTooltipField } from "./editor_extensions/inline_math_tooltip";
 
 import { editorCommands } from "./editor_commands";
+import { tabstopsStateField } from "./snippets/tabstops_state_field";
 
 
 
@@ -77,8 +78,7 @@ export default class LatexSuitePlugin extends Plugin {
 
 
 
-
-		this.registerEditorExtension(markerStateField);
+		this.registerEditorExtension([markerStateField, tabstopsStateField, snippetQueueStateField]);
 		this.registerEditorExtension(snippetInvertedEffects);
 
 		this.registerEditorExtension(Prec.highest(EditorView.domEventHandlers({
@@ -95,7 +95,7 @@ export default class LatexSuitePlugin extends Plugin {
                 this.handleCursorActivity(update.view, pos);
             }
 
-			this.handleUndoRedo(update);
+			handleUndoRedo(update);
         }));
 
 		this.registerEditorExtension(tooltips({position: "absolute"}));
@@ -124,7 +124,6 @@ export default class LatexSuitePlugin extends Plugin {
 
 
 	onunload() {
-		this.snippetManager.onunload();
 
 	}
 
@@ -165,43 +164,10 @@ export default class LatexSuitePlugin extends Plugin {
             return;
         }
 
-        if (!this.snippetManager.isInsideATabstop(pos) || this.snippetManager.isInsideLastTabstop(view)) {
+        if (!this.snippetManager.isInsideATabstop(pos, view) || this.snippetManager.isInsideLastTabstop(view)) {
             this.snippetManager.clearAllTabstops(view);
         }
     }
-
-
-	private readonly handleUndoRedo = (update: ViewUpdate) => {
-		const undoTr = update.transactions.find(tr => tr.isUserEvent("undo"));
-		const redoTr = update.transactions.find(tr => tr.isUserEvent("redo"));
-
-
-		for (const tr of update.transactions) {
-			for (const effect of tr.effects) {
-
-				if (effect.is(startSnippet)) {
-					if (redoTr) {
-						// Redo the addition of marks, tabstop expansion, and selection
-						redo(update.view);
-						redo(update.view);
-						redo(update.view);
-					}
-				}
-				else if (effect.is(undidEndSnippet)) {
-					if (undoTr) {
-						// Undo the addition of marks, tabstop expansion, and selection
-						undo(update.view);
-						undo(update.view);
-						undo(update.view);
-					}
-				}
-			}
-		}
-
-		if (undoTr) {
-			this.snippetManager.tidyTabstopReferences();
-		}
-	}
 
 
 	enableExtension(extension: Extension) {
@@ -336,7 +302,7 @@ export default class LatexSuitePlugin extends Plugin {
 					if (success) return true;
 				}
 				catch (e) {
-					this.snippetManager.clearSnippetQueue();
+					clearSnippetQueue(view);
 					console.error(e);
 				}
 
@@ -569,7 +535,7 @@ export default class LatexSuitePlugin extends Plugin {
 
 			// Expand the snippet
             const start = triggerPos;
-			this.snippetManager.queueSnippet({from: start, to: to, insert: replacement, keyPressed: key});
+			queueSnippet(view, {from: start, to: to, insert: replacement, keyPressed: key});
 
 
 			const containsTrigger = this.autoEnlargeBracketsTriggers.some(word => replacement.contains("\\" + word));
@@ -690,7 +656,7 @@ export default class LatexSuitePlugin extends Plugin {
 
 			const replacement = "\\frac{" + numerator + "}{$0}$1";
 
-			this.snippetManager.queueSnippet({from: start, to: to, insert: replacement, keyPressed: "/"});
+			queueSnippet(view, {from: start, to: to, insert: replacement, keyPressed: "/"});
 
 			return true;
 	}
@@ -746,8 +712,8 @@ export default class LatexSuitePlugin extends Plugin {
 			}
 
 			// Enlarge the brackets
-			this.snippetManager.queueSnippet({from: i, to: i+bracketSize, insert: left + open + " "});
-			this.snippetManager.queueSnippet({from: j, to: j+bracketSize, insert: " " + right + close});
+			queueSnippet(view, {from: i, to: i+bracketSize, insert: left + open + " "});
+			queueSnippet(view, {from: j, to: j+bracketSize, insert: " " + right + close});
 		}
 
 		this.snippetManager.expandSnippets(view);
