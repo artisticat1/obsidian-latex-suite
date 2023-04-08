@@ -2,7 +2,7 @@ import { Plugin, Notice } from "obsidian";
 import { LatexSuiteSettings, LatexSuiteSettingTab, DEFAULT_SETTINGS } from "./settings";
 import { editorCommands } from "./editor_commands";
 
-import { EditorView, ViewUpdate, keymap, tooltips } from "@codemirror/view";
+import { EditorView, ViewUpdate, tooltips } from "@codemirror/view";
 import { Prec, Extension } from "@codemirror/state";
 import { isWithinEquation, isInsideEnvironment } from "./editor_helpers";
 
@@ -42,29 +42,6 @@ export default class LatexSuitePlugin extends Plugin {
 		this.legacyEditorWarning();
 
 		// Register keymaps
-		this.registerEditorExtension(Prec.highest(keymap.of([
-		{
-			key: "Tab",
-			run: (view: EditorView):boolean => {
-				const success = this.handleKeydown("Tab", false, false, view);
-
-				return success;
-			}
-		},
-		{
-			key: "Enter",
-			run: (view: EditorView):boolean => {
-				const success = this.handleKeydown("Enter", false, false, view);
-
-				return success;
-			},
-			shift: (view: EditorView):boolean => {
-				const success = this.handleKeydown("Enter", true, false, view);
-
-				return success;
-			}
-		}])));
-
 		this.registerEditorExtension(Prec.highest(EditorView.domEventHandlers({
             "keydown": this.onKeydown
         })));
@@ -238,7 +215,7 @@ export default class LatexSuitePlugin extends Plugin {
 
 
 	private readonly onKeydown = (event: KeyboardEvent, view: EditorView) => {
-		const success = this.handleKeydown(event.key, event.shiftKey, event.ctrlKey||event.metaKey, view);
+		const success = this.handleKeydown(event.key, event.shiftKey, event.ctrlKey || event.metaKey, view);
 
 		if (success) event.preventDefault();
 	}
