@@ -7,8 +7,9 @@ import { isWithinEquation, isWithinInlineEquation, replaceRange, setCursor, isIn
 
 import { Environment, Snippet, SNIPPET_VARIABLES, EXCLUSIONS } from "./snippets/snippets";
 import { sortSnippets, getSnippetsFromString, isInFolder, snippetInvertedEffects, handleUndoRedo, debouncedSetSnippetsFromFileOrFolder } from "./snippets/snippet_helper_functions";
-import { SnippetManager } from "./snippets/snippet_manager";
+import { expandSnippets, isInsideATabstop, isInsideLastTabstop, removeAllTabstops, consumeAndGotoNextTabstop } from "./snippets/snippet_manager";
 import { markerStateField } from "./snippets/marker_state_field";
+import { tabstopsStateField } from "./snippets/tabstops_state_field";
 import { clearSnippetQueue, queueSnippet, snippetQueueStateField } from "./snippets/snippet_queue_state_field";
 
 import { concealPlugin } from "./editor_extensions/conceal";
@@ -16,7 +17,6 @@ import { colorPairedBracketsPluginLowestPrec, highlightCursorBracketsPlugin } fr
 import { cursorTooltipBaseTheme, cursorTooltipField } from "./editor_extensions/inline_math_tooltip";
 
 import { editorCommands } from "./editor_commands";
-import { tabstopsStateField } from "./snippets/tabstops_state_field";
 
 
 
@@ -27,7 +27,6 @@ export default class LatexSuitePlugin extends Plugin {
 	matrixShortcutsEnvNames: string[];
 	autoEnlargeBracketsTriggers: string[];
 
-	private snippetManager: SnippetManager;
 	private cursorTriggeredByChange = false;
 
 
@@ -74,8 +73,6 @@ export default class LatexSuitePlugin extends Plugin {
         }
 
 		this.addSettingTab(new LatexSuiteSettingTab(this.app, this));
-		this.snippetManager = new SnippetManager();
-
 
 
 		this.registerEditorExtension([markerStateField, tabstopsStateField, snippetQueueStateField]);
@@ -164,8 +161,8 @@ export default class LatexSuitePlugin extends Plugin {
             return;
         }
 
-        if (!this.snippetManager.isInsideATabstop(pos, view) || this.snippetManager.isInsideLastTabstop(view)) {
-            this.snippetManager.clearAllTabstops(view);
+        if (!isInsideATabstop(pos, view) || isInsideLastTabstop(view)) {
+            removeAllTabstops(view);
         }
     }
 
@@ -430,7 +427,7 @@ export default class LatexSuitePlugin extends Plugin {
 			this.runSnippetCursor(view, key, withinMath, range);
 		}
 
-		const success = this.snippetManager.expandSnippets(view);
+		const success = expandSnippets(view);
 
 
 		if (this.shouldAutoEnlargeBrackets) {
@@ -551,7 +548,7 @@ export default class LatexSuitePlugin extends Plugin {
 
 
 	private readonly handleTabstops = (view: EditorView):boolean => {
-        const success = this.snippetManager.consumeAndGotoNextTabstop(view);
+        const success = consumeAndGotoNextTabstop(view);
 
 		return success;
     }
@@ -563,7 +560,7 @@ export default class LatexSuitePlugin extends Plugin {
 			this.runAutoFractionCursor(view, range);
 		}
 
-		const success = this.snippetManager.expandSnippets(view);
+		const success = expandSnippets(view);
 
 		if (success) {
 			this.autoEnlargeBrackets(view);
@@ -716,7 +713,7 @@ export default class LatexSuitePlugin extends Plugin {
 			queueSnippet(view, {from: j, to: j+bracketSize, insert: " " + right + close});
 		}
 
-		this.snippetManager.expandSnippets(view);
+		expandSnippets(view);
 	}
 
 
