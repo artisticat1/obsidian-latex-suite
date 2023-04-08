@@ -7,7 +7,7 @@ import { isWithinEquation, isWithinInlineEquation, replaceRange, setCursor, isIn
 
 import { Environment, Snippet, SNIPPET_VARIABLES, EXCLUSIONS } from "./snippets/snippets";
 import { sortSnippets, getSnippetsFromString, isInFolder, snippetInvertedEffects, handleUndoRedo, debouncedSetSnippetsFromFileOrFolder } from "./snippets/snippet_helper_functions";
-import { expandSnippets, isInsideATabstop, isInsideLastTabstop, removeAllTabstops, consumeAndGotoNextTabstop } from "./snippets/snippet_manager";
+import { expandSnippets, isInsideATabstop, isInsideLastTabstop, removeAllTabstops, consumeAndGotoNextTabstop } from "./snippets/snippet_management";
 import { markerStateField } from "./snippets/marker_state_field";
 import { tabstopsStateField } from "./snippets/tabstops_state_field";
 import { clearSnippetQueue, queueSnippet, snippetQueueStateField } from "./snippets/snippet_queue_state_field";

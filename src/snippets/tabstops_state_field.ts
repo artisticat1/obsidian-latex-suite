@@ -1,6 +1,6 @@
 import { EditorView } from "@codemirror/view";
 import { StateEffect, StateField } from "@codemirror/state";
-import { TabstopReference } from "./snippet_manager";
+import { TabstopReference } from "./snippet_management";
 
 
 export const addTabstopEffect = StateEffect.define<TabstopReference>();
