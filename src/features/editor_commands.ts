@@ -1,6 +1,7 @@
 import { Editor, MarkdownView } from "obsidian";
 import { EditorView } from "@codemirror/view";
-import { isWithinEquation, getEquationBounds, replaceRange, setCursor, setSelection } from "./editor_helpers";
+import { isWithinEquation, getEquationBounds, replaceRange, setCursor, setSelection } from "../editor_helpers";
+import LatexSuitePlugin from "../main";
 
 
 function boxCurrentEquation(view: EditorView) {
@@ -78,7 +79,45 @@ function getSelectEquationCommand() {
 }
 
 
-export const editorCommands = [
-    getBoxEquationCommand(),
-    getSelectEquationCommand()
-];
+function getEnableAllFeaturesCommand(plugin: LatexSuitePlugin) {
+    return {
+        id: "latex-suite-enable-all-features",
+        name: "Enable all features",
+        callback: async () => {
+            plugin.settings.snippetsEnabled = true;
+            plugin.settings.autofractionEnabled = true;
+            plugin.settings.matrixShortcutsEnabled = true;
+            plugin.settings.taboutEnabled = true;
+            plugin.settings.autoEnlargeBrackets = true;
+
+            await plugin.saveSettings();
+        },
+    }
+}
+
+
+function getDisableAllFeaturesCommand(plugin: LatexSuitePlugin) {
+    return {
+        id: "latex-suite-disable-all-features",
+        name: "Disable all features",
+        callback: async () => {
+            plugin.settings.snippetsEnabled = false;
+            plugin.settings.autofractionEnabled = false;
+            plugin.settings.matrixShortcutsEnabled = false;
+            plugin.settings.taboutEnabled = false;
+            plugin.settings.autoEnlargeBrackets = false;
+
+            await plugin.saveSettings();
+        },
+    }
+}
+
+
+export const getEditorCommands = (plugin: LatexSuitePlugin) => {
+    return [
+        getBoxEquationCommand(),
+        getSelectEquationCommand(),
+        getEnableAllFeaturesCommand(plugin),
+        getDisableAllFeaturesCommand(plugin)
+    ];
+};
