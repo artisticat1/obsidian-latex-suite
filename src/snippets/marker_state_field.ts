@@ -15,9 +15,11 @@ export const undidEndSnippet = StateEffect.define();
 
 
 export const markerStateField = StateField.define<RangeSet<Decoration>>({
+
     create() {
         return Decoration.none;
     },
+
     update(value, tr) {
         value = value.map(tr.changes);
 
@@ -40,5 +42,6 @@ export const markerStateField = StateField.define<RangeSet<Decoration>>({
 
         return value;
     },
+    
     provide: f => EditorView.decorations.from(f)
 })
