@@ -32,7 +32,7 @@ function getBoxEquationCommand() {
 
             // @ts-ignore
             const view = editor.cm;
-            const withinEquation = isWithinEquation(view);
+            const withinEquation = isWithinEquation(view.state);
 
             if (checking) return withinEquation;
             if (!withinEquation) return;
@@ -54,7 +54,7 @@ function getSelectEquationCommand() {
 
             // @ts-ignore
             const view = editor.cm;
-            const withinEquation = isWithinEquation(view);
+            const withinEquation = isWithinEquation(view.state);
 
             if (checking) return withinEquation;
             if (!withinEquation) return;
