@@ -75,13 +75,13 @@ The following variables are available for use in a `trigger` or `replacement`:
 - `${SYMBOL}` : Can be inserted in a `trigger`. Shorthand for the following:
 
 ```txt
-approx|arccos|arccot|arccsc|arcsec|arcsin|arctan|cap|cdot|circ|cos|cot|csc|cup|det|dots|ell|equiv|exists|exp|forall|ge|gg|hbar|iff|impliedby|implies|infty|land|leftarrow|Leftarrow|leftrightarrow|Leftrightarrow|ll|ln|log|lor|mapsto|mid|mp|nabla|ne|not|oplus|otimes|partial|perp|pm|propto|Rightarrow|setminus|simeq|sin|square|star|subseteq|tan|times|to
+;|approx|arccos|arccot|arccsc|arcsec|arcsin|arctan|bot|cap|cdot|circ|cong|cos|cot|csc|cup|det|dim|dots|ell|equiv|exists|exp|forall|ge|gg|hbar|iff|impliedby|implies|infty|land|leftarrow|Leftarrow|leftrightarrow|Leftrightarrow|ll|lnot|log|lor|mapsto|mid|mp|nabla|ne|not|oplus|otimes|partial|perp|pm|propto|quad|Rightarrow|setminus|simeq|sin|square|star|subseteq|tan|times|top
 ```
 
 - `${SHORT_SYMBOL}` : Can be inserted in a `trigger`. Symbols which overlap with symbols from `${SYMBOL}`. Shorthand for the following:
 
 ```txt
-in|le|sim|subset
+in|le|ln|sim|subset|to
 ```
 
 #### Examples
