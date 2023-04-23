@@ -6,7 +6,7 @@ import { expandSnippets } from "src/snippets/snippet_management";
 import { Snippet, SNIPPET_VARIABLES, EXCLUSIONS } from "src/snippets/snippets";
 import { autoEnlargeBrackets } from "./auto_enlarge_brackets";
 import LatexSuitePlugin from "src/main";
-import { Mode } from "src/mode";
+import { Mode, Options, parseOptions } from "src/mode";
 
 
 export const runSnippets = (view: EditorView, key: string, mode: Mode, ranges: SelectionRange[], plugin: LatexSuitePlugin):boolean => {
@@ -36,14 +36,15 @@ export const runSnippetCursor = (view: EditorView, key: string, mode: Mode, rang
     const sel = view.state.sliceDoc(from, to);
 
     for (const snippet of plugin.snippets) {
+		let options = parseOptions(snippet.options);
 
         let effectiveLine = view.state.sliceDoc(0, to);
 
-        if (!mode.overlaps(snippet.options.mode)) {
+        if (!mode.overlaps(options.mode)) {
             continue;
         }
 
-        if (snippet.options.automatic || snippet.replacement.contains("${VISUAL}")) {
+        if (options.automatic || snippet.replacement.contains("${VISUAL}")) {
             // If the key pressed wasn't a text character, continue
             if (!(key.length === 1)) continue;
 
@@ -62,12 +63,12 @@ export const runSnippetCursor = (view: EditorView, key: string, mode: Mode, rang
         }
 
 
-        const result = checkSnippet(snippet, effectiveLine, range, sel);
+        const result = checkSnippet(snippet, options, effectiveLine, range, sel);
         if (result === null) continue;
         const triggerPos = result.triggerPos;
 
 
-        if (snippet.options.onWordBoundary) {
+        if (options.onWordBoundary) {
             // Check that the trigger is preceded and followed by a word delimiter
 
             const prevChar = view.state.sliceDoc(triggerPos-1, triggerPos);
@@ -133,7 +134,7 @@ export const runSnippetCursor = (view: EditorView, key: string, mode: Mode, rang
 
 
 
-export const checkSnippet = (snippet: Snippet, effectiveLine: string, range:  SelectionRange, sel: string):{triggerPos: number; replacement: string} => {
+export const checkSnippet = (snippet: Snippet, options: Options, effectiveLine: string, range:  SelectionRange, sel: string):{triggerPos: number; replacement: string} => {
     let triggerPos;
     let trigger = snippet.trigger;
     trigger = insertSnippetVariables(trigger);
@@ -157,7 +158,7 @@ export const checkSnippet = (snippet: Snippet, effectiveLine: string, range:  Se
         // Don't run non-visual snippets when there is a selection
         return null;
     }
-    else if (!(snippet.options.regex)) {
+    else if (!(options.regex)) {
 
         // Check whether the trigger text was typed
         if (!(effectiveLine.slice(-trigger.length) === trigger)) return null;

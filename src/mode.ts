@@ -2,6 +2,41 @@ import { EditorView } from "@codemirror/view";
 
 import { isInsideEnvironment, isWithinEquation, isWithinInlineEquation } from "./editor_helpers";
 
+export class Options {
+	mode!: Mode;
+	automatic: boolean;
+	regex: boolean;
+	onWordBoundary: boolean;
+
+	constructor() {
+		this.mode = new Mode();
+		this.automatic = false;
+		this.regex = false;
+		this.onWordBoundary = false;
+	}
+}
+
+export function parseOptions(source: string):Options {
+	let options = new Options();
+	options.mode = parseMode(source);
+
+	for (const flag_char of source) {
+		switch (flag_char) {
+			case "A":
+				options.automatic = true;
+				break;
+			case "r":
+				options.regex = true;
+				break;
+			case "w":
+				options.onWordBoundary = true;
+				break;
+		}
+	}
+
+	return options;
+}
+
 export class Mode {
 	text!: boolean;
 	inlineMath!: boolean;
@@ -82,5 +117,5 @@ export function parseMode(source: string):Mode {
 		}
 	}
 
-	mode
+	return mode;
 }

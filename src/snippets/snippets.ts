@@ -1,46 +1,9 @@
-import { Mode, parseMode } from "src/mode";
-
 export interface Snippet {
     trigger: string,
     replacement: string,
-    options: Options,
+    options: string,
     priority?: number,
     description?: string
-}
-
-export class Options {
-	mode!: Mode;
-	automatic: boolean;
-	regex: boolean;
-	onWordBoundary: boolean;
-
-	constructor() {
-		this.mode = new Mode();
-		this.automatic = false;
-		this.regex = false;
-		this.onWordBoundary = false;
-	}
-}
-
-export function parseOptions(source: string):Options {
-	let options = new Options();
-	options.mode = parseMode(source);
-
-	for (const flag_char of source) {
-		switch (flag_char) {
-			case "A":
-				options.automatic = true;
-				break;
-			case "r":
-				options.regex = true;
-				break;
-			case "w":
-				options.onWordBoundary = true;
-				break;
-		}
-	}
-
-	return options;
 }
 
 export interface Environment {
