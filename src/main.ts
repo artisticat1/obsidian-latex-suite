@@ -1,7 +1,7 @@
 import { Plugin, Notice } from "obsidian";
 import { LatexSuiteSettings, LatexSuiteSettingTab, DEFAULT_SETTINGS } from "./settings";
 
-import { Mode } from "./mode";
+import { modeAtViewPos } from "./mode";
 
 import { EditorView, ViewUpdate, tooltips } from "@codemirror/view";
 import { Prec, Extension } from "@codemirror/state";
@@ -199,7 +199,7 @@ export default class LatexSuitePlugin extends Plugin {
 		const pos = s.main.to;
 		const ranges = Array.from(s.ranges).reverse(); // Last to first
 
-		const mode = new Mode(view, pos);
+		const mode = modeAtViewPos(view, pos);
 		console.log(mode);
 
 		let success = false;
@@ -209,7 +209,7 @@ export default class LatexSuitePlugin extends Plugin {
 			// Allows Ctrl + z for undo, instead of triggering a snippet ending with z
 			if (!ctrlKey) {
 				try {
-					success = runSnippets(view, key, mode.anyMath(), ranges, this);
+					success = runSnippets(view, key, mode, ranges, this);
 					if (success) return true;
 				}
 				catch (e) {

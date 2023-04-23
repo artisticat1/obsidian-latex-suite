@@ -6,14 +6,15 @@ import { expandSnippets } from "src/snippets/snippet_management";
 import { Snippet, SNIPPET_VARIABLES, EXCLUSIONS } from "src/snippets/snippets";
 import { autoEnlargeBrackets } from "./auto_enlarge_brackets";
 import LatexSuitePlugin from "src/main";
+import { Mode } from "src/mode";
 
 
-export const runSnippets = (view: EditorView, key: string, withinMath: boolean, ranges: SelectionRange[], plugin: LatexSuitePlugin):boolean => {
+export const runSnippets = (view: EditorView, key: string, mode: Mode, ranges: SelectionRange[], plugin: LatexSuitePlugin):boolean => {
 
     let shouldAutoEnlargeBrackets = false;
 
     for (const range of ranges) {
-        const result = runSnippetCursor(view, key, withinMath, range, plugin);
+        const result = runSnippetCursor(view, key, mode, range, plugin);
 
         if (result.shouldAutoEnlargeBrackets) shouldAutoEnlargeBrackets = true;
     }
@@ -29,7 +30,7 @@ export const runSnippets = (view: EditorView, key: string, withinMath: boolean, 
 }
 
 
-export const runSnippetCursor = (view: EditorView, key: string, withinMath: boolean, range: SelectionRange, plugin: LatexSuitePlugin):{success: boolean; shouldAutoEnlargeBrackets: boolean} => {
+export const runSnippetCursor = (view: EditorView, key: string, mode: Mode, range: SelectionRange, plugin: LatexSuitePlugin):{success: boolean; shouldAutoEnlargeBrackets: boolean} => {
 
     const {from, to} = range;
     const sel = view.state.sliceDoc(from, to);
@@ -38,12 +39,11 @@ export const runSnippetCursor = (view: EditorView, key: string, withinMath: bool
 
         let effectiveLine = view.state.sliceDoc(0, to);
 
-        if (snippet.options.contains("m") && (!withinMath)) {
+		/*
+        if (!mode.matches(snippet.options)) {
             continue;
         }
-        else if (snippet.options.contains("t") && (withinMath)) {
-            continue;
-        }
+		*/
 
         if (snippet.options.contains("A") || snippet.replacement.contains("${VISUAL}")) {
             // If the key pressed wasn't a text character, continue
@@ -90,7 +90,7 @@ export const runSnippetCursor = (view: EditorView, key: string, withinMath: bool
 
 
         // When in inline math, remove any spaces at the end of the replacement
-        if (withinMath && plugin.settings.removeSnippetWhitespace) {
+        if (mode.anyMath() && plugin.settings.removeSnippetWhitespace) {
             let spaceIndex = 0;
             if (replacement.endsWith(" ")) {
                 spaceIndex = -1;

@@ -8,18 +8,11 @@ export class Mode {
 	blockMath!: boolean;
 	code!: boolean;
 
-	constructor(view: EditorView, pos: number) {
-		let inMath = isWithinEquation(view.state)
-			&& !(
-				isInsideEnvironment(view, pos, {openSymbol: "\\text{", closeSymbol: "}"})
-				|| isInsideEnvironment(view, pos, {openSymbol: "\\tag{", closeSymbol: "}"})
-			);
-		const inInlineEquation = isWithinInlineEquation(view.state);
-
-		this.text = !inMath;
-		this.blockMath = inMath && !inInlineEquation;
-		this.inlineMath = inMath && inInlineEquation;
-		this.code = false; // TODO(multisn8): introduce logic to check for being in a codeblock/inline code
+	constructor() {
+		this.text = false;
+		this.blockMath = false;
+		this.inlineMath = false;
+		this.code = false;
 	}
 
 	anyMath():boolean {
@@ -27,3 +20,20 @@ export class Mode {
 	}
 }
 
+export function modeAtViewPos(view: EditorView, pos: number):Mode {
+	let mode = new Mode();
+
+	let inMath = isWithinEquation(view.state)
+		&& !(
+			isInsideEnvironment(view, pos, {openSymbol: "\\text{", closeSymbol: "}"})
+			|| isInsideEnvironment(view, pos, {openSymbol: "\\tag{", closeSymbol: "}"})
+		);
+	const inInlineEquation = isWithinInlineEquation(view.state);
+
+	mode.text = !inMath;
+	mode.blockMath = inMath && !inInlineEquation;
+	mode.inlineMath = inMath && inInlineEquation;
+	// TODO(multisn8): introduce logic to check for being in a codeblock/inline code
+
+	return mode;
+}
