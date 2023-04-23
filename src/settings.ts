@@ -96,21 +96,6 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 }));
                 
-        new Setting(containerEl)
-            .setName("Key-Trigger")
-            .setDesc("What key to press to expand non-auto snippets.")
-            .addDropdown((dropdown) =>
-                dropdown
-                    .addOption("Tab", "Tab")
-                    .addOption(" ", "Space")
-                    .setValue(this.plugin.settings.snippetsTrigger)
-                    .onChange(async (value) => {
-                        this.plugin.settings.snippetsTrigger = value as
-                            | "Tab"
-                            | " ";
-                        await this.plugin.saveSettings();
-                    })
-            );
 
 		const snippetsSetting = new Setting(containerEl)
             .setName("Snippets")
@@ -271,6 +256,22 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
         snippetsSetting.settingEl.toggleClass("hidden", loadSnippetsFromFile);
         this.snippetsFileLocEl.toggleClass("hidden", !loadSnippetsFromFile);
 
+
+        new Setting(containerEl)
+        .setName("Key trigger for non-auto snippets")
+        .setDesc("What key to press to expand non-auto snippets.")
+        .addDropdown((dropdown) =>
+            dropdown
+                .addOption("Tab", "Tab")
+                .addOption(" ", "Space")
+                .setValue(this.plugin.settings.snippetsTrigger)
+                .onChange(async (value) => {
+                    this.plugin.settings.snippetsTrigger = value as
+                        | "Tab"
+                        | " ";
+                    await this.plugin.saveSettings();
+                })
+        );
 
 
         containerEl.createEl("div", {text: "Conceal"}).addClasses(["setting-item", "setting-item-heading", "setting-item-name"]);
