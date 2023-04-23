@@ -34,7 +34,6 @@ export const runSnippetCursor = (view: EditorView, key: string, withinMath: bool
     const {from, to} = range;
     const sel = view.state.sliceDoc(from, to);
 
-
     for (const snippet of plugin.snippets) {
 
         let effectiveLine = view.state.sliceDoc(0, to);
@@ -52,8 +51,8 @@ export const runSnippetCursor = (view: EditorView, key: string, withinMath: bool
 
             effectiveLine += key;
         }
-        else if (!(key === "Tab")) {
-            // The snippet must be triggered by the Tab key
+        else if (!(key === plugin.settings.snippetsTrigger)) {
+            // The snippet must be triggered by a key
             continue;
         }
 

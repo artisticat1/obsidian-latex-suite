@@ -16,6 +16,7 @@ import { debouncedSetSnippetsFromFileOrFolder } from "./snippets/file_watch";
 export interface LatexSuiteSettings {
     snippets: string;
     snippetsEnabled: boolean;
+    snippetsTrigger: "Tab" | " "
     removeSnippetWhitespace: boolean;
     loadSnippetsFromFile: boolean;
     snippetsFileLocation: string;
@@ -37,6 +38,7 @@ export interface LatexSuiteSettings {
 export const DEFAULT_SETTINGS: LatexSuiteSettings = {
     snippets: DEFAULT_SNIPPETS,
     snippetsEnabled: true,
+    snippetsTrigger: "Tab",
     removeSnippetWhitespace: true,
     loadSnippetsFromFile: false,
     snippetsFileLocation: "",
@@ -93,13 +95,28 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
                     this.plugin.settings.snippetsEnabled = value;
                     await this.plugin.saveSettings();
                 }));
-
+                
+        new Setting(containerEl)
+            .setName("Key-Trigger")
+            .setDesc("What key to press to expand non-auto snippets.")
+            .addDropdown((dropdown) =>
+                dropdown
+                    .addOption("Tab", "Tab")
+                    .addOption(" ", "Space")
+                    .setValue(this.plugin.settings.snippetsTrigger)
+                    .onChange(async (value) => {
+                        this.plugin.settings.snippetsTrigger = value as
+                            | "Tab"
+                            | " ";
+                        await this.plugin.saveSettings();
+                    })
+            );
 
 		const snippetsSetting = new Setting(containerEl)
             .setName("Snippets")
             .setDesc("Enter snippets here.  Remember to add a comma after each snippet, and escape all backslashes with an extra \\. Lines starting with \"//\" will be treated as comments and ignored.")
             .setClass("snippets-text-area");
-
+        
 
         const customCSSWrapper = snippetsSetting.controlEl.createDiv("snippets-editor-wrapper");
         const snippetsFooter = snippetsSetting.controlEl.createDiv("snippets-footer");
