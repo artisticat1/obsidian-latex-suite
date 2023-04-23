@@ -1,6 +1,6 @@
 import { EditorView } from "@codemirror/view";
 
-import { isInsideEnvironment, isWithinEquation, isWithinInlineEquation } from "./editor_helpers";
+import { isInsideEnvironment, isWithinEquation, isWithinInlineEquation } from "src/editor_helpers";
 
 export class Options {
 	mode!: Mode;

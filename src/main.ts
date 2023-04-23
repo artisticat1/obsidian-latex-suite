@@ -1,7 +1,7 @@
 import { Plugin, Notice } from "obsidian";
 import { LatexSuiteSettings, LatexSuiteSettingTab, DEFAULT_SETTINGS } from "./settings";
 
-import { modeAtViewPos } from "./mode";
+import { modeAtViewPos } from "./snippets/options";
 
 import { EditorView, ViewUpdate, tooltips } from "@codemirror/view";
 import { Prec, Extension } from "@codemirror/state";
@@ -200,7 +200,7 @@ export default class LatexSuitePlugin extends Plugin {
 		const ranges = Array.from(s.ranges).reverse(); // Last to first
 
 		const mode = modeAtViewPos(view, pos);
-		console.log(mode);
+		console.log(mode);  // TODO(multisn8): <-- remove this when the PR is done
 
 		let success = false;
 
