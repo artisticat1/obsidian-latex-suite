@@ -8,6 +8,10 @@ export class Mode {
 	blockMath!: boolean;
 	code!: boolean;
 
+	anyMath():boolean {
+		return this.inlineMath || this.blockMath;
+	}
+
 	constructor() {
 		this.text = false;
 		this.blockMath = false;
@@ -15,8 +19,18 @@ export class Mode {
 		this.code = false;
 	}
 
-	anyMath():boolean {
-		return this.inlineMath || this.blockMath;
+	invert() {
+		this.text = !this.text;
+		this.blockMath = !this.blockMath;
+		this.inlineMath = !this.inlineMath;
+		this.code = !this.code;
+	}
+
+	overlaps(other: Mode):boolean {
+		return (this.text && other.text)
+			|| (this.blockMath && other.blockMath)
+			|| (this.inlineMath && other.blockMath)
+			|| (this.code && other.code);
 	}
 }
 
@@ -36,4 +50,37 @@ export function modeAtViewPos(view: EditorView, pos: number):Mode {
 	// TODO(multisn8): introduce logic to check for being in a codeblock/inline code
 
 	return mode;
+}
+
+export function parseMode(source: string):Mode {
+	let mode = new Mode();
+
+	if (source.length === 0) {
+		// for backwards compat we need to assume that this is a catchall mode then
+		mode.invert();
+		return mode;
+	}
+
+	for (const flag_char of source) {
+		switch (flag_char) {
+			case "m":
+				mode.blockMath = true;
+				mode.inlineMath = true;
+				break;
+			case "i":
+				mode.inlineMath = true;
+				break;
+			case "M":
+				mode.blockMath = true;
+				break;
+			case "t":
+				mode.text = true;
+				break;
+			case "c":
+				mode.code = true;
+				break;
+		}
+	}
+
+	mode
 }

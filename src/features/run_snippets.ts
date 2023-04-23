@@ -39,13 +39,11 @@ export const runSnippetCursor = (view: EditorView, key: string, mode: Mode, rang
 
         let effectiveLine = view.state.sliceDoc(0, to);
 
-		/*
-        if (!mode.matches(snippet.options)) {
+        if (!mode.overlaps(snippet.options.mode)) {
             continue;
         }
-		*/
 
-        if (snippet.options.contains("A") || snippet.replacement.contains("${VISUAL}")) {
+        if (snippet.options.automatic || snippet.replacement.contains("${VISUAL}")) {
             // If the key pressed wasn't a text character, continue
             if (!(key.length === 1)) continue;
 
@@ -69,7 +67,7 @@ export const runSnippetCursor = (view: EditorView, key: string, mode: Mode, rang
         const triggerPos = result.triggerPos;
 
 
-        if (snippet.options.contains("w")) {
+        if (snippet.options.onWordBoundary) {
             // Check that the trigger is preceded and followed by a word delimiter
 
             const prevChar = view.state.sliceDoc(triggerPos-1, triggerPos);
@@ -159,7 +157,7 @@ export const checkSnippet = (snippet: Snippet, effectiveLine: string, range:  Se
         // Don't run non-visual snippets when there is a selection
         return null;
     }
-    else if (!(snippet.options.contains("r"))) {
+    else if (!(snippet.options.regex)) {
 
         // Check whether the trigger text was typed
         if (!(effectiveLine.slice(-trigger.length) === trigger)) return null;
