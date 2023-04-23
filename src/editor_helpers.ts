@@ -51,9 +51,11 @@ export function resetCursorBlink() {
     if (Platform.isMobile) return;
 
     const cursorLayer = document.getElementsByClassName("cm-cursorLayer")[0] as HTMLElement;
-    const curAnim = cursorLayer.style.animationName;
-
-    cursorLayer.style.animationName = curAnim === "cm-blink" ? "cm-blink2" : "cm-blink";
+    
+    if (cursorLayer) {
+        const curAnim = cursorLayer.style.animationName;
+        cursorLayer.style.animationName = curAnim === "cm-blink" ? "cm-blink2" : "cm-blink";
+    }
 }
 
 
