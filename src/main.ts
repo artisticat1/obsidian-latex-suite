@@ -209,7 +209,7 @@ export default class LatexSuitePlugin extends Plugin {
 			// Allows Ctrl + z for undo, instead of triggering a snippet ending with z
 			if (!ctrlKey) {
 				try {
-					success = runSnippets(view, key, mode.any_math(), ranges, this);
+					success = runSnippets(view, key, mode.anyMath(), ranges, this);
 					if (success) return true;
 				}
 				catch (e) {
@@ -229,7 +229,7 @@ export default class LatexSuitePlugin extends Plugin {
 			if (success) return true;
 		}
 
-		if (this.settings.autofractionEnabled && mode.any_math()) {
+		if (this.settings.autofractionEnabled && mode.anyMath()) {
 			if (key === "/") {
 				success = runAutoFraction(view, ranges, this);
 
@@ -237,7 +237,10 @@ export default class LatexSuitePlugin extends Plugin {
 			}
 		}
 
-		if (this.settings.matrixShortcutsEnabled && mode.block_math) {
+		// TODO(multisn8): currently matrices in inline math are a mess either way
+		// but with the block/inline distinction, maybe we could try to stuff them inline
+		// or "switch" to a block from inline if a matrix env is activated?
+		if (this.settings.matrixShortcutsEnabled && mode.blockMath) {
 			if (["Tab", "Enter"].contains(key)) {
 				success = runMatrixShortcuts(view, key, shiftKey, pos, this.matrixShortcutsEnvNames);
 
@@ -247,7 +250,7 @@ export default class LatexSuitePlugin extends Plugin {
 
 		if (this.settings.taboutEnabled) {
 			if (key === "Tab") {
-				success = tabout(view, mode.any_math());
+				success = tabout(view, mode.anyMath());
 
 				if (success) return true;
 			}
