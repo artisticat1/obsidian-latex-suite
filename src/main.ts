@@ -1,9 +1,10 @@
 import { Plugin, Notice } from "obsidian";
 import { LatexSuiteSettings, LatexSuiteSettingTab, DEFAULT_SETTINGS } from "./settings";
 
+import { Mode } from "./mode";
+
 import { EditorView, ViewUpdate, tooltips } from "@codemirror/view";
 import { Prec, Extension } from "@codemirror/state";
-import { isWithinEquation, isInsideEnvironment } from "./editor_helpers";
 
 import { Environment, Snippet } from "./snippets/snippets";
 import { onFileCreate, onFileChange, onFileDelete, debouncedSetSnippetsFromFileOrFolder } from "./snippets/file_watch";
@@ -198,22 +199,17 @@ export default class LatexSuitePlugin extends Plugin {
 		const pos = s.main.to;
 		const ranges = Array.from(s.ranges).reverse(); // Last to first
 
-		const withinEquation = isWithinEquation(view.state);
+		const mode = new Mode(view, pos);
+		console.log(mode);
 
-		// Check whether within "\text{}" or "\tag{}"
-		let withinMath = false;
-		if (withinEquation) withinMath = !(isInsideEnvironment(view, pos, {openSymbol: "\\text{", closeSymbol: "}"}) || isInsideEnvironment(view, pos, {openSymbol: "\\tag{", closeSymbol: "}"}));
-
-		
 		let success = false;
-
 
 		if (this.settings.snippetsEnabled) {
 
 			// Allows Ctrl + z for undo, instead of triggering a snippet ending with z
 			if (!ctrlKey) {
 				try {
-					success = runSnippets(view, key, withinMath, ranges, this);
+					success = runSnippets(view, key, mode.any_math(), ranges, this);
 					if (success) return true;
 				}
 				catch (e) {
@@ -233,7 +229,7 @@ export default class LatexSuitePlugin extends Plugin {
 			if (success) return true;
 		}
 
-		if (this.settings.autofractionEnabled && withinMath) {
+		if (this.settings.autofractionEnabled && mode.any_math()) {
 			if (key === "/") {
 				success = runAutoFraction(view, ranges, this);
 
@@ -241,7 +237,7 @@ export default class LatexSuitePlugin extends Plugin {
 			}
 		}
 
-		if (this.settings.matrixShortcutsEnabled && withinMath) {
+		if (this.settings.matrixShortcutsEnabled && mode.block_math) {
 			if (["Tab", "Enter"].contains(key)) {
 				success = runMatrixShortcuts(view, key, shiftKey, pos, this.matrixShortcutsEnvNames);
 
@@ -251,7 +247,7 @@ export default class LatexSuitePlugin extends Plugin {
 
 		if (this.settings.taboutEnabled) {
 			if (key === "Tab") {
-				success = tabout(view, withinEquation);
+				success = tabout(view, mode.any_math());
 
 				if (success) return true;
 			}

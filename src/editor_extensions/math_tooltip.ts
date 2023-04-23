@@ -2,7 +2,6 @@ import { Tooltip, showTooltip, EditorView } from "@codemirror/view";
 import { StateField, EditorState } from "@codemirror/state";
 import {
 	getEquationBounds,
-	isTouchingInlineEquation,
 	isWithinEquation,
 	isWithinInlineEquation,
 } from "../editor_helpers";
