@@ -84,7 +84,7 @@ export function modeAtViewPos(view: EditorView, pos: number):Mode {
 		);
 	const inInlineEquation = isWithinInlineEquation(view.state);
 
-	mode.text = !inMath;
+	mode.text = !inCode && !inMath;
 	mode.blockMath = inMath && !inInlineEquation;
 	mode.inlineMath = inMath && inInlineEquation;
 	mode.code = inCode;
