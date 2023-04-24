@@ -92,13 +92,27 @@ export function isWithinInlineEquation(
     if (!result) return false;
     const end = result.end;
 
-    const d = state.doc;
-
     // Check whether we're in inline math or a block eqn
-    const inlineMath = d.sliceString(end, end+2) != "$$";
+    const inlineMath = state.doc.sliceString(end, end+2) != "$$";
 
     return inlineMath;
 }
+
+
+export function langIfWithinCodeblock(view: EditorView | EditorState):string | null {
+    const state = view instanceof EditorView ? view.state : view;
+	const tree = syntaxTree(state);
+
+	const pos = state.selection.ranges[0].from;
+	const token = tree.resolveInner(pos - 1, 0).name;
+
+	if (token.contains("codeblock")) {
+		return "";
+	}
+
+	return null;
+}
+
 
 /**
  * Returns 0 if pos is not touching a $ that marks an inline equation

@@ -1,6 +1,6 @@
 import { EditorView } from "@codemirror/view";
 
-import { isInsideEnvironment, isWithinEquation, isWithinInlineEquation } from "src/editor_helpers";
+import { isInsideEnvironment, isWithinEquation, isWithinInlineEquation, langIfWithinCodeblock } from "src/editor_helpers";
 
 export class Options {
 	mode!: Mode;
@@ -72,7 +72,12 @@ export class Mode {
 export function modeAtViewPos(view: EditorView, pos: number):Mode {
 	let mode = new Mode();
 
-	let inMath = isWithinEquation(view.state)
+	const codeLanguage = langIfWithinCodeblock(view);
+	const inCode = codeLanguage !== null;
+	const ignoreMath = inCode && ["bash", "php", "perl", "julia", "sh"].contains(codeLanguage);
+
+	let inMath = !ignoreMath
+		&& isWithinEquation(view.state)
 		&& !(
 			isInsideEnvironment(view, pos, {openSymbol: "\\text{", closeSymbol: "}"})
 			|| isInsideEnvironment(view, pos, {openSymbol: "\\tag{", closeSymbol: "}"})
@@ -82,7 +87,7 @@ export function modeAtViewPos(view: EditorView, pos: number):Mode {
 	mode.text = !inMath;
 	mode.blockMath = inMath && !inInlineEquation;
 	mode.inlineMath = inMath && inInlineEquation;
-	// TODO(multisn8): introduce logic to check for being in a codeblock/inline code
+	mode.code = inCode;
 
 	return mode;
 }
