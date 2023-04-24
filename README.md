@@ -136,13 +136,17 @@ Snippets are formatted as follows:
 
 
 #### Options
-- `m` : Math mode. Only run this snippet inside math
+- `m` : Math mode. Only run this snippet inside math, shorthand for both `M` and `m`
+- `M` : Block math mode. Only run this snippet inside a `$$ ... $$` block
+- `i` : Inline math mode. Only run this snippet inside a `$ ... $` block
 - `t` : Text mode. Only run this snippet outside math
 - `A` : Auto. Expand this snippet as soon as the trigger is typed. If omitted, the <kbd>Tab</kbd> key must be pressed to expand the snippet
 - `r` : Regex. The `trigger` will be treated as a regular expression
 - `w` : Word boundary. Only run this snippet when the trigger is preceded (and followed by) a word delimiter, such as `.`, `,`, or `-`.
 
 Insert **tabstops** for the cursor to jump to by writing "$0", "$1", etc. in the `replacement`.
+
+No mode specified implicitly means that this snippet can be triggered _at all times_. Multiple modes specified mean that a snippet can be triggered in the given modes, independent of each other.
 
 For more details on writing snippets, including **regex** snippets, [see the documentation here](DOCS.md). You can [view snippets written by others and share your own snippets here](https://github.com/artisticat1/obsidian-latex-suite/discussions/50).
 
