@@ -1,9 +1,23 @@
-export interface Snippet {
-    trigger: string,
-    replacement: string,
-    options: string,
-    priority?: number,
-    description?: string
+import { Options, parseOptions } from "./options";
+
+export class RawSnippet {
+    trigger: string;
+    replacement: string;
+    options: string | Options;
+    priority?: number;
+    description?: string;
+}
+
+export class ParsedSnippet extends RawSnippet {
+    options: Options;
+
+	constructor(raw: RawSnippet) {
+		super();
+		// this is slightly obscure but I did not find any better way to express
+		// "the parsed snippet should get everything the raw one has if not overridden"
+		Object.assign(this, raw);
+		this.options = this.options instanceof Options ? this.options : parseOptions(this.options);
+	}
 }
 
 export interface Environment {

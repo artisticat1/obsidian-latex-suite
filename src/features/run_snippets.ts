@@ -3,10 +3,10 @@ import { SelectionRange } from "@codemirror/state";
 import { isInsideEnvironment, isWithinInlineEquation } from "src/editor_helpers";
 import { queueSnippet } from "src/snippets/snippet_queue_state_field";
 import { expandSnippets } from "src/snippets/snippet_management";
-import { Snippet, SNIPPET_VARIABLES, EXCLUSIONS } from "src/snippets/snippets";
+import { ParsedSnippet, SNIPPET_VARIABLES, EXCLUSIONS } from "src/snippets/snippets";
 import { autoEnlargeBrackets } from "./auto_enlarge_brackets";
 import LatexSuitePlugin from "src/main";
-import { Mode, Options, parseOptions } from "src/snippets/options";
+import { Mode, Options } from "src/snippets/options";
 
 
 export const runSnippets = (view: EditorView, key: string, mode: Mode, ranges: SelectionRange[], plugin: LatexSuitePlugin):boolean => {
@@ -36,15 +36,13 @@ export const runSnippetCursor = (view: EditorView, key: string, mode: Mode, rang
     const sel = view.state.sliceDoc(from, to);
 
     for (const snippet of plugin.snippets) {
-		let options = parseOptions(snippet.options);
-
         let effectiveLine = view.state.sliceDoc(0, to);
 
-        if (!mode.overlaps(options.mode)) {
+        if (!mode.overlaps(snippet.options.mode)) {
             continue;
         }
 
-        if (options.automatic || snippet.replacement.contains("${VISUAL}")) {
+        if (snippet.options.automatic || snippet.replacement.contains("${VISUAL}")) {
             // If the key pressed wasn't a text character, continue
             if (!(key.length === 1)) continue;
 
@@ -63,12 +61,12 @@ export const runSnippetCursor = (view: EditorView, key: string, mode: Mode, rang
         }
 
 
-        const result = checkSnippet(snippet, options, effectiveLine, range, sel);
+        const result = checkSnippet(snippet, snippet.options, effectiveLine, range, sel);
         if (result === null) continue;
         const triggerPos = result.triggerPos;
 
 
-        if (options.onWordBoundary) {
+        if (snippet.options.onWordBoundary) {
             // Check that the trigger is preceded and followed by a word delimiter
 
             const prevChar = view.state.sliceDoc(triggerPos-1, triggerPos);
@@ -134,7 +132,7 @@ export const runSnippetCursor = (view: EditorView, key: string, mode: Mode, rang
 
 
 
-export const checkSnippet = (snippet: Snippet, options: Options, effectiveLine: string, range:  SelectionRange, sel: string):{triggerPos: number; replacement: string} => {
+export const checkSnippet = (snippet: ParsedSnippet, options: Options, effectiveLine: string, range:  SelectionRange, sel: string):{triggerPos: number; replacement: string} => {
     let triggerPos;
     let trigger = snippet.trigger;
     trigger = insertSnippetVariables(trigger);

@@ -6,7 +6,7 @@ import { modeAtViewPos } from "./snippets/options";
 import { EditorView, ViewUpdate, tooltips } from "@codemirror/view";
 import { Prec, Extension } from "@codemirror/state";
 
-import { Environment, Snippet } from "./snippets/snippets";
+import { Environment, ParsedSnippet } from "./snippets/snippets";
 import { onFileCreate, onFileChange, onFileDelete, debouncedSetSnippetsFromFileOrFolder } from "./snippets/file_watch";
 import { sortSnippets, getSnippetsFromString, snippetInvertedEffects, handleUndoRedo } from "./snippets/snippet_helper_functions";
 import { isInsideATabstop, isInsideLastTabstop, removeAllTabstops, consumeAndGotoNextTabstop } from "./snippets/snippet_management";
@@ -27,7 +27,7 @@ import { getEditorCommands } from "./features/editor_commands";
 
 export default class LatexSuitePlugin extends Plugin {
 	settings: LatexSuiteSettings;
-	snippets: Snippet[];
+	snippets: ParsedSnippet[];
 	autofractionExcludedEnvs: Environment[];
 	matrixShortcutsEnvNames: string[];
 	autoEnlargeBracketsTriggers: string[];

@@ -1,4 +1,4 @@
-import { Snippet } from "./snippets";
+import { ParsedSnippet, RawSnippet } from "./snippets";
 
 import { ViewUpdate } from "@codemirror/view";
 import { invertedEffects, undo, redo } from "@codemirror/commands";
@@ -8,10 +8,10 @@ import { removeEmptyTabstops } from "./tabstops_state_field";
 import { parse } from "json5";
 
 
-export function sortSnippets(snippets:Snippet[]) {
+export function sortSnippets(snippets:ParsedSnippet[]) {
     // Sort snippets by trigger length so longer snippets will have higher priority
 
-    function compareTriggerLength( a:Snippet, b:Snippet ) {
+    function compareTriggerLength( a:ParsedSnippet, b:ParsedSnippet ) {
         const aTriggerLength= a.trigger.length;
         const bTriggerLength= b.trigger.length;
 
@@ -27,7 +27,7 @@ export function sortSnippets(snippets:Snippet[]) {
 
     // Sort snippets in order of priority
 
-    function compare( a:Snippet, b:Snippet ) {
+    function compare( a:ParsedSnippet, b:ParsedSnippet ) {
         const aPriority = a.priority === undefined ? 0 : a.priority;
         const bPriority = b.priority === undefined ? 0 : b.priority;
 
@@ -45,15 +45,15 @@ export function sortSnippets(snippets:Snippet[]) {
 
 
 export function getSnippetsFromString(snippetsStr: string) {
-    const snippets = parse(snippetsStr);
+    const snippets: RawSnippet[] = parse(snippetsStr);
 
     if (!validateSnippets(snippets)) throw "Invalid snippet format.";
-    
-    return snippets;
+
+    return snippets.map(rawSnippet => new ParsedSnippet(rawSnippet));
 }
 
 
-export function validateSnippets(snippets: Snippet[]):boolean {
+export function validateSnippets(snippets: RawSnippet[]):boolean {
     let valid = true;
 
     for (const snippet of snippets) {
