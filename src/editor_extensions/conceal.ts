@@ -1,5 +1,6 @@
 // https://discuss.codemirror.net/t/concealing-syntax/3135
 
+import { livePreviewState } from "obsidian";
 import { EditorView, ViewUpdate, Decoration, DecorationSet, WidgetType, ViewPlugin } from "@codemirror/view";
 import { EditorSelection, Range } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
@@ -320,7 +321,7 @@ function concealAtoZ(eqn: string, prefix: string, suffix: string, symbolMap: {[k
 
 
 
-function concealBraKet(eqn: string, selection: EditorSelection, eqnStartBound: number):Concealment[] {
+function concealBraKet(eqn: string, selection: EditorSelection, eqnStartBound: number, mousedown: boolean):Concealment[] {
     const langle = "〈";
     const rangle = "〉";
     const vert = "|";
@@ -341,8 +342,10 @@ function concealBraKet(eqn: string, selection: EditorSelection, eqnStartBound: n
         const start = match.index;
         const end = start + match[0].length;
 
-        if (selectionAndRangeOverlap(selection, eqnStartBound + start, eqnStartBound + end)) continue;
-        if (selectionAndRangeOverlap(selection, eqnStartBound + j, eqnStartBound + j + 1)) continue;
+        if (!mousedown) {
+            if (selectionAndRangeOverlap(selection, eqnStartBound + start, eqnStartBound + end)) continue;
+            if (selectionAndRangeOverlap(selection, eqnStartBound + j, eqnStartBound + j + 1)) continue;
+        }
 
 
         const type = match[1];
@@ -360,7 +363,7 @@ function concealBraKet(eqn: string, selection: EditorSelection, eqnStartBound: n
 
 
 
-function concealFraction(eqn: string, selection: EditorSelection, eqnStartBound: number):Concealment[] {
+function concealFraction(eqn: string, selection: EditorSelection, eqnStartBound: number, mousedown: boolean):Concealment[] {
 
     const regexStr = "\\\\(frac){";
     const symbolRegex = new RegExp(regexStr, "g");
@@ -382,9 +385,11 @@ function concealFraction(eqn: string, selection: EditorSelection, eqnStartBound:
         const start = match.index;
         const end = start + match[0].length;
 
-        if (selectionAndRangeOverlap(selection, eqnStartBound + start, eqnStartBound + end)) continue;
-        if (selectionAndRangeOverlap(selection, eqnStartBound + j, eqnStartBound + j + 2)) continue;
-        if (selectionAndRangeOverlap(selection, eqnStartBound + k, eqnStartBound + k + 1)) continue;
+        if (!mousedown) {
+            if (selectionAndRangeOverlap(selection, eqnStartBound + start, eqnStartBound + end)) continue;
+            if (selectionAndRangeOverlap(selection, eqnStartBound + j, eqnStartBound + j + 2)) continue;
+            if (selectionAndRangeOverlap(selection, eqnStartBound + k, eqnStartBound + k + 1)) continue;
+        }
 
 
         concealments.push({start: start, end: end - 1, replacement: ""});
@@ -403,8 +408,13 @@ function concealFraction(eqn: string, selection: EditorSelection, eqnStartBound:
 
 function conceal(view: EditorView) {
 
-    const widgets: Range<Decoration>[] = []
+    const widgets: Range<Decoration>[] = [];
     const selection = view.state.selection;
+
+    // Make selecting LaTeX source easier
+    // By always applying conceal when the mouse is down (the user is making a selection)
+    // And not revealing source until the mouse is up
+    const mousedown = view.plugin(livePreviewState)?.mousedown;
 
 
     for (const { from, to } of view.visibleRanges) {
@@ -445,8 +455,8 @@ function conceal(view: EditorView) {
                 ...concealModifiedGreekLetters(eqn, greek),
                 ...concealModified_A_to_Z_0_to_9(eqn, mathbb),
                 ...concealText(eqn),
-                ...concealBraKet(eqn, selection, bounds.start),
-                ...concealFraction(eqn, selection, bounds.start),
+                ...concealBraKet(eqn, selection, bounds.start, mousedown),
+                ...concealFraction(eqn, selection, bounds.start, mousedown),
                 ...concealOperators(eqn, operators)
             ];
 
@@ -456,7 +466,7 @@ function conceal(view: EditorView) {
                 const end = bounds.start + concealment.end;
                 const symbol = concealment.replacement;
 
-                if (selectionAndRangeOverlap(selection, start, end)) continue;
+                if (!mousedown && selectionAndRangeOverlap(selection, start, end)) continue;
 
                 if (start === end) {
                     // Add an additional "/" symbol, as part of concealing \\frac{}{} -> ()/()
@@ -482,7 +492,7 @@ function conceal(view: EditorView) {
         });
     }
 
-    return Decoration.set(widgets, true)
+    return Decoration.set(widgets, true);
 }
 
 
