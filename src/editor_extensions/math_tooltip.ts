@@ -6,7 +6,7 @@ import {
 	isWithinEquation,
 	isWithinInlineEquation,
 } from "../editor_helpers";
-import { MarkdownRenderer } from "obsidian";
+import { MarkdownRenderer, editorLivePreviewField } from "obsidian";
 
 export const cursorTooltipField = StateField.define<readonly Tooltip[]>({
 	create: getCursorTooltips,
@@ -23,6 +23,10 @@ function getCursorTooltips(state: EditorState): readonly Tooltip[] {
 	const pos = state.selection.main.from;
 
 	if (isWithinEquation(state)) {
+		const isInline = isWithinInlineEquation(state, pos)
+		const isLivePreview = state.field(editorLivePreviewField);
+		if (!isInline && isLivePreview) return [];
+
 		const bounds = getEquationBounds(state, pos);
 		if (!bounds) return [];
 
@@ -38,9 +42,7 @@ function getCursorTooltips(state: EditorState): readonly Tooltip[] {
 				strictSide: true,
 				arrow: true,
 				create: () => {
-					const delimiter = isWithinInlineEquation(state, pos)
-						? "$"
-						: "$$";
+					const delimiter = isInline ? "$" : "$$";
 					const dom = document.createElement("div");
 					dom.className = "cm-tooltip-cursor";
 					MarkdownRenderer.renderMarkdown(
