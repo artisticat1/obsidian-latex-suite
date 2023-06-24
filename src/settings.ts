@@ -95,13 +95,13 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
                     this.plugin.settings.snippetsEnabled = value;
                     await this.plugin.saveSettings();
                 }));
-                
+
 
 		const snippetsSetting = new Setting(containerEl)
             .setName("Snippets")
             .setDesc("Enter snippets here.  Remember to add a comma after each snippet, and escape all backslashes with an extra \\. Lines starting with \"//\" will be treated as comments and ignored.")
             .setClass("snippets-text-area");
-        
+
 
         const customCSSWrapper = snippetsSetting.controlEl.createDiv("snippets-editor-wrapper");
         const snippetsFooter = snippetsSetting.controlEl.createDiv("snippets-footer");
@@ -249,7 +249,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
         this.snippetsFileLocEl = snippetsFileLoc.settingEl;
         new FileSuggest(this.app, inputEl);
-        
+
 
         // Hide settings that are not relevant when "loadSnippetsFromFile" is set to true/false
         const loadSnippetsFromFile = this.plugin.settings.loadSnippetsFromFile;
@@ -349,16 +349,25 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 
 
-        containerEl.createEl("div", {text: "Math preview"}).addClasses(["setting-item", "setting-item-heading", "setting-item-name"]);
+        containerEl.createEl("div", {text: "Math popup preview"}).addClasses(["setting-item", "setting-item-heading", "setting-item-name"]);
+
+        const popup_fragment = document.createDocumentFragment();
+        const popup_line1 = document.createElement("div");
+        popup_line1.setText("When inside an equation, show a popup preview window of the rendered math.");
+        const popup_space = document.createElement("br");
+        const popup_line4 = document.createElement("div");
+        popup_line4.setText("The popup preview will be shown for all inline math equations, as well as for block math equations in Source mode.");
+
+        popup_fragment.append(popup_line1, popup_space, popup_line4);
 
             new Setting(containerEl)
                 .setName("Enabled")
-                .setDesc("When inside an equation, show a popup preview window of the rendered math.")
+                .setDesc(popup_fragment)
                 .addToggle(toggle => toggle
                     .setValue(this.plugin.settings.mathPreviewEnabled)
                     .onChange(async (value) => {
                         this.plugin.settings.mathPreviewEnabled = value;
-    
+
                         if (value) {
                             this.plugin.enableExtension(cursorTooltipField);
                             this.plugin.enableExtension(cursorTooltipBaseTheme);
@@ -367,7 +376,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
                             this.plugin.disableExtension(cursorTooltipField);
                             this.plugin.disableExtension(cursorTooltipBaseTheme);
                         }
-    
+
                         await this.plugin.saveSettings();
                     }));
 
