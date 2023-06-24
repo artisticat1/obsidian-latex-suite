@@ -8,7 +8,7 @@ import LatexSuitePlugin from "src/main";
 export const autoEnlargeBrackets = (view: EditorView, plugin: LatexSuitePlugin) => {
     if (!plugin.settings.autoEnlargeBrackets) return;
 
-    const result = getEquationBounds(view);
+    const result = getEquationBounds(view.state);
     if (!result) return false;
     const {start, end} = result;
 

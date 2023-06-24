@@ -37,7 +37,7 @@ export const runAutoFractionCursor = (view: EditorView, range: SelectionRange, p
     }
 
     // Get the bounds of the equation
-    const result = getEquationBounds(view);
+    const result = getEquationBounds(view.state);
     if (!result) return false;
     const eqnStart = result.start;
 

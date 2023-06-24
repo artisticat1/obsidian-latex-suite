@@ -16,7 +16,6 @@ function getHighlightBracketMark(pos: number, className: string):Range<Decoratio
 
 
 function colorPairedBrackets(view: EditorView) {
-
     const widgets: Range<Decoration>[] = []
 
     for (const { from, to } of view.visibleRanges) {
@@ -29,7 +28,7 @@ function colorPairedBrackets(view: EditorView) {
                 return;
             }
 
-            const bounds = getEquationBounds(view, to+1);
+            const bounds = getEquationBounds(view.state, to+1);
             if (!bounds) return;
 
 
@@ -84,12 +83,12 @@ function highlightCursorBrackets(view: EditorView) {
     const ranges = selection.ranges;
     const text = view.state.doc.toString();
 
-    if (!isWithinEquation(view)) {
+    if (!isWithinEquation(view.state)) {
         return Decoration.set(widgets, true);
     }
 
 
-    const bounds = getEquationBounds(view, selection.main.to);
+    const bounds = getEquationBounds(view.state, selection.main.to);
     if (!bounds) return Decoration.set(widgets, true);
     const eqn = view.state.doc.sliceString(bounds.start, bounds.end);
 

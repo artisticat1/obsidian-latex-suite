@@ -15,7 +15,7 @@ import { clearSnippetQueue, snippetQueueStateField } from "./snippets/snippet_qu
 
 import { concealPlugin } from "./editor_extensions/conceal";
 import { colorPairedBracketsPluginLowestPrec, highlightCursorBracketsPlugin } from "./editor_extensions/highlight_brackets";
-import { cursorTooltipBaseTheme, cursorTooltipField } from "./editor_extensions/inline_math_tooltip";
+import { cursorTooltipBaseTheme, cursorTooltipField } from "./editor_extensions/math_tooltip";
 
 import { runSnippets } from "./features/run_snippets";
 import { runAutoFraction } from "./features/autofraction";
@@ -149,7 +149,7 @@ export default class LatexSuitePlugin extends Plugin {
 		if (this.settings.concealEnabled) this.enableExtension(concealPlugin.extension);
 		if (this.settings.colorPairedBracketsEnabled) this.enableExtension(colorPairedBracketsPluginLowestPrec);
 		if (this.settings.highlightCursorBracketsEnabled) this.enableExtension(highlightCursorBracketsPlugin.extension);
-		if (this.settings.inlineMathPreviewEnabled) {
+		if (this.settings.mathPreviewEnabled) {
 			this.enableExtension(cursorTooltipField);
 			this.enableExtension(cursorTooltipBaseTheme);
 		}
@@ -198,7 +198,7 @@ export default class LatexSuitePlugin extends Plugin {
 		const pos = s.main.to;
 		const ranges = Array.from(s.ranges).reverse(); // Last to first
 
-		const withinEquation = isWithinEquation(view);
+		const withinEquation = isWithinEquation(view.state);
 
 		// Check whether within "\text{}" or "\tag{}"
 		let withinMath = false;

@@ -106,7 +106,7 @@ export const runSnippetCursor = (view: EditorView, key: string, withinMath: bool
 
             if (spaceIndex != 0) {
 
-                const inlineMath = isWithinInlineEquation(view);
+                const inlineMath = isWithinInlineEquation(view.state);
 
                 if (inlineMath) {
                     if (spaceIndex === -1) {

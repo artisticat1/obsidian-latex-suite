@@ -6,7 +6,7 @@ export const tabout = (view: EditorView, withinEquation: boolean):boolean => {
     if (!withinEquation) return false;
 
     const pos = view.state.selection.main.to;
-    const result = getEquationBounds(view);
+    const result = getEquationBounds(view.state);
     if (!result) return false;
     const end = result.end;
 

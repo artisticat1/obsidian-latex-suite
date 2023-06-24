@@ -8,7 +8,7 @@ import { DEFAULT_SNIPPETS } from "./default_snippets";
 import LatexSuitePlugin from "./main";
 import { concealPlugin } from "./editor_extensions/conceal";
 import { colorPairedBracketsPluginLowestPrec, highlightCursorBracketsPlugin } from "./editor_extensions/highlight_brackets";
-import { cursorTooltipBaseTheme, cursorTooltipField } from "./editor_extensions/inline_math_tooltip";
+import { cursorTooltipBaseTheme, cursorTooltipField } from "./editor_extensions/math_tooltip";
 import { FileSuggest } from "./ui/file_suggest";
 import { debouncedSetSnippetsFromFileOrFolder } from "./snippets/file_watch";
 
@@ -24,7 +24,7 @@ export interface LatexSuiteSettings {
     concealEnabled: boolean,
     colorPairedBracketsEnabled: boolean;
     highlightCursorBracketsEnabled: boolean;
-    inlineMathPreviewEnabled: boolean;
+    mathPreviewEnabled: boolean;
     autofractionExcludedEnvs: string,
     autofractionBreakingChars: string;
     matrixShortcutsEnabled: boolean;
@@ -45,7 +45,7 @@ export const DEFAULT_SETTINGS: LatexSuiteSettings = {
     concealEnabled: false,
     colorPairedBracketsEnabled: true,
     highlightCursorBracketsEnabled: true,
-    inlineMathPreviewEnabled: true,
+    mathPreviewEnabled: true,
     autofractionEnabled: true,
     autofractionExcludedEnvs:
     `[
@@ -349,15 +349,15 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 
 
-        containerEl.createEl("div", {text: "Inline math preview"}).addClasses(["setting-item", "setting-item-heading", "setting-item-name"]);
+        containerEl.createEl("div", {text: "Math preview"}).addClasses(["setting-item", "setting-item-heading", "setting-item-name"]);
 
             new Setting(containerEl)
                 .setName("Enabled")
-                .setDesc("When inside inline math, show a popup preview window of the rendered math.")
+                .setDesc("When inside an equation, show a popup preview window of the rendered math.")
                 .addToggle(toggle => toggle
-                    .setValue(this.plugin.settings.inlineMathPreviewEnabled)
+                    .setValue(this.plugin.settings.mathPreviewEnabled)
                     .onChange(async (value) => {
-                        this.plugin.settings.inlineMathPreviewEnabled = value;
+                        this.plugin.settings.mathPreviewEnabled = value;
     
                         if (value) {
                             this.plugin.enableExtension(cursorTooltipField);

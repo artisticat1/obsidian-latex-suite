@@ -427,7 +427,7 @@ function conceal(view: EditorView) {
                 return;
             }
 
-            const bounds = getEquationBounds(view, to+1);
+            const bounds = getEquationBounds(view.state, to+1);
             if (!bounds) return;
 
 
