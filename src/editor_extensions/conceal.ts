@@ -47,22 +47,22 @@ class ConcealWidget extends WidgetType {
 
 
 class TextWidget extends WidgetType {
-    
+
     constructor(readonly symbol: string) {
         super();
     }
-    
+
     eq(other: TextWidget) {
         return (other.symbol == this.symbol);
     }
-    
+
     toDOM() {
         const span = document.createElement("span");
         span.className = "cm-math";
         span.textContent = this.symbol;
         return span;
     }
-    
+
     ignoreEvent() {
         return false;
     }
@@ -95,7 +95,7 @@ function escapeRegex(regex: string) {
 
 
 
-function concealSymbols(eqn: string, prefix: string, suffix: string, symbolMap: {[key: string]: string}, className?: string):Concealment[] {
+function concealSymbols(eqn: string, prefix: string, suffix: string, symbolMap: {[key: string]: string}, className?: string, allowSucceedingLetters = true):Concealment[] {
     const symbolNames = Object.keys(symbolMap);
 
     const regexStr = prefix + "(" + escapeRegex(symbolNames.join("|")) + ")" + suffix;
@@ -108,6 +108,15 @@ function concealSymbols(eqn: string, prefix: string, suffix: string, symbolMap: 
 
     for (const match of matches) {
         const symbol = match[1];
+
+        if (!allowSucceedingLetters) {
+            // If the symbol match is succeeded by a letter (e.g. "pm" in "pmatrix" is succeeded by "a"), don't conceal
+
+            const end = match.index + match[0].length;
+            if (eqn.charAt(end).match(/[a-zA-Z]/)) {
+                continue;
+            }
+        }
 
         concealments.push({start: match.index, end: match.index + match[0].length, replacement: symbolMap[symbol], class: className});
     }
@@ -288,7 +297,7 @@ function concealOperators(eqn: string, symbols: string[]):Concealment[] {
         const end = start + match[0].length;
 
         concealments.push({start: start, end: end, replacement: value, class: "cm-concealed-mathrm cm-variable-2"});
-        
+
     }
 
     return concealments;
@@ -440,7 +449,7 @@ function conceal(view: EditorView) {
                 ...concealSymbols(eqn, "\\^", "", map_super),
                 ...concealSymbols(eqn, "_", "", map_sub),
                 ...concealSymbols(eqn, "\\\\frac", "", fractions),
-                ...concealSymbols(eqn, "\\\\", "", ALL_SYMBOLS),
+                ...concealSymbols(eqn, "\\\\", "", ALL_SYMBOLS, undefined, false),
                 ...concealSupSub(eqn, true, ALL_SYMBOLS),
                 ...concealSupSub(eqn, false, ALL_SYMBOLS),
                 ...concealModifier(eqn, "hat", "\u0302"),
