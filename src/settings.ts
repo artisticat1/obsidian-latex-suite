@@ -25,6 +25,7 @@ export interface LatexSuiteSettings {
     colorPairedBracketsEnabled: boolean;
     highlightCursorBracketsEnabled: boolean;
     mathPreviewEnabled: boolean;
+	autofractionSymbol: string,
     autofractionExcludedEnvs: string,
     autofractionBreakingChars: string;
     matrixShortcutsEnabled: boolean;
@@ -47,6 +48,7 @@ export const DEFAULT_SETTINGS: LatexSuiteSettings = {
     highlightCursorBracketsEnabled: true,
     mathPreviewEnabled: true,
     autofractionEnabled: true,
+	autofractionSymbol: "\\frac",
     autofractionExcludedEnvs:
     `[
         ["^{", "}"],
@@ -391,6 +393,18 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
                 .setValue(this.plugin.settings.autofractionEnabled)
                 .onChange(async (value) => {
                     this.plugin.settings.autofractionEnabled = value;
+                    await this.plugin.saveSettings();
+                }));
+
+		new Setting(containerEl)
+            .setName("Fraction symbol")
+            .setDesc("The fraction symbol to use in the replacement. e.g. \\frac, \\dfrac, \\tfrac")
+            .addText(text => text
+                .setPlaceholder(DEFAULT_SETTINGS.autofractionSymbol)
+                .setValue(this.plugin.settings.autofractionSymbol)
+                .onChange(async (value) => {
+                    this.plugin.settings.autofractionSymbol = value;
+
                     await this.plugin.saveSettings();
                 }));
 

@@ -104,8 +104,7 @@ export const runAutoFractionCursor = (view: EditorView, range: SelectionRange, p
         numerator = numerator.slice(1, -1);
     }
 
-
-    const replacement = "\\frac{" + numerator + "}{$0}$1";
+	const replacement = `${plugin.settings.autofractionSymbol}{${numerator}}{$0}$1`
 
     queueSnippet(view, {from: start, to: to, insert: replacement, keyPressed: "/"});
 
