@@ -25,6 +25,7 @@ export interface LatexSuiteSettings {
     colorPairedBracketsEnabled: boolean;
     highlightCursorBracketsEnabled: boolean;
     mathPreviewEnabled: boolean;
+    autofractionSymbol: string,
     autofractionExcludedEnvs: string,
     autofractionBreakingChars: string;
     matrixShortcutsEnabled: boolean;
@@ -47,6 +48,7 @@ export const DEFAULT_SETTINGS: LatexSuiteSettings = {
     highlightCursorBracketsEnabled: true,
     mathPreviewEnabled: true,
     autofractionEnabled: true,
+    autofractionSymbol: "\\frac",
     autofractionExcludedEnvs:
     `[
         ["^{", "}"],
@@ -63,14 +65,14 @@ export const DEFAULT_SETTINGS: LatexSuiteSettings = {
 
 
 export class LatexSuiteSettingTab extends PluginSettingTab {
-	plugin: LatexSuitePlugin;
+    plugin: LatexSuitePlugin;
     snippetsEditor: EditorView;
     snippetsFileLocEl: HTMLElement;
 
-	constructor(app: App, plugin: LatexSuitePlugin) {
-		super(app, plugin);
-		this.plugin = plugin;
-	}
+    constructor(app: App, plugin: LatexSuitePlugin) {
+        super(app, plugin);
+        this.plugin = plugin;
+    }
 
 
     hide() {
@@ -78,10 +80,10 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
     }
 
 
-	display(): void {
-		const {containerEl} = this;
+    display(): void {
+        const {containerEl} = this;
 
-		containerEl.empty();
+        containerEl.empty();
 
         containerEl.createEl("div", {text: "Snippets"}).addClasses(["setting-item", "setting-item-heading", "setting-item-name"]);
 
@@ -97,7 +99,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
                 }));
 
 
-		const snippetsSetting = new Setting(containerEl)
+        const snippetsSetting = new Setting(containerEl)
             .setName("Snippets")
             .setDesc("Enter snippets here.  Remember to add a comma after each snippet, and escape all backslashes with an extra \\. Lines starting with \"//\" will be treated as comments and ignored.")
             .setClass("snippets-text-area");
@@ -394,20 +396,32 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 }));
 
+        new Setting(containerEl)
+            .setName("Fraction symbol")
+            .setDesc("The fraction symbol to use in the replacement. e.g. \\frac, \\dfrac, \\tfrac")
+            .addText(text => text
+                .setPlaceholder(DEFAULT_SETTINGS.autofractionSymbol)
+                .setValue(this.plugin.settings.autofractionSymbol)
+                .onChange(async (value) => {
+                    this.plugin.settings.autofractionSymbol = value;
+
+                    await this.plugin.saveSettings();
+                }));
+
 
         new Setting(containerEl)
             .setName("Excluded environments")
             .setDesc("A list of environments to exclude auto-fraction from running in. For example, to exclude auto-fraction from running while inside an exponent, such as e^{...}, use  [\"^{\", \"}\"]")
             .addTextArea(text => text
-				.setPlaceholder("[ [\"^{\", \"}] ]")
-				.setValue(this.plugin.settings.autofractionExcludedEnvs)
-				.onChange(async (value) => {
+                .setPlaceholder("[ [\"^{\", \"}] ]")
+                .setValue(this.plugin.settings.autofractionExcludedEnvs)
+                .onChange(async (value) => {
 
                     this.plugin.setAutofractionExcludedEnvs(value);
 
-					this.plugin.settings.autofractionExcludedEnvs = value;
-					await this.plugin.saveSettings();
-				}));
+                    this.plugin.settings.autofractionExcludedEnvs = value;
+                    await this.plugin.saveSettings();
+                }));
 
 
         new Setting(containerEl)
@@ -513,7 +527,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
                     this.plugin.settings.removeSnippetWhitespace = value;
                     await this.plugin.saveSettings();
                 }));
-	}
+    }
 }
 
 
