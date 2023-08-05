@@ -136,7 +136,7 @@ Snippets are formatted as follows:
 
 
 #### Options
-- `m` : Math mode. Only run this snippet inside math, shorthand for both `M` and `m`
+- `m` : Math mode. Only run this snippet inside math, shorthand for both `M` and `i`
 - `M` : Block math mode. Only run this snippet inside a `$$ ... $$` block
 - `i` : Inline math mode. Only run this snippet inside a `$ ... $` block
 - `t` : Text mode. Only run this snippet outside math
