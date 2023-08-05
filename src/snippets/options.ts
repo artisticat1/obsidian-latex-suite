@@ -107,7 +107,7 @@ export function parseMode(source: string):Mode {
 				mode.blockMath = true;
 				mode.inlineMath = true;
 				break;
-			case "i":
+			case "k":
 				mode.inlineMath = true;
 				break;
 			case "M":

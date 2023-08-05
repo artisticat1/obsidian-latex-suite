@@ -138,7 +138,7 @@ Snippets are formatted as follows:
 #### Options
 - `m` : Math mode. Only run this snippet inside math, shorthand for both `M` and `i`
 - `M` : Block math mode. Only run this snippet inside a `$$ ... $$` block
-- `i` : Inline math mode. Only run this snippet inside a `$ ... $` block
+- `k` : Inline math mode. Only run this snippet inside a `$ ... $` block
 - `t` : Text mode. Only run this snippet outside math
 - `A` : Auto. Expand this snippet as soon as the trigger is typed. If omitted, the <kbd>Tab</kbd> key must be pressed to expand the snippet
 - `r` : Regex. The `trigger` will be treated as a regular expression
