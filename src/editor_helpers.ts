@@ -104,21 +104,26 @@ export function langIfWithinCodeblock(view: EditorView | EditorState): string | 
     const tree = syntaxTree(state);
 
     let pos = state.selection.ranges[0].from;
-    const token = tree.resolveInner(pos - 1, 0).name;
-
-    // Allows detection of codeblock language at end of a line
-    const tokenLeft = tree.resolveInner(pos - 1, 1).name;
-    const tokenRight = tree.resolveInner(pos + 1, 1).name;
-    if (tokenLeft.contains("codeblock") && tokenRight.contains("codeblock")) {
-        pos += 1;
+    // debugging matrix for codeblock detection
+    for (const where of [pos - 1, pos, pos + 1]) {
+        for (const side of [-1, 0, 1]) {
+            const inCodeblock = tree.resolveInner(where, side).name.contains("codeblock");
+            console.log(where, side, inCodeblock);
+        }
     }
+    const posInCodeblock = tree.resolveInner(pos).name.contains("codeblock");
 
-    if (token.contains("codeblock")) {
-        let node = tree.resolveInner(pos, 1);
+    // Allows detection of a codeblock even if cursor is at start/end of a line
+    const leftInCodeblock = tree.resolveInner(pos - 1).name.contains("codeblock");
+    const rightInCodeblock = tree.resolveInner(pos + 1).name.contains("codeblock");
+
+    if (leftInCodeblock || posInCodeblock || rightInCodeblock) {
+        let node = tree.resolveInner(pos);
         let success = false;
 
         for (let i = 0; i < 100; i++) {
             // Iterate through nodes backwards until we find the beginning of the codeblock
+            console.log(node.type.name);
             if (node.type.name.contains("HyperMD-codeblock_HyperMD-codeblock-begin")) {
                 success = true;
                 break;
@@ -127,8 +132,7 @@ export function langIfWithinCodeblock(view: EditorView | EditorState): string | 
             const sibling = node.prevSibling;
             if (sibling) {
                 node = sibling;
-            }
-            else {
+            } else {
                 const parent = node.parent;
                 if (parent) {
                     node = parent;
@@ -143,8 +147,6 @@ export function langIfWithinCodeblock(view: EditorView | EditorState): string | 
 
             // Strip backticks "```" and return the language
             return codeblockBegin.slice(3);
-        } else {
-            return null;
         }
     }
 

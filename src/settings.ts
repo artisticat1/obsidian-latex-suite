@@ -34,6 +34,8 @@ export interface LatexSuiteSettings {
     autoEnlargeBrackets: boolean;
     autoEnlargeBracketsTriggers: string;
     wordDelimiters: string;
+    ignoreMathLanguages: string,
+    forceMathLanguages: string,
 }
 
 export const DEFAULT_SETTINGS: LatexSuiteSettings = {
@@ -60,7 +62,9 @@ export const DEFAULT_SETTINGS: LatexSuiteSettings = {
     taboutEnabled: true,
     autoEnlargeBrackets: true,
     autoEnlargeBracketsTriggers: "sum, int, frac, prod",
-    wordDelimiters: "., +-\\n\t:;!?\\/{}[]()=~$"
+    wordDelimiters: "., +-\\n\t:;!?\\/{}[]()=~$",
+    ignoreMathLanguages: "bash, php, perl, julia, sh",
+    forceMathLanguages: "math",
 }
 
 
@@ -276,39 +280,69 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
         );
 
 
-        containerEl.createEl("div", {text: "Conceal"}).addClasses(["setting-item", "setting-item-heading", "setting-item-name"]);
-
-        const fragment = document.createDocumentFragment();
-        const line1 = document.createElement("div");
-        line1.setText("Make equations more readable by hiding LaTeX markup and instead displaying it in a pretty format.");
-        const line2 = document.createElement("div");
-        line2.setText("e.g. \\dot{x}^{2} + \\dot{y}^{2} will display as ẋ² + ẏ², and \\sqrt{ 1-\\beta^{2} } will display as √{ 1-β² }.");
-        const line3 = document.createElement("div");
-        line3.setText("LaTeX beneath the cursor will be revealed.");
-        const space = document.createElement("br");
-        const line4 = document.createElement("div");
-        line4.setText("Disabled by default to not confuse new users. However, I recommend turning this on once you are comfortable with the plugin!");
-
-        fragment.append(line1, line2, line3, space, line4);
-
-
         new Setting(containerEl)
-            .setName("Enabled")
-            .setDesc(fragment)
-            .addToggle(toggle => toggle
-                .setValue(this.plugin.settings.concealEnabled)
+            .setName("Code languages ignoring math mode")
+            .setDesc("Codeblock languages where $ in code should not be interpreted as math mode delimiters, separated by commas.")
+            .addText(text => text
+                .setPlaceholder(DEFAULT_SETTINGS.ignoreMathLanguages)
+                .setValue(this.plugin.settings.ignoreMathLanguages)
                 .onChange(async (value) => {
-                    this.plugin.settings.concealEnabled = value;
-
-                    if (value) {
-                        this.plugin.enableExtension(concealPlugin.extension);
-                    }
-                    else {
-                        this.plugin.disableExtension(concealPlugin.extension);
-                    }
+                    this.plugin.settings.ignoreMathLanguages = value;
+                    this.plugin.ignoreMathLanguages = value.replace(/\s/g,"").split(",");
 
                     await this.plugin.saveSettings();
                 }));
+
+
+        new Setting(containerEl)
+            .setName("Code languages to interpret as math mode")
+            .setDesc("Codeblock languages where the whole code block should be treated like a math block, separated by commas.")
+            .addText(text => text
+                .setPlaceholder(DEFAULT_SETTINGS.forceMathLanguages)
+                .setValue(this.plugin.settings.forceMathLanguages)
+                .onChange(async (value) => {
+                    this.plugin.settings.forceMathLanguages = value;
+                    this.plugin.forceMathLanguages = value.replace(/\s/g,"").split(",");
+
+                    await this.plugin.saveSettings();
+                }));
+
+
+        containerEl.createEl("div", {text: "Conceal"}).addClasses(["setting-item", "setting-item-heading", "setting-item-name"]);
+
+        {
+            const fragment = document.createDocumentFragment();
+            const line1 = document.createElement("div");
+            line1.setText("Make equations more readable by hiding LaTeX markup and instead displaying it in a pretty format.");
+            const line2 = document.createElement("div");
+            line2.setText("e.g. \\dot{x}^{2} + \\dot{y}^{2} will display as ẋ² + ẏ², and \\sqrt{ 1-\\beta^{2} } will display as √{ 1-β² }.");
+            const line3 = document.createElement("div");
+            line3.setText("LaTeX beneath the cursor will be revealed.");
+            const space = document.createElement("br");
+            const line4 = document.createElement("div");
+            line4.setText("Disabled by default to not confuse new users. However, I recommend turning this on once you are comfortable with the plugin!");
+
+            fragment.append(line1, line2, line3, space, line4);
+
+
+            new Setting(containerEl)
+                .setName("Enabled")
+                .setDesc(fragment)
+                .addToggle(toggle => toggle
+                    .setValue(this.plugin.settings.concealEnabled)
+                    .onChange(async (value) => {
+                        this.plugin.settings.concealEnabled = value;
+
+                        if (value) {
+                            this.plugin.enableExtension(concealPlugin.extension);
+                        }
+                        else {
+                            this.plugin.disableExtension(concealPlugin.extension);
+                        }
+
+                        await this.plugin.saveSettings();
+                    }));
+        }
 
 
         containerEl.createEl("div", {text: "Highlight and color brackets"}).addClasses(["setting-item", "setting-item-heading", "setting-item-name"]);

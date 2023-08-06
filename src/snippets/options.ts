@@ -1,6 +1,7 @@
 import { EditorView } from "@codemirror/view";
 
 import { isInsideEnvironment, isWithinEquation, isWithinInlineEquation, langIfWithinCodeblock } from "src/editor_helpers";
+import LatexSuitePlugin from "src/main";
 
 export class Options {
 	mode!: Mode;
@@ -69,13 +70,13 @@ export class Mode {
 	}
 }
 
-export function modeAtViewPos(view: EditorView, pos: number):Mode {
+export function modeAtViewPos(view: EditorView, pos: number, plugin: LatexSuitePlugin):Mode {
 	let mode = new Mode();
 
 	const codeLanguage = langIfWithinCodeblock(view);
 	const inCode = codeLanguage !== null;
-	const ignoreMath = inCode && ["bash", "php", "perl", "julia", "sh"].contains(codeLanguage);
-	const forceMath = ["math"].contains(codeLanguage);
+	const ignoreMath = inCode && plugin.ignoreMathLanguages.contains(codeLanguage);
+	const forceMath = inCode && plugin.forceMathLanguages.contains(codeLanguage);
 
 	let inMath = forceMath || (
 		!ignoreMath

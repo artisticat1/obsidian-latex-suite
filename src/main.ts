@@ -31,6 +31,8 @@ export default class LatexSuitePlugin extends Plugin {
 	autofractionExcludedEnvs: Environment[];
 	matrixShortcutsEnvNames: string[];
 	autoEnlargeBracketsTriggers: string[];
+    ignoreMathLanguages: string[];
+    forceMathLanguages: string[];
 
 	private cursorTriggeredByChange = false;
 	private editorExtensions:Extension[] = [];
@@ -145,6 +147,8 @@ export default class LatexSuitePlugin extends Plugin {
 		this.setAutofractionExcludedEnvs(this.settings.autofractionExcludedEnvs);
 		this.matrixShortcutsEnvNames = this.settings.matrixShortcutsEnvNames.replace(/\s/g,"").split(",");
 		this.autoEnlargeBracketsTriggers = this.settings.autoEnlargeBracketsTriggers.replace(/\s/g,"").split(",");
+		this.ignoreMathLanguages = this.settings.ignoreMathLanguages.replace(/\s/g,"").split(",");
+		this.forceMathLanguages = this.settings.forceMathLanguages.replace(/\s/g,"").split(",");
 
 
 		if (this.settings.concealEnabled) this.enableExtension(concealPlugin.extension);
@@ -199,7 +203,7 @@ export default class LatexSuitePlugin extends Plugin {
 		const pos = s.main.to;
 		const ranges = Array.from(s.ranges).reverse(); // Last to first
 
-		const mode = modeAtViewPos(view, pos);
+		const mode = modeAtViewPos(view, pos, this);
 		console.log(mode);  // TODO(multisn8): <-- remove this when the PR is done
 
 		let success = false;
