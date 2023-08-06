@@ -75,19 +75,22 @@ export function modeAtViewPos(view: EditorView, pos: number):Mode {
 	const codeLanguage = langIfWithinCodeblock(view);
 	const inCode = codeLanguage !== null;
 	const ignoreMath = inCode && ["bash", "php", "perl", "julia", "sh"].contains(codeLanguage);
+	const forceMath = ["math"].contains(codeLanguage);
 
-	let inMath = !ignoreMath
+	let inMath = forceMath || (
+		!ignoreMath
 		&& isWithinEquation(view.state)
 		&& !(
 			isInsideEnvironment(view, pos, {openSymbol: "\\text{", closeSymbol: "}"})
 			|| isInsideEnvironment(view, pos, {openSymbol: "\\tag{", closeSymbol: "}"})
-		);
+		)
+	);
 	const inInlineEquation = isWithinInlineEquation(view.state);
 
 	mode.text = !inCode && !inMath;
 	mode.blockMath = inMath && !inInlineEquation;
 	mode.inlineMath = inMath && inInlineEquation;
-	mode.code = inCode;
+	mode.code = inCode && !forceMath;
 
 	return mode;
 }
