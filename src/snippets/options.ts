@@ -73,7 +73,7 @@ export class Mode {
 export function modeAtViewPos(view: EditorView, pos: number, plugin: LatexSuitePlugin):Mode {
 	let mode = new Mode();
 
-	const codeLanguage = langIfWithinCodeblock(view);
+	const codeLanguage = langIfWithinCodeblock(view, plugin);
 	const inCode = codeLanguage !== null;
 	const ignoreMath = inCode && plugin.ignoreMathLanguages.contains(codeLanguage);
 	const forceMath = inCode && plugin.forceMathLanguages.contains(codeLanguage);

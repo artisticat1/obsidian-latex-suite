@@ -3,6 +3,7 @@ import { Environment } from "./snippets/snippets";
 import { EditorView } from "@codemirror/view";
 import { EditorSelection, SelectionRange, EditorState } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
+import LatexSuitePlugin from "./main";
 
 
 export function replaceRange(view: EditorView, start: number, end: number, replacement: string) {
@@ -99,58 +100,31 @@ export function isWithinInlineEquation(
 }
 
 
-export function langIfWithinCodeblock(view: EditorView | EditorState): string | null {
+export function langIfWithinCodeblock(view: EditorView | EditorState, plugin: LatexSuitePlugin): string | null {
     const state = view instanceof EditorView ? view.state : view;
-    const tree = syntaxTree(state);
 
-    let pos = state.selection.ranges[0].from;
-    // debugging matrix for codeblock detection
-    for (const where of [pos - 1, pos, pos + 1]) {
-        for (const side of [-1, 0, 1]) {
-            const inCodeblock = tree.resolveInner(where, side).name.contains("codeblock");
-            console.log(where, side, inCodeblock);
-        }
-    }
-    const posInCodeblock = tree.resolveInner(pos).name.contains("codeblock");
+    const pos = state.selection.ranges[0].from;
 
-    // Allows detection of a codeblock even if cursor is at start/end of a line
-    const leftInCodeblock = tree.resolveInner(pos - 1).name.contains("codeblock");
-    const rightInCodeblock = tree.resolveInner(pos + 1).name.contains("codeblock");
+    // indirectly assuming that we actually are in a file atm + at least one file has been opened yet
+    // otherwise there is no reason this function would fire
+    const activeFile = plugin.app.workspace.getActiveFile()!;
+    const sections = plugin.app.metadataCache.getFileCache(activeFile).sections;
+    const codeblock = sections.find((section) =>
+        section.type == "code"
+            && section.position.start.offset <= pos
+            && section.position.end.offset >= pos
+    );
 
-    if (leftInCodeblock || posInCodeblock || rightInCodeblock) {
-        let node = tree.resolveInner(pos);
-        let success = false;
-
-        for (let i = 0; i < 100; i++) {
-            // Iterate through nodes backwards until we find the beginning of the codeblock
-            console.log(node.type.name);
-            if (node.type.name.contains("HyperMD-codeblock_HyperMD-codeblock-begin")) {
-                success = true;
-                break;
-            }
-
-            const sibling = node.prevSibling;
-            if (sibling) {
-                node = sibling;
-            } else {
-                const parent = node.parent;
-                if (parent) {
-                    node = parent;
-                } else {
-                    break;
-                }
-            }
-        }
-
-        if (success) {
-            const codeblockBegin = state.sliceDoc(node.from, node.to); // Returns e.g. "```latex"
-
-            // Strip backticks "```" and return the language
-            return codeblockBegin.slice(3);
-        }
+    if (codeblock == undefined) {
+        // no matching codeblock found
+        return null;
     }
 
-    return null;
+    // line might contain an arbitrary number of backticks at start, which don't belong to the language (if any)
+    const line = state.doc.lineAt(codeblock.position.start.offset);
+    const language = line.text.replace(/`+/, "");
+
+    return language;
 }
 
 
