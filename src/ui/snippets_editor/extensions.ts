@@ -1,11 +1,11 @@
 import {
-    keymap,
-    highlightSpecialChars,
-    drawSelection,
-    dropCursor,
-    EditorView,
-    lineNumbers,
-    rectangularSelection
+	keymap,
+	highlightSpecialChars,
+	drawSelection,
+	dropCursor,
+	EditorView,
+	lineNumbers,
+	rectangularSelection
   } from "@codemirror/view";
   import { Extension, EditorState } from "@codemirror/state";
   import { javascript } from "@codemirror/lang-javascript";
@@ -18,28 +18,28 @@ import {
 
 
   export const basicSetup: Extension[] = [
-    lineNumbers(),
-    highlightSpecialChars(),
-    history(),
-    javascript(),
-    drawSelection(),
-    dropCursor(),
-    EditorState.allowMultipleSelections.of(true),
-    indentOnInput(),
-    indentUnit.of("    "),
-    syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
-    EditorView.lineWrapping,
-    bracketMatching(),
-    closeBrackets(),
-    rectangularSelection(),
-    highlightSelectionMatches(),
-    obsidian,
-    keymap.of([
-      ...closeBracketsKeymap,
-      ...defaultKeymap,
-      ...searchKeymap,
-      ...historyKeymap,
-      indentWithTab,
-      ...lintKeymap,
-    ]),
+	lineNumbers(),
+	highlightSpecialChars(),
+	history(),
+	javascript(),
+	drawSelection(),
+	dropCursor(),
+	EditorState.allowMultipleSelections.of(true),
+	indentOnInput(),
+	indentUnit.of("    "),
+	syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+	EditorView.lineWrapping,
+	bracketMatching(),
+	closeBrackets(),
+	rectangularSelection(),
+	highlightSelectionMatches(),
+	obsidian,
+	keymap.of([
+	  ...closeBracketsKeymap,
+	  ...defaultKeymap,
+	  ...searchKeymap,
+	  ...historyKeymap,
+	  indentWithTab,
+	  ...lintKeymap,
+	]),
   ].filter(ext => ext);

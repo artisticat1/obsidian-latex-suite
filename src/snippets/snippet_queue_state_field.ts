@@ -2,10 +2,10 @@ import { EditorView } from "@codemirror/view";
 import { StateEffect, StateField } from "@codemirror/state";
 
 export interface SnippetToAdd {
-    from: number,
-    to: number,
-    insert: string,
-    keyPressed?: string
+	from: number,
+	to: number,
+	insert: string,
+	keyPressed?: string
 }
 
 export const queueSnippetEffect = StateEffect.define<SnippetToAdd>();
@@ -13,35 +13,35 @@ export const clearSnippetQueueEffect = StateEffect.define();
 
 export const snippetQueueStateField = StateField.define<SnippetToAdd[]>({
 
-    create(editorState) {
-        return [];
-    },
+	create(editorState) {
+		return [];
+	},
 
-    update(oldState, transaction) {
-        let snippetQueue = oldState;
+	update(oldState, transaction) {
+		let snippetQueue = oldState;
 
-        for (const effect of transaction.effects) {
-            if (effect.is(queueSnippetEffect)) {
-                snippetQueue.push(effect.value);
-            }
-            else if (effect.is(clearSnippetQueueEffect)) {
-                snippetQueue = [];
-            }
-        }
+		for (const effect of transaction.effects) {
+			if (effect.is(queueSnippetEffect)) {
+				snippetQueue.push(effect.value);
+			}
+			else if (effect.is(clearSnippetQueueEffect)) {
+				snippetQueue = [];
+			}
+		}
 
-        return snippetQueue;
-    },
+		return snippetQueue;
+	},
 });
 
 
 export function queueSnippet(view: EditorView, snippet: SnippetToAdd) {
-    view.dispatch({
-        effects: [queueSnippetEffect.of(snippet)],
-    });
+	view.dispatch({
+		effects: [queueSnippetEffect.of(snippet)],
+	});
 }
 
 export function clearSnippetQueue(view: EditorView) {
-    view.dispatch({
-        effects: [clearSnippetQueueEffect.of(null)],
-    });
+	view.dispatch({
+		effects: [clearSnippetQueueEffect.of(null)],
+	});
 }

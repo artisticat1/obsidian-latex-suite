@@ -31,8 +31,8 @@ export default class LatexSuitePlugin extends Plugin {
 	autofractionExcludedEnvs: Environment[];
 	matrixShortcutsEnvNames: string[];
 	autoEnlargeBracketsTriggers: string[];
-    ignoreMathLanguages: string[];
-    forceMathLanguages: string[];
+	ignoreMathLanguages: string[];
+	forceMathLanguages: string[];
 
 	private cursorTriggeredByChange = false;
 	private editorExtensions:Extension[] = [];
@@ -46,8 +46,8 @@ export default class LatexSuitePlugin extends Plugin {
 
 		// Register keymaps
 		this.registerEditorExtension(Prec.highest(EditorView.domEventHandlers({
-            "keydown": this.onKeydown
-        })));
+			"keydown": this.onKeydown
+		})));
 
 
 		// Register editor extensions required for snippets
@@ -102,20 +102,20 @@ export default class LatexSuitePlugin extends Plugin {
 
 
 	private readonly handleDocChange = () => {
-        this.cursorTriggeredByChange = true;
-    }
+		this.cursorTriggeredByChange = true;
+	}
 
 
-    private readonly handleCursorActivity = (view: EditorView, pos: number) => {
-        if (this.cursorTriggeredByChange) {
-            this.cursorTriggeredByChange = false;
-            return;
-        }
+	private readonly handleCursorActivity = (view: EditorView, pos: number) => {
+		if (this.cursorTriggeredByChange) {
+			this.cursorTriggeredByChange = false;
+			return;
+		}
 
-        if (!isInsideATabstop(pos, view) || isInsideLastTabstop(view)) {
-            removeAllTabstops(view);
-        }
-    }
+		if (!isInsideATabstop(pos, view) || isInsideLastTabstop(view)) {
+			removeAllTabstops(view);
+		}
+	}
 
 
 	enableExtension(extension: Extension) {
@@ -265,8 +265,8 @@ export default class LatexSuitePlugin extends Plugin {
 
 
 	private readonly handleTabstops = (view: EditorView):boolean => {
-        const success = consumeAndGotoNextTabstop(view);
+		const success = consumeAndGotoNextTabstop(view);
 
 		return success;
-    }
+	}
 }

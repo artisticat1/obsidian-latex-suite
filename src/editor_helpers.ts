@@ -7,81 +7,81 @@ import LatexSuitePlugin from "./main";
 
 
 export function replaceRange(view: EditorView, start: number, end: number, replacement: string) {
-    view.dispatch({
-        changes: {from: start, to: end, insert: replacement}
-    });
+	view.dispatch({
+		changes: {from: start, to: end, insert: replacement}
+	});
 }
 
 
 export function getCharacterAtPos(view: EditorView, pos: number) {
-    const doc = view.state.doc;
+	const doc = view.state.doc;
 
-    return doc.slice(pos, pos+1).toString();
+	return doc.slice(pos, pos+1).toString();
 }
 
 
 export function setCursor(view: EditorView, pos: number) {
-    view.dispatch({
-        selection: {anchor: pos, head: pos}
-    });
+	view.dispatch({
+		selection: {anchor: pos, head: pos}
+	});
 
-    resetCursorBlink();
+	resetCursorBlink();
 }
 
 
 export function setSelection(view: EditorView, start: number, end: number) {
-    view.dispatch({
-        selection: {anchor: start, head: end}
-    });
+	view.dispatch({
+		selection: {anchor: start, head: end}
+	});
 
-    resetCursorBlink();
+	resetCursorBlink();
 }
 
 
 export function setSelections(view: EditorView, ranges: SelectionRange[]) {
-    view.dispatch({
-        selection: EditorSelection.create(ranges)
-    });
+	view.dispatch({
+		selection: EditorSelection.create(ranges)
+	});
 
-    resetCursorBlink();
+	resetCursorBlink();
 }
 
 
 
 export function resetCursorBlink() {
-    if (Platform.isMobile) return;
+	if (Platform.isMobile) return;
 
-    const cursorLayer = document.getElementsByClassName("cm-cursorLayer")[0] as HTMLElement;
-    
-    if (cursorLayer) {
-        const curAnim = cursorLayer.style.animationName;
-        cursorLayer.style.animationName = curAnim === "cm-blink" ? "cm-blink2" : "cm-blink";
-    }
+	const cursorLayer = document.getElementsByClassName("cm-cursorLayer")[0] as HTMLElement;
+
+	if (cursorLayer) {
+		const curAnim = cursorLayer.style.animationName;
+		cursorLayer.style.animationName = curAnim === "cm-blink" ? "cm-blink2" : "cm-blink";
+	}
 }
 
 
 export function isWithinEquation(state: EditorState):boolean {
-    const pos = state.selection.main.to - 1;
-    const tree = syntaxTree(state);
+	const pos = state.selection.main.to - 1;
+	const tree = syntaxTree(state);
 
-    const token = tree.resolveInner(pos, 1).name;
-    let withinEquation = token.contains("math");
+	const token = tree.resolveInner(pos, 1).name;
+	let withinEquation = token.contains("math");
 
-    if (!withinEquation) {
-        // Allows detection of math mode at beginning of a line
+	if (!withinEquation) {
+		// Allows detection of math mode at beginning of a line
 
-        const tokenLeft = tree.resolveInner(pos - 1, 1).name;
-        const tokenRight = tree.resolveInner(pos + 1, 1).name;
+		const tokenLeft = tree.resolveInner(pos - 1, 1).name;
+		const tokenRight = tree.resolveInner(pos + 1, 1).name;
 
-        if (tokenLeft.contains("math") && tokenRight.contains("math")) {
-            withinEquation = true;
-        }
-    }
-    else if (token.contains("end")) {
-            withinEquation = false;
-    }
-    
-    return withinEquation;
+		if (tokenLeft.contains("math") && tokenRight.contains("math")) {
+			withinEquation = true;
+		}
+	}
+	else if (token.contains("end")) {
+			withinEquation = false;
+	}
+
+	return withinEquation;
 }
 
 
@@ -90,41 +90,41 @@ export function isWithinInlineEquation(
 	pos: number = state.selection.main.from
 ): boolean {
 	const result = getEquationBounds(state, pos);
-    if (!result) return false;
-    const end = result.end;
+	if (!result) return false;
+	const end = result.end;
 
-    // Check whether we're in inline math or a block eqn
-    const inlineMath = state.doc.sliceString(end, end+2) != "$$";
+	// Check whether we're in inline math or a block eqn
+	const inlineMath = state.doc.sliceString(end, end+2) != "$$";
 
-    return inlineMath;
+	return inlineMath;
 }
 
 
 export function langIfWithinCodeblock(view: EditorView | EditorState, plugin: LatexSuitePlugin): string | null {
-    const state = view instanceof EditorView ? view.state : view;
+	const state = view instanceof EditorView ? view.state : view;
 
-    const pos = state.selection.ranges[0].from;
+	const pos = state.selection.ranges[0].from;
 
-    // indirectly assuming that we actually are in a file atm + at least one file has been opened yet
-    // otherwise there is no reason this function would fire
-    const activeFile = plugin.app.workspace.getActiveFile()!;
-    const sections = plugin.app.metadataCache.getFileCache(activeFile).sections;
-    const codeblock = sections.find((section) =>
-        section.type == "code"
-            && section.position.start.offset <= pos
-            && section.position.end.offset >= pos
-    );
+	// indirectly assuming that we actually are in a file atm + at least one file has been opened yet
+	// otherwise there is no reason this function would fire
+	const activeFile = plugin.app.workspace.getActiveFile()!;
+	const sections = plugin.app.metadataCache.getFileCache(activeFile).sections;
+	const codeblock = sections.find((section) =>
+		section.type == "code"
+			&& section.position.start.offset <= pos
+			&& section.position.end.offset >= pos
+	);
 
-    if (codeblock == undefined) {
-        // no matching codeblock found
-        return null;
-    }
+	if (codeblock == undefined) {
+		// no matching codeblock found
+		return null;
+	}
 
-    // line might contain an arbitrary number of backticks at start, which don't belong to the language (if any)
-    const line = state.doc.lineAt(codeblock.position.start.offset);
-    const language = line.text.replace(/`+/, "");
+	// line might contain an arbitrary number of backticks at start, which don't belong to the language (if any)
+	const line = state.doc.lineAt(codeblock.position.start.offset);
+	const language = line.text.replace(/`+/, "");
 
-    return language;
+	return language;
 }
 
 
@@ -133,178 +133,178 @@ export function langIfWithinCodeblock(view: EditorView | EditorState, plugin: La
  * Returns n if pos+n is inside an equation
  *  */
 export function isTouchingInlineEquation(state: EditorState, pos: number):number {
-    const tree = syntaxTree(state);
-    const prevToken = tree.resolveInner(pos-1, 1).name;
-    const token = tree.resolveInner(pos, 1).name;
-    const nextToken = tree.resolveInner(pos+1, 1).name;
-    
-    if (token.contains("math-end") && !(prevToken.contains("math-end")) && !(nextToken.contains("math-end"))) {
-        return -1;
-    }
-    else if (!(token.contains("math-begin")) && nextToken.contains("math-begin")) {
-        const nextNextToken = tree.resolveInner(pos+2, 1).name;
+	const tree = syntaxTree(state);
+	const prevToken = tree.resolveInner(pos-1, 1).name;
+	const token = tree.resolveInner(pos, 1).name;
+	const nextToken = tree.resolveInner(pos+1, 1).name;
 
-        if (!(nextNextToken.contains("math-begin"))) {
-            return 1;
-        }
-    }
+	if (token.contains("math-end") && !(prevToken.contains("math-end")) && !(nextToken.contains("math-end"))) {
+		return -1;
+	}
+	else if (!(token.contains("math-begin")) && nextToken.contains("math-begin")) {
+		const nextNextToken = tree.resolveInner(pos+2, 1).name;
 
-    return 0;
+		if (!(nextNextToken.contains("math-begin"))) {
+			return 1;
+		}
+	}
+
+	return 0;
 }
 
 
 export function getEquationBounds(state: EditorState, pos: number = state.selection.main.from):{start: number, end: number} {
-    let text = state.doc.toString();
+	let text = state.doc.toString();
 
-    // ignore \$
-    text = text.replaceAll("\\$", "\\R");
+	// ignore \$
+	text = text.replaceAll("\\$", "\\R");
 
-    const left = text.lastIndexOf("$", pos-1);
-    const right = text.indexOf("$", pos);
+	const left = text.lastIndexOf("$", pos-1);
+	const right = text.indexOf("$", pos);
 
-    if (left === -1 || right === -1) return;
+	if (left === -1 || right === -1) return;
 
-    return {start: left + 1, end: right};
+	return {start: left + 1, end: right};
 }
 
 
 
 export function isInsideEnvironment(view: EditorView, pos: number, env: Environment):boolean {
-    const result = getEquationBounds(view.state);
-    if (!result) return false;
-    const {start, end} = result;
-    const text = view.state.doc.toString();
-    const {openSymbol, closeSymbol} = env;
+	const result = getEquationBounds(view.state);
+	if (!result) return false;
+	const {start, end} = result;
+	const text = view.state.doc.toString();
+	const {openSymbol, closeSymbol} = env;
 
-    // Restrict our search to the equation we're currently in
-    const curText = text.slice(start, end);
+	// Restrict our search to the equation we're currently in
+	const curText = text.slice(start, end);
 
-    const openBracket = openSymbol.slice(-1);
-    const closeBracket = getCloseBracket(openBracket);
-
-
-    // Take care when the open symbol ends with a bracket {, [, or (
-    // as then the closing symbol, }, ] or ), is not unique to this open symbol
-    let offset;
-    let openSearchSymbol;
-
-    if (["{", "[", "("].contains(openBracket) && closeSymbol === closeBracket) {
-        offset = openSymbol.length - 1;
-        openSearchSymbol = openBracket;
-    }
-    else {
-        offset = 0;
-        openSearchSymbol = openSymbol;
-    }
+	const openBracket = openSymbol.slice(-1);
+	const closeBracket = getCloseBracket(openBracket);
 
 
-    let left = curText.lastIndexOf(openSymbol, pos - start - 1);
+	// Take care when the open symbol ends with a bracket {, [, or (
+	// as then the closing symbol, }, ] or ), is not unique to this open symbol
+	let offset;
+	let openSearchSymbol;
 
-    while (left != -1) {
-        const right = findMatchingBracket(curText, left + offset, openSearchSymbol, closeSymbol, false);
+	if (["{", "[", "("].contains(openBracket) && closeSymbol === closeBracket) {
+		offset = openSymbol.length - 1;
+		openSearchSymbol = openBracket;
+	}
+	else {
+		offset = 0;
+		openSearchSymbol = openSymbol;
+	}
 
-        if (right === -1) return false;
 
-        // Check whether the cursor lies inside the environment symbols
-        if ((right >= pos - start) && (pos - start >= left + openSymbol.length)) {
-            return true;
-        }
+	let left = curText.lastIndexOf(openSymbol, pos - start - 1);
 
-        if (left <= 0) return false;
+	while (left != -1) {
+		const right = findMatchingBracket(curText, left + offset, openSearchSymbol, closeSymbol, false);
 
-        // Find the next open symbol
-        left = curText.lastIndexOf(openSymbol, left - 1);
-    }
+		if (right === -1) return false;
 
-    return false;
+		// Check whether the cursor lies inside the environment symbols
+		if ((right >= pos - start) && (pos - start >= left + openSymbol.length)) {
+			return true;
+		}
+
+		if (left <= 0) return false;
+
+		// Find the next open symbol
+		left = curText.lastIndexOf(openSymbol, left - 1);
+	}
+
+	return false;
 }
 
 
 export function getEnclosingBracketsPos(view: EditorView, pos: number) {
-    
-    const result = getEquationBounds(view.state);
-    if (!result) return -1;
-    const {start, end} = result;
-    const text = view.state.doc.sliceString(start, end);
+
+	const result = getEquationBounds(view.state);
+	if (!result) return -1;
+	const {start, end} = result;
+	const text = view.state.doc.sliceString(start, end);
 
 
-    for (let i = pos-start; i > 0; i--) {
-        let curChar = text.charAt(i);
-        
-        
-        if ([")", "]", "}"].contains(curChar)) {
-            const closeBracket = curChar;
-            const openBracket = getOpenBracket(closeBracket);
-            
-            const j = findMatchingBracket(text, i, openBracket, closeBracket, true);
-            
-            if (j === -1) return -1;
-            
-            // Skip to the beginnning of the bracket
-            i = j;
-            curChar = text.charAt(i);
-        }
-        else {
+	for (let i = pos-start; i > 0; i--) {
+		let curChar = text.charAt(i);
 
-            if (!["{", "(", "["].contains(curChar)) continue;
-    
-            const j = findMatchingBracket(text, i, curChar, getCloseBracket(curChar), false);
-            if (j === -1) continue;
-    
-            return {left: i + start, right: j + start};
-        
-        }
-    }
 
-    return -1;
+		if ([")", "]", "}"].contains(curChar)) {
+			const closeBracket = curChar;
+			const openBracket = getOpenBracket(closeBracket);
+
+			const j = findMatchingBracket(text, i, openBracket, closeBracket, true);
+
+			if (j === -1) return -1;
+
+			// Skip to the beginnning of the bracket
+			i = j;
+			curChar = text.charAt(i);
+		}
+		else {
+
+			if (!["{", "(", "["].contains(curChar)) continue;
+
+			const j = findMatchingBracket(text, i, curChar, getCloseBracket(curChar), false);
+			if (j === -1) continue;
+
+			return {left: i + start, right: j + start};
+
+		}
+	}
+
+	return -1;
 }
 
 
 
 export function reverse(s: string){
-    return s.split("").reverse().join("");
+	return s.split("").reverse().join("");
 }
 
 
 export function findMatchingBracket(text: string, start: number, openBracket: string, closeBracket: string, searchBackwards: boolean, end?: number):number {
-    if (searchBackwards) {
-        const reversedIndex = findMatchingBracket(reverse(text), text.length - (start + closeBracket.length), reverse(closeBracket), reverse(openBracket), false);
+	if (searchBackwards) {
+		const reversedIndex = findMatchingBracket(reverse(text), text.length - (start + closeBracket.length), reverse(closeBracket), reverse(openBracket), false);
 
-        if (reversedIndex === -1) return -1;
+		if (reversedIndex === -1) return -1;
 
-        return text.length - (reversedIndex + openBracket.length)
-    }
+		return text.length - (reversedIndex + openBracket.length)
+	}
 
-    let brackets = 0;
-    const stop = end ? end : text.length;
+	let brackets = 0;
+	const stop = end ? end : text.length;
 
-    for (let i = start; i < stop; i++) {
-        if (text.slice(i, i + openBracket.length) === openBracket) {
-            brackets++;
-        }
-        else if (text.slice(i, i + closeBracket.length) === closeBracket) {
-            brackets--;
+	for (let i = start; i < stop; i++) {
+		if (text.slice(i, i + openBracket.length) === openBracket) {
+			brackets++;
+		}
+		else if (text.slice(i, i + closeBracket.length) === closeBracket) {
+			brackets--;
 
-            if (brackets === 0) {
-                return i;
-            }
-        }
-    }
+			if (brackets === 0) {
+				return i;
+			}
+		}
+	}
 
-    return -1;
+	return -1;
 }
 
 
 export function getOpenBracket(closeBracket: string) {
-    const openBrackets:{[closeBracket: string]: string} = {")": "(", "]": "[", "}": "{"};
+	const openBrackets:{[closeBracket: string]: string} = {")": "(", "]": "[", "}": "{"};
 
-    return openBrackets[closeBracket];
+	return openBrackets[closeBracket];
 }
 
 
 export function getCloseBracket(openBracket: string) {
-    const closeBrackets:{[openBracket: string]: string} = {"(": ")", "[": "]", "{": "}"};
+	const closeBrackets:{[openBracket: string]: string} = {"(": ")", "[": "]", "{": "}"};
 
-    return closeBrackets[openBracket];
+	return closeBrackets[openBracket];
 }
 

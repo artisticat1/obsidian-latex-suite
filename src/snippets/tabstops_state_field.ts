@@ -12,63 +12,63 @@ export const clearAllTabstopsEffect = StateEffect.define();
 
 export const tabstopsStateField = StateField.define<TabstopReference[]>({
 
-    create(editorState) {
-        return [];
-    },
+	create(editorState) {
+		return [];
+	},
 
-    update(oldState, transaction) {
-        let tabstopReferences = oldState;
+	update(oldState, transaction) {
+		let tabstopReferences = oldState;
 
-        for (const effect of transaction.effects) {
-            if (effect.is(addTabstopEffect)) {
-                tabstopReferences.unshift(effect.value);
-            }
-            else if (effect.is(addTabstopsEffect)) {
-                tabstopReferences.unshift(...effect.value);
-            }
-            else if (effect.is(consumeTabstopEffect)) {
-                tabstopReferences.shift();
-            }
-            else if (effect.is(removeEmptyTabstopsEffect)) {
-                tabstopReferences = tabstopReferences.filter(tabstopReference => tabstopReference.markers.length > 0);
-            }
-            else if (effect.is(clearAllTabstopsEffect)) {
-                tabstopReferences = [];
-            }
-        }
+		for (const effect of transaction.effects) {
+			if (effect.is(addTabstopEffect)) {
+				tabstopReferences.unshift(effect.value);
+			}
+			else if (effect.is(addTabstopsEffect)) {
+				tabstopReferences.unshift(...effect.value);
+			}
+			else if (effect.is(consumeTabstopEffect)) {
+				tabstopReferences.shift();
+			}
+			else if (effect.is(removeEmptyTabstopsEffect)) {
+				tabstopReferences = tabstopReferences.filter(tabstopReference => tabstopReference.markers.length > 0);
+			}
+			else if (effect.is(clearAllTabstopsEffect)) {
+				tabstopReferences = [];
+			}
+		}
 
-        return tabstopReferences;
-    },
+		return tabstopReferences;
+	},
 
 });
 
 
 export function addTabstop(view: EditorView, tabstopReference: TabstopReference) {
-    view.dispatch({
-        effects: [addTabstopEffect.of(tabstopReference)],
-    });
+	view.dispatch({
+		effects: [addTabstopEffect.of(tabstopReference)],
+	});
 }
 
 export function addTabstops(view: EditorView, tabstopReferences: TabstopReference[]) {
-    view.dispatch({
-        effects: [addTabstopsEffect.of(tabstopReferences)],
-    });
+	view.dispatch({
+		effects: [addTabstopsEffect.of(tabstopReferences)],
+	});
 }
 
 export function consumeTabstop(view: EditorView) {
-    view.dispatch({
-        effects: [consumeTabstopEffect.of(null)],
-    });
+	view.dispatch({
+		effects: [consumeTabstopEffect.of(null)],
+	});
 }
 
 export function removeEmptyTabstops(view: EditorView) {
-    view.dispatch({
-        effects: [removeEmptyTabstopsEffect.of(null)],
-    });
+	view.dispatch({
+		effects: [removeEmptyTabstopsEffect.of(null)],
+	});
 }
 
 export function clearAllTabstops(view: EditorView) {
-    view.dispatch({
-        effects: [clearAllTabstopsEffect.of(null)],
-    });
+	view.dispatch({
+		effects: [clearAllTabstopsEffect.of(null)],
+	});
 }

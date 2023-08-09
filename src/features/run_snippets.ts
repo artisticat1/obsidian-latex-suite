@@ -11,191 +11,191 @@ import { Mode, Options } from "src/snippets/options";
 
 export const runSnippets = (view: EditorView, key: string, mode: Mode, ranges: SelectionRange[], plugin: LatexSuitePlugin):boolean => {
 
-    let shouldAutoEnlargeBrackets = false;
+	let shouldAutoEnlargeBrackets = false;
 
-    for (const range of ranges) {
-        const result = runSnippetCursor(view, key, mode, range, plugin);
+	for (const range of ranges) {
+		const result = runSnippetCursor(view, key, mode, range, plugin);
 
-        if (result.shouldAutoEnlargeBrackets) shouldAutoEnlargeBrackets = true;
-    }
+		if (result.shouldAutoEnlargeBrackets) shouldAutoEnlargeBrackets = true;
+	}
 
-    const success = expandSnippets(view);
+	const success = expandSnippets(view);
 
 
-    if (shouldAutoEnlargeBrackets) {
-        autoEnlargeBrackets(view, plugin);
-    }
+	if (shouldAutoEnlargeBrackets) {
+		autoEnlargeBrackets(view, plugin);
+	}
 
-    return success;
+	return success;
 }
 
 
 export const runSnippetCursor = (view: EditorView, key: string, mode: Mode, range: SelectionRange, plugin: LatexSuitePlugin):{success: boolean; shouldAutoEnlargeBrackets: boolean} => {
 
-    const {from, to} = range;
-    const sel = view.state.sliceDoc(from, to);
+	const {from, to} = range;
+	const sel = view.state.sliceDoc(from, to);
 
-    for (const snippet of plugin.snippets) {
-        let effectiveLine = view.state.sliceDoc(0, to);
+	for (const snippet of plugin.snippets) {
+		let effectiveLine = view.state.sliceDoc(0, to);
 
-        if (!mode.overlaps(snippet.options.mode)) {
-            continue;
-        }
+		if (!mode.overlaps(snippet.options.mode)) {
+			continue;
+		}
 
-        if (snippet.options.automatic || snippet.replacement.contains("${VISUAL}")) {
-            // If the key pressed wasn't a text character, continue
-            if (!(key.length === 1)) continue;
+		if (snippet.options.automatic || snippet.replacement.contains("${VISUAL}")) {
+			// If the key pressed wasn't a text character, continue
+			if (!(key.length === 1)) continue;
 
-            effectiveLine += key;
-        }
-        else if (!(key === plugin.settings.snippetsTrigger)) {
-            // The snippet must be triggered by a key
-            continue;
-        }
+			effectiveLine += key;
+		}
+		else if (!(key === plugin.settings.snippetsTrigger)) {
+			// The snippet must be triggered by a key
+			continue;
+		}
 
-        // Check that this snippet is not excluded in a certain environment
-        if (snippet.trigger in EXCLUSIONS) {
-            const environment = EXCLUSIONS[snippet.trigger];
+		// Check that this snippet is not excluded in a certain environment
+		if (snippet.trigger in EXCLUSIONS) {
+			const environment = EXCLUSIONS[snippet.trigger];
 
-            if (isInsideEnvironment(view, to, environment)) continue;
-        }
-
-
-        const result = checkSnippet(snippet, snippet.options, effectiveLine, range, sel);
-        if (result === null) continue;
-        const triggerPos = result.triggerPos;
+			if (isInsideEnvironment(view, to, environment)) continue;
+		}
 
 
-        if (snippet.options.onWordBoundary) {
-            // Check that the trigger is preceded and followed by a word delimiter
-
-            const prevChar = view.state.sliceDoc(triggerPos-1, triggerPos);
-            const nextChar = view.state.sliceDoc(to, to+1);
-
-            const wordDelimiters = plugin.settings.wordDelimiters.replace("\\n", "\n");
+		const result = checkSnippet(snippet, snippet.options, effectiveLine, range, sel);
+		if (result === null) continue;
+		const triggerPos = result.triggerPos;
 
 
-            const prevCharIsWordDelimiter = wordDelimiters.contains(prevChar);
-            const nextCharIsWordDelimiter = wordDelimiters.contains(nextChar);
+		if (snippet.options.onWordBoundary) {
+			// Check that the trigger is preceded and followed by a word delimiter
 
-            if (!(prevCharIsWordDelimiter && nextCharIsWordDelimiter)) {
-                continue;
-            }
-        }
+			const prevChar = view.state.sliceDoc(triggerPos-1, triggerPos);
+			const nextChar = view.state.sliceDoc(to, to+1);
 
-        let replacement = result.replacement;
+			const wordDelimiters = plugin.settings.wordDelimiters.replace("\\n", "\n");
 
 
-        // When in inline math, remove any spaces at the end of the replacement
-        if (mode.anyMath() && plugin.settings.removeSnippetWhitespace) {
-            let spaceIndex = 0;
-            if (replacement.endsWith(" ")) {
-                spaceIndex = -1;
-            }
-            else {
-                const lastThreeChars = replacement.slice(-3);
-                const lastChar = lastThreeChars.slice(-1);
+			const prevCharIsWordDelimiter = wordDelimiters.contains(prevChar);
+			const nextCharIsWordDelimiter = wordDelimiters.contains(nextChar);
 
-                if (lastThreeChars.slice(0, 2) === " $" && !isNaN(parseInt(lastChar))) {
-                    spaceIndex = -3;
-                }
-            }
+			if (!(prevCharIsWordDelimiter && nextCharIsWordDelimiter)) {
+				continue;
+			}
+		}
 
-            if (spaceIndex != 0) {
-
-                const inlineMath = isWithinInlineEquation(view.state);
-
-                if (inlineMath) {
-                    if (spaceIndex === -1) {
-                        replacement = replacement.trimEnd();
-                    }
-                    else if (spaceIndex === -3){
-                        replacement = replacement.slice(0, -3) + replacement.slice(-2)
-                    }
-                }
-            }
-
-        }
-
-        // Expand the snippet
-        const start = triggerPos;
-        queueSnippet(view, {from: start, to: to, insert: replacement, keyPressed: key});
+		let replacement = result.replacement;
 
 
-        const containsTrigger = plugin.autoEnlargeBracketsTriggers.some(word => replacement.contains("\\" + word));
-        return {success: true, shouldAutoEnlargeBrackets: containsTrigger};
-    }
+		// When in inline math, remove any spaces at the end of the replacement
+		if (mode.anyMath() && plugin.settings.removeSnippetWhitespace) {
+			let spaceIndex = 0;
+			if (replacement.endsWith(" ")) {
+				spaceIndex = -1;
+			}
+			else {
+				const lastThreeChars = replacement.slice(-3);
+				const lastChar = lastThreeChars.slice(-1);
+
+				if (lastThreeChars.slice(0, 2) === " $" && !isNaN(parseInt(lastChar))) {
+					spaceIndex = -3;
+				}
+			}
+
+			if (spaceIndex != 0) {
+
+				const inlineMath = isWithinInlineEquation(view.state);
+
+				if (inlineMath) {
+					if (spaceIndex === -1) {
+						replacement = replacement.trimEnd();
+					}
+					else if (spaceIndex === -3){
+						replacement = replacement.slice(0, -3) + replacement.slice(-2)
+					}
+				}
+			}
+
+		}
+
+		// Expand the snippet
+		const start = triggerPos;
+		queueSnippet(view, {from: start, to: to, insert: replacement, keyPressed: key});
 
 
-    return {success: false, shouldAutoEnlargeBrackets: false};
+		const containsTrigger = plugin.autoEnlargeBracketsTriggers.some(word => replacement.contains("\\" + word));
+		return {success: true, shouldAutoEnlargeBrackets: containsTrigger};
+	}
+
+
+	return {success: false, shouldAutoEnlargeBrackets: false};
 }
 
 
 
 export const checkSnippet = (snippet: ParsedSnippet, options: Options, effectiveLine: string, range:  SelectionRange, sel: string):{triggerPos: number; replacement: string} => {
-    let triggerPos;
-    let trigger = snippet.trigger;
-    trigger = insertSnippetVariables(trigger);
+	let triggerPos;
+	let trigger = snippet.trigger;
+	trigger = insertSnippetVariables(trigger);
 
-    let replacement = snippet.replacement;
-
-
-    if (snippet.replacement.contains("${VISUAL}")) {
-        // "Visual" snippets
-        if (!sel) return null;
-
-        // Check whether the trigger text was typed
-        if (!(effectiveLine.slice(-trigger.length) === trigger)) return null;
+	let replacement = snippet.replacement;
 
 
-        triggerPos = range.from;
-        replacement = snippet.replacement.replace("${VISUAL}", sel);
+	if (snippet.replacement.contains("${VISUAL}")) {
+		// "Visual" snippets
+		if (!sel) return null;
 
-    }
-    else if (sel) {
-        // Don't run non-visual snippets when there is a selection
-        return null;
-    }
-    else if (!(options.regex)) {
+		// Check whether the trigger text was typed
+		if (!(effectiveLine.slice(-trigger.length) === trigger)) return null;
 
-        // Check whether the trigger text was typed
-        if (!(effectiveLine.slice(-trigger.length) === trigger)) return null;
 
-        triggerPos = effectiveLine.length - trigger.length;
+		triggerPos = range.from;
+		replacement = snippet.replacement.replace("${VISUAL}", sel);
 
-    }
-    else {
-        // Regex snippet
+	}
+	else if (sel) {
+		// Don't run non-visual snippets when there is a selection
+		return null;
+	}
+	else if (!(options.regex)) {
 
-        // Add $ to match the end of the string
-        // i.e. look for a match at the cursor's current position
-        const regex = new RegExp(trigger + "$");
-        const result = regex.exec(effectiveLine);
+		// Check whether the trigger text was typed
+		if (!(effectiveLine.slice(-trigger.length) === trigger)) return null;
 
-        if (!(result)) {
-            return null;
-        }
+		triggerPos = effectiveLine.length - trigger.length;
 
-        // Compute the replacement string
-        // result.length - 1 = the number of capturing groups
+	}
+	else {
+		// Regex snippet
 
-        for (let i = 1; i < result.length; i++) {
-            // i-1 to start from 0
-            replacement = replacement.replaceAll("[[" + (i-1) + "]]", result[i]);
-        }
+		// Add $ to match the end of the string
+		// i.e. look for a match at the cursor's current position
+		const regex = new RegExp(trigger + "$");
+		const result = regex.exec(effectiveLine);
 
-        triggerPos = result.index;
-    }
+		if (!(result)) {
+			return null;
+		}
 
-    return {triggerPos: triggerPos, replacement: replacement};
+		// Compute the replacement string
+		// result.length - 1 = the number of capturing groups
+
+		for (let i = 1; i < result.length; i++) {
+			// i-1 to start from 0
+			replacement = replacement.replaceAll("[[" + (i-1) + "]]", result[i]);
+		}
+
+		triggerPos = result.index;
+	}
+
+	return {triggerPos: triggerPos, replacement: replacement};
 }
 
 
 export const insertSnippetVariables = (trigger: string) => {
 
-    for (const [variable, replacement] of Object.entries(SNIPPET_VARIABLES)) {
-        trigger = trigger.replace(variable, replacement);
-    }
+	for (const [variable, replacement] of Object.entries(SNIPPET_VARIABLES)) {
+		trigger = trigger.replace(variable, replacement);
+	}
 
-    return trigger;
+	return trigger;
 }

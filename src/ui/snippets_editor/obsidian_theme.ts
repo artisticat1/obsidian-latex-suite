@@ -32,8 +32,8 @@ export const config = {
 
 export const obsidianTheme = EditorView.theme({
   "&": {
-    color: config.foreground,
-    backgroundColor: config.background,
+	color: config.foreground,
+	backgroundColor: config.background,
   },
 
   ".cm-content": {caretColor: config.cursor},
@@ -46,11 +46,11 @@ export const obsidianTheme = EditorView.theme({
   ".cm-panels.cm-panels-bottom": {borderTop: "2px solid black"},
 
   ".cm-searchMatch": {
-    backgroundColor: config.dropdownBackground,
-    outline: `1px solid ${config.dropdownBorder}`
+	backgroundColor: config.dropdownBackground,
+	outline: `1px solid ${config.dropdownBorder}`
   },
   ".cm-searchMatch.cm-searchMatch-selected": {
-    backgroundColor: config.selection
+	backgroundColor: config.selection
   },
 
   ".cm-activeLine": {backgroundColor: config.activeLine},
@@ -58,32 +58,32 @@ export const obsidianTheme = EditorView.theme({
   ".cm-selectionMatch": {backgroundColor: config.selection},
 
   ".cm-matchingBracket, .cm-nonmatchingBracket": {
-    backgroundColor: config.matchingBracket,
-    outline: "none"
+	backgroundColor: config.matchingBracket,
+	outline: "none"
   },
   ".cm-gutters": {
-    backgroundColor: config.background,
-    color: config.comment,
-    borderRight: "1px solid var(--background-modifier-border)"
+	backgroundColor: config.background,
+	color: config.comment,
+	borderRight: "1px solid var(--background-modifier-border)"
   },
   ".cm-lineNumbers, .cm-gutterElement": {color: "inherit"},
 
   ".cm-foldPlaceholder": {
-    backgroundColor: "transparent",
-    border: "none",
-    color: config.foreground
+	backgroundColor: "transparent",
+	border: "none",
+	color: config.foreground
   },
 
   ".cm-tooltip": {
-    border: `1px solid ${config.dropdownBorder}`,
-    backgroundColor: config.dropdownBackground,
-    color: config.foreground
+	border: `1px solid ${config.dropdownBorder}`,
+	backgroundColor: config.dropdownBackground,
+	color: config.foreground
   },
   ".cm-tooltip.cm-tooltip-autocomplete": {
-    "& > ul > li[aria-selected]": {
-      background: config.selection,
-      color: config.foreground
-    }
+	"& > ul > li[aria-selected]": {
+	  background: config.selection,
+	  color: config.foreground
+	}
   },
 }, {dark: config.dark})
 
