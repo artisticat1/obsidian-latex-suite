@@ -3,6 +3,7 @@ import { Environment } from "./snippets/snippets";
 import { EditorView } from "@codemirror/view";
 import { EditorSelection, SelectionRange, EditorState } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
+import { SyntaxNode, TreeCursor } from "@lezer/common";
 
 
 export function replaceRange(view: EditorView, start: number, end: number, replacement: string) {
@@ -288,20 +289,14 @@ export function langIfWithinCodeblock(view: EditorView | EditorState): string | 
 
 	// check if we're in a codeblock atm at all
 	// somehow only the -1 side is reliable, all other ones are sporadically active
-	let inCodeblock = tree.resolveInner(pos, -1).name.contains("codeblock");
+	const inCodeblock = tree.resolveInner(pos, -1).name.contains("codeblock");
 	if (!inCodeblock) {
 		return null;
 	}
 
 	// locate the start of the block
-	let cursor = tree.cursorAt(pos, -1);
-	let codeblockBegin = null;
-	while (cursor.prevSibling() || cursor.parent()) {
-		if (cursor.type.name.contains("HyperMD-codeblock_HyperMD-codeblock-begin")) {
-			codeblockBegin = cursor.node;
-			break;
-		}
-	}
+	const cursor = tree.cursorAt(pos, -1);
+	const codeblockBegin = escalateToToken(cursor, Direction.Backward, "HyperMD-codeblock_HyperMD-codeblock-begin");
 
 	if (codeblockBegin == null) {
 		console.warn("unable to locate start of the codeblock even though inside one");
@@ -313,4 +308,45 @@ export function langIfWithinCodeblock(view: EditorView | EditorState): string | 
 	const language = state.sliceDoc(codeblockBegin.from, codeblockBegin.to).replace(/`+/, "");
 
 	return language;
+}
+
+
+export function getCodeblockBounds(state: EditorState, pos: number = state.selection.main.from): {start: number, end: number} {
+	const tree = syntaxTree(state);
+	
+	let cursor = tree.cursorAt(pos, -1);
+	let blockBegin = escalateToToken(cursor, Direction.Backward, "HyperMD-codeblock-begin");
+
+	cursor = tree.cursorAt(pos, -1);
+	let blockEnd = escalateToToken(cursor, Direction.Forward, "HyperMD-codeblock-end");
+
+	return { start: blockBegin.to + 1, end: blockEnd.from - 1 };
+}
+
+enum Direction {
+	Backward,
+	Forward,
+}
+
+/**
+  * Searches for a token in siblings and parents, in only one direction.
+  *
+  * @param cursor: Where to start iteration
+  * @param dir: In which direction to look for the target node
+  * @param target: What substring the target node should have
+  *
+  * @returns The node found or null if none was found.
+  */
+function escalateToToken(cursor: TreeCursor, dir: Direction, target: string): SyntaxNode | null {
+	while (
+		(dir == Direction.Backward && cursor.prevSibling())
+		|| (dir == Direction.Forward && cursor.nextSibling())
+		|| cursor.parent()
+	) {
+		if (cursor.name.contains(target)) {
+			return cursor.node;
+		}
+	}
+
+	return null;
 }

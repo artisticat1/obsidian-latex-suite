@@ -1,6 +1,6 @@
 import { EditorView } from "@codemirror/view";
 
-import { getEquationBounds, isInsideEnvironment, isWithinEquation, isWithinInlineEquation, langIfWithinCodeblock } from "src/editor_helpers";
+import { getCodeblockBounds, getEquationBounds, isInsideEnvironment, isWithinEquation, isWithinInlineEquation, langIfWithinCodeblock } from "src/editor_helpers";
 import LatexSuitePlugin from "src/main";
 
 export class Options {
@@ -79,13 +79,13 @@ export class Context {
 
 export function ctxAtViewPos(view: EditorView, pos: number, plugin: LatexSuitePlugin):Context {
 	let ctx = new Context();
+	ctx.pos = pos;
 	ctx.mode = new Mode();
 
 	const codeblockLanguage = langIfWithinCodeblock(view);
 	const inCode = codeblockLanguage !== null;
 	const ignoreMath = plugin.ignoreMathLanguages.contains(codeblockLanguage);
 	const forceMath = plugin.forceMathLanguages.contains(codeblockLanguage);
-	console.log(codeblockLanguage, inCode, ignoreMath, forceMath);
 
 	let inMath = forceMath || (
 		!ignoreMath
@@ -101,7 +101,12 @@ export function ctxAtViewPos(view: EditorView, pos: number, plugin: LatexSuitePl
 
 		ctx.mode.blockMath = !inInlineEquation;
 		ctx.mode.inlineMath = inInlineEquation;
-		ctx.mathBounds = getEquationBounds(view.state, pos);
+		if (forceMath) {
+			// means a codeblock language triggered the math mode -> use the codeblock bounds instead
+			ctx.mathBounds = getCodeblockBounds(view.state, pos);
+		} else {
+			ctx.mathBounds = getEquationBounds(view.state, pos);
+		}
 	} else {
 		ctx.mode.blockMath = false;
 		ctx.mode.inlineMath = false;
