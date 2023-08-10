@@ -99,42 +99,6 @@ export function isWithinInlineEquation(
 }
 
 
-export function langIfWithinCodeblock(view: EditorView | EditorState): string | null {
-	const state = view instanceof EditorView ? view.state : view;
-	const tree = syntaxTree(state);
-
-	const pos = state.selection.ranges[0].from;
-
-	// check if we're in a codeblock atm at all
-	// somehow only the -1 side is reliable, all other ones are sporadically active
-	let inCodeblock = tree.resolveInner(pos, -1).name.contains("codeblock");
-	if (!inCodeblock) {
-		return null;
-	}
-
-	// locate the start of the block
-	let cursor = tree.cursorAt(pos, -1);
-	let codeblockBegin = null;
-	while (cursor.prevSibling() || cursor.parent()) {
-		if (cursor.type.name.contains("HyperMD-codeblock_HyperMD-codeblock-begin")) {
-			codeblockBegin = cursor.node;
-			break;
-		}
-	}
-
-	if (codeblockBegin == null) {
-		console.warn("unable to locate start of the codeblock even though inside one");
-		return "";
-	}
-
-	// extract the language
-	// codeblocks may start and end with an arbitrary number of backticks
-	const language = state.sliceDoc(codeblockBegin.from, codeblockBegin.to).replace(/`+/, "");
-
-	return language;
-}
-
-
 /**
  * Returns 0 if pos is not touching a $ that marks an inline equation
  * Returns n if pos+n is inside an equation
@@ -315,3 +279,38 @@ export function getCloseBracket(openBracket: string) {
 	return closeBrackets[openBracket];
 }
 
+
+export function langIfWithinCodeblock(view: EditorView | EditorState): string | null {
+	const state = view instanceof EditorView ? view.state : view;
+	const tree = syntaxTree(state);
+
+	const pos = state.selection.ranges[0].from;
+
+	// check if we're in a codeblock atm at all
+	// somehow only the -1 side is reliable, all other ones are sporadically active
+	let inCodeblock = tree.resolveInner(pos, -1).name.contains("codeblock");
+	if (!inCodeblock) {
+		return null;
+	}
+
+	// locate the start of the block
+	let cursor = tree.cursorAt(pos, -1);
+	let codeblockBegin = null;
+	while (cursor.prevSibling() || cursor.parent()) {
+		if (cursor.type.name.contains("HyperMD-codeblock_HyperMD-codeblock-begin")) {
+			codeblockBegin = cursor.node;
+			break;
+		}
+	}
+
+	if (codeblockBegin == null) {
+		console.warn("unable to locate start of the codeblock even though inside one");
+		return "";
+	}
+
+	// extract the language
+	// codeblocks may start and end with an arbitrary number of backticks
+	const language = state.sliceDoc(codeblockBegin.from, codeblockBegin.to).replace(/`+/, "");
+
+	return language;
+}
