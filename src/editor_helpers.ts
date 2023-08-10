@@ -102,29 +102,37 @@ export function isWithinInlineEquation(
 
 export function langIfWithinCodeblock(view: EditorView | EditorState, plugin: LatexSuitePlugin): string | null {
 	const state = view instanceof EditorView ? view.state : view;
+	const tree = syntaxTree(state);
 
 	const pos = state.selection.ranges[0].from;
 
-	// indirectly assuming that we actually are in a file atm + at least one file has been opened yet
-	// otherwise there is no reason this function would fire
-	const activeFile = plugin.app.workspace.getActiveFile()!;
-	const sections = plugin.app.metadataCache.getFileCache(activeFile).sections;
-	const codeblock = sections.find((section) =>
-		section.type == "code"
-			&& section.position.start.offset <= pos
-			&& section.position.end.offset >= pos
-	);
-
-	if (codeblock == undefined) {
-		// no matching codeblock found
+	// check if we're in a codeblock atm at all
+	// somehow only the -1 side is reliable, all other ones are sporadically active
+	let inCodeblock = tree.resolveInner(pos, -1).name.contains("codeblock");
+	if (!inCodeblock) {
 		return null;
 	}
 
-	// line might contain an arbitrary number of backticks at start, which don't belong to the language (if any)
-	const line = state.doc.lineAt(codeblock.position.start.offset);
-	const language = line.text.replace(/`+/, "");
+	// locate the start of the block
+	let cursor = tree.cursorAt(pos, -1);
+	let codeblockBegin = null;
+	while (cursor.prevSibling() || cursor.parent()) {
+		if (cursor.type.name.contains("HyperMD-codeblock_HyperMD-codeblock-begin")) {
+			codeblockBegin = cursor.node;
+			break;
+		}
+	}
 
-	return language;
+	if (codeblockBegin == null) {
+		console.warn("unable to locate start of the codeblock even though inside one");
+		return "";
+	}
+
+	// extract the language
+	// codeblocks may start and end with an arbitrary number of backticks
+	const language = state.sliceDoc(codeblockBegin.from, codeblockBegin.to).replace(/`+/, "");
+
+	return language
 }
 
 
