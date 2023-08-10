@@ -1,6 +1,6 @@
 import { SelectionRange } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
-import { findMatchingBracket, getCloseBracket, getCodeblockBounds, getEquationBounds, isWithinEquation, isWithinInlineEquation, langIfWithinCodeblock } from "src/editor_helpers";
+import { Bounds, findMatchingBracket, getCloseBracket, getCodeblockBounds, getEquationBounds, isWithinEquation, isWithinInlineEquation, langIfWithinCodeblock } from "src/editor_helpers";
 import LatexSuitePlugin from "src/main";
 import { Mode } from "./options";
 import { Environment } from "./snippets";
@@ -11,12 +11,14 @@ export class Context {
 	ranges: SelectionRange[];
 	mode!: Mode;
 	codeblockLanguage: string;
-	mathBounds: { start: number, end: number };
+	boundsCache: Map<number, Bounds>;
+
+	actuallyCodeblock: boolean;
 
 	isInsideEnvironment(pos: number, env: Environment): boolean {
 		if (!this.mode.anyMath()) return false;
 
-		const {start, end} = this.mathBounds;
+		const {start, end} = this.getBounds();
 		const text = this.view.state.sliceDoc(start, end);
 		// pos referred to the absolute position in the whole document, but we just sliced the text
 		// so now pos must be relative to the start in order to be any useful
@@ -58,6 +60,25 @@ export class Context {
 
 		return false;
 	}
+
+	getBounds(pos: number = this.pos): Bounds {
+		// yes, I also want the cache to work over the produced range instead of just that one through
+		// a BTree or the like, but that'd be probably overkill
+		if (this.boundsCache.has(pos)) {
+			return this.boundsCache.get(pos);
+		}
+
+		let bounds;
+		if (this.actuallyCodeblock) {
+			// means a codeblock language triggered the math mode -> use the codeblock bounds instead
+			bounds = getCodeblockBounds(this.view.state, pos);
+		} else {
+			bounds = getEquationBounds(this.view.state, pos);
+		}
+
+		this.boundsCache.set(pos, bounds);
+		return bounds;
+	}
 }
 
 
@@ -67,11 +88,13 @@ export function ctxAtViewPos(view: EditorView, pos: number, ranges: SelectionRan
 	ctx.pos = pos;
 	ctx.ranges = ranges;
 	ctx.mode = new Mode();
+	ctx.boundsCache = new Map();
 
 	const codeblockLanguage = langIfWithinCodeblock(view);
 	const inCode = codeblockLanguage !== null;
 	const ignoreMath = plugin.ignoreMathLanguages.contains(codeblockLanguage);
 	const forceMath = plugin.forceMathLanguages.contains(codeblockLanguage);
+	ctx.actuallyCodeblock = forceMath;
 
 	// first, check if math mode should be "generally" on
 	let inMath = forceMath || (
@@ -80,12 +103,6 @@ export function ctxAtViewPos(view: EditorView, pos: number, ranges: SelectionRan
 	);
 
 	if (inMath) {
-		if (forceMath) {
-			// means a codeblock language triggered the math mode -> use the codeblock bounds instead
-			ctx.mathBounds = getCodeblockBounds(view.state, pos);
-		} else {
-			ctx.mathBounds = getEquationBounds(view.state, pos);
-		}
 
 		// then check if the environment "temporarily" disables math mode
 		inMath = !(

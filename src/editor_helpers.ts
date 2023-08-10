@@ -124,7 +124,17 @@ export function isTouchingInlineEquation(state: EditorState, pos: number):number
 }
 
 
-export function getEquationBounds(state: EditorState, pos: number = state.selection.main.from):{start: number, end: number} {
+export class Bounds {
+	start: number;
+	end: number;
+}
+
+/**
+ * Figures out where this equation starts and where it ends.
+ *
+ * **Note:** If you intend to use this directly, check out Context.getBounds instead, which caches and also takes care of codeblock languages which should behave like math mode.
+ */
+export function getEquationBounds(state: EditorState, pos: number = state.selection.main.from): Bounds {
 	let text = state.doc.toString();
 
 	// ignore \$
@@ -258,7 +268,12 @@ export function langIfWithinCodeblock(view: EditorView | EditorState): string | 
 }
 
 
-export function getCodeblockBounds(state: EditorState, pos: number = state.selection.main.from): {start: number, end: number} {
+/**
+ * Figures out where this codeblock starts and where it ends.
+ *
+ * **Note:** If you intend to use this directly, check out Context.getBounds instead, which caches and also takes care of codeblock languages which should behave like math mode.
+ */
+export function getCodeblockBounds(state: EditorState, pos: number = state.selection.main.from): Bounds {
 	const tree = syntaxTree(state);
 	
 	let cursor = tree.cursorAt(pos, -1);

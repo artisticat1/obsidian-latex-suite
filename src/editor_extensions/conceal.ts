@@ -2,10 +2,12 @@
 
 import { livePreviewState } from "obsidian";
 import { EditorView, ViewUpdate, Decoration, DecorationSet, WidgetType, ViewPlugin } from "@codemirror/view";
-import { EditorSelection, Range } from "@codemirror/state";
+import { EditorSelection, Range, SelectionRange } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
-import { getEquationBounds, findMatchingBracket } from "./../editor_helpers";
+import { findMatchingBracket } from "./../editor_helpers";
 import { cmd_symbols, greek, map_super, map_sub, brackets, mathbb, mathscrcal, fractions, operators } from "./conceal_maps";
+import { ctxAtViewPos } from "src/snippets/context";
+import { pluginProvider } from "./plugin_provider";
 // import { SNIPPET_VARIABLES } from "./snippets";
 
 
@@ -169,7 +171,7 @@ function concealSupSub(eqn: string, superscript: boolean, symbolMap: {[key: stri
 		const symbolRegexStr = "\\\\(" + escapeRegex(symbolNames.join("|")) + ")";
 		const symbolRegex = new RegExp(symbolRegexStr, "g");
 
-		const replacement = exponent.replace(symbolRegex, (a, b) => {
+		const replacement = exponent.replace(symbolRegex, (_, b) => {
 			return symbolMap[b];
 		});
 
@@ -419,6 +421,11 @@ function conceal(view: EditorView) {
 
 	const widgets: Range<Decoration>[] = [];
 	const selection = view.state.selection;
+	const plugin = view.state.field(pluginProvider);
+	if (plugin == null) {
+		console.warn("conceal plugin was somehow loaded standalone, but it requires the obsidian-latex-suite plugin settings");
+		return;
+	}
 
 	// Make selecting LaTeX source easier
 	// By always applying conceal when the mouse is down (the user is making a selection)
@@ -431,12 +438,14 @@ function conceal(view: EditorView) {
 		syntaxTree(view.state).iterate({ from, to, enter: (node) => {
 			const type = node.type;
 			const to = node.to;
+			const ctx = ctxAtViewPos(view, to, view.visibleRanges as SelectionRange[], plugin);
 
 			if (!(type.name.contains("begin") && type.name.contains("math"))) {
 				return;
 			}
 
-			const bounds = getEquationBounds(view.state, to+1);
+			const bounds = ctx.getBounds();
+			console.log(bounds);
 			if (!bounds) return;
 
 

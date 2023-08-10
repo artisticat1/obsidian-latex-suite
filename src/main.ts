@@ -23,6 +23,7 @@ import { runAutoFraction } from "./features/autofraction";
 import { tabout, shouldTaboutByCloseBracket } from "./features/tabout";
 import { runMatrixShortcuts } from "./features/matrix_shortcuts";
 import { getEditorCommands } from "./features/editor_commands";
+import { pluginProvider, updateEffect } from "./editor_extensions/plugin_provider";
 
 
 export default class LatexSuitePlugin extends Plugin {
@@ -36,6 +37,7 @@ export default class LatexSuitePlugin extends Plugin {
 
 	private cursorTriggeredByChange = false;
 	private editorExtensions:Extension[] = [];
+	private providerNeedsUpdate = true;
 
 
 	async onload() {
@@ -48,6 +50,10 @@ export default class LatexSuitePlugin extends Plugin {
 		this.registerEditorExtension(Prec.highest(EditorView.domEventHandlers({
 			"keydown": this.onKeydown
 		})));
+
+
+		// Register the "plugin settings provider"
+		this.registerEditorExtension(pluginProvider);
 
 
 		// Register editor extensions required for snippets
@@ -88,6 +94,13 @@ export default class LatexSuitePlugin extends Plugin {
 
 
 	private readonly handleUpdate = (update: ViewUpdate) => {
+		if (this.providerNeedsUpdate) {
+			this.providerNeedsUpdate = false;
+			update.view.dispatch({
+				effects: [updateEffect.of(this)],
+			});
+		}
+
 		if (update.docChanged) {
 			this.handleDocChange();
 		}
@@ -161,6 +174,7 @@ export default class LatexSuitePlugin extends Plugin {
 	}
 
 	async saveSettings() {
+		this.providerNeedsUpdate = true;
 		await this.saveData(this.settings);
 	}
 
