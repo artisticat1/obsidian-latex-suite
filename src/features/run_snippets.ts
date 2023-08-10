@@ -6,15 +6,15 @@ import { expandSnippets } from "src/snippets/snippet_management";
 import { ParsedSnippet, SNIPPET_VARIABLES, EXCLUSIONS } from "src/snippets/snippets";
 import { autoEnlargeBrackets } from "./auto_enlarge_brackets";
 import LatexSuitePlugin from "src/main";
-import { Mode, Options } from "src/snippets/options";
+import { Context, Options } from "src/snippets/options";
 
 
-export const runSnippets = (view: EditorView, key: string, mode: Mode, ranges: SelectionRange[], plugin: LatexSuitePlugin):boolean => {
+export const runSnippets = (view: EditorView, key: string, ctx: Context, ranges: SelectionRange[], plugin: LatexSuitePlugin):boolean => {
 
 	let shouldAutoEnlargeBrackets = false;
 
 	for (const range of ranges) {
-		const result = runSnippetCursor(view, key, mode, range, plugin);
+		const result = runSnippetCursor(view, key, ctx, range, plugin);
 
 		if (result.shouldAutoEnlargeBrackets) shouldAutoEnlargeBrackets = true;
 	}
@@ -30,7 +30,7 @@ export const runSnippets = (view: EditorView, key: string, mode: Mode, ranges: S
 }
 
 
-export const runSnippetCursor = (view: EditorView, key: string, mode: Mode, range: SelectionRange, plugin: LatexSuitePlugin):{success: boolean; shouldAutoEnlargeBrackets: boolean} => {
+export const runSnippetCursor = (view: EditorView, key: string, ctx: Context, range: SelectionRange, plugin: LatexSuitePlugin):{success: boolean; shouldAutoEnlargeBrackets: boolean} => {
 
 	const {from, to} = range;
 	const sel = view.state.sliceDoc(from, to);
@@ -38,7 +38,7 @@ export const runSnippetCursor = (view: EditorView, key: string, mode: Mode, rang
 	for (const snippet of plugin.snippets) {
 		let effectiveLine = view.state.sliceDoc(0, to);
 
-		if (!mode.overlaps(snippet.options.mode)) {
+		if (!ctx.mode.overlaps(snippet.options.mode)) {
 			continue;
 		}
 
@@ -87,7 +87,7 @@ export const runSnippetCursor = (view: EditorView, key: string, mode: Mode, rang
 
 
 		// When in inline math, remove any spaces at the end of the replacement
-		if (mode.anyMath() && plugin.settings.removeSnippetWhitespace) {
+		if (ctx.mode.anyMath() && plugin.settings.removeSnippetWhitespace) {
 			let spaceIndex = 0;
 			if (replacement.endsWith(" ")) {
 				spaceIndex = -1;

@@ -1,6 +1,6 @@
 import { EditorView } from "@codemirror/view";
 
-import { isInsideEnvironment, isWithinEquation, isWithinInlineEquation, langIfWithinCodeblock } from "src/editor_helpers";
+import { getEquationBounds, isInsideEnvironment, isWithinEquation, isWithinInlineEquation, langIfWithinCodeblock } from "src/editor_helpers";
 import LatexSuitePlugin from "src/main";
 
 export class Options {
@@ -70,13 +70,22 @@ export class Mode {
 	}
 }
 
-export function modeAtViewPos(view: EditorView, pos: number, plugin: LatexSuitePlugin):Mode {
-	let mode = new Mode();
+export class Context {
+	pos: number;
+	mode!: Mode;
+	codeblockLanguage: string;
+	mathBounds: { start: number, end: number };
+}
 
-	const codeLanguage = langIfWithinCodeblock(view, plugin);
-	const inCode = codeLanguage !== null;
-	const ignoreMath = inCode && plugin.ignoreMathLanguages.contains(codeLanguage);
-	const forceMath = inCode && plugin.forceMathLanguages.contains(codeLanguage);
+export function ctxAtViewPos(view: EditorView, pos: number, plugin: LatexSuitePlugin):Context {
+	let ctx = new Context();
+	ctx.mode = new Mode();
+
+	const codeblockLanguage = langIfWithinCodeblock(view);
+	const inCode = codeblockLanguage !== null;
+	const ignoreMath = plugin.ignoreMathLanguages.contains(codeblockLanguage);
+	const forceMath = plugin.forceMathLanguages.contains(codeblockLanguage);
+	console.log(codeblockLanguage, inCode, ignoreMath, forceMath);
 
 	let inMath = forceMath || (
 		!ignoreMath
@@ -86,14 +95,26 @@ export function modeAtViewPos(view: EditorView, pos: number, plugin: LatexSuiteP
 			|| isInsideEnvironment(view, pos, {openSymbol: "\\tag{", closeSymbol: "}"})
 		)
 	);
-	const inInlineEquation = isWithinInlineEquation(view.state);
 
-	mode.text = !inCode && !inMath;
-	mode.blockMath = inMath && !inInlineEquation;
-	mode.inlineMath = inMath && inInlineEquation;
-	mode.code = inCode && !forceMath;
+	if (inMath) {
+		const inInlineEquation = isWithinInlineEquation(view.state);
 
-	return mode;
+		ctx.mode.blockMath = !inInlineEquation;
+		ctx.mode.inlineMath = inInlineEquation;
+		ctx.mathBounds = getEquationBounds(view.state, pos);
+	} else {
+		ctx.mode.blockMath = false;
+		ctx.mode.inlineMath = false;
+	}
+
+	ctx.mode.code = inCode && !forceMath;
+	if (ctx.mode.code) {
+		ctx.codeblockLanguage = codeblockLanguage;
+	}
+
+	ctx.mode.text = !inCode && !inMath;
+
+	return ctx;
 }
 
 export function parseMode(source: string):Mode {

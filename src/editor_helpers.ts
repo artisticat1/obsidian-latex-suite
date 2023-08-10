@@ -3,7 +3,6 @@ import { Environment } from "./snippets/snippets";
 import { EditorView } from "@codemirror/view";
 import { EditorSelection, SelectionRange, EditorState } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
-import LatexSuitePlugin from "./main";
 
 
 export function replaceRange(view: EditorView, start: number, end: number, replacement: string) {
@@ -100,7 +99,7 @@ export function isWithinInlineEquation(
 }
 
 
-export function langIfWithinCodeblock(view: EditorView | EditorState, plugin: LatexSuitePlugin): string | null {
+export function langIfWithinCodeblock(view: EditorView | EditorState): string | null {
 	const state = view instanceof EditorView ? view.state : view;
 	const tree = syntaxTree(state);
 

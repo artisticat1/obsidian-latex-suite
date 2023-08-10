@@ -1,7 +1,7 @@
 import { Plugin, Notice } from "obsidian";
 import { LatexSuiteSettings, LatexSuiteSettingTab, DEFAULT_SETTINGS } from "./settings";
 
-import { modeAtViewPos } from "./snippets/options";
+import { ctxAtViewPos } from "./snippets/options";
 
 import { EditorView, ViewUpdate, tooltips } from "@codemirror/view";
 import { Prec, Extension } from "@codemirror/state";
@@ -203,8 +203,8 @@ export default class LatexSuitePlugin extends Plugin {
 		const pos = s.main.to;
 		const ranges = Array.from(s.ranges).reverse(); // Last to first
 
-		const mode = modeAtViewPos(view, pos, this);
-		console.log(mode);  // TODO(multisn8): <-- remove this when the PR is done
+		const ctx = ctxAtViewPos(view, pos, this);
+		console.log(ctx);  // TODO(multisn8): <-- remove this when the PR is done
 
 		let success = false;
 
@@ -213,7 +213,7 @@ export default class LatexSuitePlugin extends Plugin {
 			// Allows Ctrl + z for undo, instead of triggering a snippet ending with z
 			if (!ctrlKey) {
 				try {
-					success = runSnippets(view, key, mode, ranges, this);
+					success = runSnippets(view, key, ctx, ranges, this);
 					if (success) return true;
 				}
 				catch (e) {
@@ -233,7 +233,7 @@ export default class LatexSuitePlugin extends Plugin {
 			if (success) return true;
 		}
 
-		if (this.settings.autofractionEnabled && mode.anyMath()) {
+		if (this.settings.autofractionEnabled && ctx.mode.anyMath()) {
 			if (key === "/") {
 				success = runAutoFraction(view, ranges, this);
 
@@ -244,7 +244,7 @@ export default class LatexSuitePlugin extends Plugin {
 		// TODO(multisn8): currently matrices in inline math are a mess either way
 		// but with the block/inline distinction, maybe we could try to stuff them inline
 		// or "switch" to a block from inline if a matrix env is activated?
-		if (this.settings.matrixShortcutsEnabled && mode.blockMath) {
+		if (this.settings.matrixShortcutsEnabled && ctx.mode.blockMath) {
 			if (["Tab", "Enter"].contains(key)) {
 				success = runMatrixShortcuts(view, key, shiftKey, pos, this.matrixShortcutsEnvNames);
 
@@ -254,7 +254,7 @@ export default class LatexSuitePlugin extends Plugin {
 
 		if (this.settings.taboutEnabled) {
 			if (key === "Tab") {
-				success = tabout(view, mode.anyMath());
+				success = tabout(view, ctx.mode.anyMath());
 
 				if (success) return true;
 			}
