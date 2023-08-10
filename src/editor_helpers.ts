@@ -1,5 +1,4 @@
 import { Platform } from "obsidian";
-import { Environment } from "./snippets/snippets";
 import { EditorView } from "@codemirror/view";
 import { EditorSelection, SelectionRange, EditorState } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
@@ -137,58 +136,6 @@ export function getEquationBounds(state: EditorState, pos: number = state.select
 	if (left === -1 || right === -1) return;
 
 	return {start: left + 1, end: right};
-}
-
-
-
-export function isInsideEnvironment(view: EditorView, pos: number, env: Environment):boolean {
-	const result = getEquationBounds(view.state);
-	if (!result) return false;
-	const {start, end} = result;
-	const text = view.state.doc.toString();
-	const {openSymbol, closeSymbol} = env;
-
-	// Restrict our search to the equation we're currently in
-	const curText = text.slice(start, end);
-
-	const openBracket = openSymbol.slice(-1);
-	const closeBracket = getCloseBracket(openBracket);
-
-
-	// Take care when the open symbol ends with a bracket {, [, or (
-	// as then the closing symbol, }, ] or ), is not unique to this open symbol
-	let offset;
-	let openSearchSymbol;
-
-	if (["{", "[", "("].contains(openBracket) && closeSymbol === closeBracket) {
-		offset = openSymbol.length - 1;
-		openSearchSymbol = openBracket;
-	}
-	else {
-		offset = 0;
-		openSearchSymbol = openSymbol;
-	}
-
-
-	let left = curText.lastIndexOf(openSymbol, pos - start - 1);
-
-	while (left != -1) {
-		const right = findMatchingBracket(curText, left + offset, openSearchSymbol, closeSymbol, false);
-
-		if (right === -1) return false;
-
-		// Check whether the cursor lies inside the environment symbols
-		if ((right >= pos - start) && (pos - start >= left + openSymbol.length)) {
-			return true;
-		}
-
-		if (left <= 0) return false;
-
-		// Find the next open symbol
-		left = curText.lastIndexOf(openSymbol, left - 1);
-	}
-
-	return false;
 }
 
 

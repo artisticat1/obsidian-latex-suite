@@ -1,48 +1,48 @@
-import { EditorView } from "@codemirror/view";
 import { SelectionRange } from "@codemirror/state";
-import { getEquationBounds, findMatchingBracket, isInsideEnvironment, getOpenBracket } from "src/editor_helpers";
+import { getEquationBounds, findMatchingBracket, getOpenBracket } from "src/editor_helpers";
 import { queueSnippet } from "src/snippets/snippet_queue_state_field";
 import { expandSnippets } from "src/snippets/snippet_management";
 import { SNIPPET_VARIABLES } from "src/snippets/snippets";
 import { autoEnlargeBrackets } from "./auto_enlarge_brackets";
 import LatexSuitePlugin from "src/main";
+import { Context } from "src/snippets/context";
 
 
-export const runAutoFraction = (view: EditorView, ranges: SelectionRange[], plugin: LatexSuitePlugin):boolean => {
+export const runAutoFraction = (ctx: Context, plugin: LatexSuitePlugin):boolean => {
 
-	for (const range of ranges) {
-		runAutoFractionCursor(view, range, plugin);
+	for (const range of ctx.ranges) {
+		runAutoFractionCursor(ctx, range, plugin);
 	}
 
-	const success = expandSnippets(view);
+	const success = expandSnippets(ctx.view);
 
 	if (success) {
-		autoEnlargeBrackets(view, plugin);
+		autoEnlargeBrackets(ctx, plugin);
 	}
 
 	return success;
 }
 
 
-export const runAutoFractionCursor = (view: EditorView, range: SelectionRange, plugin: LatexSuitePlugin):boolean => {
+export const runAutoFractionCursor = (ctx: Context, range: SelectionRange, plugin: LatexSuitePlugin):boolean => {
 
 	const {from, to} = range;
 
 
 	// Don't run autofraction in excluded environments
 	for (const env of plugin.autofractionExcludedEnvs) {
-		if (isInsideEnvironment(view, to, env)) {
+		if (ctx.isInsideEnvironment(to, env)) {
 			return false;
 		}
 	}
 
 	// Get the bounds of the equation
-	const result = getEquationBounds(view.state);
+	const result = getEquationBounds(ctx.view.state);
 	if (!result) return false;
 	const eqnStart = result.start;
 
 
-	let curLine = view.state.sliceDoc(0, to);
+	let curLine = ctx.view.state.sliceDoc(0, to);
 	let start = eqnStart;
 
 	if (from != to) {
@@ -93,7 +93,7 @@ export const runAutoFractionCursor = (view: EditorView, range: SelectionRange, p
 	}
 
 	// Run autofraction
-	let numerator = view.state.sliceDoc(start, to);
+	let numerator = ctx.view.state.sliceDoc(start, to);
 
 	// Don't run on an empty line
 	if (numerator === "") return false;
@@ -106,7 +106,7 @@ export const runAutoFractionCursor = (view: EditorView, range: SelectionRange, p
 
 	const replacement = `${plugin.settings.autofractionSymbol}{${numerator}}{$0}$1`
 
-	queueSnippet(view, {from: start, to: to, insert: replacement, keyPressed: "/"});
+	queueSnippet(ctx.view, {from: start, to: to, insert: replacement, keyPressed: "/"});
 
 	return true;
 }

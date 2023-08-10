@@ -203,7 +203,7 @@ export default class LatexSuitePlugin extends Plugin {
 		const pos = s.main.to;
 		const ranges = Array.from(s.ranges).reverse(); // Last to first
 
-		const ctx = ctxAtViewPos(view, pos, this);
+		const ctx = ctxAtViewPos(view, pos, ranges, this);
 		// TODO(multisn8): remove this when the PR is done
 		console.log(ctx);  
 		console.log(ctx.mode);
@@ -215,7 +215,7 @@ export default class LatexSuitePlugin extends Plugin {
 			// Allows Ctrl + z for undo, instead of triggering a snippet ending with z
 			if (!ctrlKey) {
 				try {
-					success = runSnippets(view, key, ctx, ranges, this);
+					success = runSnippets(ctx, key, this);
 					if (success) return true;
 				}
 				catch (e) {
@@ -237,7 +237,7 @@ export default class LatexSuitePlugin extends Plugin {
 
 		if (this.settings.autofractionEnabled && ctx.mode.anyMath()) {
 			if (key === "/") {
-				success = runAutoFraction(view, ranges, this);
+				success = runAutoFraction(ctx, this);
 
 				if (success) return true;
 			}
@@ -248,7 +248,7 @@ export default class LatexSuitePlugin extends Plugin {
 		// or "switch" to a block from inline if a matrix env is activated?
 		if (this.settings.matrixShortcutsEnabled && ctx.mode.blockMath) {
 			if (["Tab", "Enter"].contains(key)) {
-				success = runMatrixShortcuts(view, key, shiftKey, pos, this.matrixShortcutsEnvNames);
+				success = runMatrixShortcuts(ctx, key, shiftKey, this.matrixShortcutsEnvNames);
 
 				if (success) return true;
 			}

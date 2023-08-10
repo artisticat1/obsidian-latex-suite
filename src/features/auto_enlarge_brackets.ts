@@ -1,18 +1,18 @@
-import { EditorView } from "@codemirror/view";
 import { getEquationBounds, findMatchingBracket } from "src/editor_helpers";
 import { queueSnippet } from "src/snippets/snippet_queue_state_field";
 import { expandSnippets } from "src/snippets/snippet_management";
 import LatexSuitePlugin from "src/main";
+import { Context } from "src/snippets/context";
 
 
-export const autoEnlargeBrackets = (view: EditorView, plugin: LatexSuitePlugin) => {
+export const autoEnlargeBrackets = (ctx: Context, plugin: LatexSuitePlugin) => {
 	if (!plugin.settings.autoEnlargeBrackets) return;
 
-	const result = getEquationBounds(view.state);
+	const result = getEquationBounds(ctx.view.state);
 	if (!result) return false;
 	const {start, end} = result;
 
-	const text = view.state.doc.toString();
+	const text = ctx.view.state.doc.toString();
 	const left = "\\left";
 	const right = "\\right";
 
@@ -55,9 +55,9 @@ export const autoEnlargeBrackets = (view: EditorView, plugin: LatexSuitePlugin) 
 		}
 
 		// Enlarge the brackets
-		queueSnippet(view, {from: i, to: i+bracketSize, insert: left + open + " "});
-		queueSnippet(view, {from: j, to: j+bracketSize, insert: " " + right + close});
+		queueSnippet(ctx.view, {from: i, to: i+bracketSize, insert: left + open + " "});
+		queueSnippet(ctx.view, {from: j, to: j+bracketSize, insert: " " + right + close});
 	}
 
-	expandSnippets(view);
+	expandSnippets(ctx.view);
 }

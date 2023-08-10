@@ -1,10 +1,8 @@
-
-import { EditorView } from "@codemirror/view";
-import { isInsideEnvironment } from "src/editor_helpers";
 import { setCursor } from "src/editor_helpers";
+import { Context } from "src/snippets/context";
 
 
-export const runMatrixShortcuts = (view: EditorView, key: string, shiftKey: boolean, pos: number, matrixShortcutsEnvNames: string[]):boolean => {
+export const runMatrixShortcuts = (ctx: Context, key: string, shiftKey: boolean, matrixShortcutsEnvNames: string[]):boolean => {
 
 	// Check whether we are inside a matrix / align / case environment
 	let isInsideAnEnv = false;
@@ -12,7 +10,7 @@ export const runMatrixShortcuts = (view: EditorView, key: string, shiftKey: bool
 	for (const envName of matrixShortcutsEnvNames) {
 		const env = {openSymbol: "\\begin{" + envName + "}", closeSymbol: "\\end{" + envName + "}"};
 
-		isInsideAnEnv = isInsideEnvironment(view, pos, env);
+		isInsideAnEnv = ctx.isInsideEnvironment(ctx.pos, env);
 		if (isInsideAnEnv) break;
 	}
 
@@ -20,22 +18,22 @@ export const runMatrixShortcuts = (view: EditorView, key: string, shiftKey: bool
 
 
 	if (key === "Tab") {
-		view.dispatch(view.state.replaceSelection(" & "));
+		ctx.view.dispatch(ctx.view.state.replaceSelection(" & "));
 
 		return true;
 	}
 	else if (key === "Enter") {
 		if (shiftKey) {
 			// Move cursor to end of next line
-			const d = view.state.doc;
+			const d = ctx.view.state.doc;
 
-			const nextLineNo = d.lineAt(pos).number + 1;
+			const nextLineNo = d.lineAt(ctx.pos).number + 1;
 			const nextLine = d.line(nextLineNo);
 
-			setCursor(view, nextLine.to);
+			setCursor(ctx.view, nextLine.to);
 		}
 		else {
-			view.dispatch(view.state.replaceSelection(" \\\\\n"));
+			ctx.view.dispatch(ctx.view.state.replaceSelection(" \\\\\n"));
 		}
 
 		return true;
