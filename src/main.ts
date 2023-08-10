@@ -1,7 +1,7 @@
 import { Plugin, Notice } from "obsidian";
 import { LatexSuiteSettings, LatexSuiteSettingTab, DEFAULT_SETTINGS } from "./settings";
 
-import { ctxAtViewPos } from "./snippets/options";
+import { ctxAtViewPos } from "./snippets/context";
 
 import { EditorView, ViewUpdate, tooltips } from "@codemirror/view";
 import { Prec, Extension } from "@codemirror/state";
@@ -204,7 +204,7 @@ export default class LatexSuitePlugin extends Plugin {
 		const ranges = Array.from(s.ranges).reverse(); // Last to first
 
 		const ctx = ctxAtViewPos(view, pos, this);
-		// TODO(multisn8): <-- remove this when the PR is done
+		// TODO(multisn8): remove this when the PR is done
 		console.log(ctx);  
 		console.log(ctx.mode);
 

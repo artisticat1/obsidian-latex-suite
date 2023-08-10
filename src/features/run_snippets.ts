@@ -6,7 +6,8 @@ import { expandSnippets } from "src/snippets/snippet_management";
 import { ParsedSnippet, SNIPPET_VARIABLES, EXCLUSIONS } from "src/snippets/snippets";
 import { autoEnlargeBrackets } from "./auto_enlarge_brackets";
 import LatexSuitePlugin from "src/main";
-import { Context, Options } from "src/snippets/options";
+import { Options } from "src/snippets/options";
+import { Context } from "src/snippets/context";
 
 
 export const runSnippets = (view: EditorView, key: string, ctx: Context, ranges: SelectionRange[], plugin: LatexSuitePlugin):boolean => {
