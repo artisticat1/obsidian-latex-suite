@@ -132,7 +132,7 @@ export function langIfWithinCodeblock(view: EditorView | EditorState, plugin: La
 	// codeblocks may start and end with an arbitrary number of backticks
 	const language = state.sliceDoc(codeblockBegin.from, codeblockBegin.to).replace(/`+/, "");
 
-	return language
+	return language;
 }
 
 
