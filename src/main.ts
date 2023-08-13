@@ -25,6 +25,7 @@ import { runMatrixShortcuts } from "./features/matrix_shortcuts";
 import { getEditorCommands } from "./features/editor_commands";
 import { iterateCM6 } from "./editor_helpers";
 import { getLatexSuiteConfigExtension, getLatexSuiteConfigFromView, reconfigureLatexSuiteConfig } from "./snippets/config";
+import { cursorTriggerStateField } from "./snippets/cursor_trigger_state_field";
 
 
 export default class LatexSuitePlugin extends Plugin {
@@ -50,7 +51,7 @@ export default class LatexSuitePlugin extends Plugin {
 
 
 		// Register editor extensions required for snippets
-		this.registerEditorExtension([markerStateField, tabstopsStateField, snippetQueueStateField, snippetInvertedEffects]);
+		this.registerEditorExtension([markerStateField, tabstopsStateField, snippetQueueStateField, snippetInvertedEffects, cursorTriggerStateField]);
 		this.registerEditorExtension(EditorView.updateListener.of(this.handleUpdate.bind(this)));
 
 
@@ -87,33 +88,20 @@ export default class LatexSuitePlugin extends Plugin {
 
 
 	handleUpdate(update: ViewUpdate) {
-		if (update.docChanged) {
-			this.handleDocChange();
-		}
+		const cursorTriggeredByChange = update.state.field(cursorTriggerStateField, false);
 
+		// Remove all tabstops when the user manually moves the cursor (e.g. on mouse click; using arrow keys)
 		if (update.selectionSet) {
-			const pos = update.state.selection.main.head;
-			this.handleCursorActivity(update.view, pos);
+			if (!cursorTriggeredByChange) {
+				const pos = update.state.selection.main.head;
+
+				if (!isInsideATabstop(pos, update.view) || isInsideLastTabstop(update.view)) {
+					removeAllTabstops(update.view);
+				}
+			}
 		}
 
 		handleUndoRedo(update);
-	}
-
-
-	handleDocChange() {
-		this.cursorTriggeredByChange = true;
-	}
-
-
-	handleCursorActivity(view: EditorView, pos: number) {
-		if (this.cursorTriggeredByChange) {
-			this.cursorTriggeredByChange = false;
-			return;
-		}
-
-		if (!isInsideATabstop(pos, view) || isInsideLastTabstop(view)) {
-			removeAllTabstops(view);
-		}
 	}
 
 
