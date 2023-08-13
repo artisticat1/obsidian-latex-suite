@@ -275,12 +275,12 @@ export function langIfWithinCodeblock(view: EditorView | EditorState): string | 
  */
 export function getCodeblockBounds(state: EditorState, pos: number = state.selection.main.from): Bounds {
 	const tree = syntaxTree(state);
-	
+
 	let cursor = tree.cursorAt(pos, -1);
-	let blockBegin = escalateToToken(cursor, Direction.Backward, "HyperMD-codeblock-begin");
+	const blockBegin = escalateToToken(cursor, Direction.Backward, "HyperMD-codeblock-begin");
 
 	cursor = tree.cursorAt(pos, -1);
-	let blockEnd = escalateToToken(cursor, Direction.Forward, "HyperMD-codeblock-end");
+	const blockEnd = escalateToToken(cursor, Direction.Forward, "HyperMD-codeblock-end");
 
 	return { start: blockBegin.to + 1, end: blockEnd.from - 1 };
 }
