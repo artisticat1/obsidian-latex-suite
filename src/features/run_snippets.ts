@@ -4,17 +4,17 @@ import { queueSnippet } from "src/snippets/snippet_queue_state_field";
 import { expandSnippets } from "src/snippets/snippet_management";
 import { ParsedSnippet, SNIPPET_VARIABLES, EXCLUSIONS } from "src/snippets/snippets";
 import { autoEnlargeBrackets } from "./auto_enlarge_brackets";
-import LatexSuitePlugin from "src/main";
 import { Options } from "src/snippets/options";
 import { Context } from "src/snippets/context";
+import { getLatexSuiteConfigFromView } from "src/snippets/config";
 
 
-export const runSnippets = (ctx: Context, key: string, plugin: LatexSuitePlugin):boolean => {
+export const runSnippets = (ctx: Context, key: string):boolean => {
 
 	let shouldAutoEnlargeBrackets = false;
 
 	for (const range of ctx.ranges) {
-		const result = runSnippetCursor(ctx, key, range, plugin);
+		const result = runSnippetCursor(ctx, key, range);
 
 		if (result.shouldAutoEnlargeBrackets) shouldAutoEnlargeBrackets = true;
 	}
@@ -23,19 +23,20 @@ export const runSnippets = (ctx: Context, key: string, plugin: LatexSuitePlugin)
 
 
 	if (shouldAutoEnlargeBrackets) {
-		autoEnlargeBrackets(ctx, plugin);
+		autoEnlargeBrackets(ctx);
 	}
 
 	return success;
 }
 
 
-export const runSnippetCursor = (ctx: Context, key: string, range: SelectionRange, plugin: LatexSuitePlugin):{success: boolean; shouldAutoEnlargeBrackets: boolean} => {
+export const runSnippetCursor = (ctx: Context, key: string, range: SelectionRange):{success: boolean; shouldAutoEnlargeBrackets: boolean} => {
 
+	const settings = getLatexSuiteConfigFromView(ctx.view);
 	const {from, to} = range;
 	const sel = ctx.view.state.sliceDoc(from, to);
 
-	for (const snippet of plugin.snippets) {
+	for (const snippet of settings.snippets) {
 		let effectiveLine = ctx.view.state.sliceDoc(0, to);
 
 		if (!ctx.mode.overlaps(snippet.options.mode)) {
@@ -48,7 +49,7 @@ export const runSnippetCursor = (ctx: Context, key: string, range: SelectionRang
 
 			effectiveLine += key;
 		}
-		else if (!(key === plugin.settings.snippetsTrigger)) {
+		else if (!(key === settings.basicSettings.snippetsTrigger)) {
 			// The snippet must be triggered by a key
 			continue;
 		}
@@ -72,7 +73,7 @@ export const runSnippetCursor = (ctx: Context, key: string, range: SelectionRang
 			const prevChar = ctx.view.state.sliceDoc(triggerPos-1, triggerPos);
 			const nextChar = ctx.view.state.sliceDoc(to, to+1);
 
-			const wordDelimiters = plugin.settings.wordDelimiters.replace("\\n", "\n");
+			const wordDelimiters = settings.basicSettings.wordDelimiters.replace("\\n", "\n");
 
 
 			const prevCharIsWordDelimiter = wordDelimiters.contains(prevChar);
@@ -87,7 +88,7 @@ export const runSnippetCursor = (ctx: Context, key: string, range: SelectionRang
 
 
 		// When in inline math, remove any spaces at the end of the replacement
-		if (ctx.mode.anyMath() && plugin.settings.removeSnippetWhitespace) {
+		if (ctx.mode.anyMath() && settings.basicSettings.removeSnippetWhitespace) {
 			let spaceIndex = 0;
 			if (replacement.endsWith(" ")) {
 				spaceIndex = -1;
@@ -122,14 +123,13 @@ export const runSnippetCursor = (ctx: Context, key: string, range: SelectionRang
 		queueSnippet(ctx.view, {from: start, to: to, insert: replacement, keyPressed: key});
 
 
-		const containsTrigger = plugin.autoEnlargeBracketsTriggers.some(word => replacement.contains("\\" + word));
+		const containsTrigger = settings.parsedSettings.autoEnlargeBracketsTriggers.some(word => replacement.contains("\\" + word));
 		return {success: true, shouldAutoEnlargeBrackets: containsTrigger};
 	}
 
 
 	return {success: false, shouldAutoEnlargeBrackets: false};
 }
-
 
 
 export const checkSnippet = (snippet: ParsedSnippet, options: Options, effectiveLine: string, range:  SelectionRange, sel: string):{triggerPos: number; replacement: string} => {

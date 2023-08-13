@@ -4,33 +4,33 @@ import { queueSnippet } from "src/snippets/snippet_queue_state_field";
 import { expandSnippets } from "src/snippets/snippet_management";
 import { SNIPPET_VARIABLES } from "src/snippets/snippets";
 import { autoEnlargeBrackets } from "./auto_enlarge_brackets";
-import LatexSuitePlugin from "src/main";
 import { Context } from "src/snippets/context";
+import { getLatexSuiteConfigFromView } from "src/snippets/config";
 
 
-export const runAutoFraction = (ctx: Context, plugin: LatexSuitePlugin):boolean => {
+export const runAutoFraction = (ctx: Context):boolean => {
 
 	for (const range of ctx.ranges) {
-		runAutoFractionCursor(ctx, range, plugin);
+		runAutoFractionCursor(ctx, range);
 	}
 
 	const success = expandSnippets(ctx.view);
 
 	if (success) {
-		autoEnlargeBrackets(ctx, plugin);
+		autoEnlargeBrackets(ctx);
 	}
 
 	return success;
 }
 
 
-export const runAutoFractionCursor = (ctx: Context, range: SelectionRange, plugin: LatexSuitePlugin):boolean => {
+export const runAutoFractionCursor = (ctx: Context, range: SelectionRange):boolean => {
 
+	const settings = getLatexSuiteConfigFromView(ctx.view);
 	const {from, to} = range;
 
-
 	// Don't run autofraction in excluded environments
-	for (const env of plugin.autofractionExcludedEnvs) {
+	for (const env of settings.parsedSettings.autofractionExcludedEnvs) {
 		if (ctx.isInsideEnvironment(to, env)) {
 			return false;
 		}
@@ -85,7 +85,7 @@ export const runAutoFractionCursor = (ctx: Context, range: SelectionRange, plugi
 			}
 
 
-			if (" $([{\n".concat(plugin.settings.autofractionBreakingChars).contains(curChar)) {
+			if (" $([{\n".concat(settings.basicSettings.autofractionBreakingChars).contains(curChar)) {
 				start = i+1;
 				break;
 			}
@@ -104,7 +104,7 @@ export const runAutoFractionCursor = (ctx: Context, range: SelectionRange, plugi
 		numerator = numerator.slice(1, -1);
 	}
 
-	const replacement = `${plugin.settings.autofractionSymbol}{${numerator}}{$0}$1`
+	const replacement = `${settings.basicSettings.autofractionSymbol}{${numerator}}{$0}$1`
 
 	queueSnippet(ctx.view, {from: start, to: to, insert: replacement, keyPressed: "/"});
 

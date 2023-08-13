@@ -1,13 +1,15 @@
 import { setCursor } from "src/editor_helpers";
+import { getLatexSuiteConfigFromView } from "src/snippets/config";
 import { Context } from "src/snippets/context";
 
 
-export const runMatrixShortcuts = (ctx: Context, key: string, shiftKey: boolean, matrixShortcutsEnvNames: string[]):boolean => {
+export const runMatrixShortcuts = (ctx: Context, key: string, shiftKey: boolean):boolean => {
+	const settings = getLatexSuiteConfigFromView(ctx.view);
 
 	// Check whether we are inside a matrix / align / case environment
 	let isInsideAnEnv = false;
 
-	for (const envName of matrixShortcutsEnvNames) {
+	for (const envName of settings.parsedSettings.matrixShortcutsEnvNames) {
 		const env = {openSymbol: "\\begin{" + envName + "}", closeSymbol: "\\end{" + envName + "}"};
 
 		isInsideAnEnv = ctx.isInsideEnvironment(ctx.pos, env);

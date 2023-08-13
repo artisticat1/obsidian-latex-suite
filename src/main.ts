@@ -185,23 +185,24 @@ export default class LatexSuitePlugin extends Plugin {
 
 	handleKeydown(key: string, shiftKey: boolean, ctrlKey: boolean, view: EditorView) {
 
+		const settings = getLatexSuiteConfigFromView(view);
 		const s = view.state.selection;
 		const pos = s.main.to;
 		const ranges = Array.from(s.ranges).reverse(); // Last to first
 
-		const ctx = ctxAtViewPos(view, pos, ranges, this);
+		const ctx = ctxAtViewPos(view, pos, ranges);
 		// TODO(multisn8): remove this when the PR is done
 		console.log(ctx);
 		console.log(ctx.mode);
 
 		let success = false;
 
-		if (this.settings.basicSettings.snippetsEnabled) {
+		if (settings.basicSettings.snippetsEnabled) {
 
 			// Allows Ctrl + z for undo, instead of triggering a snippet ending with z
 			if (!ctrlKey) {
 				try {
-					success = runSnippets(ctx, key, this);
+					success = runSnippets(ctx, key);
 					if (success) return true;
 				}
 				catch (e) {
@@ -221,9 +222,9 @@ export default class LatexSuitePlugin extends Plugin {
 			if (success) return true;
 		}
 
-		if (this.settings.basicSettings.autofractionEnabled && ctx.mode.anyMath()) {
+		if (settings.basicSettings.autofractionEnabled && ctx.mode.anyMath()) {
 			if (key === "/") {
-				success = runAutoFraction(ctx, this);
+				success = runAutoFraction(ctx);
 
 				if (success) return true;
 			}
@@ -232,15 +233,15 @@ export default class LatexSuitePlugin extends Plugin {
 		// TODO(multisn8): currently matrices in inline math are a mess either way
 		// but with the block/inline distinction, maybe we could try to stuff them inline
 		// or "switch" to a block from inline if a matrix env is activated?
-		if (this.settings.basicSettings.matrixShortcutsEnabled && ctx.mode.blockMath) {
+		if (settings.basicSettings.matrixShortcutsEnabled && ctx.mode.blockMath) {
 			if (["Tab", "Enter"].contains(key)) {
-				success = runMatrixShortcuts(ctx, key, shiftKey, this.matrixShortcutsEnvNames);
+				success = runMatrixShortcuts(ctx, key, shiftKey);
 
 				if (success) return true;
 			}
 		}
 
-		if (this.settings.basicSettings.taboutEnabled) {
+		if (settings.basicSettings.taboutEnabled) {
 			if (key === "Tab") {
 				success = tabout(view, ctx.mode.anyMath());
 

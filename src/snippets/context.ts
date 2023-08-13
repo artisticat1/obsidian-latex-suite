@@ -1,9 +1,9 @@
 import { SelectionRange } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { Bounds, findMatchingBracket, getCloseBracket, getCodeblockBounds, getEquationBounds, isWithinEquation, isWithinInlineEquation, langIfWithinCodeblock } from "src/editor_helpers";
-import LatexSuitePlugin from "src/main";
 import { Mode } from "./options";
 import { Environment } from "./snippets";
+import { getLatexSuiteConfigFromView } from "./config";
 
 export class Context {
 	view: EditorView;
@@ -82,7 +82,7 @@ export class Context {
 }
 
 
-export function ctxAtViewPos(view: EditorView, pos: number, ranges: SelectionRange[], plugin: LatexSuitePlugin):Context {
+export function ctxAtViewPos(view: EditorView, pos: number, ranges: SelectionRange[]):Context {
 	const ctx = new Context();
 	ctx.view = view;
 	ctx.pos = pos;
@@ -90,10 +90,11 @@ export function ctxAtViewPos(view: EditorView, pos: number, ranges: SelectionRan
 	ctx.mode = new Mode();
 	ctx.boundsCache = new Map();
 
+	const settings = getLatexSuiteConfigFromView(view);
 	const codeblockLanguage = langIfWithinCodeblock(view);
 	const inCode = codeblockLanguage !== null;
-	const ignoreMath = plugin.processedSettings.parsedSettings.ignoreMathLanguages.contains(codeblockLanguage);
-	const forceMath = plugin.processedSettings.parsedSettings.forceMathLanguages.contains(codeblockLanguage);
+	const ignoreMath = settings.parsedSettings.ignoreMathLanguages.contains(codeblockLanguage);
+	const forceMath = settings.parsedSettings.forceMathLanguages.contains(codeblockLanguage);
 	ctx.actuallyCodeblock = forceMath;
 
 	// first, check if math mode should be "generally" on

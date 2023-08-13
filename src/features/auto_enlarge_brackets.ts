@@ -1,12 +1,13 @@
 import { getEquationBounds, findMatchingBracket } from "src/editor_helpers";
 import { queueSnippet } from "src/snippets/snippet_queue_state_field";
 import { expandSnippets } from "src/snippets/snippet_management";
-import LatexSuitePlugin from "src/main";
 import { Context } from "src/snippets/context";
+import { getLatexSuiteConfigFromView } from "src/snippets/config";
 
 
-export const autoEnlargeBrackets = (ctx: Context, plugin: LatexSuitePlugin) => {
-	if (!plugin.settings.autoEnlargeBrackets) return;
+export const autoEnlargeBrackets = (ctx: Context) => {
+	const settings = getLatexSuiteConfigFromView(ctx.view);
+	if (!settings.basicSettings.autoEnlargeBrackets) return;
 
 	const result = getEquationBounds(ctx.view.state);
 	if (!result) return false;
@@ -47,7 +48,7 @@ export const autoEnlargeBrackets = (ctx: Context, plugin: LatexSuitePlugin) => {
 
 		// Check whether the brackets contain sum, int or frac
 		const bracketContents = text.slice(i+1, j);
-		const containsTrigger = plugin.autoEnlargeBracketsTriggers.some(word => bracketContents.contains("\\" + word));
+		const containsTrigger = settings.parsedSettings.autoEnlargeBracketsTriggers.some(word => bracketContents.contains("\\" + word));
 
 		if (!containsTrigger) {
 			i = j;
