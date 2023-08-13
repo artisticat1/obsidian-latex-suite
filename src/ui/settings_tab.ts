@@ -1,15 +1,15 @@
 import { App, PluginSettingTab, Setting, Modal, ButtonComponent, ExtraButtonComponent } from "obsidian";
 import { EditorView, ViewUpdate } from "@codemirror/view";
 import { EditorState, Extension } from "@codemirror/state";
-import { basicSetup } from "./ui/snippets_editor/extensions";
-import { DEFAULT_SNIPPETS } from "./default_snippets";
-import LatexSuitePlugin from "./main";
-import { concealPlugin } from "./editor_extensions/conceal";
-import { colorPairedBracketsPluginLowestPrec, highlightCursorBracketsPlugin } from "./editor_extensions/highlight_brackets";
-import { cursorTooltipBaseTheme, cursorTooltipField } from "./editor_extensions/math_tooltip";
-import { FileSuggest } from "./ui/file_suggest";
-import { debouncedSetSnippetsFromFileOrFolder } from "./snippets/file_watch";
-import { DEFAULT_SETTINGS } from "./settings";
+import { basicSetup } from "./snippets_editor/extensions";
+import { DEFAULT_SNIPPETS } from "../default_snippets";
+import LatexSuitePlugin from "../main";
+import { concealPlugin } from "../editor_extensions/conceal";
+import { colorPairedBracketsPluginLowestPrec, highlightCursorBracketsPlugin } from "../editor_extensions/highlight_brackets";
+import { cursorTooltipBaseTheme, cursorTooltipField } from "../editor_extensions/math_tooltip";
+import { FileSuggest } from "./file_suggest";
+import { debouncedSetSnippetsFromFileOrFolder } from "../snippets/file_watch";
+import { DEFAULT_SETTINGS } from "../settings";
 
 
 export class LatexSuiteSettingTab extends PluginSettingTab {
@@ -53,103 +53,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			.setClass("snippets-text-area");
 
 
-		const customCSSWrapper = snippetsSetting.controlEl.createDiv("snippets-editor-wrapper");
-		const snippetsFooter = snippetsSetting.controlEl.createDiv("snippets-footer");
-		const validity = snippetsFooter.createDiv("snippets-editor-validity");
-
-		const validityIndicator = new ExtraButtonComponent(validity);
-		validityIndicator.setIcon("checkmark")
-			.extraSettingsEl.addClass("snippets-editor-validity-indicator");
-
-		const validityText = validity.createDiv("snippets-editor-validity-text");
-		validityText.addClass("setting-item-description");
-		validityText.style.padding = "0";
-
-
-		function updateValidityIndicator(success: boolean) {
-			validityIndicator.setIcon(success ? "checkmark" : "cross");
-			validityIndicator.extraSettingsEl.removeClass(success ? "invalid" : "valid");
-			validityIndicator.extraSettingsEl.addClass(success ? "valid" : "invalid");
-			validityText.setText(success ? "Saved" : "Invalid syntax. Changes not saved");
-		}
-
-
-		const extensions = basicSetup;
-
-		const change = EditorView.updateListener.of(async (v: ViewUpdate) => {
-			if (v.docChanged) {
-				const value = v.state.doc.toString();
-				let success = true;
-
-				try {
-					this.plugin.setSnippets(value);
-				}
-				catch (e) {
-					success = false;
-				}
-
-				updateValidityIndicator(success);
-
-				if (!success) return;
-
-
-				this.plugin.settings.snippets = value;
-				await this.plugin.saveSettings();
-			}
-		});
-
-		extensions.push(change);
-
-		this.snippetsEditor = createSnippetsEditor(this.plugin.settings.snippets, extensions);
-		customCSSWrapper.appendChild(this.snippetsEditor.dom);
-
-
-		const buttonsDiv = snippetsFooter.createDiv("snippets-editor-buttons");
-		const reset = new ButtonComponent(buttonsDiv);
-		reset.setIcon("switch")
-			.setTooltip("Reset to default snippets")
-			.onClick(async () => {
-				new ConfirmationModal(this.plugin.app,
-					"Are you sure? This will delete any custom snippets you have written.",
-					button => button
-						.setButtonText("Reset to default snippets")
-						.setWarning(),
-					async () => {
-						this.snippetsEditor.setState(EditorState.create({ doc: DEFAULT_SNIPPETS, extensions: extensions }));
-						updateValidityIndicator(true);
-
-						this.plugin.setSnippets(DEFAULT_SNIPPETS);
-						this.plugin.settings.snippets = DEFAULT_SNIPPETS;
-
-						await this.plugin.saveSettings();
-					}
-				).open();
-			});
-
-		const remove = new ButtonComponent(buttonsDiv);
-		remove.setIcon("trash")
-			.setTooltip("Remove all snippets")
-			.onClick(async () => {
-				new ConfirmationModal(this.plugin.app,
-					"Are you sure? This will delete any custom snippets you have written.",
-					button => button
-						.setButtonText("Remove all snippets")
-						.setWarning(),
-					async () => {
-						const value = `[
-
-]`;
-						this.snippetsEditor.setState(EditorState.create({ doc: value, extensions: extensions }));
-						updateValidityIndicator(true);
-
-						this.plugin.setSnippets(value);
-						this.plugin.settings.snippets = value;
-						await this.plugin.saveSettings();
-					}
-				).open();
-			});
-
-
+		this.createSnippetsEditor(snippetsSetting);
 
 
 		new Setting(containerEl)
@@ -504,6 +408,105 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 	}
+
+
+	createSnippetsEditor(snippetsSetting: Setting) {
+		const customCSSWrapper = snippetsSetting.controlEl.createDiv("snippets-editor-wrapper");
+		const snippetsFooter = snippetsSetting.controlEl.createDiv("snippets-footer");
+		const validity = snippetsFooter.createDiv("snippets-editor-validity");
+
+		const validityIndicator = new ExtraButtonComponent(validity);
+		validityIndicator.setIcon("checkmark")
+			.extraSettingsEl.addClass("snippets-editor-validity-indicator");
+
+		const validityText = validity.createDiv("snippets-editor-validity-text");
+		validityText.addClass("setting-item-description");
+		validityText.style.padding = "0";
+
+
+		function updateValidityIndicator(success: boolean) {
+			validityIndicator.setIcon(success ? "checkmark" : "cross");
+			validityIndicator.extraSettingsEl.removeClass(success ? "invalid" : "valid");
+			validityIndicator.extraSettingsEl.addClass(success ? "valid" : "invalid");
+			validityText.setText(success ? "Saved" : "Invalid syntax. Changes not saved");
+		}
+
+
+		const extensions = basicSetup;
+
+		const change = EditorView.updateListener.of(async (v: ViewUpdate) => {
+			if (v.docChanged) {
+				const value = v.state.doc.toString();
+				let success = true;
+
+				try {
+					this.plugin.setSnippets(value);
+				}
+				catch (e) {
+					success = false;
+				}
+
+				updateValidityIndicator(success);
+
+				if (!success) return;
+
+
+				this.plugin.settings.snippets = value;
+				await this.plugin.saveSettings();
+			}
+		});
+
+		extensions.push(change);
+
+		this.snippetsEditor = createCMEditor(this.plugin.settings.snippets, extensions);
+		customCSSWrapper.appendChild(this.snippetsEditor.dom);
+
+
+		const buttonsDiv = snippetsFooter.createDiv("snippets-editor-buttons");
+		const reset = new ButtonComponent(buttonsDiv);
+		reset.setIcon("switch")
+			.setTooltip("Reset to default snippets")
+			.onClick(async () => {
+				new ConfirmationModal(this.plugin.app,
+					"Are you sure? This will delete any custom snippets you have written.",
+					button => button
+						.setButtonText("Reset to default snippets")
+						.setWarning(),
+					async () => {
+						this.snippetsEditor.setState(EditorState.create({ doc: DEFAULT_SNIPPETS, extensions: extensions }));
+						updateValidityIndicator(true);
+
+						this.plugin.setSnippets(DEFAULT_SNIPPETS);
+						this.plugin.settings.snippets = DEFAULT_SNIPPETS;
+
+						await this.plugin.saveSettings();
+					}
+				).open();
+			});
+
+		const remove = new ButtonComponent(buttonsDiv);
+		remove.setIcon("trash")
+			.setTooltip("Remove all snippets")
+			.onClick(async () => {
+				new ConfirmationModal(this.plugin.app,
+					"Are you sure? This will delete any custom snippets you have written.",
+					button => button
+						.setButtonText("Remove all snippets")
+						.setWarning(),
+					async () => {
+						const value = `[
+
+]`;
+						this.snippetsEditor.setState(EditorState.create({ doc: value, extensions: extensions }));
+						updateValidityIndicator(true);
+
+						this.plugin.setSnippets(value);
+						this.plugin.settings.snippets = value;
+						await this.plugin.saveSettings();
+					}
+				).open();
+			});
+	}
 }
 class ConfirmationModal extends Modal {
 
@@ -527,7 +530,8 @@ class ConfirmationModal extends Modal {
 				.onClick(() => this.close()));
 	}
 }
-function createSnippetsEditor(content: string, extensions: Extension[]) {
+
+function createCMEditor(content: string, extensions: Extension[]) {
 	const view = new EditorView({
 		state: EditorState.create({ doc: content, extensions }),
 	});
