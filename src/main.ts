@@ -8,7 +8,8 @@ import { Prec, Extension } from "@codemirror/state";
 
 import { Environment, ParsedSnippet } from "./snippets/snippets";
 import { onFileCreate, onFileChange, onFileDelete, debouncedSetSnippetsFromFileOrFolder } from "./snippets/file_watch";
-import { sortSnippets, getSnippetsFromString, snippetInvertedEffects, handleUndoRedo } from "./snippets/snippet_helper_functions";
+import { sortSnippets, getSnippetsFromString } from "./snippets/snippet_helper_functions";
+import { snippetInvertedEffects, handleUndoRedo } from "./snippets/snippets_cm";
 import { isInsideATabstop, isInsideLastTabstop, removeAllTabstops, consumeAndGotoNextTabstop } from "./snippets/snippet_management";
 import { markerStateField } from "./snippets/marker_state_field";
 import { tabstopsStateField } from "./snippets/tabstops_state_field";
