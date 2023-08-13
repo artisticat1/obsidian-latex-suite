@@ -1,5 +1,6 @@
 import LatexSuitePlugin from "../main";
 import { TFile, TFolder, Notice, debounce, TAbstractFile } from "obsidian";
+// TODO: replace Snippet with RawSnippet/ParsedSnippet
 import { Snippet } from "./snippets";
 import { getSnippetsFromString, sortSnippets } from "./parse_snippets";
 
