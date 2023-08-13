@@ -1,12 +1,12 @@
 import { EditorView, Decoration } from "@codemirror/view";
 import { Range, SelectionRange, EditorSelection, ChangeSpec, ChangeSet } from "@codemirror/state";
 import { setCursor, setSelections, findMatchingBracket, resetCursorBlink } from "../editor_helpers";
-import { addMark, clearMarks, markerStateField, removeMarkBySpecAttribute } from "./marker_state_field";
-import { startSnippet, endSnippet } from "./snippets_cm";
+import { addMark, clearMarks, markerStateField, removeMarkBySpecAttribute } from "./codemirror/marker_state_field";
+import { startSnippet, endSnippet } from "./codemirror/history";
 import { isolateHistory } from "@codemirror/commands";
 
-import { addTabstop, consumeTabstop, removeEmptyTabstops, clearAllTabstops, tabstopsStateField } from "./tabstops_state_field";
-import { clearSnippetQueue, snippetQueueStateField } from "./snippet_queue_state_field";
+import { addTabstop, consumeTabstop, removeEmptyTabstops, clearAllTabstops, tabstopsStateField } from "./codemirror/tabstops_state_field";
+import { clearSnippetQueue, snippetQueueStateField } from "./codemirror/snippet_queue_state_field";
 
 
 const COLORS = ["lightskyblue", "orange", "lime", "pink", "cornsilk", "magenta", "navajowhite"];

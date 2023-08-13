@@ -4,9 +4,6 @@ import { EditorState, Extension } from "@codemirror/state";
 import { basicSetup } from "./snippets_editor/extensions";
 import { DEFAULT_SNIPPETS } from "../default_snippets";
 import LatexSuitePlugin from "../main";
-import { concealPlugin } from "../editor_extensions/conceal";
-import { colorPairedBracketsPluginLowestPrec, highlightCursorBracketsPlugin } from "../editor_extensions/highlight_brackets";
-import { cursorTooltipBaseTheme, cursorTooltipField } from "../editor_extensions/math_tooltip";
 import { FileSuggest } from "./file_suggest";
 import { debouncedSetSnippetsFromFileOrFolder } from "../snippets/file_watch";
 import { DEFAULT_SETTINGS } from "../settings";
@@ -178,14 +175,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					.setValue(this.plugin.settings.basicSettings.concealEnabled)
 					.onChange(async (value) => {
 						this.plugin.settings.basicSettings.concealEnabled = value;
-
-						if (value) {
-							this.plugin.enableExtension(concealPlugin.extension);
-						}
-						else {
-							this.plugin.disableExtension(concealPlugin.extension);
-						}
-
+						this.plugin.refreshCMExtensions();
 						await this.plugin.saveSettings();
 					}));
 		}
@@ -201,14 +191,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				.onChange(async (value) => {
 					this.plugin.settings.basicSettings.colorPairedBracketsEnabled = value;
 
-					if (value) {
-						// Use Prec.lowest so that "color matching brackets" still works when "conceal" is enabled after it
-						this.plugin.enableExtension(colorPairedBracketsPluginLowestPrec);
-					}
-					else {
-						this.plugin.disableExtension(colorPairedBracketsPluginLowestPrec);
-					}
-
+					this.plugin.refreshCMExtensions();
 					await this.plugin.saveSettings();
 				}));
 		new Setting(containerEl)
@@ -218,14 +201,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.basicSettings.highlightCursorBracketsEnabled)
 				.onChange(async (value) => {
 					this.plugin.settings.basicSettings.highlightCursorBracketsEnabled = value;
-
-					if (value) {
-						this.plugin.enableExtension(highlightCursorBracketsPlugin.extension);
-					}
-					else {
-						this.plugin.disableExtension(highlightCursorBracketsPlugin.extension);
-					}
-
+					this.plugin.refreshCMExtensions();
 					await this.plugin.saveSettings();
 				}));
 
@@ -249,16 +225,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.basicSettings.mathPreviewEnabled)
 				.onChange(async (value) => {
 					this.plugin.settings.basicSettings.mathPreviewEnabled = value;
-
-					if (value) {
-						this.plugin.enableExtension(cursorTooltipField);
-						this.plugin.enableExtension(cursorTooltipBaseTheme);
-					}
-					else {
-						this.plugin.disableExtension(cursorTooltipField);
-						this.plugin.disableExtension(cursorTooltipBaseTheme);
-					}
-
+					this.plugin.refreshCMExtensions();
 					await this.plugin.saveSettings();
 				}));
 

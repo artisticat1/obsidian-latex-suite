@@ -1,11 +1,11 @@
 import { SelectionRange } from "@codemirror/state";
 import { getEquationBounds, findMatchingBracket, getOpenBracket } from "src/editor_helpers";
-import { queueSnippet } from "src/snippets/snippet_queue_state_field";
+import { queueSnippet } from "src/snippets/codemirror/snippet_queue_state_field";
 import { expandSnippets } from "src/snippets/snippet_management";
 import { SNIPPET_VARIABLES } from "src/snippets/snippets";
 import { autoEnlargeBrackets } from "./auto_enlarge_brackets";
 import { Context } from "src/snippets/context";
-import { getLatexSuiteConfigFromView } from "src/snippets/config";
+import { getLatexSuiteConfigFromView } from "src/snippets/codemirror/config";
 
 
 export const runAutoFraction = (ctx: Context):boolean => {

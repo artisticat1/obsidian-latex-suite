@@ -1,8 +1,8 @@
 import { getEquationBounds, findMatchingBracket } from "src/editor_helpers";
-import { queueSnippet } from "src/snippets/snippet_queue_state_field";
+import { queueSnippet } from "src/snippets/codemirror/snippet_queue_state_field";
 import { expandSnippets } from "src/snippets/snippet_management";
 import { Context } from "src/snippets/context";
-import { getLatexSuiteConfigFromView } from "src/snippets/config";
+import { getLatexSuiteConfigFromView } from "src/snippets/codemirror/config";
 
 
 export const autoEnlargeBrackets = (ctx: Context) => {

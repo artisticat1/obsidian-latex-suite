@@ -1,14 +1,24 @@
-import { EditorView, ViewUpdate } from "@codemirror/view";
+import { Prec, Extension } from "@codemirror/state";
+import { EditorView, ViewUpdate, tooltips } from "@codemirror/view";
+
 import { runSnippets } from "./features/run_snippets";
 import { runAutoFraction } from "./features/autofraction";
 import { tabout, shouldTaboutByCloseBracket } from "./features/tabout";
 import { runMatrixShortcuts } from "./features/matrix_shortcuts";
-import { consumeAndGotoNextTabstop, isInsideATabstop, isInsideLastTabstop, removeAllTabstops } from "./snippets/snippet_management";
-import { clearSnippetQueue } from "./snippets/snippet_queue_state_field";
-import { cursorTriggerStateField } from "./snippets/cursor_trigger_state_field";
+
 import { ctxAtViewPos } from "./snippets/context";
-import { getLatexSuiteConfigFromView } from "./snippets/config";
-import { handleUndoRedo } from "./snippets/snippets_cm";
+import { consumeAndGotoNextTabstop, isInsideATabstop, isInsideLastTabstop, removeAllTabstops } from "./snippets/snippet_management";
+import { getLatexSuiteConfigExtension, getLatexSuiteConfigFromView } from "./snippets/codemirror/config";
+import { clearSnippetQueue } from "./snippets/codemirror/snippet_queue_state_field";
+import { cursorTriggerStateField } from "./snippets/codemirror/cursor_trigger_state_field";
+import { handleUndoRedo } from "./snippets/codemirror/history";
+import { snippetExtensions } from "./snippets/codemirror/extensions";
+
+import { concealPlugin } from "./editor_extensions/conceal";
+
+import { LatexSuiteProcessedSettings } from "./settings";
+import { colorPairedBracketsPluginLowestPrec, highlightCursorBracketsPlugin } from "./editor_extensions/highlight_brackets";
+import { cursorTooltipBaseTheme, cursorTooltipField } from "./editor_extensions/math_tooltip";
 
 export const handleUpdate = (update: ViewUpdate) => {
 	const cursorTriggeredByChange = update.state.field(cursorTriggerStateField, false);
@@ -59,9 +69,7 @@ export const handleKeydown = (key: string, shiftKey: boolean, ctrlKey: boolean, 
 				clearSnippetQueue(view);
 				console.error(e);
 			}
-
 		}
-
 	}
 
 	const taboutByCloseBracket = shouldTaboutByCloseBracket(view, key);
@@ -107,4 +115,20 @@ export const handleTabstops = (view: EditorView) =>
 	const success = consumeAndGotoNextTabstop(view);
 
 	return success;
+}
+
+// CodeMirror extensions that are required for Latex Suite to run
+export const latexSuiteExtensions = (settings: LatexSuiteProcessedSettings) => [
+	getLatexSuiteConfigExtension(settings),
+	Prec.highest(EditorView.domEventHandlers({"keydown": onKeydown})), // Register keymaps
+	EditorView.updateListener.of(handleUpdate),
+	snippetExtensions
+];
+
+// Optional CodeMirror extensions for optional features
+export const optionalExtensions: {[feature: string]: Extension[]} = {
+	"conceal": [concealPlugin.extension],
+	"colorPairedBrackets": [colorPairedBracketsPluginLowestPrec],
+	"highlightCursorBrackets": [highlightCursorBracketsPlugin.extension],
+	"mathPreview": [cursorTooltipField.extension, cursorTooltipBaseTheme, tooltips({position: "absolute"})]
 }

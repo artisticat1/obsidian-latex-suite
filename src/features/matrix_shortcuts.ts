@@ -1,5 +1,5 @@
 import { setCursor } from "src/editor_helpers";
-import { getLatexSuiteConfigFromView } from "src/snippets/config";
+import { getLatexSuiteConfigFromView } from "src/snippets/codemirror/config";
 import { Context } from "src/snippets/context";
 
 

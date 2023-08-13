@@ -3,7 +3,7 @@ import { EditorView } from "@codemirror/view";
 import { Bounds, findMatchingBracket, getCloseBracket, getCodeblockBounds, getEquationBounds, isWithinEquation, isWithinInlineEquation, langIfWithinCodeblock } from "src/editor_helpers";
 import { Mode } from "./options";
 import { Environment } from "./snippets";
-import { getLatexSuiteConfigFromView } from "./config";
+import { getLatexSuiteConfigFromView } from "./codemirror/config";
 
 export class Context {
 	view: EditorView;
