@@ -1,7 +1,7 @@
 import LatexSuitePlugin from "../main";
 import { TFile, TFolder, Notice, debounce, TAbstractFile } from "obsidian";
 import { Snippet } from "./snippets";
-import { getSnippetsFromString, sortSnippets } from "./snippet_helper_functions";
+import { getSnippetsFromString, sortSnippets } from "./parse_snippets";
 
 
 export async function onFileChange(plugin: LatexSuitePlugin, file: TAbstractFile) {
