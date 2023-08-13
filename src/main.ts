@@ -1,5 +1,6 @@
 import { Plugin, Notice } from "obsidian";
-import { LatexSuiteSettings, LatexSuiteSettingTab, DEFAULT_SETTINGS } from "./settings";
+import { LatexSuiteSettings, DEFAULT_SETTINGS } from "./settings";
+import { LatexSuiteSettingTab } from "./settings_tab";
 
 import { ctxAtViewPos } from "./snippets/context";
 
