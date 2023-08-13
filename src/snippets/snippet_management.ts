@@ -1,7 +1,8 @@
 import { EditorView, Decoration } from "@codemirror/view";
 import { Range, SelectionRange, EditorSelection, ChangeSpec, ChangeSet } from "@codemirror/state";
 import { setCursor, setSelections, findMatchingBracket, resetCursorBlink } from "../editor_helpers";
-import { addMark, clearMarks, markerStateField, removeMarkBySpecAttribute, startSnippet, endSnippet } from "./marker_state_field";
+import { addMark, clearMarks, markerStateField, removeMarkBySpecAttribute } from "./marker_state_field";
+import { startSnippet, endSnippet } from "./snippets_cm";
 import { isolateHistory } from "@codemirror/commands";
 
 import { addTabstop, consumeTabstop, removeEmptyTabstops, clearAllTabstops, tabstopsStateField } from "./tabstops_state_field";
@@ -222,7 +223,7 @@ export function expandSnippets(view: EditorView):boolean {
 
 	insertTabstopReferences(view, tabstopsToAdd);
 	insertTabstopsTransaction(view, tabstopsToAdd);
-	
+
 	clearSnippetQueue(view);
 	return true;
 }

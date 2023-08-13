@@ -7,13 +7,6 @@ export const clearMarks = StateEffect.define();
 export const removeMarkBySpecAttribute = StateEffect.define<{ attribute: string, reference: any }>()
 
 
-// Effects that mark the beginning and end of transactions to insert snippets
-export const startSnippet = StateEffect.define();
-export const endSnippet = StateEffect.define();
-export const undidStartSnippet = StateEffect.define();
-export const undidEndSnippet = StateEffect.define();
-
-
 export const markerStateField = StateField.define<RangeSet<Decoration>>({
 
 	create() {

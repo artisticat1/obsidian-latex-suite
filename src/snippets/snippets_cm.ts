@@ -1,7 +1,15 @@
 import { ViewUpdate } from "@codemirror/view";
+import { StateEffect } from "@codemirror/state";
 import { invertedEffects, undo, redo } from "@codemirror/commands";
-import { addMark, removeMark, startSnippet, undidStartSnippet, endSnippet, undidEndSnippet } from "./marker_state_field";
+import { addMark, removeMark } from "./marker_state_field";
 import { removeEmptyTabstops } from "./tabstops_state_field";
+
+// Effects that mark the beginning and end of transactions to insert snippets
+export const startSnippet = StateEffect.define();
+export const endSnippet = StateEffect.define();
+export const undidStartSnippet = StateEffect.define();
+export const undidEndSnippet = StateEffect.define();
+
 
 // Enables undoing and redoing snippets, taking care of the tabstops
 export const snippetInvertedEffects = invertedEffects.of(tr => {
