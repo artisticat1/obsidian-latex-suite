@@ -83,7 +83,7 @@ export class Context {
 
 
 export function ctxAtViewPos(view: EditorView, pos: number, ranges: SelectionRange[], plugin: LatexSuitePlugin):Context {
-	let ctx = new Context();
+	const ctx = new Context();
 	ctx.view = view;
 	ctx.pos = pos;
 	ctx.ranges = ranges;
@@ -92,8 +92,8 @@ export function ctxAtViewPos(view: EditorView, pos: number, ranges: SelectionRan
 
 	const codeblockLanguage = langIfWithinCodeblock(view);
 	const inCode = codeblockLanguage !== null;
-	const ignoreMath = plugin.ignoreMathLanguages.contains(codeblockLanguage);
-	const forceMath = plugin.forceMathLanguages.contains(codeblockLanguage);
+	const ignoreMath = plugin.processedSettings.parsedSettings.ignoreMathLanguages.contains(codeblockLanguage);
+	const forceMath = plugin.processedSettings.parsedSettings.forceMathLanguages.contains(codeblockLanguage);
 	ctx.actuallyCodeblock = forceMath;
 
 	// first, check if math mode should be "generally" on

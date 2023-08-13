@@ -1,55 +1,115 @@
 import { DEFAULT_SNIPPETS } from "./default_snippets";
+import { getSnippetsFromString } from "./snippets/parse_snippets";
+import { ParsedSnippet } from "./snippets/snippets";
 
-export interface LatexSuiteSettings {
-	snippets: string;
+export interface LatexSuiteBasicSetting {
 	snippetsEnabled: boolean;
 	snippetsTrigger: "Tab" | " "
 	removeSnippetWhitespace: boolean;
 	loadSnippetsFromFile: boolean;
 	snippetsFileLocation: string;
 	autofractionEnabled: boolean;
-	concealEnabled: boolean,
+	concealEnabled: boolean;
 	colorPairedBracketsEnabled: boolean;
 	highlightCursorBracketsEnabled: boolean;
 	mathPreviewEnabled: boolean;
-	autofractionSymbol: string,
-	autofractionExcludedEnvs: string,
+	autofractionSymbol: string;
 	autofractionBreakingChars: string;
 	matrixShortcutsEnabled: boolean;
-	matrixShortcutsEnvNames: string;
 	taboutEnabled: boolean;
 	autoEnlargeBrackets: boolean;
-	autoEnlargeBracketsTriggers: string;
 	wordDelimiters: string;
-	ignoreMathLanguages: string,
-	forceMathLanguages: string,
+}
+
+/**
+ * A setting that requires further processing (e.g. conversion to an array) before being used.
+ */
+export interface LatexSuiteRawSetting {
+	autofractionExcludedEnvs: string;
+	matrixShortcutsEnvNames: string;
+	autoEnlargeBracketsTriggers: string;
+	ignoreMathLanguages: string;
+	forceMathLanguages: string;
+}
+
+export interface LatexSuiteParsedSetting {
+	autofractionExcludedEnvs: string[];
+	matrixShortcutsEnvNames: string[];
+	autoEnlargeBracketsTriggers: string[];
+	ignoreMathLanguages: string[];
+	forceMathLanguages: string[];
+}
+
+export interface LatexSuiteSettings {
+	snippets: string;
+	basicSettings: LatexSuiteBasicSetting;
+	rawSettings: LatexSuiteRawSetting;
+}
+
+export interface LatexSuiteProcessedSettings {
+	snippets: ParsedSnippet[];
+	basicSettings: LatexSuiteBasicSetting;
+	parsedSettings: LatexSuiteParsedSetting;
 }
 
 export const DEFAULT_SETTINGS: LatexSuiteSettings = {
 	snippets: DEFAULT_SNIPPETS,
-	snippetsEnabled: true,
-	snippetsTrigger: "Tab",
-	removeSnippetWhitespace: true,
-	loadSnippetsFromFile: false,
-	snippetsFileLocation: "",
-	concealEnabled: false,
-	colorPairedBracketsEnabled: true,
-	highlightCursorBracketsEnabled: true,
-	mathPreviewEnabled: true,
-	autofractionEnabled: true,
-	autofractionSymbol: "\\frac",
-	autofractionExcludedEnvs:
-	`[
-		["^{", "}"],
-		["\\\\pu{", "}"]
-]`,
-	autofractionBreakingChars: "+-=\t",
-	matrixShortcutsEnabled: true,
-	matrixShortcutsEnvNames: "pmatrix, cases, align, bmatrix, Bmatrix, vmatrix, Vmatrix, array, matrix",
-	taboutEnabled: true,
-	autoEnlargeBrackets: true,
-	autoEnlargeBracketsTriggers: "sum, int, frac, prod",
-	wordDelimiters: "., +-\\n\t:;!?\\/{}[]()=~$",
-	ignoreMathLanguages: "bash, php, perl, julia, sh",
-	forceMathLanguages: "math",
+	basicSettings: {
+		snippetsEnabled: true,
+		snippetsTrigger: "Tab",
+		removeSnippetWhitespace: true,
+		loadSnippetsFromFile: false,
+		snippetsFileLocation: "",
+		concealEnabled: false,
+		colorPairedBracketsEnabled: true,
+		highlightCursorBracketsEnabled: true,
+		mathPreviewEnabled: true,
+		autofractionEnabled: true,
+		autofractionSymbol: "\\frac",
+		autofractionBreakingChars: "+-=\t",
+		matrixShortcutsEnabled: true,
+		taboutEnabled: true,
+		autoEnlargeBrackets: true,
+		wordDelimiters: "., +-\\n\t:;!?\\/{}[]()=~$",
+	},
+	rawSettings: {
+		autofractionExcludedEnvs:
+		`[
+			["^{", "}"],
+			["\\\\pu{", "}"]
+		]`,
+		matrixShortcutsEnvNames: "pmatrix, cases, align, bmatrix, Bmatrix, vmatrix, Vmatrix, array, matrix",
+		autoEnlargeBracketsTriggers: "sum, int, frac, prod",
+		ignoreMathLanguages: "bash, php, perl, julia, sh",
+		forceMathLanguages: "math"
+	}
+}
+
+export function processLatexSuiteSettings(settings: LatexSuiteSettings):LatexSuiteProcessedSettings {
+	const raw = settings.rawSettings;
+
+	function strToArray(str: string) {
+		return str.replace(/\s/g,"").split(",");
+	}
+
+	function getAutofractionExcludedEnvs(envsStr: string) {
+		const envsJSON = JSON.parse(envsStr);
+		const envs = envsJSON.map(function(env: string[]) {
+			return {openSymbol: env[0], closeSymbol: env[1]};
+		});
+
+		return envs;
+	}
+
+	return {
+		snippets: getSnippetsFromString(settings.snippets),
+		basicSettings: settings.basicSettings,
+		parsedSettings: {
+			autofractionExcludedEnvs: getAutofractionExcludedEnvs(raw.autofractionExcludedEnvs),
+			matrixShortcutsEnvNames: strToArray(raw.matrixShortcutsEnvNames),
+			autoEnlargeBracketsTriggers: strToArray(raw.autoEnlargeBracketsTriggers),
+			ignoreMathLanguages: strToArray(raw.ignoreMathLanguages),
+			forceMathLanguages: strToArray(raw.forceMathLanguages)
+		}
+	}
 }

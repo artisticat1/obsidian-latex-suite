@@ -1,5 +1,5 @@
 import { Plugin, Notice } from "obsidian";
-import { LatexSuiteSettings, DEFAULT_SETTINGS } from "./settings";
+import { LatexSuiteSettings, DEFAULT_SETTINGS, LatexSuiteProcessedSettings, processLatexSuiteSettings } from "./settings";
 import { LatexSuiteSettingTab } from "./ui/settings_tab";
 
 import { ctxAtViewPos } from "./snippets/context";
@@ -7,9 +7,7 @@ import { ctxAtViewPos } from "./snippets/context";
 import { EditorView, ViewUpdate, tooltips } from "@codemirror/view";
 import { Prec, Extension } from "@codemirror/state";
 
-import { Environment, ParsedSnippet } from "./snippets/snippets";
 import { onFileCreate, onFileChange, onFileDelete, debouncedSetSnippetsFromFileOrFolder } from "./snippets/file_watch";
-import { sortSnippets, getSnippetsFromString } from "./snippets/parse_snippets";
 import { snippetInvertedEffects, handleUndoRedo } from "./snippets/snippets_cm";
 import { isInsideATabstop, isInsideLastTabstop, removeAllTabstops, consumeAndGotoNextTabstop } from "./snippets/snippet_management";
 import { markerStateField } from "./snippets/marker_state_field";
@@ -25,20 +23,16 @@ import { runAutoFraction } from "./features/autofraction";
 import { tabout, shouldTaboutByCloseBracket } from "./features/tabout";
 import { runMatrixShortcuts } from "./features/matrix_shortcuts";
 import { getEditorCommands } from "./features/editor_commands";
+import { iterateCM6 } from "./editor_helpers";
+import { getLatexSuiteConfigExtension, getLatexSuiteConfigFromView, reconfigureLatexSuiteConfig } from "./snippets/config";
 
 
 export default class LatexSuitePlugin extends Plugin {
 	settings: LatexSuiteSettings;
-	snippets: ParsedSnippet[];
-	autofractionExcludedEnvs: Environment[];
-	matrixShortcutsEnvNames: string[];
-	autoEnlargeBracketsTriggers: string[];
-	ignoreMathLanguages: string[];
-	forceMathLanguages: string[];
+	processedSettings: LatexSuiteProcessedSettings;
 
 	cursorTriggeredByChange = false;
 	editorExtensions:Extension[] = [];
-
 
 	async onload() {
 		await this.loadSettings();
@@ -48,13 +42,16 @@ export default class LatexSuitePlugin extends Plugin {
 
 		// Register keymaps
 		this.registerEditorExtension(Prec.highest(EditorView.domEventHandlers({
-			"keydown": this.onKeydown
+			"keydown": this.onKeydown.bind(this)
 		})));
+
+		// Register editor extensions for config/settings
+		this.registerEditorExtension(getLatexSuiteConfigExtension(this.processedSettings));
 
 
 		// Register editor extensions required for snippets
 		this.registerEditorExtension([markerStateField, tabstopsStateField, snippetQueueStateField, snippetInvertedEffects]);
-		this.registerEditorExtension(EditorView.updateListener.of(this.handleUpdate));
+		this.registerEditorExtension(EditorView.updateListener.of(this.handleUpdate.bind(this)));
 
 
 		// Register editor extensions for editor enhancements
@@ -135,28 +132,23 @@ export default class LatexSuitePlugin extends Plugin {
 
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		this.processedSettings = processLatexSuiteSettings(this.settings);
 
-		if (this.settings.loadSnippetsFromFile) {
-			// Use onLayoutReady so that we don't try to read the snippets file too early
-			this.app.workspace.onLayoutReady(() => {
-				debouncedSetSnippetsFromFileOrFolder(this);
-			});
-		}
-		else {
-			this.setSnippets(this.settings.snippets);
-		}
+		// TODO: Make this work with new settings
+		// if (this.settings.loadSnippetsFromFile) {
+		// 	// Use onLayoutReady so that we don't try to read the snippets file too early
+		// 	this.app.workspace.onLayoutReady(() => {
+		// 		debouncedSetSnippetsFromFileOrFolder(this);
+		// 	});
+		// }
+		// else {
+		// 	this.setSnippets(this.settings.snippets);
+		// }
 
-		this.setAutofractionExcludedEnvs(this.settings.autofractionExcludedEnvs);
-		this.matrixShortcutsEnvNames = this.settings.matrixShortcutsEnvNames.replace(/\s/g,"").split(",");
-		this.autoEnlargeBracketsTriggers = this.settings.autoEnlargeBracketsTriggers.replace(/\s/g,"").split(",");
-		this.ignoreMathLanguages = this.settings.ignoreMathLanguages.replace(/\s/g,"").split(",");
-		this.forceMathLanguages = this.settings.forceMathLanguages.replace(/\s/g,"").split(",");
-
-
-		if (this.settings.concealEnabled) this.enableExtension(concealPlugin.extension);
-		if (this.settings.colorPairedBracketsEnabled) this.enableExtension(colorPairedBracketsPluginLowestPrec);
-		if (this.settings.highlightCursorBracketsEnabled) this.enableExtension(highlightCursorBracketsPlugin.extension);
-		if (this.settings.mathPreviewEnabled) {
+		if (this.settings.basicSettings.concealEnabled) this.enableExtension(concealPlugin.extension);
+		if (this.settings.basicSettings.colorPairedBracketsEnabled) this.enableExtension(colorPairedBracketsPluginLowestPrec);
+		if (this.settings.basicSettings.highlightCursorBracketsEnabled) this.enableExtension(highlightCursorBracketsPlugin.extension);
+		if (this.settings.basicSettings.mathPreviewEnabled) {
 			this.enableExtension(cursorTooltipField);
 			this.enableExtension(cursorTooltipBaseTheme);
 		}
@@ -164,25 +156,17 @@ export default class LatexSuitePlugin extends Plugin {
 
 	async saveSettings() {
 		await this.saveData(this.settings);
+		this.processedSettings = processLatexSuiteSettings(this.settings);
+		this.reconfigureLatexSuiteConfig();
 	}
 
-	setSnippets(snippetsStr: string) {
-		const snippets = getSnippetsFromString(snippetsStr);
-
-		sortSnippets(snippets);
-		this.snippets = snippets;
+	reconfigureLatexSuiteConfig() {
+		iterateCM6(this.app.workspace, (view) => {
+			view.dispatch({
+				effects: reconfigureLatexSuiteConfig(this.processedSettings)
+			});
+		})
 	}
-
-
-	setAutofractionExcludedEnvs(envsStr: string) {
-		const envsJSON = JSON.parse(envsStr);
-		const envs = envsJSON.map(function(env: string[]) {
-			return {openSymbol: env[0], closeSymbol: env[1]};
-		});
-
-		this.autofractionExcludedEnvs = envs;
-	}
-
 
 
 	addEditorCommands() {
@@ -212,7 +196,7 @@ export default class LatexSuitePlugin extends Plugin {
 
 		let success = false;
 
-		if (this.settings.snippetsEnabled) {
+		if (this.settings.basicSettings.snippetsEnabled) {
 
 			// Allows Ctrl + z for undo, instead of triggering a snippet ending with z
 			if (!ctrlKey) {
@@ -237,7 +221,7 @@ export default class LatexSuitePlugin extends Plugin {
 			if (success) return true;
 		}
 
-		if (this.settings.autofractionEnabled && ctx.mode.anyMath()) {
+		if (this.settings.basicSettings.autofractionEnabled && ctx.mode.anyMath()) {
 			if (key === "/") {
 				success = runAutoFraction(ctx, this);
 
@@ -248,7 +232,7 @@ export default class LatexSuitePlugin extends Plugin {
 		// TODO(multisn8): currently matrices in inline math are a mess either way
 		// but with the block/inline distinction, maybe we could try to stuff them inline
 		// or "switch" to a block from inline if a matrix env is activated?
-		if (this.settings.matrixShortcutsEnabled && ctx.mode.blockMath) {
+		if (this.settings.basicSettings.matrixShortcutsEnabled && ctx.mode.blockMath) {
 			if (["Tab", "Enter"].contains(key)) {
 				success = runMatrixShortcuts(ctx, key, shiftKey, this.matrixShortcutsEnvNames);
 
@@ -256,7 +240,7 @@ export default class LatexSuitePlugin extends Plugin {
 			}
 		}
 
-		if (this.settings.taboutEnabled) {
+		if (this.settings.basicSettings.taboutEnabled) {
 			if (key === "Tab") {
 				success = tabout(view, ctx.mode.anyMath());
 

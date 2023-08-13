@@ -38,11 +38,13 @@ export function sortSnippets(snippets:ParsedSnippet[]) {
 
 
 export function getSnippetsFromString(snippetsStr: string) {
-	const snippets: RawSnippet[] = parse(snippetsStr);
+	const rawSnippets: RawSnippet[] = parse(snippetsStr);
+	if (!validateSnippets(rawSnippets)) throw "Invalid snippet format.";
 
-	if (!validateSnippets(snippets)) throw "Invalid snippet format.";
+	const parsedSnippets = rawSnippets.map(rawSnippet => new ParsedSnippet(rawSnippet));
+	sortSnippets(parsedSnippets);
 
-	return snippets.map(rawSnippet => new ParsedSnippet(rawSnippet));
+	return parsedSnippets;
 }
 
 
