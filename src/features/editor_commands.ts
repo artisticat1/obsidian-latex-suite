@@ -1,7 +1,7 @@
-import { Editor, MarkdownView } from "obsidian";
+import { Editor } from "obsidian";
 import { EditorView } from "@codemirror/view";
 import { isWithinEquation, getEquationBounds, replaceRange, setCursor, setSelection } from "../editor_helpers";
-import LatexSuitePlugin from "../main";
+import LatexSuitePlugin from "src/main";
 
 
 function boxCurrentEquation(view: EditorView) {
@@ -28,7 +28,7 @@ function getBoxEquationCommand() {
 	return {
 		id: "latex-suite-box-equation",
 		name: "Box current equation",
-		editorCheckCallback: (checking: boolean, editor: Editor, markdownView: MarkdownView) => {
+		editorCheckCallback: (checking: boolean, editor: Editor) => {
 
 			// @ts-ignore
 			const view = editor.cm;
@@ -50,7 +50,7 @@ function getSelectEquationCommand() {
 	return {
 		id: "latex-suite-select-equation",
 		name: "Select current equation",
-		editorCheckCallback: (checking: boolean, editor: Editor, markdownView: MarkdownView) => {
+		editorCheckCallback: (checking: boolean, editor: Editor) => {
 
 			// @ts-ignore
 			const view = editor.cm;
@@ -84,11 +84,11 @@ function getEnableAllFeaturesCommand(plugin: LatexSuitePlugin) {
 		id: "latex-suite-enable-all-features",
 		name: "Enable all features",
 		callback: async () => {
-			plugin.settings.snippetsEnabled = true;
-			plugin.settings.autofractionEnabled = true;
-			plugin.settings.matrixShortcutsEnabled = true;
-			plugin.settings.taboutEnabled = true;
-			plugin.settings.autoEnlargeBrackets = true;
+			plugin.settings.basicSettings.snippetsEnabled = true;
+			plugin.settings.basicSettings.autofractionEnabled = true;
+			plugin.settings.basicSettings.matrixShortcutsEnabled = true;
+			plugin.settings.basicSettings.taboutEnabled = true;
+			plugin.settings.basicSettings.autoEnlargeBrackets = true;
 
 			await plugin.saveSettings();
 		},
@@ -101,11 +101,11 @@ function getDisableAllFeaturesCommand(plugin: LatexSuitePlugin) {
 		id: "latex-suite-disable-all-features",
 		name: "Disable all features",
 		callback: async () => {
-			plugin.settings.snippetsEnabled = false;
-			plugin.settings.autofractionEnabled = false;
-			plugin.settings.matrixShortcutsEnabled = false;
-			plugin.settings.taboutEnabled = false;
-			plugin.settings.autoEnlargeBrackets = false;
+			plugin.settings.basicSettings.snippetsEnabled = false;
+			plugin.settings.basicSettings.autofractionEnabled = false;
+			plugin.settings.basicSettings.matrixShortcutsEnabled = false;
+			plugin.settings.basicSettings.taboutEnabled = false;
+			plugin.settings.basicSettings.autoEnlargeBrackets = false;
 
 			await plugin.saveSettings();
 		},
