@@ -1,6 +1,6 @@
 import { DEFAULT_SNIPPETS } from "./default_snippets";
 import { getSnippetsFromString } from "./snippets/parse_snippets";
-import { ParsedSnippet } from "./snippets/snippets";
+import { Environment, ParsedSnippet } from "./snippets/snippets";
 
 export interface LatexSuiteBasicSetting {
 	snippetsEnabled: boolean;
@@ -33,7 +33,7 @@ export interface LatexSuiteRawSetting {
 }
 
 export interface LatexSuiteParsedSetting {
-	autofractionExcludedEnvs: string[];
+	autofractionExcludedEnvs: Environment[];
 	matrixShortcutsEnvNames: string[];
 	autoEnlargeBracketsTriggers: string[];
 	ignoreMathLanguages: string[];
