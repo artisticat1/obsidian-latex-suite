@@ -23,7 +23,6 @@ import { runAutoFraction } from "./features/autofraction";
 import { tabout, shouldTaboutByCloseBracket } from "./features/tabout";
 import { runMatrixShortcuts } from "./features/matrix_shortcuts";
 import { getEditorCommands } from "./features/editor_commands";
-import { pluginProvider, updateEffect } from "./editor_extensions/plugin_provider";
 
 
 export default class LatexSuitePlugin extends Plugin {
@@ -37,7 +36,6 @@ export default class LatexSuitePlugin extends Plugin {
 
 	private cursorTriggeredByChange = false;
 	private editorExtensions:Extension[] = [];
-	private providerNeedsUpdate = true;
 
 
 	async onload() {
@@ -52,10 +50,6 @@ export default class LatexSuitePlugin extends Plugin {
 		})));
 
 
-		// Register the "plugin settings provider"
-		this.registerEditorExtension(pluginProvider);
-
-
 		// Register editor extensions required for snippets
 		this.registerEditorExtension([markerStateField, tabstopsStateField, snippetQueueStateField, snippetInvertedEffects]);
 		this.registerEditorExtension(EditorView.updateListener.of(this.handleUpdate));
@@ -64,7 +58,7 @@ export default class LatexSuitePlugin extends Plugin {
 		// Register editor extensions for editor enhancements
 		this.registerEditorExtension(tooltips({position: "absolute"}));
 		this.registerEditorExtension(this.editorExtensions);
-		
+
 
 		// Watch for changes to the snippets file
 		this.registerEvent(this.app.vault.on("modify", (file) => onFileChange(this, file)));
@@ -94,13 +88,6 @@ export default class LatexSuitePlugin extends Plugin {
 
 
 	private readonly handleUpdate = (update: ViewUpdate) => {
-		if (this.providerNeedsUpdate) {
-			this.providerNeedsUpdate = false;
-			update.view.dispatch({
-				effects: [updateEffect.of(this)],
-			});
-		}
-
 		if (update.docChanged) {
 			this.handleDocChange();
 		}
@@ -174,7 +161,6 @@ export default class LatexSuitePlugin extends Plugin {
 	}
 
 	async saveSettings() {
-		this.providerNeedsUpdate = true;
 		await this.saveData(this.settings);
 	}
 
@@ -219,7 +205,7 @@ export default class LatexSuitePlugin extends Plugin {
 
 		const ctx = ctxAtViewPos(view, pos, ranges, this);
 		// TODO(multisn8): remove this when the PR is done
-		console.log(ctx);  
+		console.log(ctx);
 		console.log(ctx.mode);
 
 		let success = false;
