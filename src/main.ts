@@ -35,8 +35,8 @@ export default class LatexSuitePlugin extends Plugin {
 	ignoreMathLanguages: string[];
 	forceMathLanguages: string[];
 
-	private cursorTriggeredByChange = false;
-	private editorExtensions:Extension[] = [];
+	cursorTriggeredByChange = false;
+	editorExtensions:Extension[] = [];
 
 
 	async onload() {
@@ -88,7 +88,7 @@ export default class LatexSuitePlugin extends Plugin {
 	}
 
 
-	private readonly handleUpdate = (update: ViewUpdate) => {
+	handleUpdate = (update: ViewUpdate) => {
 		if (update.docChanged) {
 			this.handleDocChange();
 		}
@@ -102,12 +102,12 @@ export default class LatexSuitePlugin extends Plugin {
 	}
 
 
-	private readonly handleDocChange = () => {
+	handleDocChange = () => {
 		this.cursorTriggeredByChange = true;
 	}
 
 
-	private readonly handleCursorActivity = (view: EditorView, pos: number) => {
+	handleCursorActivity = (view: EditorView, pos: number) => {
 		if (this.cursorTriggeredByChange) {
 			this.cursorTriggeredByChange = false;
 			return;
@@ -184,21 +184,21 @@ export default class LatexSuitePlugin extends Plugin {
 
 
 
-	private readonly addEditorCommands = () => {
+	addEditorCommands = () => {
 		for (const command of getEditorCommands(this)) {
 			this.addCommand(command);
 		}
 	}
 
 
-	private readonly onKeydown = (event: KeyboardEvent, view: EditorView) => {
+	onKeydown = (event: KeyboardEvent, view: EditorView) => {
 		const success = this.handleKeydown(event.key, event.shiftKey, event.ctrlKey || event.metaKey, view);
 
 		if (success) event.preventDefault();
 	}
 
 
-	private readonly handleKeydown = (key: string, shiftKey: boolean, ctrlKey: boolean, view: EditorView) => {
+	handleKeydown = (key: string, shiftKey: boolean, ctrlKey: boolean, view: EditorView) => {
 
 		const s = view.state.selection;
 		const pos = s.main.to;
@@ -267,7 +267,7 @@ export default class LatexSuitePlugin extends Plugin {
 	}
 
 
-	private readonly handleTabstops = (view: EditorView):boolean => {
+	handleTabstops = (view: EditorView):boolean => {
 		const success = consumeAndGotoNextTabstop(view);
 
 		return success;
