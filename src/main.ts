@@ -88,7 +88,7 @@ export default class LatexSuitePlugin extends Plugin {
 	}
 
 
-	handleUpdate = (update: ViewUpdate) => {
+	handleUpdate(update: ViewUpdate) {
 		if (update.docChanged) {
 			this.handleDocChange();
 		}
@@ -102,12 +102,12 @@ export default class LatexSuitePlugin extends Plugin {
 	}
 
 
-	handleDocChange = () => {
+	handleDocChange() {
 		this.cursorTriggeredByChange = true;
 	}
 
 
-	handleCursorActivity = (view: EditorView, pos: number) => {
+	handleCursorActivity(view: EditorView, pos: number) {
 		if (this.cursorTriggeredByChange) {
 			this.cursorTriggeredByChange = false;
 			return;
@@ -184,21 +184,21 @@ export default class LatexSuitePlugin extends Plugin {
 
 
 
-	addEditorCommands = () => {
+	addEditorCommands() {
 		for (const command of getEditorCommands(this)) {
 			this.addCommand(command);
 		}
 	}
 
 
-	onKeydown = (event: KeyboardEvent, view: EditorView) => {
+	onKeydown(event: KeyboardEvent, view: EditorView) {
 		const success = this.handleKeydown(event.key, event.shiftKey, event.ctrlKey || event.metaKey, view);
 
 		if (success) event.preventDefault();
 	}
 
 
-	handleKeydown = (key: string, shiftKey: boolean, ctrlKey: boolean, view: EditorView) => {
+	handleKeydown(key: string, shiftKey: boolean, ctrlKey: boolean, view: EditorView) {
 
 		const s = view.state.selection;
 		const pos = s.main.to;
@@ -267,7 +267,7 @@ export default class LatexSuitePlugin extends Plugin {
 	}
 
 
-	handleTabstops = (view: EditorView):boolean => {
+	handleTabstops(view: EditorView):boolean {
 		const success = consumeAndGotoNextTabstop(view);
 
 		return success;
