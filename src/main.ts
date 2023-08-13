@@ -26,7 +26,6 @@ export default class LatexSuitePlugin extends Plugin {
 	settings: LatexSuiteSettings;
 	processedSettings: LatexSuiteProcessedSettings;
 
-	cursorTriggeredByChange = false;
 	editorExtensions:Extension[] = [];
 
 	async onload() {
