@@ -2,7 +2,7 @@ import LatexSuitePlugin from "../main";
 import { TFile, TFolder, Notice, debounce, TAbstractFile } from "obsidian";
 // TODO: replace Snippet with RawSnippet/ParsedSnippet
 import { Snippet } from "./snippets";
-import { getSnippetsFromString, sortSnippets } from "./parse_snippets";
+import { parseSnippets, sortSnippets } from "./parse_snippets";
 
 
 export async function onFileChange(plugin: LatexSuitePlugin, file: TAbstractFile) {
@@ -51,7 +51,7 @@ export async function getSnippetsWithinFolder(folder: TFolder) {
 			const content = await this.app.vault.cachedRead(fileOrFolder as TFile);
 
 			try {
-				snippets.push(...getSnippetsFromString(content));
+				snippets.push(...parseSnippets(content));
 			}
 			catch (e) {
 				console.log(`Failed to load snippet file ${fileOrFolder.path}:`, e);
@@ -108,7 +108,7 @@ export const debouncedSetSnippetsFromFileOrFolder = debounce(async (plugin: Late
 
 	} else {
 		const content = await plugin.app.vault.cachedRead(fileOrFolder as TFile);
-		snippets = await getSnippetsFromString(content);
+		snippets = await parseSnippets(content);
 	}
 
 

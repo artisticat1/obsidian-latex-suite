@@ -7,7 +7,7 @@ import LatexSuitePlugin from "../main";
 import { FileSuggest } from "./file_suggest";
 import { debouncedSetSnippetsFromFileOrFolder } from "../snippets/file_watch";
 import { DEFAULT_SETTINGS } from "../settings";
-import { getSnippetsFromString } from "src/snippets/parse_snippets";
+import { parseSnippets } from "src/snippets/parse_snippets";
 
 
 export class LatexSuiteSettingTab extends PluginSettingTab {
@@ -402,7 +402,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				let success = true;
 
 				try {
-					getSnippetsFromString(value);
+					parseSnippets(value);
 				}
 				catch (e) {
 					success = false;

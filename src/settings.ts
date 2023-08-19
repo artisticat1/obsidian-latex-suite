@@ -1,5 +1,5 @@
 import { DEFAULT_SNIPPETS } from "./default_snippets";
-import { getSnippetsFromString } from "./snippets/parse_snippets";
+import { parseSnippets } from "./snippets/parse_snippets";
 import { Environment, ParsedSnippet } from "./snippets/snippets";
 
 export interface LatexSuiteBasicSetting {
@@ -102,7 +102,7 @@ export function processLatexSuiteSettings(settings: LatexSuiteSettings):LatexSui
 	}
 
 	return {
-		snippets: getSnippetsFromString(settings.snippets),
+		snippets: parseSnippets(settings.snippets),
 		basicSettings: settings.basicSettings,
 		parsedSettings: {
 			autofractionExcludedEnvs: getAutofractionExcludedEnvs(raw.autofractionExcludedEnvs),

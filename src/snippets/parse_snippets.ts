@@ -37,7 +37,7 @@ export function sortSnippets(snippets:ParsedSnippet[]) {
 }
 
 
-export function getSnippetsFromString(snippetsStr: string) {
+export function parseSnippets(snippetsStr: string) {
 	const rawSnippets: RawSnippet[] = parse(snippetsStr);
 	if (!validateSnippets(rawSnippets)) throw "Invalid snippet format.";
 
