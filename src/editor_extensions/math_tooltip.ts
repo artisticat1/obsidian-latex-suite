@@ -56,7 +56,7 @@ function getCursorTooltips(state: EditorState): readonly Tooltip[] {
 
 export const cursorTooltipBaseTheme = EditorView.baseTheme({
 	".cm-tooltip.cm-tooltip-cursor": {
-		backgroundColor: "var(--background-primary)",
+		backgroundColor: "var(--background-secondary)",
 		color: "var(--text-normal)",
 		border: "1px solid var(--background-modifier-border)",
 		padding: "4px 6px",
@@ -65,7 +65,7 @@ export const cursorTooltipBaseTheme = EditorView.baseTheme({
 			borderTopColor: "var(--background-modifier-border)",
 		},
 		"& .cm-tooltip-arrow:after": {
-			borderTopColor: "var(--background-primary)",
+			borderTopColor: "var(--background-secondary)",
 		},
 		"& p": {
 			margin: "0px",
@@ -73,5 +73,5 @@ export const cursorTooltipBaseTheme = EditorView.baseTheme({
 		"& mjx-container": {
 			padding: "2px !important",
 		},
-	},
+	}
 });
