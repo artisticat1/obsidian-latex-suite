@@ -85,12 +85,6 @@ export default class LatexSuitePlugin extends Plugin {
 		})
 	}
 
-	addEditorCommands() {
-		for (const command of getEditorCommands(this)) {
-			this.addCommand(command);
-		}
-	}
-
 	refreshCMExtensions() {
 		// Remove all currently loaded CM extensions
 		while (this.editorExtensions.length) this.editorExtensions.pop();
@@ -108,4 +102,9 @@ export default class LatexSuitePlugin extends Plugin {
 		this.app.workspace.updateOptions();
 	}
 
+	addEditorCommands() {
+		for (const command of getEditorCommands(this)) {
+			this.addCommand(command);
+		}
+	}
 }
