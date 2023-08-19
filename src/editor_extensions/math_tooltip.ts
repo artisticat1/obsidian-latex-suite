@@ -1,10 +1,6 @@
 import { Tooltip, showTooltip, EditorView } from "@codemirror/view";
 import { StateField, EditorState } from "@codemirror/state";
-import {
-	getEquationBounds,
-	isWithinEquation,
-	isWithinInlineEquation,
-} from "../editor_helpers";
+import { getEquationBounds, isWithinEquation, isWithinInlineEquation } from "../editor_helpers";
 import { MarkdownRenderer, editorLivePreviewField } from "obsidian";
 
 export const cursorTooltipField = StateField.define<readonly Tooltip[]>({
@@ -21,43 +17,44 @@ export const cursorTooltipField = StateField.define<readonly Tooltip[]>({
 function getCursorTooltips(state: EditorState): readonly Tooltip[] {
 	const pos = state.selection.main.from;
 
-	if (isWithinEquation(state)) {
-		const isInline = isWithinInlineEquation(state, pos)
-		const isLivePreview = state.field(editorLivePreviewField);
-		if (!isInline && isLivePreview) return [];
-
-		const bounds = getEquationBounds(state, pos);
-		if (!bounds) return [];
-
-		const eqn = state.sliceDoc(bounds.start, bounds.end);
-
-		// Don't render an empty equation
-		if (eqn.trim() === "") return [];
-
-		return [
-			{
-				pos: bounds.start,
-				above: true,
-				strictSide: true,
-				arrow: true,
-				create: () => {
-					const delimiter = isInline ? "$" : "$$";
-					const dom = document.createElement("div");
-					dom.className = "cm-tooltip-cursor";
-					MarkdownRenderer.renderMarkdown(
-						delimiter + eqn + delimiter,
-						dom,
-						"",
-						null
-					);
-
-					return { dom };
-				},
-			},
-		];
-	} else {
+	if (!isWithinEquation(state)) {
 		return [];
 	}
+
+	const isInline = isWithinInlineEquation(state, pos)
+	const isLivePreview = state.field(editorLivePreviewField);
+	if (!isInline && isLivePreview) return [];
+
+	const bounds = getEquationBounds(state, pos);
+	if (!bounds) return [];
+
+	const eqn = state.sliceDoc(bounds.start, bounds.end);
+
+	// Don't render an empty equation
+	if (eqn.trim() === "") return [];
+
+	return [
+		{
+			pos: bounds.start,
+			above: true,
+			strictSide: true,
+			arrow: true,
+			create: () => {
+				const delimiter = isInline ? "$" : "$$";
+				const dom = document.createElement("div");
+				dom.className = "cm-tooltip-cursor";
+				MarkdownRenderer.renderMarkdown(
+					delimiter + eqn + delimiter,
+					dom,
+					"",
+					null
+				);
+
+				return { dom };
+			}
+		}
+	];
+
 }
 
 export const cursorTooltipBaseTheme = EditorView.baseTheme({
