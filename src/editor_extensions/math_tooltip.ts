@@ -1,7 +1,7 @@
 import { Tooltip, showTooltip, EditorView } from "@codemirror/view";
 import { StateField, EditorState } from "@codemirror/state";
 import { getEquationBounds, isWithinEquation, isWithinInlineEquation } from "../editor_helpers";
-import { MarkdownRenderer, editorLivePreviewField } from "obsidian";
+import { renderMath, finishRenderMath, editorLivePreviewField } from "obsidian";
 
 export const cursorTooltipField = StateField.define<readonly Tooltip[]>({
 	create: getCursorTooltips,
@@ -40,15 +40,12 @@ function getCursorTooltips(state: EditorState): readonly Tooltip[] {
 			strictSide: true,
 			arrow: true,
 			create: () => {
-				const delimiter = isInline ? "$" : "$$";
 				const dom = document.createElement("div");
 				dom.className = "cm-tooltip-cursor";
-				MarkdownRenderer.renderMarkdown(
-					delimiter + eqn + delimiter,
-					dom,
-					"",
-					null
-				);
+
+				const renderedEqn = renderMath(eqn, !isInline);
+				dom.appendChild(renderedEqn);
+				finishRenderMath();
 
 				return { dom };
 			}
