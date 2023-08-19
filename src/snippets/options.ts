@@ -13,7 +13,7 @@ export class Options {
 }
 
 export function parseOptions(source: string):Options {
-	let options = new Options();
+	const options = new Options();
 	options.mode = parseMode(source);
 
 	for (const flag_char of source) {
@@ -66,7 +66,7 @@ export class Mode {
 }
 
 export function parseMode(source: string):Mode {
-	let mode = new Mode();
+	const mode = new Mode();
 
 	if (source.length === 0) {
 		// for backwards compat we need to assume that this is a catchall mode then
