@@ -84,12 +84,12 @@ function highlightCursorBrackets(view: EditorView) {
 	const text = view.state.doc.toString();
 
 	if (!isWithinEquation(view.state)) {
-		return Decoration.set(widgets, true);
+		return Decoration.none;
 	}
 
 
 	const bounds = getEquationBounds(view.state, selection.main.to);
-	if (!bounds) return Decoration.set(widgets, true);
+	if (!bounds) return Decoration.none;
 	const eqn = view.state.doc.sliceString(bounds.start, bounds.end);
 
 
