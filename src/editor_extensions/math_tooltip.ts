@@ -58,11 +58,11 @@ export const cursorTooltipBaseTheme = EditorView.baseTheme({
 	".cm-tooltip.cm-tooltip-cursor": {
 		backgroundColor: "var(--background-secondary)",
 		color: "var(--text-normal)",
-		border: "1px solid var(--background-modifier-border)",
+		border: "1px solid var(--background-modifier-border-hover)",
 		padding: "4px 6px",
 		borderRadius: "6px",
 		"& .cm-tooltip-arrow:before": {
-			borderTopColor: "var(--background-modifier-border)",
+			borderTopColor: "var(--background-modifier-border-hover)",
 		},
 		"& .cm-tooltip-arrow:after": {
 			borderTopColor: "var(--background-secondary)",
