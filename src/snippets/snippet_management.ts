@@ -1,121 +1,18 @@
-import { EditorView, Decoration } from "@codemirror/view";
-import { Range, SelectionRange, EditorSelection, ChangeSpec, ChangeSet } from "@codemirror/state";
+import { EditorView } from "@codemirror/view";
+import { EditorSelection, ChangeSpec, ChangeSet } from "@codemirror/state";
 import { setCursor, setSelections, findMatchingBracket, resetCursorBlink } from "../editor_helpers";
-import { addMark, clearMarks, markerStateField, removeMarkBySpecAttribute } from "./codemirror/marker_state_field";
 import { startSnippet, endSnippet } from "./codemirror/history";
 import { isolateHistory } from "@codemirror/commands";
 
-import { addTabstop, consumeTabstop, removeEmptyTabstops, clearAllTabstops, tabstopsStateField } from "./codemirror/tabstops_state_field";
+import { TabstopSpec, getTabstopGroupEndpoints, tabstopGroupLiesWithinAnother } from "./tabstop";
+import { addTabstops, consumeTabstop, clearAllTabstops, tabstopsStateField } from "./codemirror/tabstops_state_field";
 import { clearSnippetQueue, snippetQueueStateField } from "./codemirror/snippet_queue_state_field";
 
 
-const COLORS = ["lightskyblue", "orange", "lime", "pink", "cornsilk", "magenta", "navajowhite"];
+function getTabstopsFromSnippet(view: EditorView, start: number, replacement:string):TabstopSpec[] {
 
-
-export class TabstopReference {
-	view: EditorView
-	colorIndex: number
-
-	constructor(view: EditorView, colorIndex: number) {
-		this.view = view;
-		this.colorIndex = colorIndex;
-	}
-
-	getColorIndex():number {
-		return this.colorIndex;
-	}
-
-
-	get markers(): Range<Decoration>[] {
-		const state = this.view.state;
-		const iter = state.field(markerStateField).iter();
-
-		const markers = [];
-
-		while (iter.value) {
-			if (iter.value.spec.reference === this) {
-				markers.push({
-					from: iter.from,
-					to: iter.to,
-					value: iter.value
-				});
-			}
-
-			iter.next();
-		}
-
-		return markers;
-	}
-
-
-	get ranges(): SelectionRange[] {
-		const state = this.view.state;
-		const iter = state.field(markerStateField).iter();
-
-		const ranges = [];
-
-		while (iter.value) {
-			if (iter.value.spec.reference === this) {
-
-				ranges.push(EditorSelection.range(iter.from, iter.to));
-
-			}
-
-			iter.next();
-		}
-
-		return ranges;
-	}
-
-
-	removeFromEditor(): void {
-		this.view.dispatch({
-			effects: removeMarkBySpecAttribute.of({attribute: "reference", reference: this}),
-		});
-	}
-}
-
-
-export interface Tabstop {
-	number: number,
-	from: number,
-	to: number,
-	replacement: string
-}
-
-
-
-export function getColorIndex(view: EditorView):number {
-	const currentTabstopReferences = view.state.field(tabstopsStateField);
-	let colorIndex = 0;
-
-	for (; colorIndex < COLORS.length; colorIndex++) {
-		if (!currentTabstopReferences.find(p => p.getColorIndex() === colorIndex))
-			break;
-	}
-
-	if (colorIndex === COLORS.length) {
-		colorIndex = Math.floor(Math.random() * COLORS.length);
-	}
-
-	return colorIndex;
-}
-
-
-export function getColorClass(colorIndex: number):string {
-	const prefix = "latex-suite-suggestion-placeholder";
-	const markerClass = prefix + " " + prefix + colorIndex;
-
-	return markerClass;
-}
-
-
-
-export function getTabstopsFromSnippet(view: EditorView, start: number, replacement:string):Tabstop[] {
-
-	const tabstops:Tabstop[] = [];
+	const tabstops:TabstopSpec[] = [];
 	const text = view.state.doc.toString();
-
 
 	for (let i = start; i < start + replacement.length; i++) {
 
@@ -137,22 +34,18 @@ export function getTabstopsFromSnippet(view: EditorView, start: number, replacem
 			number = parseInt(text.charAt(i + 2));
 			if (isNaN(number)) continue;
 
-
 			// Find the matching }
 			const closingIndex = findMatchingBracket(text, i+1, "{", "}", false, start + replacement.length);
 
 			if (closingIndex === -1) continue;
-
 
 			tabstopReplacement = text.slice(i + 4, closingIndex);
 			tabstopEnd = closingIndex + 1;
 			i = closingIndex;
 		}
 
-
 		// Replace the tabstop indicator "$X" with ""
-		const tabstop:Tabstop = {number: number, from: tabstopStart, to: tabstopEnd, replacement: tabstopReplacement};
-
+		const tabstop:TabstopSpec = {number: number, from: tabstopStart, to: tabstopEnd, replacement: tabstopReplacement};
 
 		tabstops.push(tabstop);
 	}
@@ -183,7 +76,6 @@ export function expandSnippets(view: EditorView):boolean {
 		}
 	}
 
-
 	// Insert the keypresses
 	// Use isolateHistory to allow users to undo the triggering of a snippet,
 	// but keep the text inserted by the trigger key
@@ -191,7 +83,6 @@ export function expandSnippets(view: EditorView):boolean {
 		changes: keyPresses,
 		annotations: isolateHistory.of("full")
 	});
-
 
 	// Undo the keypresses, and insert the replacements
 	const undoKeyPresses = ChangeSet.of(keyPresses, originalDocLength).invert(originalDoc);
@@ -211,7 +102,7 @@ export function expandSnippets(view: EditorView):boolean {
 	const oldPositions = snippets.map(change => change.from);
 	const newPositions = oldPositions.map(pos => changeSet.mapPos(pos));
 
-	let tabstopsToAdd:Tabstop[] = [];
+	let tabstopsToAdd:TabstopSpec[] = [];
 	for (let i = 0; i < snippets.length; i++) {
 		tabstopsToAdd = tabstopsToAdd.concat(getTabstopsFromSnippet(view, newPositions[i], snippets[i].insert));
 	}
@@ -221,60 +112,46 @@ export function expandSnippets(view: EditorView):boolean {
 		return true;
 	}
 
-	insertTabstopReferences(view, tabstopsToAdd);
-	insertTabstopsTransaction(view, tabstopsToAdd);
+	markTabstops(view, tabstopsToAdd);
+	insertTabstops(view, tabstopsToAdd);
 
 	clearSnippetQueue(view);
 	return true;
 }
 
+function tabstopSpecsToTabstopGroups(tabstops: TabstopSpec[]) {
+	const N = Math.max(...tabstops.map(tabstop => tabstop.number));
+	const tabstopGroups = Array(N);
 
+	for (const tabstop of tabstops) {
+		const n = tabstop.number;
 
-export function insertTabstopReferences(view: EditorView, tabstops: Tabstop[], append=false) {
-
-	// Find unique tabstop numbers
-	const numbers = Array.from(new Set(tabstops.map((tabstop: Tabstop) => (tabstop.number)))).sort().reverse();
-
-
-	if (!append) {
-		// Create a reference for each tabstop number
-		// and add it to the list of current references
-		const colorIndex = getColorIndex(view);
-
-		for (let i = 0; i < numbers.length; i++) {
-			const reference = new TabstopReference(view, colorIndex);
-
-			addTabstop(view, reference);
+		if (tabstopGroups[n]) {
+			tabstopGroups[n] = tabstopGroups[n].addRange(EditorSelection.range(tabstop.from, tabstop.to));
+		}
+		else {
+			tabstopGroups[n] = EditorSelection.single(tabstop.from, tabstop.to);
 		}
 	}
+
+	// Remove empty tabstop groups
+	const result = tabstopGroups.filter(value => value);
+
+	return result;
 }
 
 
-export function insertTabstopsTransaction(view: EditorView, tabstops: Tabstop[]) {
+function markTabstops(view: EditorView, tabstops: TabstopSpec[]) {
+	const tabstopGroups = tabstopSpecsToTabstopGroups(tabstops);
 
-	// Add the markers
-	const effects = tabstops.map((tabstop: Tabstop) => {
-		const currentTabstopReferences = view.state.field(tabstopsStateField);
-		const reference = currentTabstopReferences[tabstop.number];
-
-		const mark = Decoration.mark({
-				inclusive: true,
-				attributes: {},
-				class: getColorClass(reference.colorIndex),
-				reference: reference
-		}).range(tabstop.from, tabstop.to);
-
-		return addMark.of(mark);
-	});
+	addTabstops(view, tabstopGroups);
+}
 
 
-	view.dispatch({
-		effects: effects
-	});
-
+function insertTabstops(view: EditorView, tabstops: TabstopSpec[]) {
 
 	// Insert the replacements
-	const changes = tabstops.map((tabstop: Tabstop) => {
+	const changes = tabstops.map((tabstop: TabstopSpec) => {
 		return {from: tabstop.from, to: tabstop.to, insert: tabstop.replacement}
 	});
 
@@ -284,8 +161,8 @@ export function insertTabstopsTransaction(view: EditorView, tabstops: Tabstop[])
 
 
 	// Select the first tabstop
-	const currentTabstopReferences = view.state.field(tabstopsStateField);
-	const firstRef = currentTabstopReferences[0];
+	const currentTabstopGroups = view.state.field(tabstopsStateField);
+	const firstRef = currentTabstopGroups[0];
 	const selection = EditorSelection.create(firstRef.ranges);
 
 	view.dispatch({
@@ -294,52 +171,46 @@ export function insertTabstopsTransaction(view: EditorView, tabstops: Tabstop[])
 	});
 
 	resetCursorBlink();
-
-	firstRef.removeFromEditor();
 	removeOnlyTabstop(view);
 }
 
 
-
-export function selectTabstopReference(reference: TabstopReference) {
-	const view = reference.view;
-
+function selectTabstopGroup(view: EditorView, tabstopGroup: EditorSelection) {
 	// Select all ranges
-	setSelections(view, reference.ranges);
+	setSelections(view, tabstopGroup);
 
-	reference.removeFromEditor();
 	removeOnlyTabstop(view);
 }
 
-export function removeOnlyTabstop(view: EditorView) {
-	// Remove all tabstop references if there's just one containing zero width tabstops
-	const currentTabstopReferences = view.state.field(tabstopsStateField);
-	if (currentTabstopReferences.length === 1) {
+function removeOnlyTabstop(view: EditorView) {
+	// Remove all tabstop groups if there's just one containing zero width tabstops
+	const currentTabstopGroups = view.state.field(tabstopsStateField);
+	if (currentTabstopGroups.length === 1) {
 		let shouldClear = true;
 
-		const reference = currentTabstopReferences[0];
-		const markers = reference.markers;
+		const tabstopGroup = currentTabstopGroups[0];
+		const ranges = tabstopGroup.ranges;
 
-		for (const marker of markers) {
-			if (!(marker.from === marker.to)) {
+		for (const range of ranges) {
+			if (!(range.from === range.to)) {
 				shouldClear = false;
 				break;
 			}
 		}
 
-		if (shouldClear) clearAllTabstops(reference.view);
+		if (shouldClear) clearAllTabstops(view);
 	}
 }
 
 
 export function isInsideATabstop(pos: number, view: EditorView):boolean {
-	const currentTabstopReferences = view.state.field(tabstopsStateField);
-	if (currentTabstopReferences.length === 0) return false;
+	const currentTabstopGroups = view.state.field(tabstopsStateField);
+	if (currentTabstopGroups.length === 0) return false;
 
 	let isInside = false;
 
-	for (const tabstopReference of currentTabstopReferences) {
-		for (const range of tabstopReference.ranges) {
+	for (const tabstopGroup of currentTabstopGroups) {
+		for (const range of tabstopGroup.ranges) {
 			if ((pos >= range.from) && (pos <= range.to)) {
 				isInside = true;
 				break;
@@ -353,14 +224,13 @@ export function isInsideATabstop(pos: number, view: EditorView):boolean {
 }
 
 
-
 export function isInsideLastTabstop(view: EditorView):boolean {
-	const currentTabstopReferences = view.state.field(tabstopsStateField);
-	if (currentTabstopReferences.length === 0) return false;
+	const currentTabstopGroups = view.state.field(tabstopsStateField);
+	if (currentTabstopGroups.length === 0) return false;
 
 	let isInside = false;
 
-	const lastTabstopRef = currentTabstopReferences.slice(-1)[0];
+	const lastTabstopRef = currentTabstopGroups.slice(-1)[0];
 	const ranges = lastTabstopRef.ranges;
 	const lastRange = ranges[0];
 
@@ -372,54 +242,40 @@ export function isInsideLastTabstop(view: EditorView):boolean {
 }
 
 
-
 export function consumeAndGotoNextTabstop(view: EditorView): boolean {
 	// Check whether there are currently any tabstops
-	let currentTabstopReferences = view.state.field(tabstopsStateField);
-	if (currentTabstopReferences.length === 0) return false;
-
+	let currentTabstopGroups = view.state.field(tabstopsStateField);
+	if (currentTabstopGroups.length === 0) return false;
 
 	const oldCursor = view.state.selection.main;
-
 
 	// Remove the tabstop that we're inside of
 	consumeTabstop(view);
 
-
 	// If there are none left, return
-	currentTabstopReferences = view.state.field(tabstopsStateField);
-	if (currentTabstopReferences.length === 0) {
+	currentTabstopGroups = view.state.field(tabstopsStateField);
+	if (currentTabstopGroups.length === 0) {
 		setCursor(view, oldCursor.to);
 
 		return true;
 	}
 
-
 	// Select the next tabstop
-	const newTabstop = currentTabstopReferences[0];
-	const newMarkers = newTabstop.markers;
-
-	const cursor = view.state.selection.main;
-	const newMarker = newMarkers[0];
+	const newTabstop = currentTabstopGroups[0];
+	const newRanges = newTabstop.ranges;
 
 
 	// If the next tabstop is empty, go again
-	if (newMarkers.length === 0)
-		return consumeAndGotoNextTabstop(view);
+	if (newRanges.length === 0)
+	return consumeAndGotoNextTabstop(view);
 
 
-	// If the new tabstop has a single cursor, and
-	// the old tabstop is inside of the new one, we just move the cursor
-	if (newTabstop.markers.length === 1) {
-		if (newMarker.from <= cursor.from && newMarker.to >= cursor.to) {
-			setCursor(view, newMarker.to)
-		}
-		else {
-			selectTabstopReference(newTabstop);
-		}
+	// If the old tabstop(s) lie within the new tabstop(s), simply move the cursor
+	if (tabstopGroupLiesWithinAnother(view.state.selection, newTabstop)) {
+		setSelections(view, getTabstopGroupEndpoints(newTabstop));
 	}
 	else {
-		selectTabstopReference(newTabstop);
+		selectTabstopGroup(view, newTabstop);
 	}
 
 
@@ -429,23 +285,12 @@ export function consumeAndGotoNextTabstop(view: EditorView): boolean {
 	if (oldCursor.eq(newCursor))
 		return consumeAndGotoNextTabstop(view);
 
-
 	return true;
-}
-
-
-export function tidyTabstopReferences(view: EditorView) {
-	// Remove empty tabstop references
-	removeEmptyTabstops(view);
 }
 
 
 export function removeAllTabstops(view?: EditorView) {
 	if (view) {
-		view.dispatch({
-			effects: clearMarks.of(null)
-		});
-
 		clearAllTabstops(view);
 	}
 }

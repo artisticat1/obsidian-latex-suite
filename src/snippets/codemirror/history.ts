@@ -1,7 +1,6 @@
 import { ViewUpdate } from "@codemirror/view";
 import { StateEffect } from "@codemirror/state";
 import { invertedEffects, undo, redo } from "@codemirror/commands";
-import { addMark, removeMark } from "./marker_state_field";
 import { removeEmptyTabstops } from "./tabstops_state_field";
 
 // Effects that mark the beginning and end of transactions to insert snippets
@@ -16,14 +15,7 @@ export const snippetInvertedEffects = invertedEffects.of(tr => {
 	const effects = [];
 
 	for (const effect of tr.effects) {
-		if (effect.is(addMark)) {
-			effects.push(removeMark.of(effect.value));
-		}
-		else if (effect.is(removeMark)) {
-			effects.push(addMark.of(effect.value));
-		}
-
-		else if (effect.is(startSnippet)) {
+		if (effect.is(startSnippet)) {
 			effects.push(undidStartSnippet.of(null));
 		}
 		else if (effect.is(undidStartSnippet)) {
@@ -52,16 +44,14 @@ export const handleUndoRedo = (update: ViewUpdate) => {
 
 			if (effect.is(startSnippet)) {
 				if (redoTr) {
-					// Redo the addition of marks, tabstop expansion, and selection
-					redo(update.view);
+					// Redo the tabstop expansion and selection
 					redo(update.view);
 					redo(update.view);
 				}
 			}
 			else if (effect.is(undidEndSnippet)) {
 				if (undoTr) {
-					// Undo the addition of marks, tabstop expansion, and selection
-					undo(update.view);
+					// Undo the tabstop expansion and selection
 					undo(update.view);
 					undo(update.view);
 				}
