@@ -4,14 +4,14 @@ import { parse } from "json5";
 export function sortSnippets(snippets:ParsedSnippet[]) {
 	// Sort snippets by trigger length so longer snippets will have higher priority
 
-	function compareTriggerLength( a:ParsedSnippet, b:ParsedSnippet ) {
-		const aTriggerLength= a.trigger.length;
-		const bTriggerLength= b.trigger.length;
+	function compareTriggerLength(a:ParsedSnippet, b:ParsedSnippet) {
+		const aTriggerLength = a.trigger.length;
+		const bTriggerLength = b.trigger.length;
 
-		if ( aTriggerLength < bTriggerLength ){
+		if (aTriggerLength < bTriggerLength){
 			return 1;
 		}
-		if ( aTriggerLength > bTriggerLength ){
+		if (aTriggerLength > bTriggerLength){
 			return -1;
 		}
 		return 0;
@@ -20,20 +20,20 @@ export function sortSnippets(snippets:ParsedSnippet[]) {
 
 	// Sort snippets in order of priority
 
-	function compare( a:ParsedSnippet, b:ParsedSnippet ) {
-		const aPriority = a.priority === undefined ? 0 : a.priority;
-		const bPriority = b.priority === undefined ? 0 : b.priority;
+	function comparePriority(a:ParsedSnippet, b:ParsedSnippet) {
+		const aPriority = a.priority ? a.priority : 0;
+		const bPriority = b.priority ? b.priority : 0;
 
-		if ( aPriority < bPriority ){
+		if (aPriority < bPriority){
 			return 1;
 		}
-		if ( aPriority > bPriority ){
+		if (aPriority > bPriority){
 			return -1;
 		}
 		return 0;
 	}
 
-	snippets.sort(compare);
+	snippets.sort(comparePriority);
 }
 
 
