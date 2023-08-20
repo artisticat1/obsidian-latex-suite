@@ -1,5 +1,5 @@
 import { Extension } from "@codemirror/state";
-import { Plugin, Notice } from "obsidian";
+import { Plugin, Notice, loadMathJax } from "obsidian";
 import { onFileCreate, onFileChange, onFileDelete, debouncedSetSnippetsFromFileOrFolder } from "./snippets/file_watch";
 import { LatexSuiteSettings, DEFAULT_SETTINGS, LatexSuiteProcessedSettings, processLatexSuiteSettings } from "./settings";
 import { LatexSuiteSettingTab } from "./ui/settings_tab";
@@ -17,6 +17,7 @@ export default class LatexSuitePlugin extends Plugin {
 	async onload() {
 		await this.loadSettings();
 		this.addSettingTab(new LatexSuiteSettingTab(this.app, this));
+		loadMathJax();
 
 		this.legacyEditorWarning();
 
