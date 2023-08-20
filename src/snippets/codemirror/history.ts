@@ -1,7 +1,7 @@
 import { ViewUpdate } from "@codemirror/view";
 import { StateEffect } from "@codemirror/state";
 import { invertedEffects, undo, redo } from "@codemirror/commands";
-import { clearAllTabstops } from "./tabstops_state_field";
+import { removeAllTabstops } from "./tabstops_state_field";
 
 // Effects that mark the beginning and end of transactions to insert snippets
 export const startSnippet = StateEffect.define();
@@ -60,6 +60,6 @@ export const handleUndoRedo = (update: ViewUpdate) => {
 	}
 
 	if (undoTr) {
-		clearAllTabstops(update.view);
+		removeAllTabstops(update.view);
 	}
 };

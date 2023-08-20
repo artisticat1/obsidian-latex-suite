@@ -5,7 +5,7 @@ import { startSnippet, endSnippet } from "./codemirror/history";
 import { isolateHistory } from "@codemirror/commands";
 
 import { TabstopSpec, getEditorSelectionEndpoints, editorSelectionLiesWithinAnother, tabstopSpecsToTabstopGroups } from "./tabstop";
-import { addTabstops, removeTabstop, clearAllTabstops, getTabstopGroupsFromView, getNextTabstopColor, hideTabstopFromEditor } from "./codemirror/tabstops_state_field";
+import { addTabstops, removeTabstop, removeAllTabstops, getTabstopGroupsFromView, getNextTabstopColor, hideTabstopFromEditor } from "./codemirror/tabstops_state_field";
 import { clearSnippetQueue, snippetQueueStateField } from "./codemirror/snippet_queue_state_field";
 
 
@@ -179,7 +179,7 @@ function removeOnlyTabstop(view: EditorView) {
 			}
 		}
 
-		if (shouldClear) clearAllTabstops(view);
+		if (shouldClear) removeAllTabstops(view);
 	}
 }
 
@@ -241,11 +241,4 @@ export function consumeAndGotoNextTabstop(view: EditorView): boolean {
 		return consumeAndGotoNextTabstop(view);
 
 	return true;
-}
-
-
-export function removeAllTabstops(view?: EditorView) {
-	if (view) {
-		clearAllTabstops(view);
-	}
 }

@@ -7,7 +7,8 @@ import { tabout, shouldTaboutByCloseBracket } from "./features/tabout";
 import { runMatrixShortcuts } from "./features/matrix_shortcuts";
 
 import { ctxAtViewPos } from "./snippets/context";
-import { consumeAndGotoNextTabstop, isInsideATabstop, removeAllTabstops } from "./snippets/snippet_management";
+import { consumeAndGotoNextTabstop, isInsideATabstop } from "./snippets/snippet_management";
+import { removeAllTabstops } from "./snippets/codemirror/tabstops_state_field";
 import { getLatexSuiteConfigExtension, getLatexSuiteConfigFromView } from "./snippets/codemirror/config";
 import { clearSnippetQueue } from "./snippets/codemirror/snippet_queue_state_field";
 import { cursorTriggerStateField } from "./snippets/codemirror/cursor_trigger_state_field";

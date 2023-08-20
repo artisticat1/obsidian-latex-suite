@@ -5,7 +5,7 @@ import { TabstopGroup } from "../tabstop";
 const addTabstopsEffect = StateEffect.define<TabstopGroup[]>();
 const removeTabstopEffect = StateEffect.define();
 const hideTabstopFromEditorEffect = StateEffect.define();
-const clearAllTabstopsEffect = StateEffect.define();
+const removeAllTabstopsEffect = StateEffect.define();
 
 export const tabstopsStateField = StateField.define<TabstopGroup[]>({
 
@@ -27,7 +27,7 @@ export const tabstopsStateField = StateField.define<TabstopGroup[]>({
 			else if (effect.is(removeTabstopEffect)) {
 				tabstopGroups.shift();
 			}
-			else if (effect.is(clearAllTabstopsEffect)) {
+			else if (effect.is(removeAllTabstopsEffect)) {
 				tabstopGroups = [];
 			}
 		}
@@ -77,9 +77,9 @@ export function hideTabstopFromEditor(view: EditorView) {
 	});
 }
 
-export function clearAllTabstops(view: EditorView) {
+export function removeAllTabstops(view: EditorView) {
 	view.dispatch({
-		effects: [clearAllTabstopsEffect.of(null)],
+		effects: [removeAllTabstopsEffect.of(null)],
 	});
 }
 
