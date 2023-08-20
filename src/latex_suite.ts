@@ -7,7 +7,7 @@ import { tabout, shouldTaboutByCloseBracket } from "./features/tabout";
 import { runMatrixShortcuts } from "./features/matrix_shortcuts";
 
 import { ctxAtViewPos } from "./snippets/context";
-import { consumeAndGotoNextTabstop, isInsideATabstop, isInsideLastTabstop, removeAllTabstops } from "./snippets/snippet_management";
+import { consumeAndGotoNextTabstop, isInsideATabstop, removeAllTabstops } from "./snippets/snippet_management";
 import { getLatexSuiteConfigExtension, getLatexSuiteConfigFromView } from "./snippets/codemirror/config";
 import { clearSnippetQueue } from "./snippets/codemirror/snippet_queue_state_field";
 import { cursorTriggerStateField } from "./snippets/codemirror/cursor_trigger_state_field";
@@ -26,9 +26,7 @@ export const handleUpdate = (update: ViewUpdate) => {
 	// Remove all tabstops when the user manually moves the cursor (e.g. on mouse click; using arrow keys)
 	if (update.selectionSet) {
 		if (!cursorTriggeredByChange) {
-			const pos = update.state.selection.main.head;
-
-			if (!isInsideATabstop(pos, update.view) || isInsideLastTabstop(update.view)) {
+			if (!isInsideATabstop(update.view)) {
 				removeAllTabstops(update.view);
 			}
 		}

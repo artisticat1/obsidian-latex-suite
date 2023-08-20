@@ -113,72 +113,45 @@
 }
 
 
-.latex-suite-suggestion-placeholder {
-    border-width: 1px 0 1px 0;
-    border-style: solid;
-}
 
 
 /*
 Snippet color classes.
 */
 
-.latex-suite-suggestion-placeholder0 {
-    border-color: lightskyblue;
-}
-
 /* These extra selectors enforce their color on all children, because CodeMirror does weird nesting of spans when
 nesting multiple decorations. */
 
-span.latex-suite-suggestion-placeholder0 span {
+.latex-suite-snippet-placeholder {
+    border-width: 1px 0 1px 0;
+    border-style: solid;
+}
+
+.latex-suite-snippet-placeholder-0, span.latex-suite-snippet-placeholder-0 span {
     border-color: lightskyblue;
 }
 
-.latex-suite-suggestion-placeholder1 {
+.latex-suite-snippet-placeholder-1, span.latex-suite-snippet-placeholder-1 span {
     border-color: orange;
 }
 
-span.latex-suite-suggestion-placeholder1 span {
-    border-color: orange;
-}
-
-.latex-suite-suggestion-placeholder2 {
+.latex-suite-snippet-placeholder-2, span.latex-suite-snippet-placeholder-2 span {
     border-color: lime;
 }
 
-span.latex-suite-suggestion-placeholder2 span {
-    border-color: lime;
-}
-
-.latex-suite-suggestion-placeholder3 {
+.latex-suite-snippet-placeholder-3, span.latex-suite-snippet-placeholder-3 span {
     border-color: pink;
 }
 
-span.latex-suite-suggestion-placeholder3 span {
-    border-color: pink;
-}
-
-.latex-suite-suggestion-placeholder4 {
+.latex-suite-snippet-placeholder-4, span.latex-suite-snippet-placeholder-4 span {
     border-color: cornsilk;
 }
 
-span.latex-suite-suggestion-placeholder4 span {
-    border-color: cornsilk;
-}
-
-.latex-suite-suggestion-placeholder5 {
+.latex-suite-snippet-placeholder-5, span.latex-suite-snippet-placeholder-5 span {
     border-color: magenta;
 }
 
-span.latex-suite-suggestion-placeholder5 span {
-    border-color: magenta;
-}
-
-.latex-suite-suggestion-placeholder6 {
-    border-color: navajowhite;
-}
-
-span.latex-suite-suggestion-placeholder6 span {
+.latex-suite-snippet-placeholder-6, span.latex-suite-snippet-placeholder-6 span {
     border-color: navajowhite;
 }
 

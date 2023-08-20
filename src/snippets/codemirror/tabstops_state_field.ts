@@ -1,11 +1,11 @@
-import { EditorView } from "@codemirror/view";
+import { EditorView, Decoration } from "@codemirror/view";
 import { StateEffect, StateField } from "@codemirror/state";
 import { TabstopGroup } from "../tabstop";
 
-export const addTabstopsEffect = StateEffect.define<TabstopGroup[]>();
-export const consumeTabstopEffect = StateEffect.define();
-export const removeEmptyTabstopsEffect = StateEffect.define();
-export const clearAllTabstopsEffect = StateEffect.define();
+const addTabstopsEffect = StateEffect.define<TabstopGroup[]>();
+const removeTabstopEffect = StateEffect.define();
+const hideTabstopFromEditorEffect = StateEffect.define();
+const clearAllTabstopsEffect = StateEffect.define();
 
 export const tabstopsStateField = StateField.define<TabstopGroup[]>({
 
@@ -15,13 +15,16 @@ export const tabstopsStateField = StateField.define<TabstopGroup[]>({
 
 	update(value, transaction) {
 		let tabstopGroups = value;
-		tabstopGroups = tabstopGroups.map(tabstopGroup => tabstopGroup.map(transaction.changes));
+		tabstopGroups.forEach(grp => grp.map(transaction.changes));
 
 		for (const effect of transaction.effects) {
 			if (effect.is(addTabstopsEffect)) {
 				tabstopGroups.unshift(...effect.value);
 			}
-			else if (effect.is(consumeTabstopEffect)) {
+			else if (effect.is(hideTabstopFromEditorEffect)) {
+				tabstopGroups[0].hideFromEditor();
+			}
+			else if (effect.is(removeTabstopEffect)) {
 				tabstopGroups.shift();
 			}
 			else if (effect.is(clearAllTabstopsEffect)) {
@@ -31,9 +34,30 @@ export const tabstopsStateField = StateField.define<TabstopGroup[]>({
 
 
 		return tabstopGroups;
-	}
+	},
 
+	provide: (field) => {
+		return EditorView.decorations.of(view => {
+			// "Flatten" the array of DecorationSets to produce a single DecorationSet
+			const tabstopGroups = view.state.field(field);
+			const decos = [];
+
+			for (const tabstopGroup of tabstopGroups) {
+				if (!tabstopGroup.hidden)
+					decos.push(...tabstopGroup.getRanges());
+			}
+
+			return Decoration.set(decos, true);
+		});
+	}
 });
+
+export function getTabstopGroupsFromView(view: EditorView) {
+	const field = view.state.field(tabstopsStateField);
+	const currentTabstopGroups = field.map(grp => grp.toEditorSelection());
+
+	return currentTabstopGroups;
+}
 
 export function addTabstops(view: EditorView, tabstopGroups: TabstopGroup[]) {
 	view.dispatch({
@@ -41,9 +65,15 @@ export function addTabstops(view: EditorView, tabstopGroups: TabstopGroup[]) {
 	});
 }
 
-export function consumeTabstop(view: EditorView) {
+export function removeTabstop(view: EditorView) {
 	view.dispatch({
-		effects: [consumeTabstopEffect.of(null)],
+		effects: [removeTabstopEffect.of(null)],
+	});
+}
+
+export function hideTabstopFromEditor(view: EditorView) {
+	view.dispatch({
+		effects: [hideTabstopFromEditorEffect.of(null)],
 	});
 }
 
@@ -51,4 +81,19 @@ export function clearAllTabstops(view: EditorView) {
 	view.dispatch({
 		effects: [clearAllTabstopsEffect.of(null)],
 	});
+}
+
+// const COLORS = ["lightskyblue", "orange", "lime", "pink", "cornsilk", "magenta", "navajowhite"];
+const N_COLORS = 7;
+
+export function getNextTabstopColor(view: EditorView) {
+	const field = view.state.field(tabstopsStateField);
+	const existingColors = field.map(tabstopGroup => tabstopGroup.color);
+	const uniqueExistingColors = new Set(existingColors);
+
+	for (let i = 0; i < N_COLORS; i++) {
+		if (!uniqueExistingColors.has(i)) return i;
+	}
+
+	return 0;
 }

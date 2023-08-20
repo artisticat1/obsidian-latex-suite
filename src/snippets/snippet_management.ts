@@ -4,8 +4,8 @@ import { setCursor, setSelections, findMatchingBracket, resetCursorBlink } from 
 import { startSnippet, endSnippet } from "./codemirror/history";
 import { isolateHistory } from "@codemirror/commands";
 
-import { TabstopSpec, getTabstopGroupEndpoints, tabstopGroupLiesWithinAnother } from "./tabstop";
-import { addTabstops, consumeTabstop, clearAllTabstops, tabstopsStateField } from "./codemirror/tabstops_state_field";
+import { TabstopSpec, getEditorSelectionEndpoints, editorSelectionLiesWithinAnother, tabstopSpecsToTabstopGroups } from "./tabstop";
+import { addTabstops, removeTabstop, clearAllTabstops, getTabstopGroupsFromView, getNextTabstopColor, hideTabstopFromEditor } from "./codemirror/tabstops_state_field";
 import { clearSnippetQueue, snippetQueueStateField } from "./codemirror/snippet_queue_state_field";
 
 
@@ -119,30 +119,10 @@ export function expandSnippets(view: EditorView):boolean {
 	return true;
 }
 
-function tabstopSpecsToTabstopGroups(tabstops: TabstopSpec[]) {
-	const N = Math.max(...tabstops.map(tabstop => tabstop.number));
-	const tabstopGroups = Array(N);
-
-	for (const tabstop of tabstops) {
-		const n = tabstop.number;
-
-		if (tabstopGroups[n]) {
-			tabstopGroups[n] = tabstopGroups[n].addRange(EditorSelection.range(tabstop.from, tabstop.to));
-		}
-		else {
-			tabstopGroups[n] = EditorSelection.single(tabstop.from, tabstop.to);
-		}
-	}
-
-	// Remove empty tabstop groups
-	const result = tabstopGroups.filter(value => value);
-
-	return result;
-}
-
 
 function markTabstops(view: EditorView, tabstops: TabstopSpec[]) {
-	const tabstopGroups = tabstopSpecsToTabstopGroups(tabstops);
+	const color = getNextTabstopColor(view);
+	const tabstopGroups = tabstopSpecsToTabstopGroups(tabstops, color);
 
 	addTabstops(view, tabstopGroups);
 }
@@ -161,7 +141,7 @@ function insertTabstops(view: EditorView, tabstops: TabstopSpec[]) {
 
 
 	// Select the first tabstop
-	const currentTabstopGroups = view.state.field(tabstopsStateField);
+	const currentTabstopGroups = getTabstopGroupsFromView(view);
 	const firstRef = currentTabstopGroups[0];
 	const selection = EditorSelection.create(firstRef.ranges);
 
@@ -171,6 +151,7 @@ function insertTabstops(view: EditorView, tabstops: TabstopSpec[]) {
 	});
 
 	resetCursorBlink();
+	hideTabstopFromEditor(view);
 	removeOnlyTabstop(view);
 }
 
@@ -178,13 +159,13 @@ function insertTabstops(view: EditorView, tabstops: TabstopSpec[]) {
 function selectTabstopGroup(view: EditorView, tabstopGroup: EditorSelection) {
 	// Select all ranges
 	setSelections(view, tabstopGroup);
-
+	hideTabstopFromEditor(view);
 	removeOnlyTabstop(view);
 }
 
 function removeOnlyTabstop(view: EditorView) {
 	// Remove all tabstop groups if there's just one containing zero width tabstops
-	const currentTabstopGroups = view.state.field(tabstopsStateField);
+	const currentTabstopGroups = getTabstopGroupsFromView(view);
 	if (currentTabstopGroups.length === 1) {
 		let shouldClear = true;
 
@@ -203,57 +184,31 @@ function removeOnlyTabstop(view: EditorView) {
 }
 
 
-export function isInsideATabstop(pos: number, view: EditorView):boolean {
-	const currentTabstopGroups = view.state.field(tabstopsStateField);
-	if (currentTabstopGroups.length === 0) return false;
-
-	let isInside = false;
+export function isInsideATabstop(view: EditorView):boolean {
+	const currentTabstopGroups = getTabstopGroupsFromView(view);
 
 	for (const tabstopGroup of currentTabstopGroups) {
-		for (const range of tabstopGroup.ranges) {
-			if ((pos >= range.from) && (pos <= range.to)) {
-				isInside = true;
-				break;
-			}
+		if (editorSelectionLiesWithinAnother(view.state.selection, tabstopGroup)) {
+			return true;
 		}
-
-		if (isInside) break;
 	}
 
-	return isInside;
-}
-
-
-export function isInsideLastTabstop(view: EditorView):boolean {
-	const currentTabstopGroups = view.state.field(tabstopsStateField);
-	if (currentTabstopGroups.length === 0) return false;
-
-	let isInside = false;
-
-	const lastTabstopRef = currentTabstopGroups.slice(-1)[0];
-	const ranges = lastTabstopRef.ranges;
-	const lastRange = ranges[0];
-
-	const sel = view.state.selection.main;
-
-	isInside = sel.eq(lastRange);
-
-	return isInside;
+	return false;
 }
 
 
 export function consumeAndGotoNextTabstop(view: EditorView): boolean {
 	// Check whether there are currently any tabstops
-	let currentTabstopGroups = view.state.field(tabstopsStateField);
+	let currentTabstopGroups = getTabstopGroupsFromView(view);
 	if (currentTabstopGroups.length === 0) return false;
 
 	const oldCursor = view.state.selection.main;
 
 	// Remove the tabstop that we're inside of
-	consumeTabstop(view);
+	removeTabstop(view);
 
 	// If there are none left, return
-	currentTabstopGroups = view.state.field(tabstopsStateField);
+	currentTabstopGroups = getTabstopGroupsFromView(view);
 	if (currentTabstopGroups.length === 0) {
 		setCursor(view, oldCursor.to);
 
@@ -271,8 +226,8 @@ export function consumeAndGotoNextTabstop(view: EditorView): boolean {
 
 
 	// If the old tabstop(s) lie within the new tabstop(s), simply move the cursor
-	if (tabstopGroupLiesWithinAnother(view.state.selection, newTabstop)) {
-		setSelections(view, getTabstopGroupEndpoints(newTabstop));
+	if (editorSelectionLiesWithinAnother(view.state.selection, newTabstop)) {
+		setSelections(view, getEditorSelectionEndpoints(newTabstop));
 	}
 	else {
 		selectTabstopGroup(view, newTabstop);
