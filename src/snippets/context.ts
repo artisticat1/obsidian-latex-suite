@@ -15,11 +15,12 @@ export class Context {
 
 	actuallyCodeblock: boolean;
 
-	static fromView(view: EditorView, pos: number, ranges: SelectionRange[]):Context {
+	static fromView(view: EditorView):Context {
 		const ctx = new Context();
+		const sel = view.state.selection;
 		ctx.view = view;
-		ctx.pos = pos;
-		ctx.ranges = ranges;
+		ctx.pos = sel.main.to;
+		ctx.ranges = Array.from(sel.ranges).reverse(); // Last to first
 		ctx.mode = new Mode();
 		ctx.boundsCache = new Map();
 
