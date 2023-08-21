@@ -106,7 +106,7 @@ export const runAutoFractionCursor = (ctx: Context, range: SelectionRange):boole
 
 	const replacement = `${settings.basicSettings.autofractionSymbol}{${numerator}}{$0}$1`
 
-	queueSnippet(ctx.view, {from: start, to: to, insert: replacement, keyPressed: "/"});
+	queueSnippet(ctx.view, start, to, replacement, "/");
 
 	return true;
 }

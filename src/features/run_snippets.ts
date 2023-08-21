@@ -79,7 +79,7 @@ export const runSnippetCursor = (ctx: Context, key: string, range: SelectionRang
 
 		// Expand the snippet
 		const start = triggerPos;
-		queueSnippet(ctx.view, {from: start, to: to, insert: replacement, keyPressed: key});
+		queueSnippet(ctx.view, start, to, replacement, key);
 
 
 		const containsTrigger = settings.parsedSettings.autoEnlargeBracketsTriggers.some(word => replacement.contains("\\" + word));

@@ -1,71 +1,22 @@
 import { EditorView } from "@codemirror/view";
-import { EditorSelection, ChangeSpec, ChangeSet } from "@codemirror/state";
-import { setSelections, findMatchingBracket, resetCursorBlink } from "../editor_helpers";
+import { EditorSelection, ChangeSet } from "@codemirror/state";
+import { setSelections, resetCursorBlink } from "../editor_helpers";
 import { startSnippet, endSnippet } from "./codemirror/history";
 import { isolateHistory } from "@codemirror/commands";
-
 import { TabstopSpec, getEditorSelectionEndpoints, editorSelectionLiesWithinAnother, tabstopSpecsToTabstopGroups } from "./tabstop";
 import { addTabstops, removeTabstop, removeAllTabstops, getTabstopGroupsFromView, getNextTabstopColor, hideTabstopFromEditor } from "./codemirror/tabstops_state_field";
-import { SnippetToAdd, clearSnippetQueue, snippetQueueStateField } from "./codemirror/snippet_queue_state_field";
-
-
-function getTabstopsFromSnippet(view: EditorView, start: number, replacement:string):TabstopSpec[] {
-
-	const tabstops:TabstopSpec[] = [];
-	const text = view.state.doc.toString();
-
-	for (let i = start; i < start + replacement.length; i++) {
-
-		if (!(text.charAt(i) === "$")) {
-			continue;
-		}
-
-		let number:number = parseInt(text.charAt(i + 1));
-
-		const tabstopStart = i;
-		let tabstopEnd = tabstopStart + 2;
-		let tabstopReplacement = "";
-
-
-		if (isNaN(number)) {
-			// Check for selection tabstops of the form ${0:XXX}
-			if (!(text.charAt(i+1) === "{" && text.charAt(i+3) === ":")) continue;
-
-			number = parseInt(text.charAt(i + 2));
-			if (isNaN(number)) continue;
-
-			// Find the matching }
-			const closingIndex = findMatchingBracket(text, i+1, "{", "}", false, start + replacement.length);
-
-			if (closingIndex === -1) continue;
-
-			tabstopReplacement = text.slice(i + 4, closingIndex);
-			tabstopEnd = closingIndex + 1;
-			i = closingIndex;
-		}
-
-		// Replace the tabstop indicator "$X" with ""
-		const tabstop:TabstopSpec = {number: number, from: tabstopStart, to: tabstopEnd, replacement: tabstopReplacement};
-
-		tabstops.push(tabstop);
-	}
-
-
-	return tabstops;
-}
-
+import { clearSnippetQueue, snippetQueueStateField } from "./codemirror/snippet_queue_state_field";
+import { SnippetChangeSpec } from "./codemirror/snippet_change_spec";
 
 export function expandSnippets(view: EditorView):boolean {
-	const snippetsToAdd = view.state.field(snippetQueueStateField);
-	if (snippetsToAdd.length === 0) return false;
+	const snippetsToExpand = view.state.field(snippetQueueStateField);
+	if (snippetsToExpand.length === 0) return false;
 
 	const originalDocLength = view.state.doc.length;
-	const snippets = snippetsToAdd;
-	const changes = snippets as ChangeSpec;
 
-	handleUndoKeypresses(view, snippets, changes);
+	handleUndoKeypresses(view, snippetsToExpand);
 
-	const tabstopsToAdd = computeTabstops(view, snippets, changes, originalDocLength);
+	const tabstopsToAdd = computeTabstops(view, snippetsToExpand, originalDocLength);
 
 	// Insert any tabstops
 	if (tabstopsToAdd.length === 0) {
@@ -80,7 +31,7 @@ export function expandSnippets(view: EditorView):boolean {
 	return true;
 }
 
-function handleUndoKeypresses(view: EditorView, snippets: SnippetToAdd[], changes: ChangeSpec) {
+function handleUndoKeypresses(view: EditorView, snippets: SnippetChangeSpec[]) {
 	const originalDoc = view.state.doc;
 	const originalDocLength = originalDoc.length;
 
@@ -105,7 +56,7 @@ function handleUndoKeypresses(view: EditorView, snippets: SnippetToAdd[], change
 
 	// Undo the keypresses, and insert the replacements
 	const undoKeyPresses = ChangeSet.of(keyPresses, originalDocLength).invert(originalDoc);
-	const changesAsChangeSet = ChangeSet.of(changes, originalDocLength);
+	const changesAsChangeSet = ChangeSet.of(snippets, originalDocLength);
 	const combinedChanges = undoKeyPresses.compose(changesAsChangeSet);
 
 	view.dispatch({
@@ -114,15 +65,15 @@ function handleUndoKeypresses(view: EditorView, snippets: SnippetToAdd[], change
 	});
 }
 
-function computeTabstops(view: EditorView, snippets: SnippetToAdd[], changes: ChangeSpec, originalDocLength: number) {
+function computeTabstops(view: EditorView, snippets: SnippetChangeSpec[], originalDocLength: number) {
 	// Find the positions of the cursors in the new document
-	const changeSet = ChangeSet.of(changes, originalDocLength);
+	const changeSet = ChangeSet.of(snippets, originalDocLength);
 	const oldPositions = snippets.map(change => change.from);
 	const newPositions = oldPositions.map(pos => changeSet.mapPos(pos));
 
-	let tabstopsToAdd:TabstopSpec[] = [];
+	const tabstopsToAdd:TabstopSpec[] = [];
 	for (let i = 0; i < snippets.length; i++) {
-		tabstopsToAdd = tabstopsToAdd.concat(getTabstopsFromSnippet(view, newPositions[i], snippets[i].insert));
+		tabstopsToAdd.push(...snippets[i].getTabstops(view, newPositions[i]));
 	}
 
 	return tabstopsToAdd;

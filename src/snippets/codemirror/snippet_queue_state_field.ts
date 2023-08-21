@@ -1,19 +1,13 @@
 import { EditorView } from "@codemirror/view";
 import { StateEffect, StateField } from "@codemirror/state";
+import { SnippetChangeSpec } from "./snippet_change_spec";
 
-export interface SnippetToAdd {
-	from: number,
-	to: number,
-	insert: string,
-	keyPressed?: string
-}
+const queueSnippetEffect = StateEffect.define<SnippetChangeSpec>();
+const clearSnippetQueueEffect = StateEffect.define();
 
-export const queueSnippetEffect = StateEffect.define<SnippetToAdd>();
-export const clearSnippetQueueEffect = StateEffect.define();
+export const snippetQueueStateField = StateField.define<SnippetChangeSpec[]>({
 
-export const snippetQueueStateField = StateField.define<SnippetToAdd[]>({
-
-	create(editorState) {
+	create() {
 		return [];
 	},
 
@@ -34,7 +28,9 @@ export const snippetQueueStateField = StateField.define<SnippetToAdd[]>({
 });
 
 
-export function queueSnippet(view: EditorView, snippet: SnippetToAdd) {
+export function queueSnippet(view: EditorView, from: number, to: number, insert: string, keyPressed?: string) {
+	const snippet = new SnippetChangeSpec(from, to, insert, keyPressed);
+
 	view.dispatch({
 		effects: [queueSnippetEffect.of(snippet)],
 	});

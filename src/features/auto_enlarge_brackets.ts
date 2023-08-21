@@ -56,8 +56,8 @@ export const autoEnlargeBrackets = (ctx: Context) => {
 		}
 
 		// Enlarge the brackets
-		queueSnippet(ctx.view, {from: i, to: i+bracketSize, insert: left + open + " "});
-		queueSnippet(ctx.view, {from: j, to: j+bracketSize, insert: " " + right + close});
+		queueSnippet(ctx.view, i, i+bracketSize, left + open + " ");
+		queueSnippet(ctx.view, j, j+bracketSize, " " + right + close);
 	}
 
 	expandSnippets(ctx.view);
