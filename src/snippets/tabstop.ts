@@ -1,5 +1,7 @@
 import { ChangeDesc, EditorSelection, SelectionRange } from "@codemirror/state";
-import { Decoration, DecorationSet } from "@codemirror/view";
+import { Decoration, DecorationSet, EditorView } from "@codemirror/view";
+import { resetCursorBlink } from "src/editor_helpers";
+import { endSnippet } from "./codemirror/history";
 
 const LATEX_SUITE_TABSTOP_DECO_CLASS = "latex-suite-snippet-placeholder";
 
@@ -61,6 +63,19 @@ export class TabstopGroup {
         }
 
         return EditorSelection.create(ranges);
+    }
+
+    select(view: EditorView, selectEndpoints: boolean, isEndSnippet: boolean) {
+        const sel = this.toEditorSelection();
+        const toSelect = selectEndpoints ? getEditorSelectionEndpoints(sel) : sel;
+
+        view.dispatch({
+            selection: toSelect,
+            effects: isEndSnippet ? endSnippet.of(null) : null
+        })
+        resetCursorBlink();
+
+        this.hideFromEditor();
     }
 
     hideFromEditor() {

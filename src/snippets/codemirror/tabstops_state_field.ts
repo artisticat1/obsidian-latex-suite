@@ -4,7 +4,6 @@ import { TabstopGroup } from "../tabstop";
 
 const addTabstopsEffect = StateEffect.define<TabstopGroup[]>();
 const removeTabstopEffect = StateEffect.define();
-const hideTabstopFromEditorEffect = StateEffect.define();
 const removeAllTabstopsEffect = StateEffect.define();
 
 export const tabstopsStateField = StateField.define<TabstopGroup[]>({
@@ -20,9 +19,6 @@ export const tabstopsStateField = StateField.define<TabstopGroup[]>({
 		for (const effect of transaction.effects) {
 			if (effect.is(addTabstopsEffect)) {
 				tabstopGroups.unshift(...effect.value);
-			}
-			else if (effect.is(hideTabstopFromEditorEffect)) {
-				tabstopGroups[0].hideFromEditor();
 			}
 			else if (effect.is(removeTabstopEffect)) {
 				tabstopGroups.shift();
@@ -53,8 +49,7 @@ export const tabstopsStateField = StateField.define<TabstopGroup[]>({
 });
 
 export function getTabstopGroupsFromView(view: EditorView) {
-	const field = view.state.field(tabstopsStateField);
-	const currentTabstopGroups = field.map(grp => grp.toEditorSelection());
+	const currentTabstopGroups = view.state.field(tabstopsStateField);
 
 	return currentTabstopGroups;
 }
@@ -68,12 +63,6 @@ export function addTabstops(view: EditorView, tabstopGroups: TabstopGroup[]) {
 export function removeTabstop(view: EditorView) {
 	view.dispatch({
 		effects: [removeTabstopEffect.of(null)],
-	});
-}
-
-export function hideTabstopFromEditor(view: EditorView) {
-	view.dispatch({
-		effects: [hideTabstopFromEditorEffect.of(null)],
 	});
 }
 

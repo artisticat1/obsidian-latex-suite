@@ -1,10 +1,9 @@
 import { EditorView } from "@codemirror/view";
-import { EditorSelection, ChangeSet } from "@codemirror/state";
-import { setSelections, resetCursorBlink } from "../editor_helpers";
-import { startSnippet, endSnippet } from "./codemirror/history";
+import { ChangeSet } from "@codemirror/state";
+import { startSnippet } from "./codemirror/history";
 import { isolateHistory } from "@codemirror/commands";
-import { TabstopSpec, getEditorSelectionEndpoints, editorSelectionLiesWithinAnother, tabstopSpecsToTabstopGroups } from "./tabstop";
-import { addTabstops, removeTabstop, removeAllTabstops, getTabstopGroupsFromView, getNextTabstopColor, hideTabstopFromEditor } from "./codemirror/tabstops_state_field";
+import { TabstopSpec, editorSelectionLiesWithinAnother, tabstopSpecsToTabstopGroups } from "./tabstop";
+import { addTabstops, removeTabstop, removeAllTabstops, getTabstopGroupsFromView, getNextTabstopColor } from "./codemirror/tabstops_state_field";
 import { clearSnippetQueue, snippetQueueStateField } from "./codemirror/snippet_queue_state_field";
 import { SnippetChangeSpec } from "./codemirror/snippet_change_spec";
 
@@ -59,6 +58,7 @@ function handleUndoKeypresses(view: EditorView, snippets: SnippetChangeSpec[]) {
 	const changesAsChangeSet = ChangeSet.of(snippets, originalDocLength);
 	const combinedChanges = undoKeyPresses.compose(changesAsChangeSet);
 
+	// Mark the transaction as the beginning of a snippet (for undo/history purposes)
 	view.dispatch({
 		changes: combinedChanges,
 		effects: startSnippet.of(null)
@@ -97,24 +97,10 @@ function expandTabstops(view: EditorView, tabstops: TabstopSpec[]) {
 	});
 
 	// Select the first tabstop
-	const currentTabstopGroups = getTabstopGroupsFromView(view);
-	const firstRef = currentTabstopGroups[0];
-	const selection = EditorSelection.create(firstRef.ranges);
+	const firstGrp = getTabstopGroupsFromView(view)[0];
+	firstGrp.select(view, false, true); // "true" here marks the transaction as the end of the snippet (for undo/history purposes)
 
-	view.dispatch({
-		selection: selection,
-		effects: endSnippet.of(null)
-	});
-
-	resetCursorBlink();
-	hideTabstopFromEditor(view);
 	removeOnlyTabstop(view);
-}
-
-function selectTabstopGroup(view: EditorView, tabstopGroup: EditorSelection) {
-	// Select all ranges
-	setSelections(view, tabstopGroup);
-	hideTabstopFromEditor(view);
 }
 
 function removeOnlyTabstop(view: EditorView) {
@@ -130,7 +116,7 @@ export function isInsideATabstop(view: EditorView):boolean {
 	const currentTabstopGroups = getTabstopGroupsFromView(view);
 
 	for (const tabstopGroup of currentTabstopGroups) {
-		if (editorSelectionLiesWithinAnother(view.state.selection, tabstopGroup)) {
+		if (editorSelectionLiesWithinAnother(view.state.selection, tabstopGroup.toEditorSelection())) {
 			return true;
 		}
 	}
@@ -140,24 +126,19 @@ export function isInsideATabstop(view: EditorView):boolean {
 
 export function consumeAndGotoNextTabstop(view: EditorView): boolean {
 	// Check whether there are currently any tabstops
-	let currentTabstopGroups = getTabstopGroupsFromView(view);
-	if (currentTabstopGroups.length === 0) return false;
+	if (getTabstopGroupsFromView(view).length === 0) return false;
 
 	// Remove the tabstop that we're inside of
 	removeTabstop(view);
 
 	// Select the next tabstop
 	const oldSel = view.state.selection;
-	currentTabstopGroups = getTabstopGroupsFromView(view);
-	const nextSel = currentTabstopGroups[0];
+	const nextGrp = getTabstopGroupsFromView(view)[0];
+	const nextSel = nextGrp.toEditorSelection();
 
 	// If the old tabstop(s) lie within the new tabstop(s), simply move the cursor
-	if (editorSelectionLiesWithinAnother(view.state.selection, nextSel)) {
-		setSelections(view, getEditorSelectionEndpoints(nextSel));
-	}
-	else {
-		selectTabstopGroup(view, nextSel);
-	}
+	const shouldMoveToEndpoints = editorSelectionLiesWithinAnother(view.state.selection, nextSel);
+	nextGrp.select(view, shouldMoveToEndpoints, false);
 
 	// If we haven't moved, go again
 	const newSel = view.state.selection;

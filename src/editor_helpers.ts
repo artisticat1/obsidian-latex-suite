@@ -1,6 +1,6 @@
 import { Platform, Workspace, MarkdownView } from "obsidian";
 import { EditorView } from "@codemirror/view";
-import { EditorSelection, EditorState } from "@codemirror/state";
+import { EditorState } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
 import { SyntaxNode, TreeCursor } from "@lezer/common";
 
@@ -42,16 +42,6 @@ export function setSelection(view: EditorView, start: number, end: number) {
 
 	resetCursorBlink();
 }
-
-
-export function setSelections(view: EditorView, sel: EditorSelection) {
-	view.dispatch({
-		selection: sel
-	});
-
-	resetCursorBlink();
-}
-
 
 
 export function resetCursorBlink() {
