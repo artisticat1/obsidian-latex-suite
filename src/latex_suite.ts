@@ -6,7 +6,7 @@ import { runAutoFraction } from "./features/autofraction";
 import { tabout, shouldTaboutByCloseBracket } from "./features/tabout";
 import { runMatrixShortcuts } from "./features/matrix_shortcuts";
 
-import { ctxAtViewPos } from "./snippets/context";
+import { Context } from "./snippets/context";
 import { consumeAndGotoNextTabstop, isInsideATabstop } from "./snippets/snippet_management";
 import { removeAllTabstops } from "./snippets/codemirror/tabstops_state_field";
 import { getLatexSuiteConfigExtension, getLatexSuiteConfigFromView } from "./snippets/codemirror/config";
@@ -49,7 +49,7 @@ export const handleKeydown = (key: string, shiftKey: boolean, ctrlKey: boolean, 
 	const pos = s.main.to;
 	const ranges = Array.from(s.ranges).reverse(); // Last to first
 
-	const ctx = ctxAtViewPos(view, pos, ranges);
+	const ctx = Context.fromView(view, pos, ranges);
 	// TODO(multisn8): remove this when the PR is done
 	console.log(ctx);
 	console.log(ctx.mode);

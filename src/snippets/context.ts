@@ -15,6 +15,54 @@ export class Context {
 
 	actuallyCodeblock: boolean;
 
+	static fromView(view: EditorView, pos: number, ranges: SelectionRange[]):Context {
+		const ctx = new Context();
+		ctx.view = view;
+		ctx.pos = pos;
+		ctx.ranges = ranges;
+		ctx.mode = new Mode();
+		ctx.boundsCache = new Map();
+
+		const settings = getLatexSuiteConfigFromView(view);
+		const codeblockLanguage = langIfWithinCodeblock(view);
+		const inCode = codeblockLanguage !== null;
+		const ignoreMath = settings.parsedSettings.ignoreMathLanguages.contains(codeblockLanguage);
+		const forceMath = settings.parsedSettings.forceMathLanguages.contains(codeblockLanguage);
+		ctx.actuallyCodeblock = forceMath;
+
+		// first, check if math mode should be "generally" on
+		let inMath = forceMath || (
+			!ignoreMath
+			&& isWithinEquation(view.state)
+		);
+
+		if (inMath) {
+
+			// then check if the environment "temporarily" disables math mode
+			inMath = !(
+				ctx.isInsideEnvironment(ctx.pos, {openSymbol: "\\text{", closeSymbol: "}"})
+				|| ctx.isInsideEnvironment(ctx.pos, {openSymbol: "\\tag{", closeSymbol: "}"})
+			);
+		}
+
+		if (inMath) {
+			const inInlineEquation = isWithinInlineEquation(view.state);
+
+			ctx.mode.blockMath = !inInlineEquation;
+			ctx.mode.inlineMath = inInlineEquation;
+		} else {
+			ctx.mode.blockMath = false;
+			ctx.mode.inlineMath = false;
+		}
+
+		ctx.mode.code = inCode && !forceMath;
+		if (ctx.mode.code) ctx.codeblockLanguage = codeblockLanguage;
+
+		ctx.mode.text = !inCode && !inMath;
+
+		return ctx;
+	}
+
 	isInsideEnvironment(pos: number, env: Environment): boolean {
 		if (!this.mode.anyMath()) return false;
 
@@ -80,53 +128,3 @@ export class Context {
 		return bounds;
 	}
 }
-
-
-export function ctxAtViewPos(view: EditorView, pos: number, ranges: SelectionRange[]):Context {
-	const ctx = new Context();
-	ctx.view = view;
-	ctx.pos = pos;
-	ctx.ranges = ranges;
-	ctx.mode = new Mode();
-	ctx.boundsCache = new Map();
-
-	const settings = getLatexSuiteConfigFromView(view);
-	const codeblockLanguage = langIfWithinCodeblock(view);
-	const inCode = codeblockLanguage !== null;
-	const ignoreMath = settings.parsedSettings.ignoreMathLanguages.contains(codeblockLanguage);
-	const forceMath = settings.parsedSettings.forceMathLanguages.contains(codeblockLanguage);
-	ctx.actuallyCodeblock = forceMath;
-
-	// first, check if math mode should be "generally" on
-	let inMath = forceMath || (
-		!ignoreMath
-		&& isWithinEquation(view.state)
-	);
-
-	if (inMath) {
-
-		// then check if the environment "temporarily" disables math mode
-		inMath = !(
-			ctx.isInsideEnvironment(ctx.pos, {openSymbol: "\\text{", closeSymbol: "}"})
-			|| ctx.isInsideEnvironment(ctx.pos, {openSymbol: "\\tag{", closeSymbol: "}"})
-		);
-	}
-
-	if (inMath) {
-		const inInlineEquation = isWithinInlineEquation(view.state);
-
-		ctx.mode.blockMath = !inInlineEquation;
-		ctx.mode.inlineMath = inInlineEquation;
-	} else {
-		ctx.mode.blockMath = false;
-		ctx.mode.inlineMath = false;
-	}
-
-	ctx.mode.code = inCode && !forceMath;
-	if (ctx.mode.code) ctx.codeblockLanguage = codeblockLanguage;
-
-	ctx.mode.text = !inCode && !inMath;
-
-	return ctx;
-}
-
