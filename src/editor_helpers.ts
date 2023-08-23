@@ -57,71 +57,52 @@ export function resetCursorBlink() {
 
 
 export function isWithinEquation(state: EditorState):boolean {
-	const pos = state.selection.main.to - 1;
+	const pos = state.selection.main.to;
 	const tree = syntaxTree(state);
 
-	const token = tree.resolveInner(pos, 1).name;
-	let withinEquation = token.contains("math");
+	let syntaxNode = tree.resolveInner(pos, -1);
+	if (syntaxNode.name.contains("math-end")) return false;
 
-	if (!withinEquation) {
-		// Allows detection of math mode at beginning of a line
-
-		const tokenLeft = tree.resolveInner(pos - 1, 1).name;
-		const tokenRight = tree.resolveInner(pos + 1, 1).name;
-
-		if (tokenLeft.contains("math") && tokenRight.contains("math")) {
-			withinEquation = true;
-		}
-	}
-	else if (token.contains("end")) {
-			withinEquation = false;
+	if (!syntaxNode.parent) {
+		syntaxNode = tree.resolveInner(pos, 1);
+		if (syntaxNode.name.contains("math-begin")) return false;
 	}
 
-	return withinEquation;
+	// Account/allow for being on an empty line in a equation
+	if (!syntaxNode.parent) {
+		const left = tree.resolveInner(pos - 1, -1);
+		const right = tree.resolveInner(pos + 1, 1);
+
+		return (left.name.contains("math") && right.name.contains("math"));
+	}
+
+	return (syntaxNode.name.contains("math"));
 }
 
 
-export function isWithinInlineEquation(
-	state: EditorState,
-	pos: number = state.selection.main.from
-): boolean {
-	const result = getEquationBounds(state, pos);
-	if (!result) return false;
-	const end = result.end;
-
-	// Check whether we're in inline math or a block eqn
-	const inlineMath = state.doc.sliceString(end, end+2) != "$$";
-
-	return inlineMath;
-}
-
-
-/**
- * Returns 0 if pos is not touching a $ that marks an inline equation
- * Returns n if pos+n is inside an equation
- *  */
-export function isTouchingInlineEquation(state: EditorState, pos: number):number {
+export function isWithinInlineEquation(state: EditorState):boolean {
+	const pos = state.selection.main.to;
 	const tree = syntaxTree(state);
-	const prevToken = tree.resolveInner(pos-1, 1).name;
-	const token = tree.resolveInner(pos, 1).name;
-	const nextToken = tree.resolveInner(pos+1, 1).name;
 
-	if (token.contains("math-end") && !(prevToken.contains("math-end")) && !(nextToken.contains("math-end"))) {
-		return -1;
-	}
-	else if (!(token.contains("math-begin")) && nextToken.contains("math-begin")) {
-		const nextNextToken = tree.resolveInner(pos+2, 1).name;
+	let syntaxNode = tree.resolveInner(pos, -1);
+	if (syntaxNode.name.contains("math-end")) return false;
 
-		if (!(nextNextToken.contains("math-begin"))) {
-			return 1;
-		}
+	if (!syntaxNode.parent) {
+		syntaxNode = tree.resolveInner(pos, 1);
+		if (syntaxNode.name.contains("math-begin")) return false;
 	}
 
-	return 0;
+	// Account/allow for being on an empty line in a equation
+	if (!syntaxNode.parent) syntaxNode = tree.resolveInner(pos - 1, -1);
+
+	const cursor = syntaxNode.cursor();
+	const res = escalateToToken(cursor, Direction.Backward, "math-begin");
+
+	return !res.name.contains("math-block");
 }
 
 
-export class Bounds {
+export interface Bounds {
 	start: number;
 	end: number;
 }
@@ -131,18 +112,29 @@ export class Bounds {
  *
  * **Note:** If you intend to use this directly, check out Context.getBounds instead, which caches and also takes care of codeblock languages which should behave like math mode.
  */
-export function getEquationBounds(state: EditorState, pos: number = state.selection.main.from): Bounds {
-	let text = state.doc.toString();
+export function getEquationBounds(state: EditorState, pos?: number): Bounds {
+	if (!pos) pos = state.selection.main.to;
+	const tree = syntaxTree(state);
 
-	// ignore \$
-	text = text.replaceAll("\\$", "\\R");
+	let syntaxNode = tree.resolveInner(pos, -1);
 
-	const left = text.lastIndexOf("$", pos-1);
-	const right = text.indexOf("$", pos);
+	if (!syntaxNode.parent) {
+		syntaxNode = tree.resolveInner(pos, 1);
+	}
 
-	if (left === -1 || right === -1) return;
+	// Account/allow for being on an empty line in a equation
+	if (!syntaxNode.parent) syntaxNode = tree.resolveInner(pos - 1, -1);
 
-	return {start: left + 1, end: right};
+	const cursor = syntaxNode.cursor();
+	const begin = escalateToToken(cursor, Direction.Backward, "math-begin");
+	const end = escalateToToken(cursor, Direction.Forward, "math-end");
+
+	if (begin && end) {
+		return {start: begin.to, end: end.from};
+	}
+	else {
+		return null;
+	}
 }
 
 
@@ -297,6 +289,11 @@ enum Direction {
   * @returns The node found or null if none was found.
   */
 function escalateToToken(cursor: TreeCursor, dir: Direction, target: string): SyntaxNode | null {
+	// Allow the starting node to be a match
+	if (cursor.name.contains(target)) {
+		return cursor.node;
+	}
+
 	while (
 		(dir == Direction.Backward && cursor.prevSibling())
 		|| (dir == Direction.Forward && cursor.nextSibling())

@@ -122,7 +122,7 @@ export class Context {
 			// means a codeblock language triggered the math mode -> use the codeblock bounds instead
 			bounds = getCodeblockBounds(this.view.state, pos);
 		} else {
-			bounds = getEquationBounds(this.view.state, pos);
+			bounds = getEquationBounds(this.view.state);
 		}
 
 		this.boundsCache.set(pos, bounds);
