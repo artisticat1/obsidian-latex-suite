@@ -1,12 +1,13 @@
 import { EditorView } from "@codemirror/view";
-import { replaceRange, getEquationBounds, setCursor, getCharacterAtPos } from "src/editor_helpers";
+import { replaceRange, setCursor, getCharacterAtPos } from "src/editor_helpers";
+import { Context } from "src/snippets/context";
 
 
 export const tabout = (view: EditorView, withinEquation: boolean):boolean => {
 	if (!withinEquation) return false;
 
 	const pos = view.state.selection.main.to;
-	const result = getEquationBounds(view.state);
+	const result = Context.getEquationBounds(view.state);
 	if (!result) return false;
 	const end = result.end;
 

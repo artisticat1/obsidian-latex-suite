@@ -1,5 +1,5 @@
 import { SelectionRange } from "@codemirror/state";
-import { getEquationBounds, findMatchingBracket, getOpenBracket } from "src/editor_helpers";
+import { findMatchingBracket, getOpenBracket } from "src/editor_helpers";
 import { queueSnippet } from "src/snippets/codemirror/snippet_queue_state_field";
 import { expandSnippets } from "src/snippets/snippet_management";
 import { SNIPPET_VARIABLES } from "src/snippets/snippets";
@@ -37,7 +37,7 @@ export const runAutoFractionCursor = (ctx: Context, range: SelectionRange):boole
 	}
 
 	// Get the bounds of the equation
-	const result = getEquationBounds(ctx.view.state);
+	const result = Context.getEquationBounds(ctx.view.state);
 	if (!result) return false;
 	const eqnStart = result.start;
 

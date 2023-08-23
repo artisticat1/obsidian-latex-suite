@@ -1,7 +1,7 @@
 import { Tooltip, showTooltip, EditorView } from "@codemirror/view";
 import { StateField, EditorState } from "@codemirror/state";
-import { getEquationBounds, isWithinEquation, isWithinInlineEquation } from "../editor_helpers";
 import { renderMath, finishRenderMath, editorLivePreviewField } from "obsidian";
+import { Context } from "src/snippets/context";
 
 export const cursorTooltipField = StateField.define<readonly Tooltip[]>({
 	create: getCursorTooltips,
@@ -16,15 +16,15 @@ export const cursorTooltipField = StateField.define<readonly Tooltip[]>({
 
 function getCursorTooltips(state: EditorState): readonly Tooltip[] {
 
-	if (!isWithinEquation(state)) {
+	if (!Context.isWithinEquation(state)) {
 		return [];
 	}
 
-	const isInline = isWithinInlineEquation(state);
+	const isInline = Context.isWithinInlineEquation(state);
 	const isLivePreview = state.field(editorLivePreviewField);
 	if (!isInline && isLivePreview) return [];
 
-	const bounds = getEquationBounds(state);
+	const bounds = Context.getEquationBounds(state);
 	if (!bounds) return [];
 
 	const eqn = state.sliceDoc(bounds.start, bounds.end);

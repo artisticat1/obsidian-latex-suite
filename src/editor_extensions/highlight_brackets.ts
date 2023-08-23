@@ -1,10 +1,10 @@
 import { EditorView, ViewUpdate, Decoration, DecorationSet, ViewPlugin } from "@codemirror/view";
 import { Prec, Range } from "@codemirror/state";
-import { isWithinEquation, getEquationBounds, findMatchingBracket, getOpenBracket, getCloseBracket, getEnclosingBracketsPos } from "./../editor_helpers";
+import { findMatchingBracket, getOpenBracket, getCloseBracket } from "./../editor_helpers";
 import { syntaxTree } from "@codemirror/language";
+import { Context } from "src/snippets/context";
 
 const Ncolors = 3;
-
 
 function getHighlightBracketMark(pos: number, className: string):Range<Decoration> {
 	return Decoration.mark({
@@ -13,7 +13,6 @@ function getHighlightBracketMark(pos: number, className: string):Range<Decoratio
 		class: className
 	}).range(pos, pos+1);
 }
-
 
 function colorPairedBrackets(view: EditorView) {
 	const widgets: Range<Decoration>[] = []
@@ -28,7 +27,7 @@ function colorPairedBrackets(view: EditorView) {
 				return;
 			}
 
-			const bounds = getEquationBounds(view.state, to);
+			const bounds = Context.getEquationBounds(view.state, to);
 			if (!bounds) return;
 
 
@@ -75,6 +74,44 @@ function colorPairedBrackets(view: EditorView) {
 	return Decoration.set(widgets, true)
 }
 
+function getEnclosingBracketsPos(view: EditorView, pos: number) {
+
+	const result = Context.getEquationBounds(view.state);
+	if (!result) return -1;
+	const {start, end} = result;
+	const text = view.state.doc.sliceString(start, end);
+
+
+	for (let i = pos-start; i > 0; i--) {
+		let curChar = text.charAt(i);
+
+
+		if ([")", "]", "}"].contains(curChar)) {
+			const closeBracket = curChar;
+			const openBracket = getOpenBracket(closeBracket);
+
+			const j = findMatchingBracket(text, i, openBracket, closeBracket, true);
+
+			if (j === -1) return -1;
+
+			// Skip to the beginnning of the bracket
+			i = j;
+			curChar = text.charAt(i);
+		}
+		else {
+
+			if (!["{", "(", "["].contains(curChar)) continue;
+
+			const j = findMatchingBracket(text, i, curChar, getCloseBracket(curChar), false);
+			if (j === -1) continue;
+
+			return {left: i + start, right: j + start};
+
+		}
+	}
+
+	return -1;
+}
 
 function highlightCursorBrackets(view: EditorView) {
 
@@ -83,12 +120,12 @@ function highlightCursorBrackets(view: EditorView) {
 	const ranges = selection.ranges;
 	const text = view.state.doc.toString();
 
-	if (!isWithinEquation(view.state)) {
+	if (!Context.isWithinEquation(view.state)) {
 		return Decoration.none;
 	}
 
 
-	const bounds = getEquationBounds(view.state, selection.main.to);
+	const bounds = Context.getEquationBounds(view.state, selection.main.to);
 	if (!bounds) return Decoration.none;
 	const eqn = view.state.doc.sliceString(bounds.start, bounds.end);
 
@@ -156,45 +193,33 @@ function highlightCursorBrackets(view: EditorView) {
 
 
 export const colorPairedBracketsPlugin = ViewPlugin.fromClass(class {
-	decorations: DecorationSet
-	constructor(view: EditorView) {
-		this.decorations = colorPairedBrackets(view)
-	}
-	update(update: ViewUpdate) {
+	decorations: DecorationSet;
 
+	constructor(view: EditorView) {
+		this.decorations = colorPairedBrackets(view);
+	}
+
+	update(update: ViewUpdate) {
 		if (update.docChanged || update.viewportChanged) {
 			this.decorations = colorPairedBrackets(update.view);
-			// this.decorations = this.decorations.map(update.changes);
-
-			// // Only update when a bracket was inserted
-			// let shouldUpdate = false;
-
-			// update.changes.iterChanges((fromA: number, toA: number, fromB: number, toB: number, inserted: Text) => {
-			//     const insertion = inserted.toString();
-			//     const brackets = ["(", "{", "[", ")", "}", "]"];
-
-			//     if (brackets.some(bracket => insertion.contains(bracket))) {
-			//         shouldUpdate = true;
-			//     }
-			// });
-
-			// console.log("Should update", shouldUpdate);
-			// if (shouldUpdate) this.decorations = colorPairedBrackets(update.view);
 		}
 	}
+
 }, { decorations: v => v.decorations, });
 
 
 export const colorPairedBracketsPluginLowestPrec = Prec.lowest(colorPairedBracketsPlugin.extension);
 
-
 export const highlightCursorBracketsPlugin = ViewPlugin.fromClass(class {
-	decorations: DecorationSet
+	decorations: DecorationSet;
+
 	constructor(view: EditorView) {
-		this.decorations = highlightCursorBrackets(view)
+		this.decorations = highlightCursorBrackets(view);
 	}
+
 	update(update: ViewUpdate) {
 		if (update.docChanged || update.selectionSet)
-			this.decorations = highlightCursorBrackets(update.view)
+			this.decorations = highlightCursorBrackets(update.view);
 	}
+
 }, { decorations: v => v.decorations, });

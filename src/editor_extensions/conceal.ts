@@ -4,8 +4,9 @@ import { livePreviewState } from "obsidian";
 import { EditorView, ViewUpdate, Decoration, DecorationSet, WidgetType, ViewPlugin } from "@codemirror/view";
 import { EditorSelection, Range } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
-import { getEquationBounds, findMatchingBracket } from "./../editor_helpers";
+import { findMatchingBracket } from "./../editor_helpers";
 import { cmd_symbols, greek, map_super, map_sub, brackets, mathbb, mathscrcal, fractions, operators } from "./conceal_maps";
+import { Context } from "src/snippets/context";
 // import { SNIPPET_VARIABLES } from "./snippets";
 
 
@@ -45,7 +46,6 @@ class ConcealWidget extends WidgetType {
 	}
 }
 
-
 class TextWidget extends WidgetType {
 
 	constructor(readonly symbol: string) {
@@ -68,7 +68,6 @@ class TextWidget extends WidgetType {
 	}
 }
 
-
 function selectionAndRangeOverlap(selection: EditorSelection, rangeFrom:
 	number, rangeTo: number) {
 
@@ -81,8 +80,6 @@ function selectionAndRangeOverlap(selection: EditorSelection, rangeFrom:
 	return false;
 }
 
-
-
 function escapeRegex(regex: string) {
 	const escapeChars = ["\\", "(", ")", "+", "-", "[", "]", "{", "}"];
 
@@ -92,8 +89,6 @@ function escapeRegex(regex: string) {
 
 	return regex;
 }
-
-
 
 function concealSymbols(eqn: string, prefix: string, suffix: string, symbolMap: {[key: string]: string}, className?: string, allowSucceedingLetters = true):Concealment[] {
 	const symbolNames = Object.keys(symbolMap);
@@ -124,7 +119,6 @@ function concealSymbols(eqn: string, prefix: string, suffix: string, symbolMap: 
 	return concealments;
 }
 
-
 function concealModifier(eqn: string, modifier: string, combiningCharacter: string):Concealment[] {
 
 	const regexStr = ("\\\\" + modifier + "{([A-Za-z])}");
@@ -143,8 +137,6 @@ function concealModifier(eqn: string, modifier: string, combiningCharacter: stri
 
 	return concealments;
 }
-
-
 
 function concealSupSub(eqn: string, superscript: boolean, symbolMap: {[key: string]:string}):Concealment[] {
 
@@ -179,9 +171,6 @@ function concealSupSub(eqn: string, superscript: boolean, symbolMap: {[key: stri
 
 	return concealments;
 }
-
-
-
 
 function concealModified_A_to_Z_0_to_9(eqn: string, mathBBsymbolMap: {[key: string]:string}):Concealment[] {
 
@@ -225,8 +214,6 @@ function concealModified_A_to_Z_0_to_9(eqn: string, mathBBsymbolMap: {[key: stri
 	return concealments;
 }
 
-
-
 function concealModifiedGreekLetters(eqn: string, greekSymbolMap: {[key: string]:string}):Concealment[] {
 
 	const greekSymbolNames = Object.keys(greekSymbolMap);
@@ -255,8 +242,6 @@ function concealModifiedGreekLetters(eqn: string, greekSymbolMap: {[key: string]
 	return concealments;
 }
 
-
-
 function concealText(eqn: string):Concealment[] {
 
 	const regexStr = "\\\\text{([A-Za-z0-9-.!?() ]+)}";
@@ -278,8 +263,6 @@ function concealText(eqn: string):Concealment[] {
 
 	return concealments;
 }
-
-
 
 function concealOperators(eqn: string, symbols: string[]):Concealment[] {
 
@@ -303,8 +286,6 @@ function concealOperators(eqn: string, symbols: string[]):Concealment[] {
 	return concealments;
 }
 
-
-
 function concealAtoZ(eqn: string, prefix: string, suffix: string, symbolMap: {[key: string]: string}, className?: string):Concealment[] {
 
 	const regexStr = prefix + "([A-Z]+)" + suffix;
@@ -325,10 +306,6 @@ function concealAtoZ(eqn: string, prefix: string, suffix: string, symbolMap: {[k
 
 	return concealments;
 }
-
-
-
-
 
 function concealBraKet(eqn: string, selection: EditorSelection, eqnStartBound: number, mousedown: boolean):Concealment[] {
 	const langle = "〈";
@@ -370,8 +347,6 @@ function concealBraKet(eqn: string, selection: EditorSelection, eqnStartBound: n
 	return concealments;
 }
 
-
-
 function concealFraction(eqn: string, selection: EditorSelection, eqnStartBound: number, mousedown: boolean):Concealment[] {
 
 	const regexStr = "\\\\(frac){";
@@ -412,9 +387,6 @@ function concealFraction(eqn: string, selection: EditorSelection, eqnStartBound:
 	return concealments;
 }
 
-
-
-
 function conceal(view: EditorView) {
 
 	const widgets: Range<Decoration>[] = [];
@@ -436,7 +408,7 @@ function conceal(view: EditorView) {
 				return;
 			}
 
-			const bounds = getEquationBounds(view.state, to);
+			const bounds = Context.getEquationBounds(view.state, to);
 			if (!bounds) return;
 
 
@@ -503,8 +475,6 @@ function conceal(view: EditorView) {
 
 	return Decoration.set(widgets, true);
 }
-
-
 
 export const concealPlugin = ViewPlugin.fromClass(class {
 	decorations: DecorationSet
