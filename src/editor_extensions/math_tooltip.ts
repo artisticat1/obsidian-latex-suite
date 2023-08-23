@@ -1,7 +1,7 @@
 import { Tooltip, showTooltip, EditorView } from "@codemirror/view";
 import { StateField, EditorState } from "@codemirror/state";
 import { renderMath, finishRenderMath, editorLivePreviewField } from "obsidian";
-import { Context } from "src/snippets/context";
+import { Context } from "src/utils/context";
 
 export const cursorTooltipField = StateField.define<readonly Tooltip[]>({
 	create: getCursorTooltips,

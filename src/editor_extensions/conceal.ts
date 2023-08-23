@@ -4,9 +4,9 @@ import { livePreviewState } from "obsidian";
 import { EditorView, ViewUpdate, Decoration, DecorationSet, WidgetType, ViewPlugin } from "@codemirror/view";
 import { EditorSelection, Range } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
-import { findMatchingBracket } from "./../editor_helpers";
+import { findMatchingBracket } from "../utils/editor_utils";
 import { cmd_symbols, greek, map_super, map_sub, brackets, mathbb, mathscrcal, fractions, operators } from "./conceal_maps";
-import { Context } from "src/snippets/context";
+import { Context } from "src/utils/context";
 // import { SNIPPET_VARIABLES } from "./snippets";
 
 

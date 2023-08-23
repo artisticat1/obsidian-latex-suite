@@ -1,6 +1,6 @@
 import { EditorView } from "@codemirror/view";
-import { replaceRange, setCursor, getCharacterAtPos } from "src/editor_helpers";
-import { Context } from "src/snippets/context";
+import { replaceRange, setCursor, getCharacterAtPos } from "src/utils/editor_utils";
+import { Context } from "src/utils/context";
 
 
 export const tabout = (view: EditorView, withinEquation: boolean):boolean => {

@@ -1,8 +1,8 @@
 import { EditorView, ViewUpdate, Decoration, DecorationSet, ViewPlugin } from "@codemirror/view";
 import { Prec, Range } from "@codemirror/state";
-import { findMatchingBracket, getOpenBracket, getCloseBracket } from "./../editor_helpers";
+import { findMatchingBracket, getOpenBracket, getCloseBracket } from "../utils/editor_utils";
 import { syntaxTree } from "@codemirror/language";
-import { Context } from "src/snippets/context";
+import { Context } from "src/utils/context";
 
 const Ncolors = 3;
 

@@ -1,8 +1,8 @@
 import LatexSuitePlugin from "../main";
 import { TFile, TFolder, Notice, debounce, TAbstractFile } from "obsidian";
 // TODO: replace Snippet with RawSnippet/ParsedSnippet
-import { Snippet } from "./snippets";
-import { parseSnippets, sortSnippets } from "./parse_snippets";
+import { Snippet } from "../snippets/snippets";
+import { parseSnippets, sortSnippets } from "../snippets/parse_snippets";
 
 
 export async function onFileChange(plugin: LatexSuitePlugin, file: TAbstractFile) {

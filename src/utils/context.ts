@@ -1,9 +1,9 @@
 import { EditorState, SelectionRange } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
-import { Direction, escalateToToken, findMatchingBracket, getCloseBracket } from "src/editor_helpers";
-import { Mode } from "./options";
-import { Environment } from "./snippets";
-import { getLatexSuiteConfigFromView } from "./codemirror/config";
+import { Direction, escalateToToken, findMatchingBracket, getCloseBracket } from "src/utils/editor_utils";
+import { Mode } from "../snippets/options";
+import { Environment } from "../snippets/snippets";
+import { getLatexSuiteConfigFromView } from "../snippets/codemirror/config";
 import { syntaxTree } from "@codemirror/language";
 
 export interface Bounds {

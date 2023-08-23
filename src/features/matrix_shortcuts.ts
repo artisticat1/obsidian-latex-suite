@@ -1,6 +1,6 @@
-import { setCursor } from "src/editor_helpers";
+import { setCursor } from "src/utils/editor_utils";
 import { getLatexSuiteConfigFromView } from "src/snippets/codemirror/config";
-import { Context } from "src/snippets/context";
+import { Context } from "src/utils/context";
 
 
 export const runMatrixShortcuts = (ctx: Context, key: string, shiftKey: boolean):boolean => {

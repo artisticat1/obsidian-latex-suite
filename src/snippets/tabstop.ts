@@ -1,6 +1,6 @@
 import { ChangeDesc, EditorSelection, SelectionRange } from "@codemirror/state";
 import { Decoration, DecorationSet, EditorView } from "@codemirror/view";
-import { resetCursorBlink } from "src/editor_helpers";
+import { resetCursorBlink } from "src/utils/editor_utils";
 import { endSnippet } from "./codemirror/history";
 
 const LATEX_SUITE_TABSTOP_DECO_CLASS = "latex-suite-snippet-placeholder";

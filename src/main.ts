@@ -1,11 +1,11 @@
 import { Extension } from "@codemirror/state";
 import { Plugin, Notice, loadMathJax } from "obsidian";
-import { onFileCreate, onFileChange, onFileDelete, debouncedSetSnippetsFromFileOrFolder } from "./snippets/file_watch";
-import { LatexSuiteSettings, DEFAULT_SETTINGS, LatexSuiteProcessedSettings, processLatexSuiteSettings } from "./settings";
-import { LatexSuiteSettingTab } from "./ui/settings_tab";
+import { onFileCreate, onFileChange, onFileDelete, debouncedSetSnippetsFromFileOrFolder } from "./settings/file_watch";
+import { LatexSuiteSettings, DEFAULT_SETTINGS, LatexSuiteProcessedSettings, processLatexSuiteSettings } from "./settings/settings";
+import { LatexSuiteSettingTab } from "./settings/settings_tab";
 
 import { getEditorCommands } from "./features/editor_commands";
-import { iterateCM6 } from "./editor_helpers";
+import { iterateCM6 } from "./utils/editor_utils";
 import { reconfigureLatexSuiteConfig } from "./snippets/codemirror/config";
 import { latexSuiteExtensions, optionalExtensions } from "./latex_suite";
 

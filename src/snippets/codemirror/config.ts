@@ -1,6 +1,6 @@
 import { EditorView } from "@codemirror/view";
 import { Facet, Compartment } from "@codemirror/state";
-import { LatexSuiteProcessedSettings, processLatexSuiteSettings, DEFAULT_SETTINGS } from "src/settings";
+import { LatexSuiteProcessedSettings, processLatexSuiteSettings, DEFAULT_SETTINGS } from "src/settings/settings";
 
 export const latexSuiteConfig = Facet.define<LatexSuiteProcessedSettings, LatexSuiteProcessedSettings>({
     combine: (input) => {

@@ -1,7 +1,7 @@
 import { EditorView } from "@codemirror/view";
 import { ChangeSpec } from "@codemirror/state"
 import { TabstopSpec } from "../tabstop";
-import { findMatchingBracket } from "src/editor_helpers";
+import { findMatchingBracket } from "src/utils/editor_utils";
 
 export class SnippetChangeSpec {
     from: number;

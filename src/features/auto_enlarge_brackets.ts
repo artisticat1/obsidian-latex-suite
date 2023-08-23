@@ -1,7 +1,7 @@
-import { findMatchingBracket } from "src/editor_helpers";
+import { findMatchingBracket } from "src/utils/editor_utils";
 import { queueSnippet } from "src/snippets/codemirror/snippet_queue_state_field";
 import { expandSnippets } from "src/snippets/snippet_management";
-import { Context } from "src/snippets/context";
+import { Context } from "src/utils/context";
 import { getLatexSuiteConfigFromView } from "src/snippets/codemirror/config";
 
 

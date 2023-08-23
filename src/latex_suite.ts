@@ -6,7 +6,7 @@ import { runAutoFraction } from "./features/autofraction";
 import { tabout, shouldTaboutByCloseBracket } from "./features/tabout";
 import { runMatrixShortcuts } from "./features/matrix_shortcuts";
 
-import { Context } from "./snippets/context";
+import { Context } from "./utils/context";
 import { consumeAndGotoNextTabstop, isInsideATabstop } from "./snippets/snippet_management";
 import { removeAllTabstops } from "./snippets/codemirror/tabstops_state_field";
 import { getLatexSuiteConfigExtension, getLatexSuiteConfigFromView } from "./snippets/codemirror/config";
@@ -17,7 +17,7 @@ import { snippetExtensions } from "./snippets/codemirror/extensions";
 
 import { concealPlugin } from "./editor_extensions/conceal";
 
-import { LatexSuiteProcessedSettings } from "./settings";
+import { LatexSuiteProcessedSettings } from "./settings/settings";
 import { colorPairedBracketsPluginLowestPrec, highlightCursorBracketsPlugin } from "./editor_extensions/highlight_brackets";
 import { cursorTooltipBaseTheme, cursorTooltipField } from "./editor_extensions/math_tooltip";
 

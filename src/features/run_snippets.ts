@@ -3,7 +3,7 @@ import { queueSnippet } from "src/snippets/codemirror/snippet_queue_state_field"
 import { expandSnippets } from "src/snippets/snippet_management";
 import { ParsedSnippet, SNIPPET_VARIABLES, EXCLUSIONS } from "src/snippets/snippets";
 import { autoEnlargeBrackets } from "./auto_enlarge_brackets";
-import { Context } from "src/snippets/context";
+import { Context } from "src/utils/context";
 import { getLatexSuiteConfigFromView } from "src/snippets/codemirror/config";
 
 

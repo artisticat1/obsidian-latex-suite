@@ -1,6 +1,6 @@
-import { DEFAULT_SNIPPETS } from "./default_snippets";
-import { parseSnippets } from "./snippets/parse_snippets";
-import { Environment, ParsedSnippet } from "./snippets/snippets";
+import { DEFAULT_SNIPPETS } from "../default_snippets";
+import { parseSnippets } from "../snippets/parse_snippets";
+import { Environment, ParsedSnippet } from "../snippets/snippets";
 
 export interface LatexSuiteBasicSetting {
 	snippetsEnabled: boolean;

@@ -1,10 +1,10 @@
 import { SelectionRange } from "@codemirror/state";
-import { findMatchingBracket, getOpenBracket } from "src/editor_helpers";
+import { findMatchingBracket, getOpenBracket } from "src/utils/editor_utils";
 import { queueSnippet } from "src/snippets/codemirror/snippet_queue_state_field";
 import { expandSnippets } from "src/snippets/snippet_management";
 import { SNIPPET_VARIABLES } from "src/snippets/snippets";
 import { autoEnlargeBrackets } from "./auto_enlarge_brackets";
-import { Context } from "src/snippets/context";
+import { Context } from "src/utils/context";
 import { getLatexSuiteConfigFromView } from "src/snippets/codemirror/config";
 
 
