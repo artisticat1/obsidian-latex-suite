@@ -56,7 +56,7 @@ export const runSnippetCursor = (ctx: Context, key: string, range: SelectionRang
 		if (snippet.trigger in EXCLUSIONS) {
 			const environment = EXCLUSIONS[snippet.trigger];
 
-			if (ctx.isInsideEnvironment(to, environment)) continue;
+			if (ctx.isWithinEnvironment(to, environment)) continue;
 		}
 
 

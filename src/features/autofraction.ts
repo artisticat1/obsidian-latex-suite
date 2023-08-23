@@ -31,7 +31,7 @@ export const runAutoFractionCursor = (ctx: Context, range: SelectionRange):boole
 
 	// Don't run autofraction in excluded environments
 	for (const env of settings.parsedSettings.autofractionExcludedEnvs) {
-		if (ctx.isInsideEnvironment(to, env)) {
+		if (ctx.isWithinEnvironment(to, env)) {
 			return false;
 		}
 	}

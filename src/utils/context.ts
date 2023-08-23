@@ -13,10 +13,10 @@ export interface Bounds {
 
 export class Context {
 	view: EditorView;
-	pos: number;
-	ranges: SelectionRange[];
 	mode!: Mode;
 	codeblockLanguage: string;
+	pos: number;
+	ranges: SelectionRange[];
 	boundsCache: Map<number, Bounds>;
 
 	actuallyCodeblock: boolean;
@@ -44,20 +44,16 @@ export class Context {
 		);
 
 		if (inMath) {
-
-			// then check if the environment "temporarily" disables math mode
-			inMath = !(
-				ctx.isInsideEnvironment(ctx.pos, {openSymbol: "\\text{", closeSymbol: "}"})
-				|| ctx.isInsideEnvironment(ctx.pos, {openSymbol: "\\tag{", closeSymbol: "}"})
-			);
-		}
-
-		if (inMath) {
 			const inInlineEquation = Context.isWithinInlineEquation(view.state);
 
 			ctx.mode.blockMath = !inInlineEquation;
 			ctx.mode.inlineMath = inInlineEquation;
-		} else {
+
+			// then check if the environment "temporarily" disables math mode
+			inMath = !(ctx.inTextEnvironment());
+		}
+
+		if (!inMath) {
 			ctx.mode.blockMath = false;
 			ctx.mode.inlineMath = false;
 		}
@@ -70,7 +66,7 @@ export class Context {
 		return ctx;
 	}
 
-	isInsideEnvironment(pos: number, env: Environment): boolean {
+	isWithinEnvironment(pos: number, env: Environment): boolean {
 		if (!this.mode.anyMath()) return false;
 
 		const {start, end} = this.getBounds();
@@ -114,6 +110,13 @@ export class Context {
 		}
 
 		return false;
+	}
+
+	inTextEnvironment(): boolean {
+		return (
+			this.isWithinEnvironment(this.pos, {openSymbol: "\\text{", closeSymbol: "}"}) ||
+			this.isWithinEnvironment(this.pos, {openSymbol: "\\tag{", closeSymbol: "}"})
+		);
 	}
 
 	getBounds(pos: number = this.pos): Bounds {

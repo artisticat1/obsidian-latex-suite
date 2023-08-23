@@ -12,7 +12,7 @@ export const runMatrixShortcuts = (ctx: Context, key: string, shiftKey: boolean)
 	for (const envName of settings.parsedSettings.matrixShortcutsEnvNames) {
 		const env = {openSymbol: "\\begin{" + envName + "}", closeSymbol: "\\end{" + envName + "}"};
 
-		isInsideAnEnv = ctx.isInsideEnvironment(ctx.pos, env);
+		isInsideAnEnv = ctx.isWithinEnvironment(ctx.pos, env);
 		if (isInsideAnEnv) break;
 	}
 
