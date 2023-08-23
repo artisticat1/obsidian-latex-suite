@@ -131,7 +131,7 @@ export class Context {
 			// means a codeblock language triggered the math mode -> use the codeblock bounds instead
 			bounds = Context.getCodeblockBounds(this.view.state, pos);
 		} else {
-			bounds = Context.getEquationBounds(this.view.state);
+			bounds = Context.getInnerEquationBounds(this.view.state);
 		}
 
 		this.boundsCache.set(pos, bounds);
@@ -210,6 +210,22 @@ export class Context {
 		else {
 			return null;
 		}
+	}
+
+	// Accounts for equations within text environments, e.g. $$\text{... $...$}$$
+	static getInnerEquationBounds(state: EditorState, pos?: number): Bounds {
+		if (!pos) pos = state.selection.main.to;
+		let text = state.doc.toString();
+
+		// ignore \$
+		text = text.replaceAll("\\$", "\\R");
+
+		const left = text.lastIndexOf("$", pos-1);
+		const right = text.indexOf("$", pos);
+
+		if (left === -1 || right === -1) return null;
+
+		return {start: left + 1, end: right};
 	}
 
 	/**
