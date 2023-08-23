@@ -5,7 +5,6 @@ import { basicSetup } from "./ui/snippets_editor/extensions";
 import { DEFAULT_SNIPPETS } from "../default_snippets";
 import LatexSuitePlugin from "../main";
 import { FileSuggest } from "./ui/file_suggest";
-import { debouncedSetSnippetsFromFileOrFolder } from "./file_watch";
 import { DEFAULT_SETTINGS } from "./settings";
 import { parseSnippets } from "src/snippets/parse_snippets";
 
@@ -66,14 +65,6 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					if (this.snippetsFileLocEl != undefined)
 						this.snippetsFileLocEl.toggleClass("hidden", !value);
 
-					// TODO
-					// if (value) {
-					// 	debouncedSetSnippetsFromFileOrFolder(this.plugin);
-					// }
-					// else {
-					// 	this.plugin.setSnippets(this.plugin.settings.snippets);
-					// }
-
 					await this.plugin.saveSettings();
 				}));
 
@@ -90,8 +81,6 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.basicSettings.snippetsFileLocation)
 				.onChange(async (value) => {
 					this.plugin.settings.basicSettings.snippetsFileLocation = value;
-
-					debouncedSetSnippetsFromFileOrFolder(this.plugin);
 
 					await this.plugin.saveSettings();
 				});

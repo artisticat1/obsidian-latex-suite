@@ -1,6 +1,6 @@
 import { Extension } from "@codemirror/state";
 import { Plugin, Notice, loadMathJax } from "obsidian";
-import { onFileCreate, onFileChange, onFileDelete, debouncedSetSnippetsFromFileOrFolder } from "./settings/file_watch";
+import { onFileCreate, onFileChange, onFileDelete, getSnippetsWithinFileOrFolder } from "./settings/file_watch";
 import { LatexSuiteSettings, DEFAULT_SETTINGS, LatexSuiteProcessedSettings, processLatexSuiteSettings } from "./settings/settings";
 import { LatexSuiteSettingTab } from "./settings/settings_tab";
 
@@ -8,6 +8,7 @@ import { getEditorCommands } from "./features/editor_commands";
 import { iterateCM6 } from "./utils/editor_utils";
 import { reconfigureLatexSuiteConfig } from "./snippets/codemirror/config";
 import { latexSuiteExtensions, optionalExtensions } from "./latex_suite";
+import { parseSnippets } from "./snippets/parse_snippets";
 
 export default class LatexSuitePlugin extends Plugin {
 	settings: LatexSuiteSettings;
@@ -55,25 +56,38 @@ export default class LatexSuitePlugin extends Plugin {
 
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
-		this.processedSettings = processLatexSuiteSettings(this.settings);
 
-		// TODO: Make this work with new settings
-		// if (this.settings.loadSnippetsFromFile) {
-		// 	// Use onLayoutReady so that we don't try to read the snippets file too early
-		// 	this.app.workspace.onLayoutReady(() => {
-		// 		debouncedSetSnippetsFromFileOrFolder(this);
-		// 	});
-		// }
-		// else {
-		// 	this.setSnippets(this.settings.snippets);
-		// }
+		if (this.settings.basicSettings.loadSnippetsFromFile) {
+			// Use onLayoutReady so that we don't try to read the snippets file too early
+			this.processedSettings = processLatexSuiteSettings(parseSnippets(this.settings.snippets), this.settings);
 
-		this.refreshCMExtensions();
+			this.app.workspace.onLayoutReady(() => {
+				this.processSettings();
+			});
+		}
+		else {
+			await this.processSettings();
+		}
 	}
 
 	async saveSettings() {
 		await this.saveData(this.settings);
-		this.processedSettings = processLatexSuiteSettings(this.settings);
+		this.processSettings();
+	}
+
+	async getSnippets() {
+		if (!this.settings.basicSettings.loadSnippetsFromFile) {
+			return parseSnippets(this.settings.snippets);
+		}
+		else {
+			const snippets = await getSnippetsWithinFileOrFolder(this.settings.basicSettings.snippetsFileLocation);
+
+			return snippets;
+		}
+	}
+
+	async processSettings() {
+		this.processedSettings = processLatexSuiteSettings(await this.getSnippets(), this.settings);
 		this.reconfigureLatexSuiteConfig();
 		this.refreshCMExtensions();
 	}

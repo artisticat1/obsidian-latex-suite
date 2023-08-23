@@ -1,5 +1,4 @@
 import { DEFAULT_SNIPPETS } from "../default_snippets";
-import { parseSnippets } from "../snippets/parse_snippets";
 import { Environment, ParsedSnippet } from "../snippets/snippets";
 
 export interface LatexSuiteBasicSetting {
@@ -85,7 +84,7 @@ export const DEFAULT_SETTINGS: LatexSuiteSettings = {
 	}
 }
 
-export function processLatexSuiteSettings(settings: LatexSuiteSettings):LatexSuiteProcessedSettings {
+export function processLatexSuiteSettings(snippets: ParsedSnippet[], settings: LatexSuiteSettings):LatexSuiteProcessedSettings {
 	const raw = settings.rawSettings;
 
 	function strToArray(str: string) {
@@ -102,7 +101,7 @@ export function processLatexSuiteSettings(settings: LatexSuiteSettings):LatexSui
 	}
 
 	return {
-		snippets: parseSnippets(settings.snippets),
+		snippets: snippets,
 		basicSettings: settings.basicSettings,
 		parsedSettings: {
 			autofractionExcludedEnvs: getAutofractionExcludedEnvs(raw.autofractionExcludedEnvs),
