@@ -69,7 +69,10 @@ export class Context {
 	isWithinEnvironment(pos: number, env: Environment): boolean {
 		if (!this.mode.anyMath()) return false;
 
-		const {start, end} = this.getBounds();
+		const bounds = this.getBounds();
+		if (!bounds) return;
+
+		const {start, end} = bounds;
 		const text = this.view.state.sliceDoc(start, end);
 		// pos referred to the absolute position in the whole document, but we just sliced the text
 		// so now pos must be relative to the start in order to be any useful
