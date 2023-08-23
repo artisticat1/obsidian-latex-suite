@@ -29,10 +29,7 @@ export default class LatexSuitePlugin extends Plugin {
 		this.registerEditorExtension(this.editorExtensions);
 
 		// Watch for changes to the snippets file
-		this.registerEvent(this.app.vault.on("modify", (file) => onFileChange(this, file)));
-		this.registerEvent(this.app.vault.on("delete", (file) => onFileDelete(this, file)));
-		this.registerEvent(this.app.vault.on("create", (file) => onFileCreate(this, file)));
-
+		this.watchSnippetFiles();
 
 		this.addEditorCommands();
 	}
@@ -120,6 +117,19 @@ export default class LatexSuitePlugin extends Plugin {
 	addEditorCommands() {
 		for (const command of getEditorCommands(this)) {
 			this.addCommand(command);
+		}
+	}
+
+	watchSnippetFiles() {
+		const eventsAndCallbacks = {
+			"modify": onFileChange,
+			"delete": onFileDelete,
+			"create": onFileCreate
+		};
+
+		for (const [key, value] of Object.entries(eventsAndCallbacks)) {
+			// @ts-expect-error
+			this.registerEvent(this.app.vault.on(key, (file) => value(this, file)));
 		}
 	}
 }
