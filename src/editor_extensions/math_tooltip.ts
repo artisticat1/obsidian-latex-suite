@@ -15,16 +15,17 @@ export const cursorTooltipField = StateField.define<readonly Tooltip[]>({
 });
 
 function getCursorTooltips(state: EditorState): readonly Tooltip[] {
+	const ctx = Context.fromState(state);
 
-	if (!Context.isWithinEquation(state)) {
+	if (!ctx.mode.anyMath) {
 		return [];
 	}
 
-	const isInline = Context.isWithinInlineEquation(state);
+	const isInline = ctx.mode.inlineMath;
 	const isLivePreview = state.field(editorLivePreviewField);
 	if (!isInline && isLivePreview) return [];
 
-	const bounds = Context.getEquationBounds(state);
+	const bounds = ctx.getBounds();
 	if (!bounds) return [];
 
 	const eqn = state.sliceDoc(bounds.start, bounds.end);
