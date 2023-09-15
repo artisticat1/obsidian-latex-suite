@@ -86,12 +86,6 @@ export class Mode {
 	static fromSource(source: string): Mode {
 		const mode = new Mode();
 
-		if (source.length === 0) {
-			// for backwards compat we need to assume that this is a catchall mode then
-			mode.invert();
-			return mode;
-		}
-
 		for (const flag_char of source) {
 			switch (flag_char) {
 				case "m":
@@ -111,6 +105,19 @@ export class Mode {
 					mode.code = true;
 					break;
 			}
+		}
+
+
+		if (!(mode.text ||
+			mode.inlineMath ||
+			mode.blockMath ||
+			mode.codeMath ||
+			mode.code ||
+			mode.textEnv)
+		) {
+			// for backwards compat we need to assume that this is a catchall mode then
+			mode.invert();
+			return mode;
 		}
 
 		return mode;
