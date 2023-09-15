@@ -76,7 +76,7 @@ export const handleKeydown = (key: string, shiftKey: boolean, ctrlKey: boolean, 
 		if (success) return true;
 	}
 
-	if (settings.basicSettings.autofractionEnabled && ctx.mode.anyMath()) {
+	if (settings.basicSettings.autofractionEnabled && ctx.mode.strictlyInMath()) {
 		if (key === "/") {
 			success = runAutoFraction(view, ctx);
 
@@ -97,7 +97,7 @@ export const handleKeydown = (key: string, shiftKey: boolean, ctrlKey: boolean, 
 
 	if (settings.basicSettings.taboutEnabled) {
 		if (key === "Tab") {
-			success = tabout(view, ctx.mode.anyMath());
+			success = tabout(view, ctx);
 
 			if (success) return true;
 		}

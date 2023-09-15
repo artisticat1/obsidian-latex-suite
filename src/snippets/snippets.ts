@@ -1,4 +1,4 @@
-import { Options, parseOptions } from "./options";
+import { Options } from "./options";
 
 export class RawSnippet {
 	trigger: string;
@@ -16,7 +16,7 @@ export class ParsedSnippet {
 	description?: string;
 
 	constructor(raw: RawSnippet) {
-		const parsed = {...raw, options: parseOptions(raw.options)};
+		const parsed = {...raw, options: Options.fromSource(raw.options)};
 		Object.assign(this, parsed);
 	}
 }

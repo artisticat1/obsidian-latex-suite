@@ -17,7 +17,7 @@ export const cursorTooltipField = StateField.define<readonly Tooltip[]>({
 function getCursorTooltips(state: EditorState): readonly Tooltip[] {
 	const ctx = Context.fromState(state);
 
-	if (!ctx.mode.anyMath()) {
+	if (!ctx.mode.inMath()) {
 		return [];
 	}
 

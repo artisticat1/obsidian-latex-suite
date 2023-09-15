@@ -6,6 +6,7 @@ import { ParsedSnippet, SNIPPET_VARIABLES, EXCLUSIONS } from "src/snippets/snipp
 import { autoEnlargeBrackets } from "./auto_enlarge_brackets";
 import { Context } from "src/utils/context";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
+import { Mode, Options } from "src/snippets/options";
 
 
 export const runSnippets = (view: EditorView, ctx: Context, key: string):boolean => {
@@ -29,7 +30,7 @@ export const runSnippets = (view: EditorView, ctx: Context, key: string):boolean
 }
 
 
-export const runSnippetCursor = (view: EditorView, ctx: Context, key: string, range: SelectionRange):{success: boolean; shouldAutoEnlargeBrackets: boolean} => {
+const runSnippetCursor = (view: EditorView, ctx: Context, key: string, range: SelectionRange):{success: boolean; shouldAutoEnlargeBrackets: boolean} => {
 
 	const settings = getLatexSuiteConfig(view);
 	const {from, to} = range;
@@ -38,7 +39,7 @@ export const runSnippetCursor = (view: EditorView, ctx: Context, key: string, ra
 	for (const snippet of settings.snippets) {
 		let effectiveLine = view.state.sliceDoc(0, to);
 
-		if (!ctx.mode.overlaps(snippet.options.mode)) {
+		if (!snippetShouldRunInMode(snippet.options, ctx.mode)) {
 			continue;
 		}
 
@@ -92,7 +93,7 @@ export const runSnippetCursor = (view: EditorView, ctx: Context, key: string, ra
 }
 
 
-export const processSnippet = (snippet: ParsedSnippet, effectiveLine: string, range:  SelectionRange, sel: string):{triggerPos: number; replacement: string} => {
+const processSnippet = (snippet: ParsedSnippet, effectiveLine: string, range:  SelectionRange, sel: string):{triggerPos: number; replacement: string} => {
 	let triggerPos;
 	let trigger = snippet.trigger;
 	trigger = insertSnippetVariables(trigger);
@@ -150,7 +151,29 @@ export const processSnippet = (snippet: ParsedSnippet, effectiveLine: string, ra
 	return {triggerPos: triggerPos, replacement: replacement};
 }
 
-export const isOnWordBoundary = (state: EditorState, triggerPos: number, to: number, wordDelimiters: string) => {
+const snippetShouldRunInMode = (options: Options, mode: Mode) => {
+	if (
+		options.mode.inlineMath && mode.inlineMath ||
+		options.mode.blockMath && mode.blockMath ||
+		(options.mode.inlineMath || options.mode.blockMath) && mode.codeMath
+	) {
+		if (!mode.textEnv) {
+			return true;
+		}
+	}
+
+	if (mode.inMath() && mode.textEnv && options.mode.text) {
+		return true;
+	}
+
+	if (options.mode.text && mode.text ||
+		options.mode.code && mode.code
+	) {
+		return true;
+	}
+}
+
+const isOnWordBoundary = (state: EditorState, triggerPos: number, to: number, wordDelimiters: string) => {
 	const prevChar = state.sliceDoc(triggerPos-1, triggerPos);
 	const nextChar = state.sliceDoc(to, to+1);
 
@@ -159,7 +182,7 @@ export const isOnWordBoundary = (state: EditorState, triggerPos: number, to: num
 	return (wordDelimiters.contains(prevChar) && wordDelimiters.contains(nextChar));
 }
 
-export const insertSnippetVariables = (trigger: string) => {
+const insertSnippetVariables = (trigger: string) => {
 
 	for (const [variable, replacement] of Object.entries(SNIPPET_VARIABLES)) {
 		trigger = trigger.replace(variable, replacement);
@@ -168,7 +191,7 @@ export const insertSnippetVariables = (trigger: string) => {
 	return trigger;
 }
 
-export const trimWhitespace = (replacement: string, ctx: Context) => {
+const trimWhitespace = (replacement: string, ctx: Context) => {
 	let spaceIndex = 0;
 
 	if (replacement.endsWith(" ")) {

@@ -121,7 +121,7 @@ function highlightCursorBrackets(view: EditorView) {
 	const text = view.state.doc.toString();
 	const ctx = Context.fromView(view);
 
-	if (!ctx.mode.anyMath()) {
+	if (!ctx.mode.inMath()) {
 		return Decoration.none;
 	}
 

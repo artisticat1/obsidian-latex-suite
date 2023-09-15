@@ -3,23 +3,22 @@ import { replaceRange, setCursor, getCharacterAtPos } from "src/utils/editor_uti
 import { Context } from "src/utils/context";
 
 
-export const tabout = (view: EditorView, withinEquation: boolean):boolean => {
-	if (!withinEquation) return false;
+export const tabout = (view: EditorView, ctx: Context):boolean => {
+    if (!ctx.mode.inMath()) return false;
 
-	const pos = view.state.selection.main.to;
-	const result = Context.getEquationBounds(view.state);
+	const result = ctx.getBounds();
 	if (!result) return false;
 	const end = result.end;
 
+	const pos = view.state.selection.main.to;
 	const d = view.state.doc;
 	const text = d.toString();
-
 
 	// Move to the next closing bracket: }, ), ], >, |, or \\rangle
 	const rangle = "\\rangle";
 
 	for (let i = pos; i < end; i++) {
-		if (["}", ")", "]", ">", "|"].contains(text.charAt(i))) {
+		if (["}", ")", "]", ">", "|", "$"].contains(text.charAt(i))) {
 			setCursor(view, i+1);
 
 			return true;
@@ -43,9 +42,7 @@ export const tabout = (view: EditorView, withinEquation: boolean):boolean => {
 
 
 	// Check whether we're in inline math or a block eqn
-	const inlineMath = d.sliceString(end, end+2) != "$$";
-
-	if (inlineMath) {
+	if (ctx.mode.inlineMath || ctx.mode.codeMath) {
 		setCursor(view, end + 1);
 	}
 	else {

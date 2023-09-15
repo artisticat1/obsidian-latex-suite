@@ -33,7 +33,8 @@ function getBoxEquationCommand() {
 
 			// @ts-ignore
 			const view = editor.cm;
-			const withinEquation = Context.isWithinEquation(view.state);
+			const ctx = Context.fromView(view);
+			const withinEquation = ctx.mode.inEquation();
 
 			if (checking) return withinEquation;
 			if (!withinEquation) return;
@@ -55,13 +56,14 @@ function getSelectEquationCommand() {
 
 			// @ts-ignore
 			const view = editor.cm;
-			const withinEquation = Context.isWithinEquation(view.state);
+			const ctx = Context.fromView(view);
+			const withinEquation = ctx.mode.inEquation();
 
 			if (checking) return withinEquation;
 			if (!withinEquation) return;
 
 
-			const result = Context.getEquationBounds(view.state);
+			const result = ctx.getBounds();
 			if (!result) return false;
 			let {start, end} = result;
 

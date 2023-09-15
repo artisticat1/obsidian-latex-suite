@@ -19,8 +19,6 @@ export class Context {
 	ranges: SelectionRange[];
 	boundsCache: Map<number, Bounds>;
 
-	actuallyCodeblock: boolean;
-
 	static fromState(state: EditorState):Context {
 		const ctx = new Context();
 		const sel = state.selection;
@@ -30,36 +28,30 @@ export class Context {
 		ctx.mode = new Mode();
 		ctx.boundsCache = new Map();
 
-		const settings = getLatexSuiteConfig(state);
 		const codeblockLanguage = Context.langIfWithinCodeblock(state);
 		const inCode = codeblockLanguage !== null;
+
+		const settings = getLatexSuiteConfig(state);
 		const ignoreMath = settings.parsedSettings.ignoreMathLanguages.contains(codeblockLanguage);
 		const forceMath = settings.parsedSettings.forceMathLanguages.contains(codeblockLanguage);
-		ctx.actuallyCodeblock = forceMath;
+		ctx.mode.codeMath = forceMath;
+		ctx.mode.code = inCode && !forceMath;
+		if (ctx.mode.code) ctx.codeblockLanguage = codeblockLanguage;
 
 		// first, check if math mode should be "generally" on
-		let inMath = forceMath || (
-			!ignoreMath
-			&& Context.isWithinEquation(state)
+		const inMath = forceMath || (!ignoreMath && Context.isWithinEquation(state)
 		);
 
-		if (inMath) {
+		if (inMath && !forceMath) {
 			const inInlineEquation = Context.isWithinInlineEquation(state);
 
 			ctx.mode.blockMath = !inInlineEquation;
 			ctx.mode.inlineMath = inInlineEquation;
-
-			// then check if the environment "temporarily" disables math mode
-			inMath = !(ctx.inTextEnvironment());
 		}
 
-		if (!inMath) {
-			ctx.mode.blockMath = false;
-			ctx.mode.inlineMath = false;
+		if (inMath) {
+			ctx.mode.textEnv = ctx.inTextEnvironment();
 		}
-
-		ctx.mode.code = inCode && !forceMath;
-		if (ctx.mode.code) ctx.codeblockLanguage = codeblockLanguage;
 
 		ctx.mode.text = !inCode && !inMath;
 
@@ -71,9 +63,9 @@ export class Context {
 	}
 
 	isWithinEnvironment(pos: number, env: Environment): boolean {
-		if (!this.mode.anyMath()) return false;
+		if (!this.mode.inMath()) return false;
 
-		const bounds = this.getBounds();
+		const bounds = this.getInnerBounds();
 		if (!bounds) return;
 
 		const {start, end} = bounds;
@@ -134,14 +126,27 @@ export class Context {
 		}
 
 		let bounds;
-		if (this.actuallyCodeblock) {
+		if (this.mode.codeMath) {
+			// means a codeblock language triggered the math mode -> use the codeblock bounds instead
+			bounds = Context.getCodeblockBounds(this.state, pos);
+		} else {
+			bounds = Context.getEquationBounds(this.state);
+		}
+
+		this.boundsCache.set(pos, bounds);
+		return bounds;
+	}
+
+	// Accounts for equations within text environments, e.g. $$\text{... $...$}$$
+	getInnerBounds(pos: number = this.pos): Bounds {
+		let bounds;
+		if (this.mode.codeMath) {
 			// means a codeblock language triggered the math mode -> use the codeblock bounds instead
 			bounds = Context.getCodeblockBounds(this.state, pos);
 		} else {
 			bounds = Context.getInnerEquationBounds(this.state);
 		}
 
-		this.boundsCache.set(pos, bounds);
 		return bounds;
 	}
 
