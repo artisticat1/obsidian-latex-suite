@@ -27,7 +27,6 @@ export interface LatexSuiteRawSetting {
 	autofractionExcludedEnvs: string;
 	matrixShortcutsEnvNames: string;
 	autoEnlargeBracketsTriggers: string;
-	ignoreMathLanguages: string;
 	forceMathLanguages: string;
 }
 
@@ -35,7 +34,6 @@ export interface LatexSuiteParsedSetting {
 	autofractionExcludedEnvs: Environment[];
 	matrixShortcutsEnvNames: string[];
 	autoEnlargeBracketsTriggers: string[];
-	ignoreMathLanguages: string[];
 	forceMathLanguages: string[];
 }
 
@@ -79,7 +77,6 @@ export const DEFAULT_SETTINGS: LatexSuiteSettings = {
 		]`,
 		matrixShortcutsEnvNames: "pmatrix, cases, align, bmatrix, Bmatrix, vmatrix, Vmatrix, array, matrix",
 		autoEnlargeBracketsTriggers: "sum, int, frac, prod",
-		ignoreMathLanguages: "bash, php, perl, julia, sh",
 		forceMathLanguages: "math"
 	}
 }
@@ -107,7 +104,6 @@ export function processLatexSuiteSettings(snippets: ParsedSnippet[], settings: L
 			autofractionExcludedEnvs: getAutofractionExcludedEnvs(raw.autofractionExcludedEnvs),
 			matrixShortcutsEnvNames: strToArray(raw.matrixShortcutsEnvNames),
 			autoEnlargeBracketsTriggers: strToArray(raw.autoEnlargeBracketsTriggers),
-			ignoreMathLanguages: strToArray(raw.ignoreMathLanguages),
 			forceMathLanguages: strToArray(raw.forceMathLanguages)
 		}
 	}

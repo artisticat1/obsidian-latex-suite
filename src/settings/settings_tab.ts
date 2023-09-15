@@ -114,32 +114,6 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			);
 
 
-		new Setting(containerEl)
-			.setName("Code languages ignoring math mode")
-			.setDesc("Codeblock languages where $ in code should not be interpreted as math mode delimiters, separated by commas.")
-			.addText(text => text
-				.setPlaceholder(DEFAULT_SETTINGS.rawSettings.ignoreMathLanguages)
-				.setValue(this.plugin.settings.rawSettings.ignoreMathLanguages)
-				.onChange(async (value) => {
-					this.plugin.settings.rawSettings.ignoreMathLanguages = value;
-
-					await this.plugin.saveSettings();
-				}));
-
-
-		new Setting(containerEl)
-			.setName("Code languages to interpret as math mode")
-			.setDesc("Codeblock languages where the whole code block should be treated like a math block, separated by commas.")
-			.addText(text => text
-				.setPlaceholder(DEFAULT_SETTINGS.rawSettings.forceMathLanguages)
-				.setValue(this.plugin.settings.rawSettings.forceMathLanguages)
-				.onChange(async (value) => {
-					this.plugin.settings.rawSettings.forceMathLanguages = value;
-
-					await this.plugin.saveSettings();
-				}));
-
-
 		containerEl.createEl("div", { text: "Conceal" }).addClasses(["setting-item", "setting-item-heading", "setting-item-name"]);
 
 		{

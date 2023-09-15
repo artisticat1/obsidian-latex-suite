@@ -32,14 +32,13 @@ export class Context {
 		const inCode = codeblockLanguage !== null;
 
 		const settings = getLatexSuiteConfig(state);
-		const ignoreMath = settings.parsedSettings.ignoreMathLanguages.contains(codeblockLanguage);
 		const forceMath = settings.parsedSettings.forceMathLanguages.contains(codeblockLanguage);
 		ctx.mode.codeMath = forceMath;
 		ctx.mode.code = inCode && !forceMath;
 		if (ctx.mode.code) ctx.codeblockLanguage = codeblockLanguage;
 
 		// first, check if math mode should be "generally" on
-		const inMath = forceMath || (!ignoreMath && Context.isWithinEquation(state)
+		const inMath = forceMath || (Context.isWithinEquation(state)
 		);
 
 		if (inMath && !forceMath) {
