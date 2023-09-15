@@ -60,7 +60,7 @@ export class Mode {
 	overlaps(other: Mode):boolean {
 		return (this.text && other.text)
 			|| (this.blockMath && other.blockMath)
-			|| (this.inlineMath && other.blockMath)
+			|| (this.inlineMath && other.inlineMath)
 			|| (this.code && other.code);
 	}
 }
