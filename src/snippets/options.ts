@@ -63,7 +63,7 @@ export class Mode {
 	 * Returns false when the state is within math, but inside a text environment, such as \text{}.
 	 */
 	strictlyInMath():boolean {
-		return this.inEquation() && !this.textEnv;
+		return this.inMath() && !this.textEnv;
 	}
 
 	constructor() {
