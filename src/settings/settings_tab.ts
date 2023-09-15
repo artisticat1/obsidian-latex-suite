@@ -309,7 +309,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				}));
 
 
-		containerEl.createEl("div", { text: "Misc" }).addClasses(["setting-item", "setting-item-heading", "setting-item-name"]);
+		containerEl.createEl("div", { text: "Advanced snippet settings" }).addClasses(["setting-item", "setting-item-heading", "setting-item-name"]);
 
 		new Setting(containerEl)
 			.setName("Word delimiters")
@@ -322,6 +322,18 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 					await this.plugin.saveSettings();
 				}));
+
+		new Setting(containerEl)
+		.setName("Code languages to interpret as math mode")
+		.setDesc("Codeblock languages where the whole code block should be treated like a math block, separated by commas.")
+		.addText(text => text
+			.setPlaceholder(DEFAULT_SETTINGS.rawSettings.forceMathLanguages)
+			.setValue(this.plugin.settings.rawSettings.forceMathLanguages)
+			.onChange(async (value) => {
+				this.plugin.settings.rawSettings.forceMathLanguages = value;
+
+				await this.plugin.saveSettings();
+			}));
 
 		new Setting(containerEl)
 			.setName("Remove trailing whitespaces in snippets in inline math")
