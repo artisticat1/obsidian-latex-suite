@@ -136,11 +136,14 @@ Snippets are formatted as follows:
 
 
 #### Options
-- `m` : Math mode. Only run this snippet inside math
 - `t` : Text mode. Only run this snippet outside math
+- `m` : Math mode. Only run this snippet inside math, shorthand for both `M` and `n`
+- `M` : Block math mode. Only run this snippet inside a `$$ ... $$` block
+- `n` : Inline math mode. Only run this snippet inside a `$ ... $` block
 - `A` : Auto. Expand this snippet as soon as the trigger is typed. If omitted, the <kbd>Tab</kbd> key must be pressed to expand the snippet
 - `r` : Regex. The `trigger` will be treated as a regular expression
 - `w` : Word boundary. Only run this snippet when the trigger is preceded (and followed by) a word delimiter, such as `.`, `,`, or `-`.
+- `c` : Code mode. Only run this snippet inside a ```` ``` ... ``` ```` block
 
 Insert **tabstops** for the cursor to jump to by writing "$0", "$1", etc. in the `replacement`.
 
@@ -173,7 +176,7 @@ For more details on writing snippets, including **regex** snippets, [see the doc
 | xtilde             | \\tilde{x}       |
 | xund               | \\underline{x}   |
 | ee                 | e^{ }            |
- 
+
 When running a snippet that **moves the cursor inside brackets {}, press <kbd>Tab</kbd> to exit the brackets**.
 
 

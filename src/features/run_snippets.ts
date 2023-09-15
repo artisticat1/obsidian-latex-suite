@@ -1,204 +1,219 @@
 import { EditorView } from "@codemirror/view";
-import { SelectionRange } from "@codemirror/state";
-import { isInsideEnvironment, isWithinInlineEquation } from "src/editor_helpers";
-import { queueSnippet } from "src/snippets/snippet_queue_state_field";
+import { EditorState, SelectionRange } from "@codemirror/state";
+import { queueSnippet } from "src/snippets/codemirror/snippet_queue_state_field";
 import { expandSnippets } from "src/snippets/snippet_management";
-import { Snippet, SNIPPET_VARIABLES, EXCLUSIONS } from "src/snippets/snippets";
+import { ParsedSnippet, SNIPPET_VARIABLES, EXCLUSIONS } from "src/snippets/snippets";
 import { autoEnlargeBrackets } from "./auto_enlarge_brackets";
-import LatexSuitePlugin from "src/main";
+import { Context } from "src/utils/context";
+import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
+import { Mode, Options } from "src/snippets/options";
 
 
-export const runSnippets = (view: EditorView, key: string, withinMath: boolean, ranges: SelectionRange[], plugin: LatexSuitePlugin):boolean => {
+export const runSnippets = (view: EditorView, ctx: Context, key: string):boolean => {
 
-    let shouldAutoEnlargeBrackets = false;
+	let shouldAutoEnlargeBrackets = false;
 
-    for (const range of ranges) {
-        const result = runSnippetCursor(view, key, withinMath, range, plugin);
+	for (const range of ctx.ranges) {
+		const result = runSnippetCursor(view, ctx, key, range);
 
-        if (result.shouldAutoEnlargeBrackets) shouldAutoEnlargeBrackets = true;
-    }
+		if (result.shouldAutoEnlargeBrackets) shouldAutoEnlargeBrackets = true;
+	}
 
-    const success = expandSnippets(view);
+	const success = expandSnippets(view);
 
 
-    if (shouldAutoEnlargeBrackets) {
-        autoEnlargeBrackets(view, plugin);
-    }
+	if (shouldAutoEnlargeBrackets) {
+		autoEnlargeBrackets(view);
+	}
 
-    return success;
+	return success;
 }
 
 
-export const runSnippetCursor = (view: EditorView, key: string, withinMath: boolean, range: SelectionRange, plugin: LatexSuitePlugin):{success: boolean; shouldAutoEnlargeBrackets: boolean} => {
+const runSnippetCursor = (view: EditorView, ctx: Context, key: string, range: SelectionRange):{success: boolean; shouldAutoEnlargeBrackets: boolean} => {
 
-    const {from, to} = range;
-    const sel = view.state.sliceDoc(from, to);
+	const settings = getLatexSuiteConfig(view);
+	const {from, to} = range;
+	const sel = view.state.sliceDoc(from, to);
 
-    for (const snippet of plugin.snippets) {
+	for (const snippet of settings.snippets) {
+		let effectiveLine = view.state.sliceDoc(0, to);
 
-        let effectiveLine = view.state.sliceDoc(0, to);
+		if (!snippetShouldRunInMode(snippet.options, ctx.mode)) {
+			continue;
+		}
 
-        if (snippet.options.contains("m") && (!withinMath)) {
-            continue;
-        }
-        else if (snippet.options.contains("t") && (withinMath)) {
-            continue;
-        }
+		if (snippet.options.automatic || snippet.replacement.contains("${VISUAL}")) {
+			// If the key pressed wasn't a text character, continue
+			if (!(key.length === 1)) continue;
 
-        if (snippet.options.contains("A") || snippet.replacement.contains("${VISUAL}")) {
-            // If the key pressed wasn't a text character, continue
-            if (!(key.length === 1)) continue;
+			effectiveLine += key;
+		}
+		else if (!(key === settings.basicSettings.snippetsTrigger)) {
+			// The snippet must be triggered by a key
+			continue;
+		}
 
-            effectiveLine += key;
-        }
-        else if (!(key === plugin.settings.snippetsTrigger)) {
-            // The snippet must be triggered by a key
-            continue;
-        }
+		// Check that this snippet is not excluded in a certain environment
+		if (snippet.trigger in EXCLUSIONS) {
+			const environment = EXCLUSIONS[snippet.trigger];
 
-        // Check that this snippet is not excluded in a certain environment
-        if (snippet.trigger in EXCLUSIONS) {
-            const environment = EXCLUSIONS[snippet.trigger];
-
-            if (isInsideEnvironment(view, to, environment)) continue;
-        }
+			if (ctx.isWithinEnvironment(to, environment)) continue;
+		}
 
 
-        const result = checkSnippet(snippet, effectiveLine, range, sel);
-        if (result === null) continue;
-        const triggerPos = result.triggerPos;
+		const result = processSnippet(snippet, effectiveLine, range, sel);
+		if (result === null) continue;
+		const triggerPos = result.triggerPos;
 
 
-        if (snippet.options.contains("w")) {
-            // Check that the trigger is preceded and followed by a word delimiter
+		if (snippet.options.onWordBoundary) {
+			// Check that the trigger is preceded and followed by a word delimiter
+			if (!isOnWordBoundary(view.state, triggerPos, to, settings.basicSettings.wordDelimiters)) continue;
+		}
 
-            const prevChar = view.state.sliceDoc(triggerPos-1, triggerPos);
-            const nextChar = view.state.sliceDoc(to, to+1);
+		let replacement = result.replacement;
 
-            const wordDelimiters = plugin.settings.wordDelimiters.replace("\\n", "\n");
+		// When in inline math, remove any spaces at the end of the replacement
+		if (ctx.mode.inlineMath && settings.basicSettings.removeSnippetWhitespace) {
+			replacement = trimWhitespace(replacement, ctx);
+		}
 
-
-            const prevCharIsWordDelimiter = wordDelimiters.contains(prevChar);
-            const nextCharIsWordDelimiter = wordDelimiters.contains(nextChar);
-
-            if (!(prevCharIsWordDelimiter && nextCharIsWordDelimiter)) {
-                continue;
-            }
-        }
-
-        let replacement = result.replacement;
+		// Expand the snippet
+		const start = triggerPos;
+		queueSnippet(view, start, to, replacement, key);
 
 
-        // When in inline math, remove any spaces at the end of the replacement
-        if (withinMath && plugin.settings.removeSnippetWhitespace) {
-            let spaceIndex = 0;
-            if (replacement.endsWith(" ")) {
-                spaceIndex = -1;
-            }
-            else {
-                const lastThreeChars = replacement.slice(-3);
-                const lastChar = lastThreeChars.slice(-1);
-
-                if (lastThreeChars.slice(0, 2) === " $" && !isNaN(parseInt(lastChar))) {
-                    spaceIndex = -3;
-                }
-            }
-
-            if (spaceIndex != 0) {
-
-                const inlineMath = isWithinInlineEquation(view.state);
-
-                if (inlineMath) {
-                    if (spaceIndex === -1) {
-                        replacement = replacement.trimEnd();
-                    }
-                    else if (spaceIndex === -3){
-                        replacement = replacement.slice(0, -3) + replacement.slice(-2)
-                    }
-                }
-            }
-
-        }
-
-        // Expand the snippet
-        const start = triggerPos;
-        queueSnippet(view, {from: start, to: to, insert: replacement, keyPressed: key});
+		const containsTrigger = settings.parsedSettings.autoEnlargeBracketsTriggers.some(word => replacement.contains("\\" + word));
+		return {success: true, shouldAutoEnlargeBrackets: containsTrigger};
+	}
 
 
-        const containsTrigger = plugin.autoEnlargeBracketsTriggers.some(word => replacement.contains("\\" + word));
-        return {success: true, shouldAutoEnlargeBrackets: containsTrigger};
-    }
-
-
-    return {success: false, shouldAutoEnlargeBrackets: false};
+	return {success: false, shouldAutoEnlargeBrackets: false};
 }
 
 
+const processSnippet = (snippet: ParsedSnippet, effectiveLine: string, range:  SelectionRange, sel: string):{triggerPos: number; replacement: string} => {
+	let triggerPos;
+	let trigger = snippet.trigger;
+	trigger = insertSnippetVariables(trigger);
 
-export const checkSnippet = (snippet: Snippet, effectiveLine: string, range:  SelectionRange, sel: string):{triggerPos: number; replacement: string} => {
-    let triggerPos;
-    let trigger = snippet.trigger;
-    trigger = insertSnippetVariables(trigger);
-
-    let replacement = snippet.replacement;
-
-
-    if (snippet.replacement.contains("${VISUAL}")) {
-        // "Visual" snippets
-        if (!sel) return null;
-
-        // Check whether the trigger text was typed
-        if (!(effectiveLine.slice(-trigger.length) === trigger)) return null;
+	let replacement = snippet.replacement;
 
 
-        triggerPos = range.from;
-        replacement = snippet.replacement.replace("${VISUAL}", sel);
+	if (snippet.replacement.contains("${VISUAL}")) {
+		// "Visual" snippets
+		if (!sel) return null;
 
-    }
-    else if (sel) {
-        // Don't run non-visual snippets when there is a selection
-        return null;
-    }
-    else if (!(snippet.options.contains("r"))) {
+		// Check whether the trigger text was typed
+		if (!(effectiveLine.slice(-trigger.length) === trigger)) return null;
 
-        // Check whether the trigger text was typed
-        if (!(effectiveLine.slice(-trigger.length) === trigger)) return null;
 
-        triggerPos = effectiveLine.length - trigger.length;
+		triggerPos = range.from;
+		replacement = snippet.replacement.replace("${VISUAL}", sel);
 
-    }
-    else {
-        // Regex snippet
+	}
+	else if (sel) {
+		// Don't run non-visual snippets when there is a selection
+		return null;
+	}
+	else if (!(snippet.options.regex)) {
 
-        // Add $ to match the end of the string
-        // i.e. look for a match at the cursor's current position
-        const regex = new RegExp(trigger + "$");
-        const result = regex.exec(effectiveLine);
+		// Check whether the trigger text was typed
+		if (!(effectiveLine.slice(-trigger.length) === trigger)) return null;
 
-        if (!(result)) {
-            return null;
-        }
+		triggerPos = effectiveLine.length - trigger.length;
 
-        // Compute the replacement string
-        // result.length - 1 = the number of capturing groups
+	}
+	else {
+		// Regex snippet
 
-        for (let i = 1; i < result.length; i++) {
-            // i-1 to start from 0
-            replacement = replacement.replaceAll("[[" + (i-1) + "]]", result[i]);
-        }
+		// Add $ to match the end of the string
+		// i.e. look for a match at the cursor's current position
+		const regex = new RegExp(trigger + "$");
+		const result = regex.exec(effectiveLine);
 
-        triggerPos = result.index;
-    }
+		if (!(result)) {
+			return null;
+		}
 
-    return {triggerPos: triggerPos, replacement: replacement};
+		// Compute the replacement string
+		// result.length - 1 = the number of capturing groups
+
+		for (let i = 1; i < result.length; i++) {
+			// i-1 to start from 0
+			replacement = replacement.replaceAll("[[" + (i-1) + "]]", result[i]);
+		}
+
+		triggerPos = result.index;
+	}
+
+	return {triggerPos: triggerPos, replacement: replacement};
 }
 
+const snippetShouldRunInMode = (options: Options, mode: Mode) => {
+	if (
+		options.mode.inlineMath && mode.inlineMath ||
+		options.mode.blockMath && mode.blockMath ||
+		(options.mode.inlineMath || options.mode.blockMath) && mode.codeMath
+	) {
+		if (!mode.textEnv) {
+			return true;
+		}
+	}
 
-export const insertSnippetVariables = (trigger: string) => {
+	if (mode.inMath() && mode.textEnv && options.mode.text) {
+		return true;
+	}
 
-    for (const [variable, replacement] of Object.entries(SNIPPET_VARIABLES)) {
-        trigger = trigger.replace(variable, replacement);
-    }
+	if (options.mode.text && mode.text ||
+		options.mode.code && mode.code
+	) {
+		return true;
+	}
+}
 
-    return trigger;
+const isOnWordBoundary = (state: EditorState, triggerPos: number, to: number, wordDelimiters: string) => {
+	const prevChar = state.sliceDoc(triggerPos-1, triggerPos);
+	const nextChar = state.sliceDoc(to, to+1);
+
+	wordDelimiters = wordDelimiters.replace("\\n", "\n");
+
+	return (wordDelimiters.contains(prevChar) && wordDelimiters.contains(nextChar));
+}
+
+const insertSnippetVariables = (trigger: string) => {
+
+	for (const [variable, replacement] of Object.entries(SNIPPET_VARIABLES)) {
+		trigger = trigger.replace(variable, replacement);
+	}
+
+	return trigger;
+}
+
+const trimWhitespace = (replacement: string, ctx: Context) => {
+	let spaceIndex = 0;
+
+	if (replacement.endsWith(" ")) {
+		spaceIndex = -1;
+	}
+	else {
+		const lastThreeChars = replacement.slice(-3);
+		const lastChar = lastThreeChars.slice(-1);
+
+		if (lastThreeChars.slice(0, 2) === " $" && !isNaN(parseInt(lastChar))) {
+			spaceIndex = -3;
+		}
+	}
+
+	if (spaceIndex != 0) {
+		if (spaceIndex === -1) {
+			replacement = replacement.trimEnd();
+		}
+		else if (spaceIndex === -3){
+			replacement = replacement.slice(0, -3) + replacement.slice(-2);
+		}
+	}
+
+	return replacement;
 }

@@ -1,12 +1,7 @@
 import { Tooltip, showTooltip, EditorView } from "@codemirror/view";
 import { StateField, EditorState } from "@codemirror/state";
-import {
-	getEquationBounds,
-	isTouchingInlineEquation,
-	isWithinEquation,
-	isWithinInlineEquation,
-} from "../editor_helpers";
-import { MarkdownRenderer, editorLivePreviewField } from "obsidian";
+import { renderMath, finishRenderMath, editorLivePreviewField } from "obsidian";
+import { Context } from "src/utils/context";
 
 export const cursorTooltipField = StateField.define<readonly Tooltip[]>({
 	create: getCursorTooltips,
@@ -20,59 +15,56 @@ export const cursorTooltipField = StateField.define<readonly Tooltip[]>({
 });
 
 function getCursorTooltips(state: EditorState): readonly Tooltip[] {
-	const pos = state.selection.main.from;
+	const ctx = Context.fromState(state);
 
-	if (isWithinEquation(state)) {
-		const isInline = isWithinInlineEquation(state, pos)
-		const isLivePreview = state.field(editorLivePreviewField);
-		if (!isInline && isLivePreview) return [];
-
-		const bounds = getEquationBounds(state, pos);
-		if (!bounds) return [];
-
-		const eqn = state.sliceDoc(bounds.start, bounds.end);
-
-		// Don't render an empty equation
-		if (eqn.trim() === "") return [];
-
-		return [
-			{
-				pos: bounds.start,
-				above: true,
-				strictSide: true,
-				arrow: true,
-				create: () => {
-					const delimiter = isInline ? "$" : "$$";
-					const dom = document.createElement("div");
-					dom.className = "cm-tooltip-cursor";
-					MarkdownRenderer.renderMarkdown(
-						delimiter + eqn + delimiter,
-						dom,
-						"",
-						null
-					);
-
-					return { dom };
-				},
-			},
-		];
-	} else {
+	if (!ctx.mode.inMath()) {
 		return [];
 	}
+
+	const isLivePreview = state.field(editorLivePreviewField);
+	if (ctx.mode.blockMath && isLivePreview) return [];
+
+	const bounds = ctx.getBounds();
+	if (!bounds) return [];
+
+	const eqn = state.sliceDoc(bounds.start, bounds.end);
+
+	// Don't render an empty equation
+	if (eqn.trim() === "") return [];
+
+	return [
+		{
+			pos: bounds.start,
+			above: true,
+			strictSide: true,
+			arrow: true,
+			create: () => {
+				const dom = document.createElement("div");
+				dom.className = "cm-tooltip-cursor";
+
+				const renderedEqn = renderMath(eqn, ctx.mode.blockMath || ctx.mode.codeMath);
+				dom.appendChild(renderedEqn);
+				finishRenderMath();
+
+				return { dom };
+			}
+		}
+	];
+
 }
 
 export const cursorTooltipBaseTheme = EditorView.baseTheme({
 	".cm-tooltip.cm-tooltip-cursor": {
-		backgroundColor: "var(--background-primary)",
+		backgroundColor: "var(--background-secondary)",
 		color: "var(--text-normal)",
-		border: "1px solid var(--background-modifier-border)",
+		border: "1px solid var(--background-modifier-border-hover)",
 		padding: "4px 6px",
 		borderRadius: "6px",
 		"& .cm-tooltip-arrow:before": {
-			borderTopColor: "var(--background-modifier-border)",
+			borderTopColor: "var(--background-modifier-border-hover)",
 		},
 		"& .cm-tooltip-arrow:after": {
-			borderTopColor: "var(--background-primary)",
+			borderTopColor: "var(--background-secondary)",
 		},
 		"& p": {
 			margin: "0px",
@@ -80,5 +72,5 @@ export const cursorTooltipBaseTheme = EditorView.baseTheme({
 		"& mjx-container": {
 			padding: "2px !important",
 		},
-	},
+	}
 });
