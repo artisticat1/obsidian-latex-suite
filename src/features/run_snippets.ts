@@ -1,4 +1,5 @@
-import { SelectionRange } from "@codemirror/state";
+import { EditorView } from "@codemirror/view";
+import { EditorState, SelectionRange } from "@codemirror/state";
 import { queueSnippet } from "src/snippets/codemirror/snippet_queue_state_field";
 import { expandSnippets } from "src/snippets/snippet_management";
 import { ParsedSnippet, SNIPPET_VARIABLES, EXCLUSIONS } from "src/snippets/snippets";
@@ -7,35 +8,35 @@ import { Context } from "src/utils/context";
 import { getLatexSuiteConfigFromView } from "src/snippets/codemirror/config";
 
 
-export const runSnippets = (ctx: Context, key: string):boolean => {
+export const runSnippets = (view: EditorView, ctx: Context, key: string):boolean => {
 
 	let shouldAutoEnlargeBrackets = false;
 
 	for (const range of ctx.ranges) {
-		const result = runSnippetCursor(ctx, key, range);
+		const result = runSnippetCursor(view, ctx, key, range);
 
 		if (result.shouldAutoEnlargeBrackets) shouldAutoEnlargeBrackets = true;
 	}
 
-	const success = expandSnippets(ctx.view);
+	const success = expandSnippets(view);
 
 
 	if (shouldAutoEnlargeBrackets) {
-		autoEnlargeBrackets(ctx);
+		autoEnlargeBrackets(view, ctx);
 	}
 
 	return success;
 }
 
 
-export const runSnippetCursor = (ctx: Context, key: string, range: SelectionRange):{success: boolean; shouldAutoEnlargeBrackets: boolean} => {
+export const runSnippetCursor = (view: EditorView, ctx: Context, key: string, range: SelectionRange):{success: boolean; shouldAutoEnlargeBrackets: boolean} => {
 
-	const settings = getLatexSuiteConfigFromView(ctx.view);
+	const settings = getLatexSuiteConfigFromView(view);
 	const {from, to} = range;
-	const sel = ctx.view.state.sliceDoc(from, to);
+	const sel = view.state.sliceDoc(from, to);
 
 	for (const snippet of settings.snippets) {
-		let effectiveLine = ctx.view.state.sliceDoc(0, to);
+		let effectiveLine = view.state.sliceDoc(0, to);
 
 		if (!ctx.mode.overlaps(snippet.options.mode)) {
 			continue;
@@ -67,7 +68,7 @@ export const runSnippetCursor = (ctx: Context, key: string, range: SelectionRang
 
 		if (snippet.options.onWordBoundary) {
 			// Check that the trigger is preceded and followed by a word delimiter
-			if (!isOnWordBoundary(ctx, triggerPos, to, settings.basicSettings.wordDelimiters)) continue;
+			if (!isOnWordBoundary(view.state, triggerPos, to, settings.basicSettings.wordDelimiters)) continue;
 		}
 
 		let replacement = result.replacement;
@@ -79,7 +80,7 @@ export const runSnippetCursor = (ctx: Context, key: string, range: SelectionRang
 
 		// Expand the snippet
 		const start = triggerPos;
-		queueSnippet(ctx.view, start, to, replacement, key);
+		queueSnippet(view, start, to, replacement, key);
 
 
 		const containsTrigger = settings.parsedSettings.autoEnlargeBracketsTriggers.some(word => replacement.contains("\\" + word));
@@ -149,9 +150,9 @@ export const processSnippet = (snippet: ParsedSnippet, effectiveLine: string, ra
 	return {triggerPos: triggerPos, replacement: replacement};
 }
 
-export const isOnWordBoundary = (ctx: Context, triggerPos: number, to: number, wordDelimiters: string) => {
-	const prevChar = ctx.view.state.sliceDoc(triggerPos-1, triggerPos);
-	const nextChar = ctx.view.state.sliceDoc(to, to+1);
+export const isOnWordBoundary = (state: EditorState, triggerPos: number, to: number, wordDelimiters: string) => {
+	const prevChar = state.sliceDoc(triggerPos-1, triggerPos);
+	const nextChar = state.sliceDoc(to, to+1);
 
 	wordDelimiters = wordDelimiters.replace("\\n", "\n");
 

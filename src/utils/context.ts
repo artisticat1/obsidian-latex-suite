@@ -12,7 +12,7 @@ export interface Bounds {
 }
 
 export class Context {
-	view: EditorView;
+	state: EditorState;
 	mode!: Mode;
 	codeblockLanguage: string;
 	pos: number;
@@ -24,7 +24,7 @@ export class Context {
 	static fromView(view: EditorView):Context {
 		const ctx = new Context();
 		const sel = view.state.selection;
-		ctx.view = view;
+		ctx.state = view.state;
 		ctx.pos = sel.main.to;
 		ctx.ranges = Array.from(sel.ranges).reverse(); // Last to first
 		ctx.mode = new Mode();
@@ -73,7 +73,7 @@ export class Context {
 		if (!bounds) return;
 
 		const {start, end} = bounds;
-		const text = this.view.state.sliceDoc(start, end);
+		const text = this.state.sliceDoc(start, end);
 		// pos referred to the absolute position in the whole document, but we just sliced the text
 		// so now pos must be relative to the start in order to be any useful
 		pos -= start;
@@ -132,9 +132,9 @@ export class Context {
 		let bounds;
 		if (this.actuallyCodeblock) {
 			// means a codeblock language triggered the math mode -> use the codeblock bounds instead
-			bounds = Context.getCodeblockBounds(this.view.state, pos);
+			bounds = Context.getCodeblockBounds(this.state, pos);
 		} else {
-			bounds = Context.getInnerEquationBounds(this.view.state);
+			bounds = Context.getInnerEquationBounds(this.state);
 		}
 
 		this.boundsCache.set(pos, bounds);

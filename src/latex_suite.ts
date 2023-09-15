@@ -58,7 +58,7 @@ export const handleKeydown = (key: string, shiftKey: boolean, ctrlKey: boolean, 
 		// Allows Ctrl + z for undo, instead of triggering a snippet ending with z
 		if (!ctrlKey) {
 			try {
-				success = runSnippets(ctx, key);
+				success = runSnippets(view, ctx, key);
 				if (success) return true;
 			}
 			catch (e) {
@@ -78,7 +78,7 @@ export const handleKeydown = (key: string, shiftKey: boolean, ctrlKey: boolean, 
 
 	if (settings.basicSettings.autofractionEnabled && ctx.mode.anyMath()) {
 		if (key === "/") {
-			success = runAutoFraction(ctx);
+			success = runAutoFraction(view, ctx);
 
 			if (success) return true;
 		}
@@ -89,7 +89,7 @@ export const handleKeydown = (key: string, shiftKey: boolean, ctrlKey: boolean, 
 	// or "switch" to a block from inline if a matrix env is activated?
 	if (settings.basicSettings.matrixShortcutsEnabled && ctx.mode.blockMath) {
 		if (["Tab", "Enter"].contains(key)) {
-			success = runMatrixShortcuts(ctx, key, shiftKey);
+			success = runMatrixShortcuts(view, ctx, key, shiftKey);
 
 			if (success) return true;
 		}

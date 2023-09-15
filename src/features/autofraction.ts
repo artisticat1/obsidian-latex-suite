@@ -1,3 +1,4 @@
+import { EditorView } from "@codemirror/view";
 import { SelectionRange } from "@codemirror/state";
 import { findMatchingBracket, getOpenBracket } from "src/utils/editor_utils";
 import { queueSnippet } from "src/snippets/codemirror/snippet_queue_state_field";
@@ -8,25 +9,25 @@ import { Context } from "src/utils/context";
 import { getLatexSuiteConfigFromView } from "src/snippets/codemirror/config";
 
 
-export const runAutoFraction = (ctx: Context):boolean => {
+export const runAutoFraction = (view: EditorView, ctx: Context):boolean => {
 
 	for (const range of ctx.ranges) {
-		runAutoFractionCursor(ctx, range);
+		runAutoFractionCursor(view, ctx, range);
 	}
 
-	const success = expandSnippets(ctx.view);
+	const success = expandSnippets(view);
 
 	if (success) {
-		autoEnlargeBrackets(ctx);
+		autoEnlargeBrackets(view, ctx);
 	}
 
 	return success;
 }
 
 
-export const runAutoFractionCursor = (ctx: Context, range: SelectionRange):boolean => {
+export const runAutoFractionCursor = (view: EditorView, ctx: Context, range: SelectionRange):boolean => {
 
-	const settings = getLatexSuiteConfigFromView(ctx.view);
+	const settings = getLatexSuiteConfigFromView(view);
 	const {from, to} = range;
 
 	// Don't run autofraction in excluded environments
@@ -37,12 +38,12 @@ export const runAutoFractionCursor = (ctx: Context, range: SelectionRange):boole
 	}
 
 	// Get the bounds of the equation
-	const result = Context.getEquationBounds(ctx.view.state);
+	const result = Context.getEquationBounds(view.state);
 	if (!result) return false;
 	const eqnStart = result.start;
 
 
-	let curLine = ctx.view.state.sliceDoc(0, to);
+	let curLine = view.state.sliceDoc(0, to);
 	let start = eqnStart;
 
 	if (from != to) {
@@ -93,7 +94,7 @@ export const runAutoFractionCursor = (ctx: Context, range: SelectionRange):boole
 	}
 
 	// Run autofraction
-	let numerator = ctx.view.state.sliceDoc(start, to);
+	let numerator = view.state.sliceDoc(start, to);
 
 	// Don't run on an empty line
 	if (numerator === "") return false;
@@ -106,7 +107,7 @@ export const runAutoFractionCursor = (ctx: Context, range: SelectionRange):boole
 
 	const replacement = `${settings.basicSettings.autofractionSymbol}{${numerator}}{$0}$1`
 
-	queueSnippet(ctx.view, start, to, replacement, "/");
+	queueSnippet(view, start, to, replacement, "/");
 
 	return true;
 }
