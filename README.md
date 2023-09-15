@@ -1,4 +1,4 @@
-# Obsidian Latex Suite
+# Obsidian Latex Suite <img src="https://img.shields.io/github/manifest-json/v/artisticat1/obsidian-latex-suite"> <img src="https://img.shields.io/github/downloads/artisticat1/obsidian-latex-suite/total">
 
 A plugin for Obsidian that aims to make typesetting LaTeX math as fast as handwriting.
 
