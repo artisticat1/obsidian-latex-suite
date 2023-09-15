@@ -80,9 +80,6 @@ export const handleKeydown = (key: string, shiftKey: boolean, ctrlKey: boolean, 
 		}
 	}
 
-	// TODO(multisn8): currently matrices in inline math are a mess either way
-	// but with the block/inline distinction, maybe we could try to stuff them inline
-	// or "switch" to a block from inline if a matrix env is activated?
 	if (settings.basicSettings.matrixShortcutsEnabled && ctx.mode.blockMath) {
 		if (["Tab", "Enter"].contains(key)) {
 			success = runMatrixShortcuts(view, ctx, key, shiftKey);
