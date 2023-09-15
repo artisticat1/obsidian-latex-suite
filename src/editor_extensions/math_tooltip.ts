@@ -21,9 +21,8 @@ function getCursorTooltips(state: EditorState): readonly Tooltip[] {
 		return [];
 	}
 
-	const isInline = ctx.mode.inlineMath;
 	const isLivePreview = state.field(editorLivePreviewField);
-	if (!isInline && isLivePreview) return [];
+	if (ctx.mode.blockMath && isLivePreview) return [];
 
 	const bounds = ctx.getBounds();
 	if (!bounds) return [];
@@ -43,7 +42,7 @@ function getCursorTooltips(state: EditorState): readonly Tooltip[] {
 				const dom = document.createElement("div");
 				dom.className = "cm-tooltip-cursor";
 
-				const renderedEqn = renderMath(eqn, !isInline);
+				const renderedEqn = renderMath(eqn, ctx.mode.blockMath || ctx.mode.codeMath);
 				dom.appendChild(renderedEqn);
 				finishRenderMath();
 

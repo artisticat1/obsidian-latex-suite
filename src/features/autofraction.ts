@@ -18,7 +18,7 @@ export const runAutoFraction = (view: EditorView, ctx: Context):boolean => {
 	const success = expandSnippets(view);
 
 	if (success) {
-		autoEnlargeBrackets(view, ctx);
+		autoEnlargeBrackets(view);
 	}
 
 	return success;
@@ -38,7 +38,7 @@ export const runAutoFractionCursor = (view: EditorView, ctx: Context, range: Sel
 	}
 
 	// Get the bounds of the equation
-	const result = Context.getEquationBounds(view.state);
+	const result = ctx.getBounds();
 	if (!result) return false;
 	const eqnStart = result.start;
 

@@ -23,7 +23,7 @@ export const runSnippets = (view: EditorView, ctx: Context, key: string):boolean
 
 
 	if (shouldAutoEnlargeBrackets) {
-		autoEnlargeBrackets(view, ctx);
+		autoEnlargeBrackets(view);
 	}
 
 	return success;

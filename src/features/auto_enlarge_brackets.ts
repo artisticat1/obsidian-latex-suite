@@ -6,11 +6,13 @@ import { Context } from "src/utils/context";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
 
 
-export const autoEnlargeBrackets = (view: EditorView, ctx: Context) => {
+export const autoEnlargeBrackets = (view: EditorView) => {
 	const settings = getLatexSuiteConfig(view);
 	if (!settings.basicSettings.autoEnlargeBrackets) return;
 
-	const result = Context.getEquationBounds(view.state);
+	// The Context needs to be regenerated since changes to the document may have happened before autoEnlargeBrackets was triggered
+	const ctx = Context.fromView(view);
+	const result = ctx.getBounds();
 	if (!result) return false;
 	const {start, end} = result;
 

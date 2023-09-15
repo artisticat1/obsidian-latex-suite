@@ -14,9 +14,9 @@ export interface Bounds {
 export class Context {
 	state: EditorState;
 	mode!: Mode;
-	codeblockLanguage: string;
 	pos: number;
 	ranges: SelectionRange[];
+	codeblockLanguage: string;
 	boundsCache: Map<number, Bounds>;
 
 	static fromState(state: EditorState):Context {
@@ -28,7 +28,7 @@ export class Context {
 		ctx.mode = new Mode();
 		ctx.boundsCache = new Map();
 
-		const codeblockLanguage = Context.langIfWithinCodeblock(state);
+		const codeblockLanguage = langIfWithinCodeblock(state);
 		const inCode = codeblockLanguage !== null;
 
 		const settings = getLatexSuiteConfig(state);
@@ -38,11 +38,11 @@ export class Context {
 		if (ctx.mode.code) ctx.codeblockLanguage = codeblockLanguage;
 
 		// first, check if math mode should be "generally" on
-		const inMath = forceMath || (Context.isWithinEquation(state)
+		const inMath = forceMath || (isWithinEquation(state)
 		);
 
 		if (inMath && !forceMath) {
-			const inInlineEquation = Context.isWithinInlineEquation(state);
+			const inInlineEquation = isWithinInlineEquation(state);
 
 			ctx.mode.blockMath = !inInlineEquation;
 			ctx.mode.inlineMath = inInlineEquation;
@@ -127,9 +127,9 @@ export class Context {
 		let bounds;
 		if (this.mode.codeMath) {
 			// means a codeblock language triggered the math mode -> use the codeblock bounds instead
-			bounds = Context.getCodeblockBounds(this.state, pos);
+			bounds = getCodeblockBounds(this.state, pos);
 		} else {
-			bounds = Context.getEquationBounds(this.state);
+			bounds = getEquationBounds(this.state);
 		}
 
 		this.boundsCache.set(pos, bounds);
@@ -141,148 +141,148 @@ export class Context {
 		let bounds;
 		if (this.mode.codeMath) {
 			// means a codeblock language triggered the math mode -> use the codeblock bounds instead
-			bounds = Context.getCodeblockBounds(this.state, pos);
+			bounds = getCodeblockBounds(this.state, pos);
 		} else {
-			bounds = Context.getInnerEquationBounds(this.state);
+			bounds = getInnerEquationBounds(this.state);
 		}
 
 		return bounds;
 	}
 
-	static isWithinEquation(state: EditorState):boolean {
-		const pos = state.selection.main.to;
-		const tree = syntaxTree(state);
+}
 
-		let syntaxNode = tree.resolveInner(pos, -1);
-		if (syntaxNode.name.contains("math-end")) return false;
+const isWithinEquation = (state: EditorState):boolean => {
+	const pos = state.selection.main.to;
+	const tree = syntaxTree(state);
 
-		if (!syntaxNode.parent) {
-			syntaxNode = tree.resolveInner(pos, 1);
-			if (syntaxNode.name.contains("math-begin")) return false;
-		}
+	let syntaxNode = tree.resolveInner(pos, -1);
+	if (syntaxNode.name.contains("math-end")) return false;
 
-		// Account/allow for being on an empty line in a equation
-		if (!syntaxNode.parent) {
-			const left = tree.resolveInner(pos - 1, -1);
-			const right = tree.resolveInner(pos + 1, 1);
-
-			return (left.name.contains("math") && right.name.contains("math"));
-		}
-
-		return (syntaxNode.name.contains("math"));
+	if (!syntaxNode.parent) {
+		syntaxNode = tree.resolveInner(pos, 1);
+		if (syntaxNode.name.contains("math-begin")) return false;
 	}
 
-	static isWithinInlineEquation(state: EditorState):boolean {
-		const pos = state.selection.main.to;
-		const tree = syntaxTree(state);
+	// Account/allow for being on an empty line in a equation
+	if (!syntaxNode.parent) {
+		const left = tree.resolveInner(pos - 1, -1);
+		const right = tree.resolveInner(pos + 1, 1);
 
-		let syntaxNode = tree.resolveInner(pos, -1);
-		if (syntaxNode.name.contains("math-end")) return false;
-
-		if (!syntaxNode.parent) {
-			syntaxNode = tree.resolveInner(pos, 1);
-			if (syntaxNode.name.contains("math-begin")) return false;
-		}
-
-		// Account/allow for being on an empty line in a equation
-		if (!syntaxNode.parent) syntaxNode = tree.resolveInner(pos - 1, -1);
-
-		const cursor = syntaxNode.cursor();
-		const res = escalateToToken(cursor, Direction.Backward, "math-begin");
-
-		return !res.name.contains("math-block");
+		return (left.name.contains("math") && right.name.contains("math"));
 	}
 
-	/**
-	 * Figures out where this equation starts and where it ends.
-	 *
-	 * **Note:** If you intend to use this directly, check out Context.getBounds instead, which caches and also takes care of codeblock languages which should behave like math mode.
-	 */
-	static getEquationBounds(state: EditorState, pos?: number): Bounds {
-		if (!pos) pos = state.selection.main.to;
-		const tree = syntaxTree(state);
+	return (syntaxNode.name.contains("math"));
+}
 
-		let syntaxNode = tree.resolveInner(pos, -1);
+const isWithinInlineEquation = (state: EditorState):boolean => {
+	const pos = state.selection.main.to;
+	const tree = syntaxTree(state);
 
-		if (!syntaxNode.parent) {
-			syntaxNode = tree.resolveInner(pos, 1);
-		}
+	let syntaxNode = tree.resolveInner(pos, -1);
+	if (syntaxNode.name.contains("math-end")) return false;
 
-		// Account/allow for being on an empty line in a equation
-		if (!syntaxNode.parent) syntaxNode = tree.resolveInner(pos - 1, -1);
-
-		const cursor = syntaxNode.cursor();
-		const begin = escalateToToken(cursor, Direction.Backward, "math-begin");
-		const end = escalateToToken(cursor, Direction.Forward, "math-end");
-
-		if (begin && end) {
-			return {start: begin.to, end: end.from};
-		}
-		else {
-			return null;
-		}
+	if (!syntaxNode.parent) {
+		syntaxNode = tree.resolveInner(pos, 1);
+		if (syntaxNode.name.contains("math-begin")) return false;
 	}
 
-	// Accounts for equations within text environments, e.g. $$\text{... $...$}$$
-	static getInnerEquationBounds(state: EditorState, pos?: number): Bounds {
-		if (!pos) pos = state.selection.main.to;
-		let text = state.doc.toString();
+	// Account/allow for being on an empty line in a equation
+	if (!syntaxNode.parent) syntaxNode = tree.resolveInner(pos - 1, -1);
 
-		// ignore \$
-		text = text.replaceAll("\\$", "\\R");
+	const cursor = syntaxNode.cursor();
+	const res = escalateToToken(cursor, Direction.Backward, "math-begin");
 
-		const left = text.lastIndexOf("$", pos-1);
-		const right = text.indexOf("$", pos);
+	return !res.name.contains("math-block");
+}
 
-		if (left === -1 || right === -1) return null;
+/**
+ * Figures out where this equation starts and where it ends.
+ *
+ * **Note:** If you intend to use this directly, check out Context.getBounds instead, which caches and also takes care of codeblock languages which should behave like math mode.
+ */
+export const getEquationBounds = (state: EditorState, pos?: number):Bounds => {
+	if (!pos) pos = state.selection.main.to;
+	const tree = syntaxTree(state);
 
-		return {start: left + 1, end: right};
+	let syntaxNode = tree.resolveInner(pos, -1);
+
+	if (!syntaxNode.parent) {
+		syntaxNode = tree.resolveInner(pos, 1);
 	}
 
-	/**
-	 * Figures out where this codeblock starts and where it ends.
-	 *
-	 * **Note:** If you intend to use this directly, check out Context.getBounds instead, which caches and also takes care of codeblock languages which should behave like math mode.
-	 */
-	static getCodeblockBounds(state: EditorState, pos: number = state.selection.main.from): Bounds {
-		const tree = syntaxTree(state);
+	// Account/allow for being on an empty line in a equation
+	if (!syntaxNode.parent) syntaxNode = tree.resolveInner(pos - 1, -1);
 
-		let cursor = tree.cursorAt(pos, -1);
-		const blockBegin = escalateToToken(cursor, Direction.Backward, "HyperMD-codeblock-begin");
+	const cursor = syntaxNode.cursor();
+	const begin = escalateToToken(cursor, Direction.Backward, "math-begin");
+	const end = escalateToToken(cursor, Direction.Forward, "math-end");
 
-		cursor = tree.cursorAt(pos, -1);
-		const blockEnd = escalateToToken(cursor, Direction.Forward, "HyperMD-codeblock-end");
+	if (begin && end) {
+		return {start: begin.to, end: end.from};
+	}
+	else {
+		return null;
+	}
+}
 
-		return { start: blockBegin.to + 1, end: blockEnd.from - 1 };
+// Accounts for equations within text environments, e.g. $$\text{... $...$}$$
+const getInnerEquationBounds = (state: EditorState, pos?: number):Bounds => {
+	if (!pos) pos = state.selection.main.to;
+	let text = state.doc.toString();
+
+	// ignore \$
+	text = text.replaceAll("\\$", "\\R");
+
+	const left = text.lastIndexOf("$", pos-1);
+	const right = text.indexOf("$", pos);
+
+	if (left === -1 || right === -1) return null;
+
+	return {start: left + 1, end: right};
+}
+
+/**
+ * Figures out where this codeblock starts and where it ends.
+ *
+ * **Note:** If you intend to use this directly, check out Context.getBounds instead, which caches and also takes care of codeblock languages which should behave like math mode.
+ */
+const getCodeblockBounds = (state: EditorState, pos: number = state.selection.main.from):Bounds => {
+	const tree = syntaxTree(state);
+
+	let cursor = tree.cursorAt(pos, -1);
+	const blockBegin = escalateToToken(cursor, Direction.Backward, "HyperMD-codeblock-begin");
+
+	cursor = tree.cursorAt(pos, -1);
+	const blockEnd = escalateToToken(cursor, Direction.Forward, "HyperMD-codeblock-end");
+
+	return { start: blockBegin.to + 1, end: blockEnd.from - 1 };
+}
+
+const langIfWithinCodeblock = (view: EditorView | EditorState): string | null => {
+	const state = view instanceof EditorView ? view.state : view;
+	const tree = syntaxTree(state);
+
+	const pos = state.selection.ranges[0].from;
+
+	// check if we're in a codeblock atm at all
+	// somehow only the -1 side is reliable, all other ones are sporadically active
+	const inCodeblock = tree.resolveInner(pos, -1).name.contains("codeblock");
+	if (!inCodeblock) {
+		return null;
 	}
 
-	static langIfWithinCodeblock(view: EditorView | EditorState): string | null {
-		const state = view instanceof EditorView ? view.state : view;
-		const tree = syntaxTree(state);
+	// locate the start of the block
+	const cursor = tree.cursorAt(pos, -1);
+	const codeblockBegin = escalateToToken(cursor, Direction.Backward, "HyperMD-codeblock_HyperMD-codeblock-begin");
 
-		const pos = state.selection.ranges[0].from;
-
-		// check if we're in a codeblock atm at all
-		// somehow only the -1 side is reliable, all other ones are sporadically active
-		const inCodeblock = tree.resolveInner(pos, -1).name.contains("codeblock");
-		if (!inCodeblock) {
-			return null;
-		}
-
-		// locate the start of the block
-		const cursor = tree.cursorAt(pos, -1);
-		const codeblockBegin = escalateToToken(cursor, Direction.Backward, "HyperMD-codeblock_HyperMD-codeblock-begin");
-
-		if (codeblockBegin == null) {
-			console.warn("unable to locate start of the codeblock even though inside one");
-			return "";
-		}
-
-		// extract the language
-		// codeblocks may start and end with an arbitrary number of backticks
-		const language = state.sliceDoc(codeblockBegin.from, codeblockBegin.to).replace(/`+/, "");
-
-		return language;
+	if (codeblockBegin == null) {
+		console.warn("unable to locate start of the codeblock even though inside one");
+		return "";
 	}
 
+	// extract the language
+	// codeblocks may start and end with an arbitrary number of backticks
+	const language = state.sliceDoc(codeblockBegin.from, codeblockBegin.to).replace(/`+/, "");
+
+	return language;
 }

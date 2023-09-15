@@ -2,7 +2,7 @@ import { EditorView, ViewUpdate, Decoration, DecorationSet, ViewPlugin } from "@
 import { Prec, Range } from "@codemirror/state";
 import { findMatchingBracket, getOpenBracket, getCloseBracket } from "../utils/editor_utils";
 import { syntaxTree } from "@codemirror/language";
-import { Context } from "src/utils/context";
+import { Context, getEquationBounds } from "src/utils/context";
 
 const Ncolors = 3;
 
@@ -27,7 +27,7 @@ function colorPairedBrackets(view: EditorView) {
 				return;
 			}
 
-			const bounds = Context.getEquationBounds(view.state, to);
+			const bounds = getEquationBounds(view.state, to);
 			if (!bounds) return;
 
 
@@ -76,7 +76,7 @@ function colorPairedBrackets(view: EditorView) {
 
 function getEnclosingBracketsPos(view: EditorView, pos: number) {
 
-	const result = Context.getEquationBounds(view.state);
+	const result = getEquationBounds(view.state);
 	if (!result) return -1;
 	const {start, end} = result;
 	const text = view.state.doc.sliceString(start, end);

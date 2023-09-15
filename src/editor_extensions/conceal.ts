@@ -6,7 +6,7 @@ import { EditorSelection, Range } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
 import { findMatchingBracket } from "../utils/editor_utils";
 import { cmd_symbols, greek, map_super, map_sub, brackets, mathbb, mathscrcal, fractions, operators } from "./conceal_maps";
-import { Context } from "src/utils/context";
+import { getEquationBounds } from "src/utils/context";
 // import { SNIPPET_VARIABLES } from "./snippets";
 
 
@@ -408,7 +408,7 @@ function conceal(view: EditorView) {
 				return;
 			}
 
-			const bounds = Context.getEquationBounds(view.state, to);
+			const bounds = getEquationBounds(view.state, to);
 			if (!bounds) return;
 
 

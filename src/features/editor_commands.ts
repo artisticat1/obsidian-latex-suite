@@ -6,7 +6,8 @@ import { Context } from "src/utils/context";
 
 
 function boxCurrentEquation(view: EditorView) {
-	const result = Context.getEquationBounds(view.state);
+	const ctx = Context.fromView(view);
+	const result = ctx.getBounds();
 	if (!result) return false;
 	const {start, end} = result;
 
@@ -34,7 +35,7 @@ function getBoxEquationCommand() {
 			// @ts-ignore
 			const view = editor.cm;
 			const ctx = Context.fromView(view);
-			const withinEquation = ctx.mode.inEquation();
+			const withinEquation = ctx.mode.inMath();
 
 			if (checking) return withinEquation;
 			if (!withinEquation) return;
@@ -57,7 +58,7 @@ function getSelectEquationCommand() {
 			// @ts-ignore
 			const view = editor.cm;
 			const ctx = Context.fromView(view);
-			const withinEquation = ctx.mode.inEquation();
+			const withinEquation = ctx.mode.inMath();
 
 			if (checking) return withinEquation;
 			if (!withinEquation) return;
