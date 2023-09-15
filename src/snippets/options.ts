@@ -92,7 +92,7 @@ export class Mode {
 					mode.blockMath = true;
 					mode.inlineMath = true;
 					break;
-				case "k":
+				case "n":
 					mode.inlineMath = true;
 					break;
 				case "M":
