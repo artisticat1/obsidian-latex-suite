@@ -9,7 +9,7 @@ import { runMatrixShortcuts } from "./features/matrix_shortcuts";
 import { Context } from "./utils/context";
 import { consumeAndGotoNextTabstop, isInsideATabstop } from "./snippets/snippet_management";
 import { removeAllTabstops } from "./snippets/codemirror/tabstops_state_field";
-import { getLatexSuiteConfigExtension, getLatexSuiteConfigFromView } from "./snippets/codemirror/config";
+import { getLatexSuiteConfigExtension, getLatexSuiteConfig } from "./snippets/codemirror/config";
 import { clearSnippetQueue } from "./snippets/codemirror/snippet_queue_state_field";
 import { cursorTriggerStateField } from "./snippets/codemirror/cursor_trigger_state_field";
 import { handleUndoRedo } from "./snippets/codemirror/history";
@@ -44,7 +44,7 @@ export const onKeydown = (event: KeyboardEvent, view: EditorView) => {
 
 export const handleKeydown = (key: string, shiftKey: boolean, ctrlKey: boolean, view: EditorView) => {
 
-	const settings = getLatexSuiteConfigFromView(view);
+	const settings = getLatexSuiteConfig(view);
 
 	const ctx = Context.fromView(view);
 	// TODO(multisn8): remove this when the PR is done

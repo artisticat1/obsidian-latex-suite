@@ -6,7 +6,7 @@ import { expandSnippets } from "src/snippets/snippet_management";
 import { SNIPPET_VARIABLES } from "src/snippets/snippets";
 import { autoEnlargeBrackets } from "./auto_enlarge_brackets";
 import { Context } from "src/utils/context";
-import { getLatexSuiteConfigFromView } from "src/snippets/codemirror/config";
+import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
 
 
 export const runAutoFraction = (view: EditorView, ctx: Context):boolean => {
@@ -27,7 +27,7 @@ export const runAutoFraction = (view: EditorView, ctx: Context):boolean => {
 
 export const runAutoFractionCursor = (view: EditorView, ctx: Context, range: SelectionRange):boolean => {
 
-	const settings = getLatexSuiteConfigFromView(view);
+	const settings = getLatexSuiteConfig(view);
 	const {from, to} = range;
 
 	// Don't run autofraction in excluded environments

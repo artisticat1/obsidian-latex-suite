@@ -3,7 +3,7 @@ import { EditorView } from "@codemirror/view";
 import { Direction, escalateToToken, findMatchingBracket, getCloseBracket } from "src/utils/editor_utils";
 import { Mode } from "../snippets/options";
 import { Environment } from "../snippets/snippets";
-import { getLatexSuiteConfigFromView } from "../snippets/codemirror/config";
+import { getLatexSuiteConfig } from "../snippets/codemirror/config";
 import { syntaxTree } from "@codemirror/language";
 
 export interface Bounds {
@@ -21,17 +21,17 @@ export class Context {
 
 	actuallyCodeblock: boolean;
 
-	static fromView(view: EditorView):Context {
+	static fromState(state: EditorState):Context {
 		const ctx = new Context();
-		const sel = view.state.selection;
-		ctx.state = view.state;
+		const sel = state.selection;
+		ctx.state = state;
 		ctx.pos = sel.main.to;
 		ctx.ranges = Array.from(sel.ranges).reverse(); // Last to first
 		ctx.mode = new Mode();
 		ctx.boundsCache = new Map();
 
-		const settings = getLatexSuiteConfigFromView(view);
-		const codeblockLanguage = Context.langIfWithinCodeblock(view);
+		const settings = getLatexSuiteConfig(state);
+		const codeblockLanguage = Context.langIfWithinCodeblock(state);
 		const inCode = codeblockLanguage !== null;
 		const ignoreMath = settings.parsedSettings.ignoreMathLanguages.contains(codeblockLanguage);
 		const forceMath = settings.parsedSettings.forceMathLanguages.contains(codeblockLanguage);
@@ -40,11 +40,11 @@ export class Context {
 		// first, check if math mode should be "generally" on
 		let inMath = forceMath || (
 			!ignoreMath
-			&& Context.isWithinEquation(view.state)
+			&& Context.isWithinEquation(state)
 		);
 
 		if (inMath) {
-			const inInlineEquation = Context.isWithinInlineEquation(view.state);
+			const inInlineEquation = Context.isWithinInlineEquation(state);
 
 			ctx.mode.blockMath = !inInlineEquation;
 			ctx.mode.inlineMath = inInlineEquation;
@@ -64,6 +64,10 @@ export class Context {
 		ctx.mode.text = !inCode && !inMath;
 
 		return ctx;
+	}
+
+	static fromView(view: EditorView):Context {
+		return Context.fromState(view.state);
 	}
 
 	isWithinEnvironment(pos: number, env: Environment): boolean {

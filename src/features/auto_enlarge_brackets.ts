@@ -3,11 +3,11 @@ import { findMatchingBracket } from "src/utils/editor_utils";
 import { queueSnippet } from "src/snippets/codemirror/snippet_queue_state_field";
 import { expandSnippets } from "src/snippets/snippet_management";
 import { Context } from "src/utils/context";
-import { getLatexSuiteConfigFromView } from "src/snippets/codemirror/config";
+import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
 
 
 export const autoEnlargeBrackets = (view: EditorView, ctx: Context) => {
-	const settings = getLatexSuiteConfigFromView(view);
+	const settings = getLatexSuiteConfig(view);
 	if (!settings.basicSettings.autoEnlargeBrackets) return;
 
 	const result = Context.getEquationBounds(view.state);

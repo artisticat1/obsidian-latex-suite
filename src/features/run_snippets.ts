@@ -5,7 +5,7 @@ import { expandSnippets } from "src/snippets/snippet_management";
 import { ParsedSnippet, SNIPPET_VARIABLES, EXCLUSIONS } from "src/snippets/snippets";
 import { autoEnlargeBrackets } from "./auto_enlarge_brackets";
 import { Context } from "src/utils/context";
-import { getLatexSuiteConfigFromView } from "src/snippets/codemirror/config";
+import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
 
 
 export const runSnippets = (view: EditorView, ctx: Context, key: string):boolean => {
@@ -31,7 +31,7 @@ export const runSnippets = (view: EditorView, ctx: Context, key: string):boolean
 
 export const runSnippetCursor = (view: EditorView, ctx: Context, key: string, range: SelectionRange):{success: boolean; shouldAutoEnlargeBrackets: boolean} => {
 
-	const settings = getLatexSuiteConfigFromView(view);
+	const settings = getLatexSuiteConfig(view);
 	const {from, to} = range;
 	const sel = view.state.sliceDoc(from, to);
 

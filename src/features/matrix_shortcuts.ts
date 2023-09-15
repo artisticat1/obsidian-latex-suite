@@ -1,11 +1,11 @@
 import { EditorView } from "@codemirror/view";
 import { setCursor } from "src/utils/editor_utils";
-import { getLatexSuiteConfigFromView } from "src/snippets/codemirror/config";
+import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
 import { Context } from "src/utils/context";
 
 
 export const runMatrixShortcuts = (view: EditorView, ctx: Context, key: string, shiftKey: boolean):boolean => {
-	const settings = getLatexSuiteConfigFromView(view);
+	const settings = getLatexSuiteConfig(view);
 
 	// Check whether we are inside a matrix / align / case environment
 	let isInsideAnEnv = false;
