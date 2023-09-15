@@ -45,11 +45,7 @@ export const onKeydown = (event: KeyboardEvent, view: EditorView) => {
 export const handleKeydown = (key: string, shiftKey: boolean, ctrlKey: boolean, view: EditorView) => {
 
 	const settings = getLatexSuiteConfig(view);
-
 	const ctx = Context.fromView(view);
-	// TODO(multisn8): remove this when the PR is done
-	console.log(ctx);
-	console.log(ctx.mode);
 
 	let success = false;
 
