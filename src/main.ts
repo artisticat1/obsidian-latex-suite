@@ -22,10 +22,7 @@ export default class LatexSuitePlugin extends Plugin {
 
 		this.legacyEditorWarning();
 
-		// Register Latex Suite extensions
-		this.registerEditorExtension(latexSuiteExtensions(this.processedSettings));
-
-		// Register optional editor extensions for editor enhancements
+		// Register Latex Suite extensions and optional editor extensions for editor enhancements
 		this.registerEditorExtension(this.editorExtensions);
 
 		// Watch for changes to the snippets file
@@ -34,11 +31,9 @@ export default class LatexSuitePlugin extends Plugin {
 		this.addEditorCommands();
 	}
 
-
 	onunload() {
 
 	}
-
 
 	legacyEditorWarning() {
 		if ((this.app.vault as any).config?.legacyEditor) {
@@ -101,7 +96,10 @@ export default class LatexSuitePlugin extends Plugin {
 		// Remove all currently loaded CM extensions
 		while (this.editorExtensions.length) this.editorExtensions.pop();
 
-		// Load CM extensions according to plugin settings
+		// Load Latex Suite extensions
+		this.editorExtensions.push(latexSuiteExtensions(this.processedSettings));
+
+		// Load optional CM extensions according to plugin settings
 		const extensionDict = optionalExtensions;
 		const features = Object.keys(optionalExtensions);
 
