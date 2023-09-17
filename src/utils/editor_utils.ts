@@ -122,8 +122,8 @@ export function escalateToToken(cursor: TreeCursor, dir: Direction, target: stri
 	}
 
 	while (
-		(dir == Direction.Backward && cursor.prevSibling())
-		|| (dir == Direction.Forward && cursor.nextSibling())
+		(dir == Direction.Backward && cursor.prev())
+		|| (dir == Direction.Forward && cursor.next())
 		|| cursor.parent()
 	) {
 		if (cursor.name.contains(target)) {
