@@ -192,7 +192,7 @@ const isWithinInlineEquation = (state: EditorState):boolean => {
 	const cursor = syntaxNode.cursor();
 	const res = escalateToToken(cursor, Direction.Backward, "math-begin");
 
-	return !res.name.contains("math-block");
+	return !res?.name.contains("math-block");
 }
 
 /**
