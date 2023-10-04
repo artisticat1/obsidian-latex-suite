@@ -12,9 +12,8 @@ export interface TabstopSpec {
     replacement: string
 }
 
-function getMarkerDecoration(from: number, to: number, color: number, hidden = false) {
-    const className = hidden ? "" : `${LATEX_SUITE_TABSTOP_DECO_CLASS} ${LATEX_SUITE_TABSTOP_DECO_CLASS}-${color}`;
-    if (hidden) console.log("hidden!");
+function getMarkerDecoration(from: number, to: number, color: number) {
+    const className = `${LATEX_SUITE_TABSTOP_DECO_CLASS} ${LATEX_SUITE_TABSTOP_DECO_CLASS}-${color}`;
 
     return Decoration.mark({
         inclusive: true,
@@ -35,36 +34,6 @@ export class TabstopGroup {
         this.hidden = false;
     }
 
-    map(changes: ChangeDesc) {
-        this.decos = this.decos.map(changes);
-    }
-
-    getRanges() {
-        const ranges = [];
-        const cur = this.decos.iter();
-
-        while (cur.value != null) {
-            if (cur.from != cur.to){
-                ranges.push(cur.value.range(cur.from, cur.to));
-            }
-            cur.next();
-        }
-
-        return ranges;
-    }
-
-    toEditorSelection() {
-        const ranges = [];
-        const cur = this.decos.iter();
-
-        while (cur.value != null) {
-            ranges.push(EditorSelection.range(cur.from, cur.to));
-            cur.next();
-        }
-
-        return EditorSelection.create(ranges);
-    }
-
     select(view: EditorView, selectEndpoints: boolean, isEndSnippet: boolean) {
         const sel = this.toEditorSelection();
         const toSelect = selectEndpoints ? getEditorSelectionEndpoints(sel) : sel;
@@ -78,8 +47,64 @@ export class TabstopGroup {
         this.hideFromEditor();
     }
 
+    toSelectionRanges() {
+        const ranges = [];
+        const cur = this.decos.iter();
+    
+        while (cur.value != null) {
+            ranges.push(EditorSelection.range(cur.from, cur.to));
+            cur.next();
+        }
+
+        return ranges;
+    }
+
+    toEditorSelection() {
+        return EditorSelection.create(this.toSelectionRanges());
+    }
+
+    containsSelection(selection: EditorSelection) {
+        function rangeLiesWithinSelection(range: SelectionRange, sel: SelectionRange[]) {
+            for (const selRange of sel) {
+                if (selRange.from <= range.from && selRange.to >= range.to) {
+                    return true;
+                }
+            }
+            return false;
+        }
+    
+        const tabstopRanges = this.toSelectionRanges();
+        let result = true;
+    
+        for (const range of selection.ranges) {
+            if (!rangeLiesWithinSelection(range, tabstopRanges)) {
+                result = false;
+                break;
+            }
+        }
+        return result;
+    }
+
     hideFromEditor() {
         this.hidden = true;
+    }
+
+    map(changes: ChangeDesc) {
+        this.decos = this.decos.map(changes);
+    }
+    
+    getRanges() {
+        const ranges = [];
+        const cur = this.decos.iter();
+
+        while (cur.value != null) {
+            if (cur.from != cur.to){
+                ranges.push(cur.value.range(cur.from, cur.to));
+            }
+            cur.next();
+        }
+
+        return ranges;
     }
 }
 
@@ -107,27 +132,6 @@ export function tabstopSpecsToTabstopGroups(tabstops: TabstopSpec[], color: numb
     }
 
 	return result;
-}
-
-export function editorSelectionLiesWithinAnother(a: EditorSelection, b: EditorSelection) {
-    function rangeLiesWithinSelection(range: SelectionRange, sel: EditorSelection) {
-        for (const selRange of sel.ranges) {
-            if (selRange.from <= range.from && selRange.to >= range.to) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    let result = true;
-
-    for (const range of a.ranges) {
-        if (!rangeLiesWithinSelection(range, b)) {
-            result = false;
-            break;
-        }
-    }
-    return result;
 }
 
 export function getEditorSelectionEndpoints(sel: EditorSelection) {

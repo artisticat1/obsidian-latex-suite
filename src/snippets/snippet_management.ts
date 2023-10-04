@@ -2,7 +2,7 @@ import { EditorView } from "@codemirror/view";
 import { ChangeSet } from "@codemirror/state";
 import { startSnippet } from "./codemirror/history";
 import { isolateHistory } from "@codemirror/commands";
-import { TabstopSpec, editorSelectionLiesWithinAnother, tabstopSpecsToTabstopGroups } from "./tabstop";
+import { TabstopSpec, tabstopSpecsToTabstopGroups } from "./tabstop";
 import { addTabstops, removeTabstop, removeAllTabstops, getTabstopGroupsFromView, getNextTabstopColor } from "./codemirror/tabstops_state_field";
 import { clearSnippetQueue, snippetQueueStateField } from "./codemirror/snippet_queue_state_field";
 import { SnippetChangeSpec } from "./codemirror/snippet_change_spec";
@@ -116,7 +116,7 @@ export function isInsideATabstop(view: EditorView):boolean {
 	const currentTabstopGroups = getTabstopGroupsFromView(view);
 
 	for (const tabstopGroup of currentTabstopGroups) {
-		if (editorSelectionLiesWithinAnother(view.state.selection, tabstopGroup.toEditorSelection())) {
+		if (tabstopGroup.containsSelection(view.state.selection)) {
 			return true;
 		}
 	}
@@ -134,10 +134,9 @@ export function consumeAndGotoNextTabstop(view: EditorView): boolean {
 	// Select the next tabstop
 	const oldSel = view.state.selection;
 	const nextGrp = getTabstopGroupsFromView(view)[0];
-	const nextSel = nextGrp.toEditorSelection();
 
 	// If the old tabstop(s) lie within the new tabstop(s), simply move the cursor
-	const shouldMoveToEndpoints = editorSelectionLiesWithinAnother(view.state.selection, nextSel);
+	const shouldMoveToEndpoints = nextGrp.containsSelection(oldSel);
 	nextGrp.select(view, shouldMoveToEndpoints, false);
 
 	// If we haven't moved, go again
