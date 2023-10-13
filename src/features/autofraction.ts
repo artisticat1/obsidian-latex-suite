@@ -3,6 +3,7 @@ import { SelectionRange } from "@codemirror/state";
 import { getEquationBounds, findMatchingBracket, isInsideEnvironment, getOpenBracket } from "src/editor_helpers";
 import { queueSnippet } from "src/snippets/snippet_queue_state_field";
 import { expandSnippets } from "src/snippets/snippet_management";
+import { SNIPPET_VARIABLES } from "src/snippets/snippets";
 import { autoEnlargeBrackets } from "./auto_enlarge_brackets";
 import LatexSuitePlugin from "src/main";
 
@@ -56,11 +57,10 @@ export const runAutoFractionCursor = (view: EditorView, range: SelectionRange, p
 
         // Also, allow spaces after greek letters
         // By replacing spaces after greek letters with a dummy character (#)
-		const greek = plugin.snippetVariables["${GREEK}"];
-		if (greek !== undefined) {
-			const regex = new RegExp("(" + greek + ") ([^ ])", "g");
-			curLine = curLine.replace(regex, "$1#$2");
-		}
+
+        const regex = new RegExp("(" + SNIPPET_VARIABLES["${GREEK}"] + ") ([^ ])", "g");
+        curLine = curLine.replace(regex, "$1#$2");
+
 
 
         for (let i = curLine.length - 1; i >= eqnStart; i--) {

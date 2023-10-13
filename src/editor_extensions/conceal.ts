@@ -6,6 +6,7 @@ import { EditorSelection, Range } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
 import { getEquationBounds, findMatchingBracket } from "./../editor_helpers";
 import { cmd_symbols, greek, map_super, map_sub, brackets, mathbb, mathscrcal, fractions, operators } from "./conceal_maps";
+// import { SNIPPET_VARIABLES } from "./snippets";
 
 
 export interface Concealment {

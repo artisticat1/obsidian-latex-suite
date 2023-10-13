@@ -68,7 +68,7 @@ The following variables are available for use in a `trigger` or `replacement`:
 ![visual snippets](gifs/visual_snippets.gif)
 
 
-- `${GREEK}` : Can be inserted in a `trigger`. Shorthand for the following by default:
+- `${GREEK}` : Can be inserted in a `trigger`. Shorthand for the following:
 
 ```
 alpha|beta|gamma|Gamma|delta|Delta|epsilon|varepsilon|zeta|eta|theta|Theta|iota|kappa|lambda|Lambda|mu|nu|xi|Xi|pi|Pi|rho|sigma|Sigma|tau|upsilon|phi|Phi|chi|psi|Psi|omega|Omega
@@ -76,7 +76,7 @@ alpha|beta|gamma|Gamma|delta|Delta|epsilon|varepsilon|zeta|eta|theta|Theta|iota|
 
 Recommended for use with the regex option "r".
 
-- `${SYMBOL}` : Can be inserted in a `trigger`. Shorthand for the following by default:
+- `${SYMBOL}` : Can be inserted in a `trigger`. Shorthand for the following:
 
 ```
 hbar|ell|nabla|infty|dots|leftrightarrow|mapsto|setminus|mid|cap|cup|land|lor|subseteq|subset|implies|impliedby|iff|exists|equiv|square|neq|geq|leq|gg|ll|sim|simeq|approx|propto|cdot|oplus|otimes|times|star|perp|det|exp|ln|log|partial
@@ -84,7 +84,7 @@ hbar|ell|nabla|infty|dots|leftrightarrow|mapsto|setminus|mid|cap|cup|land|lor|su
 
 Recommended for use with the regex option "r".
 
-- `${SHORT_SYMBOL}` : Can be inserted in a `trigger`. Shorthand for the following by default:
+- `${SHORT_SYMBOL}` : Can be inserted in a `trigger`. Shorthand for the following:
 
 ```
 to|pm|mp

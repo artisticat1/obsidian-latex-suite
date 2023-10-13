@@ -34,7 +34,6 @@ export interface LatexSuiteSettings {
     autoEnlargeBrackets: boolean;
     autoEnlargeBracketsTriggers: string;
     wordDelimiters: string;
-	snippetVariables: string;
 }
 
 export const DEFAULT_SETTINGS: LatexSuiteSettings = {
@@ -61,12 +60,7 @@ export const DEFAULT_SETTINGS: LatexSuiteSettings = {
     taboutEnabled: true,
     autoEnlargeBrackets: true,
     autoEnlargeBracketsTriggers: "sum, int, frac, prod",
-    wordDelimiters: "., +-\\n\t:;!?\\/{}[]()=~$",
-	snippetVariables: `{
-	"$\{GREEK}": "alpha|beta|gamma|Gamma|delta|Delta|epsilon|varepsilon|zeta|eta|theta|Theta|iota|kappa|lambda|Lambda|mu|nu|xi|Xi|pi|Pi|rho|sigma|Sigma|tau|upsilon|varphi|phi|Phi|chi|psi|Psi|omega|Omega",
-    "$\{SYMBOL}": "hbar|ell|nabla|infty|dots|leftrightarrow|mapsto|setminus|mid|cap|cup|land|lor|subseteq|subset|implies|impliedby|iff|exists|equiv|square|neq|geq|leq|gg|ll|sim|simeq|approx|propto|cdot|oplus|otimes|times|star|perp|det|exp|ln|log|partial",
-    "$\{SHORT_SYMBOL}": "to|pm|mp"
-}`,
+    wordDelimiters: "., +-\\n\t:;!?\\/{}[]()=~$"
 }
 
 
@@ -533,18 +527,6 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
                     this.plugin.settings.removeSnippetWhitespace = value;
                     await this.plugin.saveSettings();
                 }));
-
-		new Setting(containerEl)
-			.setName("Snippet variables")
-			.setDesc("Set the variables to be used in the snippets.")
-			.addTextArea(text => text
-				.setValue(this.plugin.settings.snippetVariables)
-				.onChange(async (value) => {
-					this.plugin.setSnippetVariables(value);
-
-					this.plugin.settings.snippetVariables = value;
-					await this.plugin.saveSettings();
-				}));
     }
 }
 

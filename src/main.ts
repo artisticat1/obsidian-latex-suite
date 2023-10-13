@@ -30,7 +30,6 @@ export default class LatexSuitePlugin extends Plugin {
 	autofractionExcludedEnvs: Environment[];
 	matrixShortcutsEnvNames: string[];
 	autoEnlargeBracketsTriggers: string[];
-	snippetVariables: {[key: string]: string};
 
 	private cursorTriggeredByChange = false;
 	private editorExtensions:Extension[] = [];
@@ -145,7 +144,6 @@ export default class LatexSuitePlugin extends Plugin {
 		this.setAutofractionExcludedEnvs(this.settings.autofractionExcludedEnvs);
 		this.matrixShortcutsEnvNames = this.settings.matrixShortcutsEnvNames.replace(/\s/g,"").split(",");
 		this.autoEnlargeBracketsTriggers = this.settings.autoEnlargeBracketsTriggers.replace(/\s/g,"").split(",");
-		this.setSnippetVariables(this.settings.snippetVariables);
 
 
 		if (this.settings.concealEnabled) this.enableExtension(concealPlugin.extension);
@@ -176,11 +174,6 @@ export default class LatexSuitePlugin extends Plugin {
 		});
 
 		this.autofractionExcludedEnvs = envs;
-	}
-
-
-	setSnippetVariables(snippetVariablesStr: string) {
-		this.snippetVariables = JSON.parse(snippetVariablesStr);
 	}
 
 

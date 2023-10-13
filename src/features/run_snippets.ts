@@ -3,7 +3,7 @@ import { SelectionRange } from "@codemirror/state";
 import { isInsideEnvironment, isWithinInlineEquation } from "src/editor_helpers";
 import { queueSnippet } from "src/snippets/snippet_queue_state_field";
 import { expandSnippets } from "src/snippets/snippet_management";
-import { Snippet, EXCLUSIONS } from "src/snippets/snippets";
+import { Snippet, SNIPPET_VARIABLES, EXCLUSIONS } from "src/snippets/snippets";
 import { autoEnlargeBrackets } from "./auto_enlarge_brackets";
 import LatexSuitePlugin from "src/main";
 
@@ -64,7 +64,7 @@ export const runSnippetCursor = (view: EditorView, key: string, withinMath: bool
         }
 
 
-        const result = checkSnippet(snippet, effectiveLine, range, sel, plugin);
+        const result = checkSnippet(snippet, effectiveLine, range, sel);
         if (result === null) continue;
         const triggerPos = result.triggerPos;
 
@@ -135,10 +135,10 @@ export const runSnippetCursor = (view: EditorView, key: string, withinMath: bool
 
 
 
-export const checkSnippet = (snippet: Snippet, effectiveLine: string, range:  SelectionRange, sel: string, plugin: LatexSuitePlugin):{triggerPos: number; replacement: string} => {
+export const checkSnippet = (snippet: Snippet, effectiveLine: string, range:  SelectionRange, sel: string):{triggerPos: number; replacement: string} => {
     let triggerPos;
     let trigger = snippet.trigger;
-    trigger = insertSnippetVariables(trigger, plugin.snippetVariables);
+    trigger = insertSnippetVariables(trigger);
 
     let replacement = snippet.replacement;
 
@@ -194,9 +194,9 @@ export const checkSnippet = (snippet: Snippet, effectiveLine: string, range:  Se
 }
 
 
-export const insertSnippetVariables = (trigger: string, variables: {[key: string]: string}) => {
+export const insertSnippetVariables = (trigger: string) => {
 
-    for (const [variable, replacement] of Object.entries(variables)) {
+    for (const [variable, replacement] of Object.entries(SNIPPET_VARIABLES)) {
         trigger = trigger.replace(variable, replacement);
     }
 
