@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-latex-suite",
-	"version": "1.7.4",
+	"version": "1.8.4",
 	"description": "Make typesetting LaTeX math as fast as handwriting through snippets, text expansion, and editor enhancements",
 	"main": "main.js",
 	"scripts": {
@@ -25,6 +25,7 @@
 		"@types/node": "^16.11.6",
 		"@typescript-eslint/eslint-plugin": "^5.2.0",
 		"@typescript-eslint/parser": "^5.2.0",
+		"@lezer/common": "^1.0.3",
 		"builtin-modules": "^3.2.0",
 		"esbuild": "0.13.12",
 		"eslint": "^8.12.0",
