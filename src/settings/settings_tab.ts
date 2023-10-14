@@ -344,6 +344,16 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					this.plugin.settings.basicSettings.removeSnippetWhitespace = value;
 					await this.plugin.saveSettings();
 				}));
+
+		new Setting(containerEl)
+			.setName("Snippet variables")
+			.setDesc("Set the variables to be used in the snippets.")
+			.addTextArea(text => text
+				.setValue(this.plugin.settings.rawSettings.snippetVariables)
+				.onChange(async (value) => {
+					this.plugin.settings.rawSettings.snippetVariables = value;
+					await this.plugin.saveSettings();
+				}));
 	}
 
 

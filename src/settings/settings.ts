@@ -28,6 +28,7 @@ export interface LatexSuiteRawSetting {
 	matrixShortcutsEnvNames: string;
 	autoEnlargeBracketsTriggers: string;
 	forceMathLanguages: string;
+	snippetVariables: string;
 }
 
 export interface LatexSuiteParsedSetting {
@@ -35,6 +36,7 @@ export interface LatexSuiteParsedSetting {
 	matrixShortcutsEnvNames: string[];
 	autoEnlargeBracketsTriggers: string[];
 	forceMathLanguages: string[];
+	snippetVariables: {[key: string]: string};
 }
 
 export interface LatexSuiteSettings {
@@ -77,8 +79,13 @@ export const DEFAULT_SETTINGS: LatexSuiteSettings = {
 		]`,
 		matrixShortcutsEnvNames: "pmatrix, cases, align, bmatrix, Bmatrix, vmatrix, Vmatrix, array, matrix",
 		autoEnlargeBracketsTriggers: "sum, int, frac, prod",
-		forceMathLanguages: "math"
-	}
+		forceMathLanguages: "math",
+		snippetVariables: `{
+	"$\{GREEK}": "alpha|beta|gamma|Gamma|delta|Delta|epsilon|varepsilon|zeta|eta|theta|Theta|iota|kappa|lambda|Lambda|mu|nu|xi|Xi|pi|Pi|rho|sigma|Sigma|tau|upsilon|varphi|phi|Phi|chi|psi|Psi|omega|Omega",
+    "$\{SYMBOL}": "hbar|ell|nabla|infty|dots|leftrightarrow|mapsto|setminus|mid|cap|cup|land|lor|subseteq|subset|implies|impliedby|iff|exists|equiv|square|neq|geq|leq|gg|ll|sim|simeq|approx|propto|cdot|oplus|otimes|times|star|perp|det|exp|ln|log|partial",
+    "$\{SHORT_SYMBOL}": "to|pm|mp"
+}`,
+	},
 }
 
 export function processLatexSuiteSettings(snippets: ParsedSnippet[], settings: LatexSuiteSettings):LatexSuiteProcessedSettings {
@@ -104,7 +111,8 @@ export function processLatexSuiteSettings(snippets: ParsedSnippet[], settings: L
 			autofractionExcludedEnvs: getAutofractionExcludedEnvs(raw.autofractionExcludedEnvs),
 			matrixShortcutsEnvNames: strToArray(raw.matrixShortcutsEnvNames),
 			autoEnlargeBracketsTriggers: strToArray(raw.autoEnlargeBracketsTriggers),
-			forceMathLanguages: strToArray(raw.forceMathLanguages)
-		}
+			forceMathLanguages: strToArray(raw.forceMathLanguages),
+			snippetVariables: JSON.parse(settings.rawSettings.snippetVariables),
+		},
 	}
 }
