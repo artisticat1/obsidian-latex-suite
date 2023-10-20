@@ -70,7 +70,7 @@ export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
 		["\\\\pu{", "}"]
 	]`,
 	matrixShortcutsEnvNames: "pmatrix, cases, align, bmatrix, Bmatrix, vmatrix, Vmatrix, array, matrix",
-	autoEnlargeBracketsTriggers: "sum, int, frac, prod",
+	autoEnlargeBracketsTriggers: "sum, int, frac, prod, bigcup, bigcap",
 	forceMathLanguages: "math",
 	snippetVariables: `{
 	"$\{GREEK}": "alpha|beta|gamma|Gamma|delta|Delta|epsilon|varepsilon|zeta|eta|theta|Theta|iota|kappa|lambda|Lambda|mu|nu|omicron|xi|Xi|pi|Pi|rho|sigma|Sigma|tau|upsilon|varphi|phi|Phi|chi|psi|Psi|omega|Omega",
