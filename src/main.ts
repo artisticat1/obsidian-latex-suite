@@ -1,8 +1,9 @@
 import { Extension } from "@codemirror/state";
-import { Plugin, Notice, loadMathJax } from "obsidian";
+import { Plugin, Notice, loadMathJax, addIcon } from "obsidian";
 import { onFileCreate, onFileChange, onFileDelete, getSnippetsWithinFileOrFolder } from "./settings/file_watch";
 import { LatexSuitePluginSettings, DEFAULT_SETTINGS, LatexSuiteCMSettings, processLatexSuiteSettings } from "./settings/settings";
 import { LatexSuiteSettingTab } from "./settings/settings_tab";
+import { ICONS } from "./settings/ui/icons";
 
 import { getEditorCommands } from "./features/editor_commands";
 import { iterateCM6 } from "./utils/editor_utils";
@@ -17,6 +18,8 @@ export default class LatexSuitePlugin extends Plugin {
 
 	async onload() {
 		await this.loadSettings();
+
+		this.loadIcons();
 		this.addSettingTab(new LatexSuiteSettingTab(this.app, this));
 		loadMathJax();
 
@@ -150,6 +153,12 @@ export default class LatexSuitePlugin extends Plugin {
 		for (const [key, value] of Object.entries(eventsAndCallbacks)) {
 			// @ts-expect-error
 			this.registerEvent(this.app.vault.on(key, (file) => value(this, file)));
+		}
+	}
+
+	loadIcons() {
+		for (const [iconId, svgContent] of Object.entries(ICONS)) {
+			addIcon(iconId, svgContent);
 		}
 	}
 }

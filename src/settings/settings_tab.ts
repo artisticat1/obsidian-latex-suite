@@ -1,4 +1,4 @@
-import { App, PluginSettingTab, Setting, Modal, ButtonComponent, ExtraButtonComponent } from "obsidian";
+import { App, PluginSettingTab, Setting, Modal, setIcon, ButtonComponent, ExtraButtonComponent } from "obsidian";
 import { EditorView, ViewUpdate } from "@codemirror/view";
 import { EditorState, Extension } from "@codemirror/state";
 import { basicSetup } from "./ui/snippets_editor/extensions";
@@ -24,14 +24,23 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		this.snippetsEditor?.destroy();
 	}
 
+	addHeading(containerEl: HTMLElement, name: string, icon = "math") {
+		const heading = new Setting(containerEl).setName(name).setHeading();
+
+		const parentEl = heading.settingEl;
+		const iconEl = parentEl.createDiv();
+		setIcon(iconEl, icon);
+		iconEl.addClass("latex-suite-settings-icon");
+
+		parentEl.prepend(iconEl);
+	}
 
 	display(): void {
 		const { containerEl } = this;
 
 		containerEl.empty();
 
-		containerEl.createEl("div", { text: "Snippets" }).addClasses(["setting-item", "setting-item-heading", "setting-item-name"]);
-
+		this.addHeading(containerEl, "Snippets", "ballpen");
 
 		new Setting(containerEl)
 			.setName("Enabled")
@@ -114,7 +123,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			);
 
 
-		containerEl.createEl("div", { text: "Conceal" }).addClasses(["setting-item", "setting-item-heading", "setting-item-name"]);
+		this.addHeading(containerEl, "Conceal", "math-integral-x");
 
 		{
 			const fragment = document.createDocumentFragment();
@@ -144,7 +153,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		}
 
 
-		containerEl.createEl("div", { text: "Highlight and color brackets" }).addClasses(["setting-item", "setting-item-heading", "setting-item-name"]);
+		this.addHeading(containerEl, "Highlight and color brackets", "parentheses");
 
 		new Setting(containerEl)
 			.setName("Color paired brackets")
@@ -169,8 +178,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				}));
 
 
-
-		containerEl.createEl("div", { text: "Math popup preview" }).addClasses(["setting-item", "setting-item-heading", "setting-item-name"]);
+		this.addHeading(containerEl, "Math popup preview", "superscript");
 
 		const popup_fragment = document.createDocumentFragment();
 		const popup_line1 = document.createElement("div");
@@ -193,8 +201,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				}));
 
 
-
-		containerEl.createEl("div", { text: "Auto-fraction" }).addClasses(["setting-item", "setting-item-heading", "setting-item-name"]);
+		this.addHeading(containerEl, "Auto-fraction", "math-x-divide-y-2");
 
 		new Setting(containerEl)
 			.setName("Enabled")
@@ -244,7 +251,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				}));
 
 
-		containerEl.createEl("div", { text: "Matrix shortcuts" }).addClasses(["setting-item", "setting-item-heading", "setting-item-name"]);
+		this.addHeading(containerEl, "Matrix shortcuts", "brackets-contain");
 
 		new Setting(containerEl)
 			.setName("Enabled")
@@ -270,7 +277,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				}));
 
 
-		containerEl.createEl("div", { text: "Tabout" }).addClasses(["setting-item", "setting-item-heading", "setting-item-name"]);
+		this.addHeading(containerEl, "Tabout", "tabout");
 
 		new Setting(containerEl)
 			.setName("Enabled")
@@ -283,7 +290,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				}));
 
 
-		containerEl.createEl("div", { text: "Auto-enlarge brackets" }).addClasses(["setting-item", "setting-item-heading", "setting-item-name"]);
+		this.addHeading(containerEl, "Auto-enlarge-brackets", "parentheses");
 
 		new Setting(containerEl)
 			.setName("Enabled")
@@ -309,7 +316,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				}));
 
 
-		containerEl.createEl("div", { text: "Advanced snippet settings" }).addClasses(["setting-item", "setting-item-heading", "setting-item-name"]);
+		this.addHeading(containerEl, "Advanced snippet settings");
 
 		new Setting(containerEl)
 			.setName("Snippet variables")

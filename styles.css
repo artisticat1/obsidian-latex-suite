@@ -1,5 +1,18 @@
 /* Settings panel */
 
+.setting-item.setting-item-heading .latex-suite-settings-icon {
+    margin-right: var(--size-4-2);
+    height: 19px;
+}
+
+.setting-item.setting-item-heading:has(.latex-suite-settings-icon) ~ .setting-item:not(.setting-item-heading) {
+    width: calc(100% - 26px);
+    margin-left: 26px;
+}
+
+/* .setting-item:not(.setting-item-heading) {
+} */
+
 .snippets-text-area {
     width: 100%;
     display: inline-block;
