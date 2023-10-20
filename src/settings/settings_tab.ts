@@ -312,6 +312,18 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		containerEl.createEl("div", { text: "Advanced snippet settings" }).addClasses(["setting-item", "setting-item-heading", "setting-item-name"]);
 
 		new Setting(containerEl)
+			.setName("Snippet variables")
+			.setDesc("Assign snippet variables that can be used as shortcuts when writing snippets.")
+			.addTextArea(text => text
+				.setValue(this.plugin.settings.snippetVariables)
+				.onChange(async (value) => {
+					this.plugin.settings.snippetVariables = value;
+					await this.plugin.saveSettings();
+				})
+				.setPlaceholder(DEFAULT_SETTINGS.snippetVariables))
+			.setClass("latex-suite-snippet-variables-setting");
+
+		new Setting(containerEl)
 			.setName("Word delimiters")
 			.setDesc("Symbols that will be treated as word delimiters, for use with the \"w\" snippet option.")
 			.addText(text => text
@@ -344,18 +356,6 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					this.plugin.settings.removeSnippetWhitespace = value;
 					await this.plugin.saveSettings();
 				}));
-
-		new Setting(containerEl)
-			.setName("Snippet variables")
-			.setDesc("Assign snippet variables that can be used as shortcuts when writing snippets.")
-			.addTextArea(text => text
-				.setValue(this.plugin.settings.snippetVariables)
-				.onChange(async (value) => {
-					this.plugin.settings.snippetVariables = value;
-					await this.plugin.saveSettings();
-				})
-				.setPlaceholder(DEFAULT_SETTINGS.snippetVariables))
-			.setClass("latex-suite-snippet-variables-setting");
 	}
 
 
