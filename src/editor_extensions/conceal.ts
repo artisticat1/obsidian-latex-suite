@@ -265,7 +265,7 @@ function concealText(eqn: string):Concealment[] {
 
 function concealOperators(eqn: string, symbols: string[]):Concealment[] {
 
-	const regexStr = "\\\\(" + symbols.join("|") + ")";
+	const regexStr = "(\\\\(" + symbols.join("|") + "))([^a-zA-Z]|$)";
 	const regex = new RegExp(regexStr, "g");
 
 	const matches = [...eqn.matchAll(regex)];
@@ -273,10 +273,10 @@ function concealOperators(eqn: string, symbols: string[]):Concealment[] {
 	const concealments:Concealment[] = [];
 
 	for (const match of matches) {
-		const value = match[1];
+		const value = match[2];
 
 		const start = match.index;
-		const end = start + match[0].length;
+		const end = start + match[1].length;
 
 		concealments.push({start: start, end: end, replacement: value, class: "cm-concealed-mathrm cm-variable-2"});
 
