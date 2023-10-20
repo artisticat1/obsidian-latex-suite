@@ -8,7 +8,7 @@ import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
 
 export const autoEnlargeBrackets = (view: EditorView) => {
 	const settings = getLatexSuiteConfig(view);
-	if (!settings.basicSettings.autoEnlargeBrackets) return;
+	if (!settings.autoEnlargeBrackets) return;
 
 	// The Context needs to be regenerated since changes to the document may have happened before autoEnlargeBrackets was triggered
 	const ctx = Context.fromView(view);
@@ -51,7 +51,7 @@ export const autoEnlargeBrackets = (view: EditorView) => {
 
 		// Check whether the brackets contain sum, int or frac
 		const bracketContents = text.slice(i+1, j);
-		const containsTrigger = settings.parsedSettings.autoEnlargeBracketsTriggers.some(word => bracketContents.contains("\\" + word));
+		const containsTrigger = settings.autoEnlargeBracketsTriggers.some(word => bracketContents.contains("\\" + word));
 
 		if (!containsTrigger) {
 			i = j;

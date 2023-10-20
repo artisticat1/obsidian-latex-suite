@@ -7,7 +7,6 @@ import { syntaxTree } from "@codemirror/language";
 import { findMatchingBracket } from "../utils/editor_utils";
 import { cmd_symbols, greek, map_super, map_sub, brackets, mathbb, mathscrcal, fractions, operators } from "./conceal_maps";
 import { getEquationBounds } from "src/utils/context";
-// import { SNIPPET_VARIABLES } from "./snippets";
 
 
 export interface Concealment {

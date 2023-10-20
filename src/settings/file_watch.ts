@@ -20,7 +20,7 @@ function isInFolder(file: TFile, dir: TFolder) {
 }
 
 function fileIsInSnippetsFolder(plugin: LatexSuitePlugin, file: TFile) {
-	const snippetDir = plugin.app.vault.getAbstractFileByPath(plugin.settings.basicSettings.snippetsFileLocation);
+	const snippetDir = plugin.app.vault.getAbstractFileByPath(plugin.settings.snippetsFileLocation);
 	const isFolder = snippetDir instanceof TFolder;
 
 	return (isFolder && isInFolder(file, snippetDir));
@@ -28,10 +28,10 @@ function fileIsInSnippetsFolder(plugin: LatexSuitePlugin, file: TFile) {
 
 export async function onFileChange(plugin: LatexSuitePlugin, file: TAbstractFile) {
 
-	if (!(plugin.settings.basicSettings.loadSnippetsFromFile)) return;
+	if (!(plugin.settings.loadSnippetsFromFile)) return;
 	if (!(file instanceof TFile)) return;
 
-	if (file.path === plugin.settings.basicSettings.snippetsFileLocation || fileIsInSnippetsFolder(plugin, file)) {
+	if (file.path === plugin.settings.snippetsFileLocation || fileIsInSnippetsFolder(plugin, file)) {
 		try {
 			await refreshSnippetsFromFileOrFolder(plugin);
 		}
@@ -42,7 +42,7 @@ export async function onFileChange(plugin: LatexSuitePlugin, file: TAbstractFile
 }
 
 export const onFileCreate = (plugin: LatexSuitePlugin, file:TAbstractFile) => {
-	if (!(plugin.settings.basicSettings.loadSnippetsFromFile)) return;
+	if (!(plugin.settings.loadSnippetsFromFile)) return;
 
 	if (file instanceof TFile && fileIsInSnippetsFolder(plugin, file)) {
 		refreshSnippetsFromFileOrFolder(plugin);
@@ -50,9 +50,9 @@ export const onFileCreate = (plugin: LatexSuitePlugin, file:TAbstractFile) => {
 }
 
 export const onFileDelete = (plugin: LatexSuitePlugin, file:TAbstractFile) => {
-	if (!(plugin.settings.basicSettings.loadSnippetsFromFile)) return;
+	if (!(plugin.settings.loadSnippetsFromFile)) return;
 
-	const snippetDir = plugin.app.vault.getAbstractFileByPath(plugin.settings.basicSettings.snippetsFileLocation);
+	const snippetDir = plugin.app.vault.getAbstractFileByPath(plugin.settings.snippetsFileLocation);
 	const isFolder = snippetDir instanceof TFolder;
 
 	if (file instanceof TFile && (isFolder && file.path.contains(snippetDir.path))) {
@@ -104,7 +104,7 @@ export async function getSnippetsWithinFileOrFolder(path: string) {
 }
 
 export const refreshSnippetsFromFileOrFolder = debounce(async (plugin: LatexSuitePlugin) => {
-	if (!(plugin.settings.basicSettings.loadSnippetsFromFile)) return;
+	if (!(plugin.settings.loadSnippetsFromFile)) return;
 
 	plugin.processSettings();
 

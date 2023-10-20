@@ -37,9 +37,9 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			.setName("Enabled")
 			.setDesc("Whether snippets are enabled.")
 			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.basicSettings.snippetsEnabled)
+				.setValue(this.plugin.settings.snippetsEnabled)
 				.onChange(async (value) => {
-					this.plugin.settings.basicSettings.snippetsEnabled = value;
+					this.plugin.settings.snippetsEnabled = value;
 					await this.plugin.saveSettings();
 				}));
 
@@ -57,9 +57,9 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			.setName("Load snippets from file or folder")
 			.setDesc("Whether to load snippets from a specified file, or from all files within a folder (instead of from the plugin settings).")
 			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.basicSettings.loadSnippetsFromFile)
+				.setValue(this.plugin.settings.loadSnippetsFromFile)
 				.onChange(async (value) => {
-					this.plugin.settings.basicSettings.loadSnippetsFromFile = value;
+					this.plugin.settings.loadSnippetsFromFile = value;
 
 					snippetsSetting.settingEl.toggleClass("hidden", value);
 					if (this.snippetsFileLocEl != undefined)
@@ -77,10 +77,10 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		let inputEl;
 		snippetsFileLoc.addText(text => {
 			text
-				.setPlaceholder(DEFAULT_SETTINGS.basicSettings.snippetsFileLocation)
-				.setValue(this.plugin.settings.basicSettings.snippetsFileLocation)
+				.setPlaceholder(DEFAULT_SETTINGS.snippetsFileLocation)
+				.setValue(this.plugin.settings.snippetsFileLocation)
 				.onChange(async (value) => {
-					this.plugin.settings.basicSettings.snippetsFileLocation = value;
+					this.plugin.settings.snippetsFileLocation = value;
 
 					await this.plugin.saveSettings();
 				});
@@ -94,7 +94,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 
 		// Hide settings that are not relevant when "loadSnippetsFromFile" is set to true/false
-		const loadSnippetsFromFile = this.plugin.settings.basicSettings.loadSnippetsFromFile;
+		const loadSnippetsFromFile = this.plugin.settings.loadSnippetsFromFile;
 		snippetsSetting.settingEl.toggleClass("hidden", loadSnippetsFromFile);
 		this.snippetsFileLocEl.toggleClass("hidden", !loadSnippetsFromFile);
 
@@ -105,9 +105,9 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			.addDropdown((dropdown) => dropdown
 				.addOption("Tab", "Tab")
 				.addOption(" ", "Space")
-				.setValue(this.plugin.settings.basicSettings.snippetsTrigger)
+				.setValue(this.plugin.settings.snippetsTrigger)
 				.onChange(async (value) => {
-					this.plugin.settings.basicSettings.snippetsTrigger = value as "Tab" |
+					this.plugin.settings.snippetsTrigger = value as "Tab" |
 						" ";
 					await this.plugin.saveSettings();
 				})
@@ -135,9 +135,9 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				.setName("Enabled")
 				.setDesc(fragment)
 				.addToggle(toggle => toggle
-					.setValue(this.plugin.settings.basicSettings.concealEnabled)
+					.setValue(this.plugin.settings.concealEnabled)
 					.onChange(async (value) => {
-						this.plugin.settings.basicSettings.concealEnabled = value;
+						this.plugin.settings.concealEnabled = value;
 						this.plugin.refreshCMExtensions();
 						await this.plugin.saveSettings();
 					}));
@@ -150,9 +150,9 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			.setName("Color paired brackets")
 			.setDesc("Whether to colorize matching brackets.")
 			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.basicSettings.colorPairedBracketsEnabled)
+				.setValue(this.plugin.settings.colorPairedBracketsEnabled)
 				.onChange(async (value) => {
-					this.plugin.settings.basicSettings.colorPairedBracketsEnabled = value;
+					this.plugin.settings.colorPairedBracketsEnabled = value;
 
 					this.plugin.refreshCMExtensions();
 					await this.plugin.saveSettings();
@@ -161,9 +161,9 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			.setName("Highlight matching bracket beneath cursor")
 			.setDesc("When the cursor is adjacent to a bracket, highlight the matching bracket.")
 			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.basicSettings.highlightCursorBracketsEnabled)
+				.setValue(this.plugin.settings.highlightCursorBracketsEnabled)
 				.onChange(async (value) => {
-					this.plugin.settings.basicSettings.highlightCursorBracketsEnabled = value;
+					this.plugin.settings.highlightCursorBracketsEnabled = value;
 					this.plugin.refreshCMExtensions();
 					await this.plugin.saveSettings();
 				}));
@@ -185,9 +185,9 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			.setName("Enabled")
 			.setDesc(popup_fragment)
 			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.basicSettings.mathPreviewEnabled)
+				.setValue(this.plugin.settings.mathPreviewEnabled)
 				.onChange(async (value) => {
-					this.plugin.settings.basicSettings.mathPreviewEnabled = value;
+					this.plugin.settings.mathPreviewEnabled = value;
 					this.plugin.refreshCMExtensions();
 					await this.plugin.saveSettings();
 				}));
@@ -200,9 +200,9 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			.setName("Enabled")
 			.setDesc("Whether auto-fraction is enabled.")
 			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.basicSettings.autofractionEnabled)
+				.setValue(this.plugin.settings.autofractionEnabled)
 				.onChange(async (value) => {
-					this.plugin.settings.basicSettings.autofractionEnabled = value;
+					this.plugin.settings.autofractionEnabled = value;
 					await this.plugin.saveSettings();
 				}));
 
@@ -210,10 +210,10 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			.setName("Fraction symbol")
 			.setDesc("The fraction symbol to use in the replacement. e.g. \\frac, \\dfrac, \\tfrac")
 			.addText(text => text
-				.setPlaceholder(DEFAULT_SETTINGS.basicSettings.autofractionSymbol)
-				.setValue(this.plugin.settings.basicSettings.autofractionSymbol)
+				.setPlaceholder(DEFAULT_SETTINGS.autofractionSymbol)
+				.setValue(this.plugin.settings.autofractionSymbol)
 				.onChange(async (value) => {
-					this.plugin.settings.basicSettings.autofractionSymbol = value;
+					this.plugin.settings.autofractionSymbol = value;
 
 					await this.plugin.saveSettings();
 				}));
@@ -224,9 +224,9 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			.setDesc("A list of environments to exclude auto-fraction from running in. For example, to exclude auto-fraction from running while inside an exponent, such as e^{...}, use  [\"^{\", \"}\"]")
 			.addTextArea(text => text
 				.setPlaceholder("[ [\"^{\", \"}] ]")
-				.setValue(this.plugin.settings.rawSettings.autofractionExcludedEnvs)
+				.setValue(this.plugin.settings.autofractionExcludedEnvs)
 				.onChange(async (value) => {
-					this.plugin.settings.rawSettings.autofractionExcludedEnvs = value;
+					this.plugin.settings.autofractionExcludedEnvs = value;
 					await this.plugin.saveSettings();
 				}));
 
@@ -235,10 +235,10 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			.setName("Breaking characters")
 			.setDesc("A list of characters that denote the start/end of a fraction. e.g. if + is included in the list, \"a+b/c\" will expand to \"a+\\frac{b}{c}\". If + is not in the list, it will expand to \"\\frac{a+b}{c}\".")
 			.addText(text => text
-				.setPlaceholder(DEFAULT_SETTINGS.basicSettings.autofractionBreakingChars)
-				.setValue(this.plugin.settings.basicSettings.autofractionBreakingChars)
+				.setPlaceholder(DEFAULT_SETTINGS.autofractionBreakingChars)
+				.setValue(this.plugin.settings.autofractionBreakingChars)
 				.onChange(async (value) => {
-					this.plugin.settings.basicSettings.autofractionBreakingChars = value;
+					this.plugin.settings.autofractionBreakingChars = value;
 
 					await this.plugin.saveSettings();
 				}));
@@ -250,9 +250,9 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			.setName("Enabled")
 			.setDesc("Whether matrix shortcuts are enabled.")
 			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.basicSettings.matrixShortcutsEnabled)
+				.setValue(this.plugin.settings.matrixShortcutsEnabled)
 				.onChange(async (value) => {
-					this.plugin.settings.basicSettings.matrixShortcutsEnabled = value;
+					this.plugin.settings.matrixShortcutsEnabled = value;
 					await this.plugin.saveSettings();
 				}));
 
@@ -261,10 +261,10 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			.setName("Environments")
 			.setDesc("A list of environment names to run the matrix shortcuts in, separated by commas.")
 			.addText(text => text
-				.setPlaceholder(DEFAULT_SETTINGS.rawSettings.matrixShortcutsEnvNames)
-				.setValue(this.plugin.settings.rawSettings.matrixShortcutsEnvNames)
+				.setPlaceholder(DEFAULT_SETTINGS.matrixShortcutsEnvNames)
+				.setValue(this.plugin.settings.matrixShortcutsEnvNames)
 				.onChange(async (value) => {
-					this.plugin.settings.rawSettings.matrixShortcutsEnvNames = value;
+					this.plugin.settings.matrixShortcutsEnvNames = value;
 
 					await this.plugin.saveSettings();
 				}));
@@ -276,9 +276,9 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			.setName("Enabled")
 			.setDesc("Whether tabout is enabled.")
 			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.basicSettings.taboutEnabled)
+				.setValue(this.plugin.settings.taboutEnabled)
 				.onChange(async (value) => {
-					this.plugin.settings.basicSettings.taboutEnabled = value;
+					this.plugin.settings.taboutEnabled = value;
 					await this.plugin.saveSettings();
 				}));
 
@@ -289,9 +289,9 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			.setName("Enabled")
 			.setDesc("Whether to automatically enlarge brackets containing e.g. sum, int, frac.")
 			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.basicSettings.autoEnlargeBrackets)
+				.setValue(this.plugin.settings.autoEnlargeBrackets)
 				.onChange(async (value) => {
-					this.plugin.settings.basicSettings.autoEnlargeBrackets = value;
+					this.plugin.settings.autoEnlargeBrackets = value;
 					await this.plugin.saveSettings();
 				}));
 
@@ -300,10 +300,10 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			.setName("Triggers")
 			.setDesc("A list of symbols that should trigger auto-enlarge brackets, separated by commas.")
 			.addText(text => text
-				.setPlaceholder(DEFAULT_SETTINGS.rawSettings.autoEnlargeBracketsTriggers)
-				.setValue(this.plugin.settings.rawSettings.autoEnlargeBracketsTriggers)
+				.setPlaceholder(DEFAULT_SETTINGS.autoEnlargeBracketsTriggers)
+				.setValue(this.plugin.settings.autoEnlargeBracketsTriggers)
 				.onChange(async (value) => {
-					this.plugin.settings.rawSettings.autoEnlargeBracketsTriggers = value;
+					this.plugin.settings.autoEnlargeBracketsTriggers = value;
 
 					await this.plugin.saveSettings();
 				}));
@@ -312,13 +312,25 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		containerEl.createEl("div", { text: "Advanced snippet settings" }).addClasses(["setting-item", "setting-item-heading", "setting-item-name"]);
 
 		new Setting(containerEl)
+			.setName("Snippet variables")
+			.setDesc("Assign snippet variables that can be used as shortcuts when writing snippets.")
+			.addTextArea(text => text
+				.setValue(this.plugin.settings.snippetVariables)
+				.onChange(async (value) => {
+					this.plugin.settings.snippetVariables = value;
+					await this.plugin.saveSettings();
+				})
+				.setPlaceholder(DEFAULT_SETTINGS.snippetVariables))
+			.setClass("latex-suite-snippet-variables-setting");
+
+		new Setting(containerEl)
 			.setName("Word delimiters")
 			.setDesc("Symbols that will be treated as word delimiters, for use with the \"w\" snippet option.")
 			.addText(text => text
-				.setPlaceholder(DEFAULT_SETTINGS.basicSettings.wordDelimiters)
-				.setValue(this.plugin.settings.basicSettings.wordDelimiters)
+				.setPlaceholder(DEFAULT_SETTINGS.wordDelimiters)
+				.setValue(this.plugin.settings.wordDelimiters)
 				.onChange(async (value) => {
-					this.plugin.settings.basicSettings.wordDelimiters = value;
+					this.plugin.settings.wordDelimiters = value;
 
 					await this.plugin.saveSettings();
 				}));
@@ -327,10 +339,10 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		.setName("Code languages to interpret as math mode")
 		.setDesc("Codeblock languages where the whole code block should be treated like a math block, separated by commas.")
 		.addText(text => text
-			.setPlaceholder(DEFAULT_SETTINGS.rawSettings.forceMathLanguages)
-			.setValue(this.plugin.settings.rawSettings.forceMathLanguages)
+			.setPlaceholder(DEFAULT_SETTINGS.forceMathLanguages)
+			.setValue(this.plugin.settings.forceMathLanguages)
 			.onChange(async (value) => {
-				this.plugin.settings.rawSettings.forceMathLanguages = value;
+				this.plugin.settings.forceMathLanguages = value;
 
 				await this.plugin.saveSettings();
 			}));
@@ -339,9 +351,9 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			.setName("Remove trailing whitespaces in snippets in inline math")
 			.setDesc("Whether to remove trailing whitespaces when expanding snippets at the end of inline math blocks.")
 			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.basicSettings.removeSnippetWhitespace)
+				.setValue(this.plugin.settings.removeSnippetWhitespace)
 				.onChange(async (value) => {
-					this.plugin.settings.basicSettings.removeSnippetWhitespace = value;
+					this.plugin.settings.removeSnippetWhitespace = value;
 					await this.plugin.saveSettings();
 				}));
 	}

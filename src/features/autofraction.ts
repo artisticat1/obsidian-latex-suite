@@ -3,7 +3,6 @@ import { SelectionRange } from "@codemirror/state";
 import { findMatchingBracket, getOpenBracket } from "src/utils/editor_utils";
 import { queueSnippet } from "src/snippets/codemirror/snippet_queue_state_field";
 import { expandSnippets } from "src/snippets/snippet_management";
-import { SNIPPET_VARIABLES } from "src/snippets/snippets";
 import { autoEnlargeBrackets } from "./auto_enlarge_brackets";
 import { Context } from "src/utils/context";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
@@ -31,7 +30,7 @@ export const runAutoFractionCursor = (view: EditorView, ctx: Context, range: Sel
 	const {from, to} = range;
 
 	// Don't run autofraction in excluded environments
-	for (const env of settings.parsedSettings.autofractionExcludedEnvs) {
+	for (const env of settings.autofractionExcludedEnvs) {
 		if (ctx.isWithinEnvironment(to, env)) {
 			return false;
 		}
@@ -59,9 +58,11 @@ export const runAutoFractionCursor = (view: EditorView, ctx: Context, range: Sel
 		// Also, allow spaces after greek letters
 		// By replacing spaces after greek letters with a dummy character (#)
 
-		const regex = new RegExp("(" + SNIPPET_VARIABLES["${GREEK}"] + ") ([^ ])", "g");
-		curLine = curLine.replace(regex, "$1#$2");
-
+		const greek = settings.snippetVariables["${GREEK}"];
+		if (greek !== undefined) {
+			const regex = new RegExp("(" + greek + ") ([^ ])", "g");
+			curLine = curLine.replace(regex, "$1#$2");
+		}
 
 
 		for (let i = curLine.length - 1; i >= eqnStart; i--) {
@@ -86,7 +87,7 @@ export const runAutoFractionCursor = (view: EditorView, ctx: Context, range: Sel
 			}
 
 
-			if (" $([{\n".concat(settings.basicSettings.autofractionBreakingChars).contains(curChar)) {
+			if (" $([{\n".concat(settings.autofractionBreakingChars).contains(curChar)) {
 				start = i+1;
 				break;
 			}
@@ -105,7 +106,7 @@ export const runAutoFractionCursor = (view: EditorView, ctx: Context, range: Sel
 		numerator = numerator.slice(1, -1);
 	}
 
-	const replacement = `${settings.basicSettings.autofractionSymbol}{${numerator}}{$0}$1`
+	const replacement = `${settings.autofractionSymbol}{${numerator}}{$0}$1`
 
 	queueSnippet(view, start, to, replacement, "/");
 

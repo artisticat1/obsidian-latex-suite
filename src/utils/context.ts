@@ -32,7 +32,7 @@ export class Context {
 		const inCode = codeblockLanguage !== null;
 
 		const settings = getLatexSuiteConfig(state);
-		const forceMath = settings.parsedSettings.forceMathLanguages.contains(codeblockLanguage);
+		const forceMath = settings.forceMathLanguages.contains(codeblockLanguage);
 		ctx.mode.codeMath = forceMath;
 		ctx.mode.code = inCode && !forceMath;
 		if (ctx.mode.code) ctx.codeblockLanguage = codeblockLanguage;

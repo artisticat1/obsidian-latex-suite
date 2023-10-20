@@ -2,7 +2,7 @@ import { EditorView } from "@codemirror/view";
 import { EditorState, SelectionRange } from "@codemirror/state";
 import { queueSnippet } from "src/snippets/codemirror/snippet_queue_state_field";
 import { expandSnippets } from "src/snippets/snippet_management";
-import { ParsedSnippet, SNIPPET_VARIABLES, EXCLUSIONS } from "src/snippets/snippets";
+import { ParsedSnippet, EXCLUSIONS } from "src/snippets/snippets";
 import { autoEnlargeBrackets } from "./auto_enlarge_brackets";
 import { Context } from "src/utils/context";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
@@ -49,7 +49,7 @@ const runSnippetCursor = (view: EditorView, ctx: Context, key: string, range: Se
 
 			effectiveLine += key;
 		}
-		else if (!(key === settings.basicSettings.snippetsTrigger)) {
+		else if (!(key === settings.snippetsTrigger)) {
 			// The snippet must be triggered by a key
 			continue;
 		}
@@ -62,20 +62,20 @@ const runSnippetCursor = (view: EditorView, ctx: Context, key: string, range: Se
 		}
 
 
-		const result = processSnippet(snippet, effectiveLine, range, sel);
+		const result = processSnippet(snippet, effectiveLine, range, sel, settings.snippetVariables);
 		if (result === null) continue;
 		const triggerPos = result.triggerPos;
 
 
 		if (snippet.options.onWordBoundary) {
 			// Check that the trigger is preceded and followed by a word delimiter
-			if (!isOnWordBoundary(view.state, triggerPos, to, settings.basicSettings.wordDelimiters)) continue;
+			if (!isOnWordBoundary(view.state, triggerPos, to, settings.wordDelimiters)) continue;
 		}
 
 		let replacement = result.replacement;
 
 		// When in inline math, remove any spaces at the end of the replacement
-		if (ctx.mode.inlineMath && settings.basicSettings.removeSnippetWhitespace) {
+		if (ctx.mode.inlineMath && settings.removeSnippetWhitespace) {
 			replacement = trimWhitespace(replacement, ctx);
 		}
 
@@ -84,7 +84,7 @@ const runSnippetCursor = (view: EditorView, ctx: Context, key: string, range: Se
 		queueSnippet(view, start, to, replacement, key);
 
 
-		const containsTrigger = settings.parsedSettings.autoEnlargeBracketsTriggers.some(word => replacement.contains("\\" + word));
+		const containsTrigger = settings.autoEnlargeBracketsTriggers.some(word => replacement.contains("\\" + word));
 		return {success: true, shouldAutoEnlargeBrackets: containsTrigger};
 	}
 
@@ -93,10 +93,10 @@ const runSnippetCursor = (view: EditorView, ctx: Context, key: string, range: Se
 }
 
 
-const processSnippet = (snippet: ParsedSnippet, effectiveLine: string, range:  SelectionRange, sel: string):{triggerPos: number; replacement: string} => {
+const processSnippet = (snippet: ParsedSnippet, effectiveLine: string, range:  SelectionRange, sel: string, snippetVariables: {[key: string]: string}):{triggerPos: number; replacement: string} => {
 	let triggerPos;
 	let trigger = snippet.trigger;
-	trigger = insertSnippetVariables(trigger);
+	trigger = insertSnippetVariables(trigger, snippetVariables);
 
 	let replacement = snippet.replacement;
 
@@ -182,9 +182,8 @@ const isOnWordBoundary = (state: EditorState, triggerPos: number, to: number, wo
 	return (wordDelimiters.contains(prevChar) && wordDelimiters.contains(nextChar));
 }
 
-const insertSnippetVariables = (trigger: string) => {
-
-	for (const [variable, replacement] of Object.entries(SNIPPET_VARIABLES)) {
+const insertSnippetVariables = (trigger: string, variables: {[key: string]: string}) => {
+	for (const [variable, replacement] of Object.entries(variables)) {
 		trigger = trigger.replace(variable, replacement);
 	}
 
