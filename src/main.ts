@@ -47,11 +47,33 @@ export default class LatexSuitePlugin extends Plugin {
 	}
 
 	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		let data = await this.loadData();
+
+		// Migrate settings from v1.8.0 - v1.8.4
+		const shouldMigrateSettings = "basicSettings" in data;
+
+		function migrateSettings(oldSettings: any) {
+			return {
+				...oldSettings.basicSettings,
+				...oldSettings.rawSettings,
+				snippets: oldSettings.snippets,
+			};
+		}
+
+		if (shouldMigrateSettings) {
+			data = migrateSettings(data);
+		}
+
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, data);
+
+		if (shouldMigrateSettings) {
+			this.saveSettings();
+		}
 
 		if (this.settings.loadSnippetsFromFile) {
 			// Use onLayoutReady so that we don't try to read the snippets file too early
-			this.CMSettings = processLatexSuiteSettings(parseSnippets(this.settings.snippets), this.settings);
+			const tempSnippets = parseSnippets(this.settings.snippets);
+			this.CMSettings = processLatexSuiteSettings(tempSnippets, this.settings);
 
 			this.app.workspace.onLayoutReady(() => {
 				this.processSettings();
