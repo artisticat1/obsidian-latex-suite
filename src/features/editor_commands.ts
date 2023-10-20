@@ -88,11 +88,11 @@ function getEnableAllFeaturesCommand(plugin: LatexSuitePlugin) {
 		id: "latex-suite-enable-all-features",
 		name: "Enable all features",
 		callback: async () => {
-			plugin.settings.basicSettings.snippetsEnabled = true;
-			plugin.settings.basicSettings.autofractionEnabled = true;
-			plugin.settings.basicSettings.matrixShortcutsEnabled = true;
-			plugin.settings.basicSettings.taboutEnabled = true;
-			plugin.settings.basicSettings.autoEnlargeBrackets = true;
+			plugin.settings.snippetsEnabled = true;
+			plugin.settings.autofractionEnabled = true;
+			plugin.settings.matrixShortcutsEnabled = true;
+			plugin.settings.taboutEnabled = true;
+			plugin.settings.autoEnlargeBrackets = true;
 
 			await plugin.saveSettings();
 		},
@@ -105,11 +105,11 @@ function getDisableAllFeaturesCommand(plugin: LatexSuitePlugin) {
 		id: "latex-suite-disable-all-features",
 		name: "Disable all features",
 		callback: async () => {
-			plugin.settings.basicSettings.snippetsEnabled = false;
-			plugin.settings.basicSettings.autofractionEnabled = false;
-			plugin.settings.basicSettings.matrixShortcutsEnabled = false;
-			plugin.settings.basicSettings.taboutEnabled = false;
-			plugin.settings.basicSettings.autoEnlargeBrackets = false;
+			plugin.settings.snippetsEnabled = false;
+			plugin.settings.autofractionEnabled = false;
+			plugin.settings.matrixShortcutsEnabled = false;
+			plugin.settings.taboutEnabled = false;
+			plugin.settings.autoEnlargeBrackets = false;
 
 			await plugin.saveSettings();
 		},

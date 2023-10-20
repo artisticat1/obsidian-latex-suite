@@ -30,7 +30,7 @@ export const runAutoFractionCursor = (view: EditorView, ctx: Context, range: Sel
 	const {from, to} = range;
 
 	// Don't run autofraction in excluded environments
-	for (const env of settings.parsedSettings.autofractionExcludedEnvs) {
+	for (const env of settings.autofractionExcludedEnvs) {
 		if (ctx.isWithinEnvironment(to, env)) {
 			return false;
 		}
@@ -58,7 +58,7 @@ export const runAutoFractionCursor = (view: EditorView, ctx: Context, range: Sel
 		// Also, allow spaces after greek letters
 		// By replacing spaces after greek letters with a dummy character (#)
 
-		const greek = settings.parsedSettings.snippetVariables["${GREEK}"];
+		const greek = settings.snippetVariables["${GREEK}"];
 		if (greek !== undefined) {
 			const regex = new RegExp("(" + greek + ") ([^ ])", "g");
 			curLine = curLine.replace(regex, "$1#$2");
@@ -87,7 +87,7 @@ export const runAutoFractionCursor = (view: EditorView, ctx: Context, range: Sel
 			}
 
 
-			if (" $([{\n".concat(settings.basicSettings.autofractionBreakingChars).contains(curChar)) {
+			if (" $([{\n".concat(settings.autofractionBreakingChars).contains(curChar)) {
 				start = i+1;
 				break;
 			}
@@ -106,7 +106,7 @@ export const runAutoFractionCursor = (view: EditorView, ctx: Context, range: Sel
 		numerator = numerator.slice(1, -1);
 	}
 
-	const replacement = `${settings.basicSettings.autofractionSymbol}{${numerator}}{$0}$1`
+	const replacement = `${settings.autofractionSymbol}{${numerator}}{$0}$1`
 
 	queueSnippet(view, start, to, replacement, "/");
 

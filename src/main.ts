@@ -1,7 +1,7 @@
 import { Extension } from "@codemirror/state";
 import { Plugin, Notice, loadMathJax } from "obsidian";
 import { onFileCreate, onFileChange, onFileDelete, getSnippetsWithinFileOrFolder } from "./settings/file_watch";
-import { LatexSuiteSettings, DEFAULT_SETTINGS, LatexSuiteProcessedSettings, processLatexSuiteSettings } from "./settings/settings";
+import { LatexSuitePluginSettings, DEFAULT_SETTINGS, LatexSuiteCMSettings, processLatexSuiteSettings } from "./settings/settings";
 import { LatexSuiteSettingTab } from "./settings/settings_tab";
 
 import { getEditorCommands } from "./features/editor_commands";
@@ -11,8 +11,8 @@ import { latexSuiteExtensions, optionalExtensions } from "./latex_suite";
 import { parseSnippets } from "./snippets/parse_snippets";
 
 export default class LatexSuitePlugin extends Plugin {
-	settings: LatexSuiteSettings;
-	processedSettings: LatexSuiteProcessedSettings;
+	settings: LatexSuitePluginSettings;
+	CMSettings: LatexSuiteCMSettings;
 	editorExtensions:Extension[] = [];
 
 	async onload() {
@@ -49,9 +49,9 @@ export default class LatexSuitePlugin extends Plugin {
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 
-		if (this.settings.basicSettings.loadSnippetsFromFile) {
+		if (this.settings.loadSnippetsFromFile) {
 			// Use onLayoutReady so that we don't try to read the snippets file too early
-			this.processedSettings = processLatexSuiteSettings(parseSnippets(this.settings.snippets), this.settings);
+			this.CMSettings = processLatexSuiteSettings(parseSnippets(this.settings.snippets), this.settings);
 
 			this.app.workspace.onLayoutReady(() => {
 				this.processSettings();
@@ -68,18 +68,18 @@ export default class LatexSuitePlugin extends Plugin {
 	}
 
 	async getSnippets() {
-		if (!this.settings.basicSettings.loadSnippetsFromFile) {
+		if (!this.settings.loadSnippetsFromFile) {
 			return parseSnippets(this.settings.snippets);
 		}
 		else {
-			const snippets = await getSnippetsWithinFileOrFolder(this.settings.basicSettings.snippetsFileLocation);
+			const snippets = await getSnippetsWithinFileOrFolder(this.settings.snippetsFileLocation);
 
 			return snippets;
 		}
 	}
 
 	async processSettings() {
-		this.processedSettings = processLatexSuiteSettings(await this.getSnippets(), this.settings);
+		this.CMSettings = processLatexSuiteSettings(await this.getSnippets(), this.settings);
 		this.reconfigureLatexSuiteConfig();
 		this.refreshCMExtensions();
 	}
@@ -87,7 +87,7 @@ export default class LatexSuitePlugin extends Plugin {
 	reconfigureLatexSuiteConfig() {
 		iterateCM6(this.app.workspace, (view) => {
 			view.dispatch({
-				effects: reconfigureLatexSuiteConfig(this.processedSettings)
+				effects: reconfigureLatexSuiteConfig(this.CMSettings)
 			});
 		})
 	}
@@ -97,7 +97,7 @@ export default class LatexSuitePlugin extends Plugin {
 		while (this.editorExtensions.length) this.editorExtensions.pop();
 
 		// Load Latex Suite extensions
-		this.editorExtensions.push(latexSuiteExtensions(this.processedSettings));
+		this.editorExtensions.push(latexSuiteExtensions(this.CMSettings));
 
 		// Load optional CM extensions according to plugin settings
 		const extensionDict = optionalExtensions;
@@ -105,7 +105,7 @@ export default class LatexSuitePlugin extends Plugin {
 
 		for (const feature of features) {
 			// @ts-ignore
-			if (this.processedSettings.basicSettings[feature + "Enabled"]) {
+			if (this.CMSettings[feature + "Enabled"]) {
 				this.editorExtensions.push(extensionDict[feature]);
 			}
 		}

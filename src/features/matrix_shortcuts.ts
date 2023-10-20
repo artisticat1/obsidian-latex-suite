@@ -10,7 +10,7 @@ export const runMatrixShortcuts = (view: EditorView, ctx: Context, key: string, 
 	// Check whether we are inside a matrix / align / case environment
 	let isInsideAnEnv = false;
 
-	for (const envName of settings.parsedSettings.matrixShortcutsEnvNames) {
+	for (const envName of settings.matrixShortcutsEnvNames) {
 		const env = {openSymbol: "\\begin{" + envName + "}", closeSymbol: "\\end{" + envName + "}"};
 
 		isInsideAnEnv = ctx.isWithinEnvironment(ctx.pos, env);

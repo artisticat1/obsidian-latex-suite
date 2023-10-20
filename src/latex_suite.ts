@@ -17,7 +17,7 @@ import { snippetExtensions } from "./snippets/codemirror/extensions";
 
 import { concealPlugin } from "./editor_extensions/conceal";
 
-import { LatexSuiteProcessedSettings } from "./settings/settings";
+import { LatexSuiteCMSettings } from "./settings/settings";
 import { colorPairedBracketsPluginLowestPrec, highlightCursorBracketsPlugin } from "./editor_extensions/highlight_brackets";
 import { cursorTooltipBaseTheme, cursorTooltipField } from "./editor_extensions/math_tooltip";
 
@@ -49,7 +49,7 @@ export const handleKeydown = (key: string, shiftKey: boolean, ctrlKey: boolean, 
 
 	let success = false;
 
-	if (settings.basicSettings.snippetsEnabled) {
+	if (settings.snippetsEnabled) {
 
 		// Allows Ctrl + z for undo, instead of triggering a snippet ending with z
 		if (!ctrlKey) {
@@ -72,7 +72,7 @@ export const handleKeydown = (key: string, shiftKey: boolean, ctrlKey: boolean, 
 		if (success) return true;
 	}
 
-	if (settings.basicSettings.autofractionEnabled && ctx.mode.strictlyInMath()) {
+	if (settings.autofractionEnabled && ctx.mode.strictlyInMath()) {
 		if (key === "/") {
 			success = runAutoFraction(view, ctx);
 
@@ -80,7 +80,7 @@ export const handleKeydown = (key: string, shiftKey: boolean, ctrlKey: boolean, 
 		}
 	}
 
-	if (settings.basicSettings.matrixShortcutsEnabled && ctx.mode.blockMath) {
+	if (settings.matrixShortcutsEnabled && ctx.mode.blockMath) {
 		if (["Tab", "Enter"].contains(key)) {
 			success = runMatrixShortcuts(view, ctx, key, shiftKey);
 
@@ -88,7 +88,7 @@ export const handleKeydown = (key: string, shiftKey: boolean, ctrlKey: boolean, 
 		}
 	}
 
-	if (settings.basicSettings.taboutEnabled) {
+	if (settings.taboutEnabled) {
 		if (key === "Tab") {
 			success = tabout(view, ctx);
 
@@ -107,7 +107,7 @@ export const handleTabstops = (view: EditorView) =>
 }
 
 // CodeMirror extensions that are required for Latex Suite to run
-export const latexSuiteExtensions = (settings: LatexSuiteProcessedSettings) => [
+export const latexSuiteExtensions = (settings: LatexSuiteCMSettings) => [
 	getLatexSuiteConfigExtension(settings),
 	Prec.highest(EditorView.domEventHandlers({"keydown": onKeydown})), // Register keymaps
 	EditorView.updateListener.of(handleUpdate),

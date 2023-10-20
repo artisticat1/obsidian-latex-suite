@@ -49,7 +49,7 @@ const runSnippetCursor = (view: EditorView, ctx: Context, key: string, range: Se
 
 			effectiveLine += key;
 		}
-		else if (!(key === settings.basicSettings.snippetsTrigger)) {
+		else if (!(key === settings.snippetsTrigger)) {
 			// The snippet must be triggered by a key
 			continue;
 		}
@@ -62,20 +62,20 @@ const runSnippetCursor = (view: EditorView, ctx: Context, key: string, range: Se
 		}
 
 
-		const result = processSnippet(snippet, effectiveLine, range, sel, settings.parsedSettings.snippetVariables);
+		const result = processSnippet(snippet, effectiveLine, range, sel, settings.snippetVariables);
 		if (result === null) continue;
 		const triggerPos = result.triggerPos;
 
 
 		if (snippet.options.onWordBoundary) {
 			// Check that the trigger is preceded and followed by a word delimiter
-			if (!isOnWordBoundary(view.state, triggerPos, to, settings.basicSettings.wordDelimiters)) continue;
+			if (!isOnWordBoundary(view.state, triggerPos, to, settings.wordDelimiters)) continue;
 		}
 
 		let replacement = result.replacement;
 
 		// When in inline math, remove any spaces at the end of the replacement
-		if (ctx.mode.inlineMath && settings.basicSettings.removeSnippetWhitespace) {
+		if (ctx.mode.inlineMath && settings.removeSnippetWhitespace) {
 			replacement = trimWhitespace(replacement, ctx);
 		}
 
@@ -84,7 +84,7 @@ const runSnippetCursor = (view: EditorView, ctx: Context, key: string, range: Se
 		queueSnippet(view, start, to, replacement, key);
 
 
-		const containsTrigger = settings.parsedSettings.autoEnlargeBracketsTriggers.some(word => replacement.contains("\\" + word));
+		const containsTrigger = settings.autoEnlargeBracketsTriggers.some(word => replacement.contains("\\" + word));
 		return {success: true, shouldAutoEnlargeBrackets: containsTrigger};
 	}
 
