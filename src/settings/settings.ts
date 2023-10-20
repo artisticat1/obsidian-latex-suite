@@ -86,12 +86,32 @@ export function processLatexSuiteSettings(snippets: ParsedSnippet[], settings: L
 	}
 
 	function getAutofractionExcludedEnvs(envsStr: string) {
-		const envsJSON = JSON.parse(envsStr);
-		const envs = envsJSON.map(function(env: string[]) {
-			return {openSymbol: env[0], closeSymbol: env[1]};
-		});
+		let envs = [];
+
+		try {
+			const envsJSON = JSON.parse(envsStr);
+			envs = envsJSON.map(function(env: string[]) {
+				return {openSymbol: env[0], closeSymbol: env[1]};
+			});
+		}
+		catch (e) {
+			console.log(e);
+		}
 
 		return envs;
+	}
+
+	function getSnippetVariables(snippetVarsStr: string) {
+		let vars = [];
+
+		try {
+			vars = JSON.parse(snippetVarsStr);
+		}
+		catch (e) {
+			console.log(e);
+		}
+
+		return vars;
 	}
 
 	return {
@@ -103,7 +123,7 @@ export function processLatexSuiteSettings(snippets: ParsedSnippet[], settings: L
 		matrixShortcutsEnvNames: strToArray(settings.matrixShortcutsEnvNames),
 		autoEnlargeBracketsTriggers: strToArray(settings.autoEnlargeBracketsTriggers),
 		forceMathLanguages: strToArray(settings.forceMathLanguages),
-		snippetVariables: JSON.parse(settings.snippetVariables),
+		snippetVariables: getSnippetVariables(settings.snippetVariables),
 
 	}
 }
