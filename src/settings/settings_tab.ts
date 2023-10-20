@@ -347,13 +347,15 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName("Snippet variables")
-			.setDesc("Set the variables to be used in the snippets.")
+			.setDesc("Assign snippet variables that can be used as shortcuts when writing snippets.")
 			.addTextArea(text => text
 				.setValue(this.plugin.settings.snippetVariables)
 				.onChange(async (value) => {
 					this.plugin.settings.snippetVariables = value;
 					await this.plugin.saveSettings();
-				}));
+				})
+				.setPlaceholder(DEFAULT_SETTINGS.snippetVariables))
+			.setClass("latex-suite-snippet-variables-setting");
 	}
 
 

@@ -5,28 +5,23 @@
     display: inline-block;
 }
 
-
 .hidden {
     display: none;
 }
 
-
 .snippets-text-area .setting-item-info {
     margin-bottom: 0.75rem;
 }
-
 
 .snippets-text-area .setting-item-control {
     flex-direction: column;
     align-items: flex-end;
 }
 
-
 .snippets-editor-wrapper {
     width: 100%;
     margin-bottom: 0.75rem;
 }
-
 
 .snippets-editor-wrapper .cm-editor {
     height: 20em;
@@ -37,16 +32,13 @@
     border: 1px solid var(--background-modifier-border);
 }
 
-
 .snippets-editor-wrapper .cm-editor, .cm-scroller {
     border-radius: 4px;
 }
 
-
 .snippets-editor-wrapper .cm-line, .snippets-editor-wrapper .cm-lineNumbers {
     font-family: var(--font-monospace);
 }
-
 
 .snippets-footer {
     width: 100%;
@@ -55,65 +47,61 @@
     justify-content: space-between;
 }
 
-
 .snippets-editor-validity {
     display: flex;
     align-items: center;
 }
 
-
 .snippets-editor-validity-indicator {
     color: white;
     display: inline-block;
     border-radius: 1em;
-    margin-right: var(--size-3);
+    margin-right: 10px;
     cursor: default;
     visibility: hidden;
 }
-
 
 .snippets-editor-validity-indicator svg {
     width: 16px !important;
     height: 16px !important;
 }
 
-
 .snippets-editor-validity-indicator:hover {
     color: white;
 }
-
 
 .snippets-editor-validity-indicator.valid {
     background-color: #7dc535;
     visibility: visible;
 }
 
-
 .theme-dark .snippets-editor-validity-indicator.valid {
     background-color: #588b24;
 }
-
 
 .snippets-editor-validity-indicator.invalid {
     background-color: #ea5555;
     visibility: visible;
 }
 
-
-
 .snippets-editor-buttons {
     display: flex;
     flex-direction: row;
 }
 
-
-
 .latex-suite-confirmation-modal .setting-item {
     border: none;
 }
 
+.latex-suite-snippet-variables-setting .setting-item-control {
+    width: 30%;
+    height: 80px;
+}
 
-
+.latex-suite-snippet-variables-setting .setting-item-control textarea {
+    width: 100%;
+    height: 100%;
+}
 
 /*
 Snippet color classes.
