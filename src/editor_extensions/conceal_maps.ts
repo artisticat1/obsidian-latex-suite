@@ -87,7 +87,6 @@ export const cmd_symbols:{[name:string]: string} =
 	"left": "",
 	"leq": "≤",
 	"le": "≤",
-	"limits": "",
 	"ll": "≪",
 	"lmoustache": "╭",
 	"lor": "∨",
