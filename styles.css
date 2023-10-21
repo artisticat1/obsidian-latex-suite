@@ -1,6 +1,6 @@
 /* Settings panel */
 
-.hidden {
+.setting-item.hidden {
     display: none;
 }
 
