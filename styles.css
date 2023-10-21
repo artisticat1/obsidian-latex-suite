@@ -2,7 +2,7 @@
 
 .setting-item.setting-item-heading .latex-suite-settings-icon {
     margin-right: var(--size-4-2);
-    height: 19px;
+    display: inline-flex;
 }
 
 .setting-item.setting-item-heading:has(.latex-suite-settings-icon) ~ .setting-item:not(.setting-item-heading) {
