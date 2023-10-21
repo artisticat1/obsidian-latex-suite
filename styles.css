@@ -1,28 +1,33 @@
 /* Settings panel */
 
+.hidden {
+    display: none;
+}
+
 .setting-item.setting-item-heading .latex-suite-settings-icon {
     margin-right: var(--size-4-2);
     display: inline-flex;
 }
 
-.setting-item.setting-item-heading:has(.latex-suite-settings-icon) ~ .setting-item:not(.setting-item-heading) {
+.setting-item.setting-item-heading:has(.latex-suite-settings-icon) ~ .setting-item:not(.setting-item-heading), .latex-suite-snippet-variables-setting + .setting-item-control {
     width: calc(100% - 26px);
     margin-left: 26px;
 }
 
-/* .setting-item:not(.setting-item-heading) {
-} */
+.latex-suite-snippet-variables-setting .setting-item-control {
+    height: 120px;
+}
 
-.snippets-text-area {
+.latex-suite-snippet-variables-setting .setting-item-control textarea {
     width: 100%;
+    height: 100%;
+}
+
+.snippets-text-area, .latex-suite-snippet-variables-setting {
     display: inline-block;
 }
 
-.hidden {
-    display: none;
-}
-
-.snippets-text-area .setting-item-info {
+.snippets-text-area .setting-item-info, .latex-suite-snippet-variables-setting .setting-item-info {
     margin-bottom: 0.75rem;
 }
 
@@ -106,15 +111,6 @@
     border: none;
 }
 
-.latex-suite-snippet-variables-setting .setting-item-control {
-    width: 30%;
-    height: 80px;
-}
-
-.latex-suite-snippet-variables-setting .setting-item-control textarea {
-    width: 100%;
-    height: 100%;
-}
 
 /*
 Snippet color classes.
