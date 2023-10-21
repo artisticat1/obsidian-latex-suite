@@ -290,7 +290,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				}));
 
 
-		this.addHeading(containerEl, "Auto-enlarge-brackets", "parentheses");
+		this.addHeading(containerEl, "Auto-enlarge brackets", "parentheses");
 
 		new Setting(containerEl)
 			.setName("Enabled")
