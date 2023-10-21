@@ -53,7 +53,7 @@ export default class LatexSuitePlugin extends Plugin {
 		let data = await this.loadData();
 
 		// Migrate settings from v1.8.0 - v1.8.4
-		const shouldMigrateSettings = "basicSettings" in data;
+		const shouldMigrateSettings = data ? "basicSettings" in data : false;
 
 		function migrateSettings(oldSettings: any) {
 			return {
