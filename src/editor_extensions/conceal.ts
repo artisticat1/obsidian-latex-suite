@@ -346,6 +346,35 @@ function concealBraKet(eqn: string, selection: EditorSelection, eqnStartBound: n
 	return concealments;
 }
 
+function concealSet(eqn: string, selection: EditorSelection, eqnStartBound: number, mousedown: boolean): Concealment[] {
+
+	const setRegex = /\\set\{/g;
+
+	const matches = [...eqn.matchAll(setRegex)];
+
+	const concealments: Concealment[] = [];
+
+	for (const match of matches) {
+		const start = match.index;
+		const end = start + match[0].length;
+
+		const loc = match.index + match[0].length;
+		const j = findMatchingBracket(eqn, loc-1, "{", "}", false);
+		if (j === -1) { continue; }
+
+		if (!mousedown) {
+			if (selectionAndRangeOverlap(selection, eqnStartBound + start, eqnStartBound + end)) { continue; }
+			if (selectionAndRangeOverlap(selection, eqnStartBound + j, eqnStartBound + j + 1)) { continue; }
+		}
+
+		concealments.push({start: start, end: end - 1, replacement: ""});
+		concealments.push({start: end - 1, end: end, replacement: "{", class: "cm-bracket"});
+		concealments.push({start: j, end: j + 1, replacement: "}", class: "cm-bracket"});
+	}
+
+	return concealments;
+}
+
 function concealFraction(eqn: string, selection: EditorSelection, eqnStartBound: number, mousedown: boolean):Concealment[] {
 
 	const regexStr = "\\\\(frac){";
@@ -436,6 +465,7 @@ function conceal(view: EditorView) {
 				...concealModified_A_to_Z_0_to_9(eqn, mathbb),
 				...concealText(eqn),
 				...concealBraKet(eqn, selection, bounds.start, mousedown),
+				...concealSet(eqn, selection, bounds.start, mousedown),
 				...concealFraction(eqn, selection, bounds.start, mousedown),
 				...concealOperators(eqn, operators)
 			];
