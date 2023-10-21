@@ -89,6 +89,22 @@ function escapeRegex(regex: string) {
 	return regex;
 }
 
+/**
+ * gets the updated end index to include "\\limits" in the concealed text of some conceal match,
+ * if said match is directly followed by "\\limits"
+ * 
+ * @param eqn source text
+ * @param end index of eqn corresponding to the end of a match to conceal
+ * @returns the updated end index to conceal
+ */
+function getEndIncludingLimits(eqn: string, end: number): number {
+	const LIMITS = "\\limits";
+	if (eqn.substring(end, end + LIMITS.length) === LIMITS) {
+		return end + LIMITS.length;
+	}
+	return end;
+}
+
 function concealSymbols(eqn: string, prefix: string, suffix: string, symbolMap: {[key: string]: string}, className?: string, allowSucceedingLetters = true):Concealment[] {
 	const symbolNames = Object.keys(symbolMap);
 
@@ -111,8 +127,10 @@ function concealSymbols(eqn: string, prefix: string, suffix: string, symbolMap: 
 				continue;
 			}
 		}
+		
+		const end = getEndIncludingLimits(eqn, match.index + match[0].length);
 
-		concealments.push({start: match.index, end: match.index + match[0].length, replacement: symbolMap[symbol], class: className});
+		concealments.push({start: match.index, end: end, replacement: symbolMap[symbol], class: className});
 	}
 
 	return concealments;
@@ -265,7 +283,7 @@ function concealText(eqn: string):Concealment[] {
 
 function concealOperators(eqn: string, symbols: string[]):Concealment[] {
 
-	const regexStr = "\\\\(" + symbols.join("|") + ")";
+	const regexStr = "(\\\\(" + symbols.join("|") + "))([^a-zA-Z]|$)";
 	const regex = new RegExp(regexStr, "g");
 
 	const matches = [...eqn.matchAll(regex)];
@@ -273,13 +291,12 @@ function concealOperators(eqn: string, symbols: string[]):Concealment[] {
 	const concealments:Concealment[] = [];
 
 	for (const match of matches) {
-		const value = match[1];
+		const value = match[2];
 
 		const start = match.index;
-		const end = start + match[0].length;
-
+		const end = getEndIncludingLimits(eqn, start + match[1].length);
+		
 		concealments.push({start: start, end: end, replacement: value, class: "cm-concealed-mathrm cm-variable-2"});
-
 	}
 
 	return concealments;
