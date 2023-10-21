@@ -1,5 +1,6 @@
 import { ParsedSnippet, RawSnippet } from "./snippets";
 import { parse } from "json5";
+import { encode } from "js-base64";
 
 export function sortSnippets(snippets:ParsedSnippet[]) {
 	// Sort snippets by trigger length so longer snippets will have higher priority
@@ -36,19 +37,39 @@ export function sortSnippets(snippets:ParsedSnippet[]) {
 	snippets.sort(comparePriority);
 }
 
+export async function importSnippets(resourcePath: string): Promise<ParsedSnippet[]> {
+	const rawSnippets = (await import(resourcePath)).default;
+	if (!validateSnippets(rawSnippets)) { throw "Invalid snippet format."; }
+	
+	const parsedSnippets = (rawSnippets as RawSnippet[]).map(rawSnippet => new ParsedSnippet(rawSnippet));
+	sortSnippets(parsedSnippets);
 
-export function parseSnippets(snippetsStr: string) {
-	const rawSnippets: RawSnippet[] = parse(snippetsStr);
+	return parsedSnippets;
+}
+
+export async function parseSnippets(snippetsStr: string) {
+	// first try to import it as a javascript module
+	try {
+		// js-base64.encode is needed over builtin `window.btoa` because the latter errors on unicode
+		return await importSnippets(`data:text/javascript;base64,${encode(snippetsStr)}`);
+	} catch (e) { /* don't need to do anything here - will naturally fall through, since try case returns */ }
+
+	/// could theoretically absolve the need for json5 by doing this instead
+	// return await importSnippets(`data:text/javascript;base64,${encode(`export default ${snippetsStr}`)}`);
+
+	const rawSnippets = parse(snippetsStr);
 	if (!validateSnippets(rawSnippets)) throw "Invalid snippet format.";
 
-	const parsedSnippets = rawSnippets.map(rawSnippet => new ParsedSnippet(rawSnippet));
+	const parsedSnippets = (rawSnippets as RawSnippet[]).map(rawSnippet => new ParsedSnippet(rawSnippet));
 	sortSnippets(parsedSnippets);
 
 	return parsedSnippets;
 }
 
 
-export function validateSnippets(snippets: RawSnippet[]):boolean {
+export function validateSnippets(snippets: unknown): boolean {
+	if (!Array.isArray(snippets)) { return false; }
+	
 	let valid = true;
 
 	for (const snippet of snippets) {

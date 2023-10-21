@@ -75,7 +75,7 @@ export default class LatexSuitePlugin extends Plugin {
 
 		if (this.settings.loadSnippetsFromFile) {
 			// Use onLayoutReady so that we don't try to read the snippets file too early
-			const tempSnippets = parseSnippets(this.settings.snippets);
+			const tempSnippets = await parseSnippets(this.settings.snippets);
 			this.CMSettings = processLatexSuiteSettings(tempSnippets, this.settings);
 
 			this.app.workspace.onLayoutReady(() => {
@@ -94,7 +94,7 @@ export default class LatexSuitePlugin extends Plugin {
 
 	async getSnippets() {
 		if (!this.settings.loadSnippetsFromFile) {
-			return parseSnippets(this.settings.snippets);
+			return await parseSnippets(this.settings.snippets);
 		}
 		else {
 			const snippets = await getSnippetsWithinFileOrFolder(this.settings.snippetsFileLocation);
