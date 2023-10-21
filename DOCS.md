@@ -1,14 +1,20 @@
 # Documentation
 ## Snippets
+
+A snippets file is either a JavaScript module with a default export of an array of snippets, or a [JSON5](https://json5.org/) document consisting of an array of snippets.
+
+_Note: an **array** is a list of items. In JavaScript and JSON5, this is represented with the bracket symbols `[` `]`, with the items between them and separated by commas, e.g. `[ item1, item2 ]`._
+
 Snippets are formatted as follows:
 
 ```typescript
-{trigger: string, replacement: string, options: string, description?: string, priority?: number}
+{trigger: string | RegExp, replacement: string, options: string, flags?: string, description?: string, priority?: number}
 ```
 
-- `trigger` : The text that triggers this snippet.
+- `trigger` : The text that triggers this snippet. In JavaScript snippet files, it can also be a `RegExp` literal.
 - `replacement` : The text to replace the `trigger` with.
 - `options` : See below.
+- `flags` (optional): Flags for [regex snippets](#regex). Not applicable to non-regex snippets. The following flags are permitted: `i`, `m`, `s`, `u`, `v`.
 - `priority` (optional): This snippet's priority. Snippets with higher priority are run first. Can be negative. Defaults to 0.
 - `description` (optional): A description for this snippet.
 

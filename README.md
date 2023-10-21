@@ -131,6 +131,7 @@ Snippets are formatted as follows:
 - `trigger` : The text that triggers this snippet.
 - `replacement` : The text to replace the `trigger` with.
 - `options` : See below.
+- `flags` (optional): Flags for regex snippets.
 - `description` (optional): A description for this snippet.
 - `priority` (optional): This snippet's priority. Defaults to 0. Snippets with higher priority are run first. Can be negative.
 
