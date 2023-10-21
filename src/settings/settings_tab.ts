@@ -342,6 +342,17 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
+
+		new Setting(containerEl)
+		.setName("Remove trailing whitespaces in snippets in inline math")
+		.setDesc("Whether to remove trailing whitespaces when expanding snippets at the end of inline math blocks.")
+		.addToggle(toggle => toggle
+			.setValue(this.plugin.settings.removeSnippetWhitespace)
+			.onChange(async (value) => {
+				this.plugin.settings.removeSnippetWhitespace = value;
+				await this.plugin.saveSettings();
+			}));
+
 		new Setting(containerEl)
 		.setName("Code languages to interpret as math mode")
 		.setDesc("Codeblock languages where the whole code block should be treated like a math block, separated by commas.")
@@ -353,16 +364,6 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 				await this.plugin.saveSettings();
 			}));
-
-		new Setting(containerEl)
-			.setName("Remove trailing whitespaces in snippets in inline math")
-			.setDesc("Whether to remove trailing whitespaces when expanding snippets at the end of inline math blocks.")
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.removeSnippetWhitespace)
-				.onChange(async (value) => {
-					this.plugin.settings.removeSnippetWhitespace = value;
-					await this.plugin.saveSettings();
-				}));
 	}
 
 
