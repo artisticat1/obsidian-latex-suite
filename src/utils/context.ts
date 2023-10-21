@@ -38,8 +38,7 @@ export class Context {
 		if (ctx.mode.code) ctx.codeblockLanguage = codeblockLanguage;
 
 		// first, check if math mode should be "generally" on
-		const inMath = forceMath || (isWithinEquation(state)
-		);
+		const inMath = forceMath || isWithinEquation(state);
 
 		if (inMath && !forceMath) {
 			const inInlineEquation = isWithinInlineEquation(state);
@@ -170,7 +169,7 @@ const isWithinEquation = (state: EditorState):boolean => {
 		const left = tree.resolveInner(pos - 1, -1);
 		const right = tree.resolveInner(pos + 1, 1);
 
-		return (left.name.contains("math") && right.name.contains("math"));
+		return (left.name.contains("math") && right.name.contains("math") && !(left.name.contains("math-end")));
 	}
 
 	return (syntaxNode.name.contains("math"));
