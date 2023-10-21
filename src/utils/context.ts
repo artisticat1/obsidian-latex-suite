@@ -113,7 +113,9 @@ export class Context {
 	inTextEnvironment(): boolean {
 		return (
 			this.isWithinEnvironment(this.pos, {openSymbol: "\\text{", closeSymbol: "}"}) ||
-			this.isWithinEnvironment(this.pos, {openSymbol: "\\tag{", closeSymbol: "}"})
+			this.isWithinEnvironment(this.pos, {openSymbol: "\\tag{", closeSymbol: "}"}) ||
+			this.isWithinEnvironment(this.pos, {openSymbol: "\\begin{", closeSymbol: "}"}) ||
+			this.isWithinEnvironment(this.pos, {openSymbol: "\\end{", closeSymbol: "}"})
 		);
 	}
 
