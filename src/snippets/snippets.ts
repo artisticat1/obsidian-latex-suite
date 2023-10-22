@@ -13,10 +13,10 @@ export class ParsedSnippet {
 	trigger: string;
 	replacement: string;
 	options: Options;
+	flags: string;
 	priority?: number;
 	description?: string;
-	flags?: string;
-
+	
 	constructor(raw: RawSnippet) {
 		// normalize triggers as strings
 		const override: RawSnippet = { ...raw }
@@ -25,6 +25,8 @@ export class ParsedSnippet {
 			override.trigger = raw.trigger.source;
 			override.flags = raw.trigger.flags;
 		}
+
+		// merge flags
 		const validFlags = [
 			// "d", // doesn't affect the search
 			// "g", // doesn't affect the pattern match and is almost certainly undesired behavior
@@ -39,7 +41,7 @@ export class ParsedSnippet {
 			.filter(flag => validFlags.includes(flag))
 			.join(""); 
 
-		const parsed = {...raw, ...override, flags: resolvedFlags, options: Options.fromSource(raw.options)};
+		const parsed = {...raw, ...override, options: Options.fromSource(raw.options), flags: resolvedFlags};
 		Object.assign(this, parsed);
 	}
 }
