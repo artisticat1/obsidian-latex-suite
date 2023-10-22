@@ -1,9 +1,9 @@
 # Documentation
 ## Snippets
 
-A snippets file is either a JavaScript module with a default export of an array of snippets, or a [JSON5](https://json5.org/) document consisting of an array of snippets.
+A snippets file is a JavaScript array of snippets, or a JavaScript module with a default export of an array of snippets.
 
-_Note: an **array** is a list of items. In JavaScript and JSON5, this is represented with the bracket symbols `[` `]`, with the items between them and separated by commas, e.g. `[ item1, item2 ]`._
+_Note: an **array** is a list of items. In JavaScript, this is represented with the bracket symbols `[` `]`, with the items between them and separated by commas, e.g. `[ item1, item2 ]`._
 
 Snippets are formatted as follows:
 
