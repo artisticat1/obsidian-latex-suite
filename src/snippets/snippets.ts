@@ -41,7 +41,7 @@ export class ParsedSnippet {
 			.filter(flag => validFlags.includes(flag))
 			.join(""); 
 
-		const parsed = {...raw, ...override, options: Options.fromSource(raw.options), flags: resolvedFlags};
+		const parsed = {...raw, ...override, options: Options.fromSource(override.options), flags: resolvedFlags};
 		Object.assign(this, parsed);
 	}
 }
