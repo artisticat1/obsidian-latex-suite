@@ -1,5 +1,4 @@
 import { ParsedSnippet, RawSnippet } from "./snippets";
-import { parse } from "json5";
 import { encode } from "js-base64";
 
 export function sortSnippets(snippets:ParsedSnippet[]) {
@@ -37,28 +36,46 @@ export function sortSnippets(snippets:ParsedSnippet[]) {
 	snippets.sort(comparePriority);
 }
 
-export async function importSnippets(resourcePath: string): Promise<ParsedSnippet[]> {
-	const rawSnippets = (await import(resourcePath)).default;
-	if (!validateSnippets(rawSnippets)) { throw "Invalid snippet format."; }
+/**
+ * imports the default export of a given module.
+ * 
+ * @param module the module to import. this can be a resource path, data url, etc
+ * @returns the default export of said module
+ * @throws if import fails or default export is undefined
+ */
+async function importModuleDefault(module: string): Promise<unknown> {
+	let data;
+	try {
+		data = await import(module);
+	} catch (e) {
+		throw `failed to import module ${module}`;
+	}
 	
-	const parsedSnippets = rawSnippets.map(rawSnippet => new ParsedSnippet(rawSnippet));
-	sortSnippets(parsedSnippets);
+	// it's safe to use `in` here - it has a null prototype, so `Object.hasOwnProperty` isn't available,
+	// but on the other hand we don't need to worry about something further up the prototype chain messing with this check
+	if (!("default" in data)) {
+		throw `No default export provided for module ${module}`;
+	}
 
-	return parsedSnippets;
+	return data.default;
 }
 
 export async function parseSnippets(snippetsStr: string) {
-	// first try to import it as a javascript module
+	let rawSnippets;
 	try {
-		// js-base64.encode is needed over builtin `window.btoa` because the latter errors on unicode
-		return await importSnippets(`data:text/javascript;base64,${encode(snippetsStr)}`);
-	} catch (e) { /* don't need to do anything here - will naturally fall through, since try case returns */ }
+		try {
+			// first, try to import as a plain js module
+			// js-base64.encode is needed over builtin `window.btoa` because the latter errors on unicode
+			rawSnippets = await importModuleDefault(`data:text/javascript;base64,${encode(snippetsStr)}`);
+		} catch {
+			// otherwise, try to import as a standalone js array
+			rawSnippets = await importModuleDefault(`data:text/javascript;base64,${encode(`export default ${snippetsStr}`)}`);
+		}
+	} catch (e) {
+		throw "Invalid snippet format.";	
+	}
 
-	/// could theoretically absolve the need for json5 by doing this instead
-	// return await importSnippets(`data:text/javascript;base64,${encode(`export default ${snippetsStr}`)}`);
-
-	const rawSnippets = parse(snippetsStr);
-	if (!validateSnippets(rawSnippets)) throw "Invalid snippet format.";
+	if (!validateSnippets(rawSnippets)) { throw "Invalid snippet format."; }
 
 	const parsedSnippets = rawSnippets.map(rawSnippet => new ParsedSnippet(rawSnippet));
 	sortSnippets(parsedSnippets);

@@ -30,7 +30,6 @@
 		"esbuild": "0.13.12",
 		"eslint": "^8.12.0",
 		"js-base64": "^3.7.5",
-		"json5": "^2.2.1",
 		"obsidian": "^0.15.0",
 		"tslib": "2.3.1",
 		"typescript": "4.4.4"
