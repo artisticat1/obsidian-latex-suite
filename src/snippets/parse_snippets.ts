@@ -41,7 +41,7 @@ export async function importSnippets(resourcePath: string): Promise<ParsedSnippe
 	const rawSnippets = (await import(resourcePath)).default;
 	if (!validateSnippets(rawSnippets)) { throw "Invalid snippet format."; }
 	
-	const parsedSnippets = (rawSnippets as RawSnippet[]).map(rawSnippet => new ParsedSnippet(rawSnippet));
+	const parsedSnippets = rawSnippets.map(rawSnippet => new ParsedSnippet(rawSnippet));
 	sortSnippets(parsedSnippets);
 
 	return parsedSnippets;
@@ -60,26 +60,23 @@ export async function parseSnippets(snippetsStr: string) {
 	const rawSnippets = parse(snippetsStr);
 	if (!validateSnippets(rawSnippets)) throw "Invalid snippet format.";
 
-	const parsedSnippets = (rawSnippets as RawSnippet[]).map(rawSnippet => new ParsedSnippet(rawSnippet));
+	const parsedSnippets = rawSnippets.map(rawSnippet => new ParsedSnippet(rawSnippet));
 	sortSnippets(parsedSnippets);
 
 	return parsedSnippets;
 }
 
-
-export function validateSnippets(snippets: unknown): boolean {
+export function validateSnippets(snippets: unknown): snippets is RawSnippet[] {
 	if (!Array.isArray(snippets)) { return false; }
 	
-	let valid = true;
-
-	for (const snippet of snippets) {
-		// Check that the snippet trigger, replacement and options are defined
-
-		if (!(snippet.trigger && snippet.replacement && snippet.options != undefined)) {
-			valid = false;
-			break;
-		}
-	}
-
-	return valid;
+	return snippets.every(snippet => (
+		// check that trigger is defined
+		(typeof snippet.trigger === "string" || snippet.trigger instanceof RegExp)
+		// check that replacement is defined
+		&& (typeof snippet.replacement === "string")
+		// check that options is defined
+		&& (typeof snippet.options === "string")
+		// check that flags, if defined, is a string
+		&& (typeof snippet.flags === "undefined" || typeof snippet.flags === "string")
+	));
 }
