@@ -3,12 +3,14 @@ export class Options {
 	automatic: boolean;
 	regex: boolean;
 	onWordBoundary: boolean;
+	visual: boolean;
 
 	constructor() {
 		this.mode = new Mode();
 		this.automatic = false;
 		this.regex = false;
 		this.onWordBoundary = false;
+		this.visual = false;
 	}
 
 	static fromSource(source: string):Options {
@@ -25,6 +27,9 @@ export class Options {
 					break;
 				case "w":
 					options.onWordBoundary = true;
+					break;
+				case "v":
+					options.visual = true;
 					break;
 			}
 		}

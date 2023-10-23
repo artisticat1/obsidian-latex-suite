@@ -85,15 +85,35 @@ export async function parseSnippets(snippetsStr: string) {
 
 export function validateSnippets(snippets: unknown): snippets is RawSnippet[] {
 	if (!Array.isArray(snippets)) { return false; }
-	
+
 	return snippets.every(snippet => (
-		// check that trigger is defined
-		(typeof snippet.trigger === "string" || snippet.trigger instanceof RegExp)
-		// check that replacement is defined
-		&& (typeof snippet.replacement === "string")
-		// check that options is defined
-		&& (typeof snippet.options === "string")
-		// check that flags, if defined, is a string
-		&& (typeof snippet.flags === "undefined" || typeof snippet.flags === "string")
+		typeof snippet === "object"
+		&& validateTrigger(snippet.trigger)
+		&& validateReplacement(snippet.replacement)
+		&& validateOptions(snippet.options)
+		&& validateFlags(snippet.flags)
+		&& validatePriority(snippet.priority)
 	));
+}
+
+function validateTrigger(trigger: unknown): boolean {
+	return typeof trigger === "string" || trigger instanceof RegExp;
+}
+
+function validateReplacement(replacement: unknown): boolean {
+	return typeof replacement === "string" || typeof replacement === "function";
+}
+
+function validateOptions(options: unknown): options is string {
+	return typeof options === "string";
+}
+
+function validateFlags(flags: unknown) {
+	// flags are optional
+	return typeof flags === "undefined" || typeof flags === "string";
+}
+
+function validatePriority(priority: unknown): priority is number | undefined {
+	// priority is optional
+	return typeof priority === "undefined" || typeof priority === "number";
 }

@@ -43,7 +43,7 @@ const runSnippetCursor = (view: EditorView, ctx: Context, key: string, range: Se
 			continue;
 		}
 
-		if (snippet.options.automatic || snippet.replacement.contains("${VISUAL}")) {
+		if (snippet.options.automatic || snippet.type === "visual") {
 			// If the key pressed wasn't a text character, continue
 			if (!(key.length === 1)) continue;
 
@@ -92,63 +92,88 @@ const runSnippetCursor = (view: EditorView, ctx: Context, key: string, range: Se
 	return {success: false, shouldAutoEnlargeBrackets: false};
 }
 
+type ProcessSnippetResult =
+	| { triggerPos: number, replacement: string }
+	| null
 
-const processSnippet = (snippet: ParsedSnippet, effectiveLine: string, range:  SelectionRange, sel: string, snippetVariables: {[key: string]: string}):{triggerPos: number; replacement: string} => {
+function processSnippet(
+	snippet: ParsedSnippet,
+	effectiveLine: string,
+	range: SelectionRange,
+	sel: string,
+	snippetVariables: Record<string, string>,
+): ProcessSnippetResult {
 	let triggerPos;
 	let trigger = snippet.trigger;
 	trigger = insertSnippetVariables(trigger, snippetVariables);
 
-	let replacement = snippet.replacement;
+	const hasSelection = !!sel;
+	const isVisual = snippet.type === "visual";
+	// visual snippets only run when there is a selection,
+	// and non-visual snippets only run when there is no selection.
+	if (hasSelection != isVisual) { return null; }
 
+	switch (snippet.type) {
+		case "visual": {
+			// Check whether the trigger text was typed
+			if (!(effectiveLine.slice(-trigger.length) === trigger)) { return null; }
 
-	if (snippet.replacement.contains("${VISUAL}")) {
-		// "Visual" snippets
-		if (!sel) return null;
+			const triggerPos = range.from;
+			let replacement;
+			if (typeof snippet.replacement === "string") {
+				replacement = snippet.replacement.replace("${VISUAL}", sel);
+			} else {
+				const result = (snippet.replacement as (match: string) => string | false)(sel);
+				if (result === false) { return null; }
+				replacement = result;
+			}
 
-		// Check whether the trigger text was typed
-		if (!(effectiveLine.slice(-trigger.length) === trigger)) return null;
-
-
-		triggerPos = range.from;
-		replacement = snippet.replacement.replace("${VISUAL}", sel);
-
-	}
-	else if (sel) {
-		// Don't run non-visual snippets when there is a selection
-		return null;
-	}
-	else if (!(snippet.options.regex)) {
-
-		// Check whether the trigger text was typed
-		if (!(effectiveLine.slice(-trigger.length) === trigger)) return null;
-
-		triggerPos = effectiveLine.length - trigger.length;
-
-	}
-	else {
-		// Regex snippet
-
-		// Add $ to match the end of the string
-		// i.e. look for a match at the cursor's current position
-		const regex = new RegExp(trigger + "$", snippet.flags);
-		const result = regex.exec(effectiveLine);
-
-		if (!(result)) {
-			return null;
+			return { triggerPos, replacement };
 		}
+		case "regex": {
+			// Add $ to match the end of the string
+			// i.e. look for a match at the cursor's current position
+			const regex = new RegExp(`${trigger}$`, snippet.flags);
+			const result = regex.exec(effectiveLine);
+			if (result === null) { return null; }
 
-		// Compute the replacement string
-		// result.length - 1 = the number of capturing groups
+			triggerPos = result.index;
 
-		for (let i = 1; i < result.length; i++) {
-			// i-1 to start from 0
-			replacement = replacement.replaceAll("[[" + (i-1) + "]]", result[i]);
+			let replacement;
+			if (typeof snippet.replacement === "string") {
+				// Compute the replacement string
+				// result.length - 1 = the number of capturing groups
+
+				const nCaptureGroups = result.length - 1;
+				replacement = Array.from({ length: nCaptureGroups })
+					.map((_, i) => i + 1)
+					.reduce(
+						(replacement, i) => replacement.replaceAll(`[[${i - 1}]]`, result[i]),
+						snippet.replacement
+					);
+			} else {
+				replacement = (snippet.replacement as (match: RegExpExecArray) => string)(result);
+			}
+
+			return { triggerPos, replacement };
 		}
+		case "string": {
+			// Check whether the trigger text was typed
+			if (!(effectiveLine.slice(-trigger.length) === trigger)) return null;
 
-		triggerPos = result.index;
+			const triggerPos = effectiveLine.length - trigger.length;
+			const replacement = typeof snippet.replacement === "string"
+				? snippet.replacement
+				: (snippet.replacement as (match: string) => string)(trigger);
+
+			return { triggerPos, replacement };
+		}
+		default: {
+			// throw new Error("internal error: unrecognized snippet type");
+		}
 	}
 
-	return {triggerPos: triggerPos, replacement: replacement};
+	return null;
 }
 
 const snippetShouldRunInMode = (options: Options, mode: Mode) => {
