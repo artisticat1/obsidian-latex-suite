@@ -94,17 +94,22 @@ export const runAutoFractionCursor = (view: EditorView, ctx: Context, range: Sel
 		}
 	}
 
-	// Run autofraction
-	let numerator = view.state.sliceDoc(start, to);
-
 	// Don't run on an empty line
-	if (numerator === "") return false;
+	if (start === to) { return false; }
 
+	// Remove unnecessary outer parentheses
+	const { beg, end } = (() => {
+		if (curLine.charAt(start) === "(" && curLine.charAt(to - 1) === ")") {
+			const closing = findMatchingBracket(curLine, start, "(", ")", false, to);
+			if (closing === to - 1) {
+				return { beg: start + 1, end: to - 1 };
+			}
+		}
+		return { beg: start, end: to };
+	})();
 
-	// Remove brackets
-	if (curLine.charAt(start) === "(" && curLine.charAt(to - 1) === ")") {
-		numerator = numerator.slice(1, -1);
-	}
+	// Run autofraction
+	const numerator = view.state.sliceDoc(beg, end);
 
 	const replacement = `${settings.autofractionSymbol}{${numerator}}{$0}$1`
 
