@@ -9,6 +9,14 @@
     display: inline-flex;
 }
 
+.setting-item.setting-item-heading:has(.latex-suite-settings-icon) {
+    border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.setting-item.setting-item-heading:has(.latex-suite-settings-icon) + .setting-item {
+    border-top: none;
+}
+
 .setting-item.setting-item-heading:has(.latex-suite-settings-icon) ~ .setting-item:not(.setting-item-heading), .latex-suite-snippet-variables-setting + .setting-item-control {
     width: calc(100% - 26px);
     margin-left: 26px;
