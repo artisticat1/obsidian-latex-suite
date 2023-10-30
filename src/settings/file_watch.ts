@@ -1,10 +1,9 @@
 import LatexSuitePlugin from "../main";
-import { TFile, TFolder, Notice, debounce, TAbstractFile } from "obsidian";
+import { Vault, TFile, TFolder, Notice, debounce, TAbstractFile } from "obsidian";
 import { ParsedSnippet } from "../snippets/snippets";
 import { parseSnippets, sortSnippets } from "../snippets/parse_snippets";
 
 function isInFolder(file: TFile, dir: TFolder) {
-
 	let cur = file.parent;
 	let cnt = 0;
 
@@ -26,8 +25,7 @@ function fileIsInSnippetsFolder(plugin: LatexSuitePlugin, file: TFile) {
 	return (isFolder && isInFolder(file, snippetDir));
 }
 
-export async function onFileChange(plugin: LatexSuitePlugin, file: TAbstractFile) {
-
+export const onFileChange = async (plugin: LatexSuitePlugin, file: TAbstractFile) => {
 	if (!(plugin.settings.loadSnippetsFromFile)) return;
 	if (!(file instanceof TFile)) return;
 
@@ -60,46 +58,49 @@ export const onFileDelete = (plugin: LatexSuitePlugin, file:TAbstractFile) => {
 	}
 }
 
-async function getSnippetsWithinFolder(folder: TFolder) {
+async function getSnippetsFromFile(vault: Vault, file: TFile) {
+	const content = await vault.cachedRead(file);
+	let snippets:ParsedSnippet[] = [];
+
+	try {
+		snippets = await parseSnippets(content);
+	}
+	catch (e) {
+		new Notice(`Failed to load snippet file ${file.name}`);
+		console.log(`Failed to load snippet file ${file.path}:`, e);
+	}
+
+	return snippets;
+}
+
+async function getSnippetsWithinFolder(vault: Vault, folder: TFolder) {
 	const snippets:ParsedSnippet[] = [];
 
 	for (const fileOrFolder of folder.children) {
 		if (fileOrFolder instanceof TFile) {
-
-			const content = await this.app.vault.cachedRead(fileOrFolder as TFile);
-
-			try {
-				snippets.push(...await parseSnippets(content));
-			}
-			catch (e) {
-				console.log(`Failed to load snippet file ${fileOrFolder.path}:`, e);
-				new Notice(`Failed to load snippet file ${fileOrFolder.name}`);
-			}
+			snippets.push(...await getSnippetsFromFile(vault, fileOrFolder));
 		}
-		else {
-			const newSnippets = await getSnippetsWithinFolder(fileOrFolder as TFolder);
-			snippets.push(...newSnippets);
+		else if (fileOrFolder instanceof TFolder) {
+			const folderSnippets = await getSnippetsWithinFolder(vault, fileOrFolder);
+			snippets.push(...folderSnippets);
 		}
 	}
 
 	return snippets;
 }
 
-export async function getSnippetsWithinFileOrFolder(path: string) {
+export async function getSnippetsWithinFileOrFolder(vault: Vault, path: string) {
 	let snippets:ParsedSnippet[];
-	const fileOrFolder = window.app.vault.getAbstractFileByPath(path);
+	const fileOrFolder = vault.getAbstractFileByPath(path);
 
 	if (fileOrFolder instanceof TFolder) {
-		snippets = await getSnippetsWithinFolder(fileOrFolder as TFolder);
-	} else {
-		try {
-			const content = await window.app.vault.cachedRead(fileOrFolder as TFile);
-			snippets = await parseSnippets(content);
-		}
-		catch (e) {
-			console.log(`Failed to load snippet file ${fileOrFolder.path}:`, e);
-			new Notice(`Failed to load snippet file ${fileOrFolder.name}`);
-		}
+		snippets = await getSnippetsWithinFolder(vault, fileOrFolder);
+	}
+	else if (fileOrFolder instanceof TFile) {
+		snippets = await getSnippetsFromFile(vault, fileOrFolder);
+	}
+	else {
+		return [];
 	}
 
 	// Sorting needs to happen after all the snippet files have been parsed

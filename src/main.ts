@@ -97,7 +97,7 @@ export default class LatexSuitePlugin extends Plugin {
 			return await parseSnippets(this.settings.snippets);
 		}
 		else {
-			const snippets = await getSnippetsWithinFileOrFolder(this.settings.snippetsFileLocation);
+			const snippets = await getSnippetsWithinFileOrFolder(this.app.vault, this.settings.snippetsFileLocation);
 
 			return snippets;
 		}
