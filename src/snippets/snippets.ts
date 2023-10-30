@@ -23,6 +23,7 @@ export class ParsedSnippet {
 		if (raw.trigger instanceof RegExp) {
 			resolved.options = `r${raw.options}`;
 			resolved.trigger = raw.trigger.source;
+			// regex trigger flags and snippet flags get merged 
 			resolved.flags = `${raw.trigger.flags}${resolved.flags}`;
 		}
 
