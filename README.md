@@ -125,20 +125,20 @@ When a snippet containing "\\sum", "\\int" or "\\frac" is triggered, any enclosi
 Snippets are formatted as follows:
 
 ```typescript
-{trigger: string, replacement: string, options: string, description?: string, priority?: number}
+{trigger: string | RegExp, replacement: string, options: string, priority?: number, description?: string, flags?: string}
 ```
 
 - `trigger` : The text that triggers this snippet.
 - `replacement` : The text to replace the `trigger` with.
 - `options` : See below.
-- `flags` (optional): Flags for regex snippets.
+- `priority` (optional): This snippet's priority. Snippets with higher priority are run first. Can be negative. Defaults to 0.
 - `description` (optional): A description for this snippet.
-- `priority` (optional): This snippet's priority. Defaults to 0. Snippets with higher priority are run first. Can be negative.
+- `flags` (optional): Flags for regex snippets.
 
 
 #### Options
 - `t` : Text mode. Only run this snippet outside math
-- `m` : Math mode. Only run this snippet inside math, shorthand for both `M` and `n`
+- `m` : Math mode. Only run this snippet inside math. Shorthand for both `M` and `n`
 - `M` : Block math mode. Only run this snippet inside a `$$ ... $$` block
 - `n` : Inline math mode. Only run this snippet inside a `$ ... $` block
 - `A` : Auto. Expand this snippet as soon as the trigger is typed. If omitted, the <kbd>Tab</kbd> key must be pressed to expand the snippet
@@ -150,10 +150,10 @@ Insert **tabstops** for the cursor to jump to by writing "$0", "$1", etc. in the
 
 For more details on writing snippets, including **regex** snippets, [see the documentation here](DOCS.md). You can [view snippets written by others and share your own snippets here](https://github.com/artisticat1/obsidian-latex-suite/discussions/50).
 
-> ❗ **Warning**
-> 
+> [!WARNING]
 > Snippet files are interpreted as JavaScript and can execute arbitrary code.
 > Always be careful with snippets shared from others to avoid running malicious code.
+
 
 ## Cheatsheet
 

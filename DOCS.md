@@ -1,26 +1,24 @@
 # Documentation
 ## Snippets
-
-A snippets file is a JavaScript array of snippets, or a JavaScript module with a default export of an array of snippets.
-
-_Note: an **array** is a list of items. In JavaScript, this is represented with the bracket symbols `[` `]`, with the items between them and separated by commas, e.g. `[ item1, item2 ]`._
-
 Snippets are formatted as follows:
 
 ```typescript
-{trigger: string | RegExp, replacement: string, options: string, flags?: string, description?: string, priority?: number}
+{trigger: string | RegExp, replacement: string, options: string, priority?: number, description?: string, flags?: string}
 ```
 
-- `trigger` : The text that triggers this snippet. In JavaScript snippet files, it can also be a `RegExp` literal.
+- `trigger` : The text that triggers this snippet.
+  - It can also be a regular expression. See [regex snippets](#regex).
 - `replacement` : The text to replace the `trigger` with.
 - `options` : See below.
-- `flags` (optional): Flags for [regex snippets](#regex). Not applicable to non-regex snippets. The following flags are permitted: `i`, `m`, `s`, `u`, `v`.
 - `priority` (optional): This snippet's priority. Snippets with higher priority are run first. Can be negative. Defaults to 0.
 - `description` (optional): A description for this snippet.
+- `flags` (optional): Flags for [regex snippets](#regex).
+  - Not applicable to non-regex snippets.
+  - The following flags are permitted: `i`, `m`, `s`, `u`, `v`.
 
 ### Options
 - `t` : Text mode. Only run this snippet outside math
-- `m` : Math mode. Only run this snippet inside math, shorthand for both `M` and `n`
+- `m` : Math mode. Only run this snippet inside math. Shorthand for both `M` and `n`
 - `M` : Block math mode. Only run this snippet inside a `$$ ... $$` block
 - `n` : Inline math mode. Only run this snippet inside a `$ ... $` block
 - `A` : Auto. Expand this snippet as soon as the trigger is typed. If omitted, the <kbd>Tab</kbd> key must be pressed to expand the snippet
@@ -28,7 +26,7 @@ Snippets are formatted as follows:
 - `w` : Word boundary. Only run this snippet when the trigger is preceded (and followed by) a word delimiter, such as `.`, `,`, or `-`.
 - `c` : Code mode. Only run this snippet inside a ```` ``` ... ``` ```` block
 	- Languages using `$` as part of their syntax won't trigger math mode while in their codeblock
-	- The `math` language from https://github.com/ocapraro/obsidian-math-plus automatically doesn't trigger code mode, but block math mode instead
+	- The `math` language from https://github.com/ocapraro/obsidian-math-plus doesn't trigger code mode, but block math mode instead
 
 Multiple options can be used at once.
 
@@ -50,16 +48,14 @@ No mode specified means that this snippet can be triggered _at all times_. Multi
 ```
 
 
-### Regex
-- Use the `r` option to create a regex snippet.
+### Regex snippets
+To create a regex snippet, you can
+- use the `r` option, or
+- make the `trigger` a RegExp literal (such as `/regex-goes-here/`).
+
+When creating a regex snippet,
 - In the `trigger`, surround an expression with brackets `()` to create a capturing group.
 - Inside the `replacement` string, strings of the form `[[X]]` will be replaced by matches in increasing order of X, starting from 0.
-
-
-> ❗ **Warnings**
-> - Some characters, such as `\`, `+`, and `.`, are special characters in regex. If you want to use these literally, remember to escape them by inserting two backslashes (`\\`) before them!
->   - (One backslash to escape the special character, and another to escape that backslash)
-> - [Lookbehind regex is not supported on iOS.](https://github.com/bicarlsen/obsidian_image_caption/issues/4#issuecomment-982982629) Using lookbehind regex will cause snippets to break on iOS.
 
 #### Example
 The snippet
@@ -68,37 +64,79 @@ The snippet
 ```
 will expand `x2` to `x_{2}`.
 
+Using a RegExp literal, the same snippet can be written as
+```typescript
+{trigger: /([A-Za-z])(\d)/, replacement: "[[0]]_{[[1]]}", options: "A"}
+```
 
-### Variables
+> [!IMPORTANT]
+> - Some characters, such as `\`, `+`, and `.`, are special characters in regex. If you want to use these literally, remember to escape them by inserting two backslashes (`\\`) before them!
+>   - (One backslash to escape the special character, and another to escape that backslash)
+> - [Lookbehind regex is not supported on iOS.](https://github.com/bicarlsen/obsidian_image_caption/issues/4#issuecomment-982982629) Using lookbehind regex will cause snippets to break on iOS.
+
+
+### Snippet variables
 The following variables are available for use in a `trigger` or `replacement`:
 
 - `${VISUAL}` : Can be inserted in a `replacement`. When the snippet is expanded, "${VISUAL}" is replaced with the current selection.
 	- Visual snippets will not expand unless text is selected.
 
-#### Examples
-![visual snippets](gifs/visual_snippets.gif)
+	**Examples**
+  ![visual snippets](gifs/visual_snippets.gif)
 
 
 - `${GREEK}` : Can be inserted in a `trigger`. Shorthand for the following by default:
 
-```
-alpha|beta|gamma|Gamma|delta|Delta|epsilon|varepsilon|zeta|eta|theta|Theta|iota|kappa|lambda|Lambda|mu|nu|xi|Xi|pi|Pi|rho|sigma|Sigma|tau|upsilon|phi|Phi|chi|psi|Psi|omega|Omega
-```
+  ```
+  alpha|beta|gamma|Gamma|delta|Delta|epsilon|varepsilon|zeta|eta|theta|Theta|iota|kappa|lambda|Lambda|mu|nu|xi|Xi|pi|Pi|rho|sigma|Sigma|tau|upsilon|phi|Phi|chi|psi|Psi|omega|Omega
+  ```
 
-Recommended for use with the regex option "r".
+  Recommended for use with the regex option "r".
 
 - `${SYMBOL}` : Can be inserted in a `trigger`. Shorthand for the following by default:
 
-```
-hbar|ell|nabla|infty|dots|leftrightarrow|mapsto|setminus|mid|cap|cup|land|lor|subseteq|subset|implies|impliedby|iff|exists|equiv|square|neq|geq|leq|gg|ll|sim|simeq|approx|propto|cdot|oplus|otimes|times|star|perp|det|exp|ln|log|partial
-```
+  ```
+  hbar|ell|nabla|infty|dots|leftrightarrow|mapsto|setminus|mid|cap|cup|land|lor|subseteq|subset|implies|impliedby|iff|exists|equiv|square|neq|geq|leq|gg|ll|sim|simeq|approx|propto|cdot|oplus|otimes|times|star|perp|det|exp|ln|log|partial
+  ```
 
-Recommended for use with the regex option "r".
+  Recommended for use with the regex option "r".
 
 - `${SHORT_SYMBOL}` : Can be inserted in a `trigger`. Shorthand for the following by default:
 
-```
-to|pm|mp
+  ```
+  to|pm|mp
+  ```
+
+  Recommended for use with the regex option "r".
+
+
+Snippet variables can be changed in the settings, under **Advanced editor settings > Snippet variables**.
+
+
+## Snippet files
+You can choose to load snippets from a file or from all files within a folder. To do this, toggle the setting **Snippets > Load snippets from file or folder**. The file or folder must be within your vault, and not in a hidden folder (such as `.obsidian/`).
+
+Snippet files can be saved with any extension. However, to obtain syntax highlighting in external editors, you may wish to save your snippet files with an extension of `.js`.
+
+A snippets file is a JavaScript array of snippets, or a JavaScript module with a default export of an array of snippets.
+
+_Note: an **array** is a list of items. In JavaScript, this is represented with the bracket symbols `[` `]`, with the items between them and separated by commas, e.g. `[ item1, item2 ]`._
+
+### Example
+A snippet file containing an array of snippets:
+
+```typescript
+[
+	{trigger: "mk", replacement: "$$0$", options: "tA"},
+	{trigger: "dm", replacement: "$$\n$0\n$$", options: "tAw"},
+	{trigger: /([A-Za-z])(\d)/, replacement: "[[0]]_{[[1]]}", options: "mA"}
+]
 ```
 
-Recommended for use with the regex option "r".
+## Sharing snippets
+
+You can [view snippets written by others and share your own snippets here](https://github.com/artisticat1/obsidian-latex-suite/discussions/50).
+
+> [!WARNING]
+> Snippet files are interpreted as JavaScript and can execute arbitrary code.
+> Always be careful with snippets shared from others to avoid running malicious code.
