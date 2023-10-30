@@ -27,7 +27,7 @@ export const config = {
 	comment: "var(--text-faint)",
 	heading: "var(--text-accent-hover)",
 	invalid: "var(--text-error)",
-	regexp: "#032f62",
+	regexp: "var(--text-accent)",
 }
 
 export const obsidianTheme = EditorView.theme({
