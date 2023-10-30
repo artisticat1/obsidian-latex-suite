@@ -37,7 +37,7 @@ export class ParsedSnippet {
 			"v",
 			// "y", // almost certainly undesired behavior
 		];
-		override.flags = Array.from(new Set(`${override.flags ?? ""}`.split("")))
+		override.flags = Array.from(new Set(override.flags.split("")))
 			.filter(flag => validFlags.includes(flag))
 			.join(""); 
 
