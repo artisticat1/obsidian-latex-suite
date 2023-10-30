@@ -78,9 +78,15 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				}));
 
 
+		const snippetsFileLocDesc = new DocumentFragment();
+		snippetsFileLocDesc.createDiv({}, div => {
+			div.innerHTML = `
+			The file or folder to load snippets from. The file or folder must be within your vault, and not within a hidden folder (such as <code>.obsidian/</code>).`
+		});
+
 		const snippetsFileLoc = new Setting(containerEl)
 			.setName("Snippets file or folder location")
-			.setDesc("The file or folder to load snippets from.");
+			.setDesc(snippetsFileLocDesc);
 
 
 		let inputEl;
@@ -126,19 +132,14 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		this.addHeading(containerEl, "Conceal", "math-integral-x");
 
 		{
-			const fragment = document.createDocumentFragment();
-			const line1 = document.createElement("div");
-			line1.setText("Make equations more readable by hiding LaTeX markup and instead displaying it in a pretty format.");
-			const line2 = document.createElement("div");
-			line2.setText("e.g. \\dot{x}^{2} + \\dot{y}^{2} will display as ẋ² + ẏ², and \\sqrt{ 1-\\beta^{2} } will display as √{ 1-β² }.");
-			const line3 = document.createElement("div");
-			line3.setText("LaTeX beneath the cursor will be revealed.");
-			const space = document.createElement("br");
-			const line4 = document.createElement("div");
-			line4.setText("Disabled by default to not confuse new users. However, I recommend turning this on once you are comfortable with the plugin!");
-
-			fragment.append(line1, line2, line3, space, line4);
-
+			const fragment = new DocumentFragment();
+			fragment.createDiv({}, div => div.setText("Make equations more readable by hiding LaTeX markup and instead displaying it in a pretty format."));
+			fragment.createDiv({}, div => div.innerHTML = `
+				e.g. <code>\\dot{x}^{2} + \\dot{y}^{2}</code> will display as ẋ² + ẏ², and <code>\\sqrt{ 1-\\beta^{2} }</code> will display as √{ 1-β² }.
+			`);
+			fragment.createDiv({}, div => div.setText("LaTeX beneath the cursor will be revealed."));
+			fragment.createEl("br");
+			fragment.createDiv({}, div => div.setText("Disabled by default to not confuse new users. However, I recommend turning this on once you are comfortable with the plugin!"));
 
 			new Setting(containerEl)
 				.setName("Enabled")
@@ -149,7 +150,8 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 						this.plugin.settings.concealEnabled = value;
 						this.plugin.refreshCMExtensions();
 						await this.plugin.saveSettings();
-					}));
+					})
+				);
 		}
 
 
