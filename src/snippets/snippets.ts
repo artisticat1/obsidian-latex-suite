@@ -1,6 +1,6 @@
 import { Options } from "./options";
 
-export class RawSnippet {
+export interface RawSnippet {
 	trigger: string | RegExp;
 	replacement: string;
 	options: string;
