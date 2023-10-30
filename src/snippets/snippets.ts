@@ -19,11 +19,11 @@ export class ParsedSnippet {
 	
 	constructor(raw: RawSnippet) {
 		// normalize regex triggers
-		const override: RawSnippet = { ...raw, flags: raw.flags ?? "" };
+		const resolved: RawSnippet = { ...raw, flags: raw.flags ?? "" };
 		if (raw.trigger instanceof RegExp) {
-			override.options = `r${raw.options}`;
-			override.trigger = raw.trigger.source;
-			override.flags = `${raw.trigger.flags}${override.flags}`;
+			resolved.options = `r${raw.options}`;
+			resolved.trigger = raw.trigger.source;
+			resolved.flags = `${raw.trigger.flags}${resolved.flags}`;
 		}
 
 		// filter out invalid flags
@@ -37,11 +37,11 @@ export class ParsedSnippet {
 			"v",
 			// "y", // almost certainly undesired behavior
 		];
-		override.flags = Array.from(new Set(override.flags.split("")))
+		resolved.flags = Array.from(new Set(resolved.flags.split("")))
 			.filter(flag => validFlags.includes(flag))
 			.join(""); 
 
-		const parsed = {...override, options: Options.fromSource(override.options)};
+		const parsed = {...resolved, options: Options.fromSource(resolved.options)};
 		Object.assign(this, parsed);
 	}
 }
