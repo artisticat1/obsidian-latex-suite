@@ -69,13 +69,12 @@ async function getSnippetsWithinFolder(folder: TFolder) {
 			const content = await this.app.vault.cachedRead(fileOrFolder as TFile);
 
 			try {
-				snippets.push(...parseSnippets(content));
+				snippets.push(...await parseSnippets(content));
 			}
 			catch (e) {
 				console.log(`Failed to load snippet file ${fileOrFolder.path}:`, e);
 				new Notice(`Failed to load snippet file ${fileOrFolder.name}`);
 			}
-
 		}
 		else {
 			const newSnippets = await getSnippetsWithinFolder(fileOrFolder as TFolder);
@@ -92,10 +91,15 @@ export async function getSnippetsWithinFileOrFolder(path: string) {
 
 	if (fileOrFolder instanceof TFolder) {
 		snippets = await getSnippetsWithinFolder(fileOrFolder as TFolder);
-
 	} else {
-		const content = await window.app.vault.cachedRead(fileOrFolder as TFile);
-		snippets = await parseSnippets(content);
+		try {
+			const content = await window.app.vault.cachedRead(fileOrFolder as TFile);
+			snippets = await parseSnippets(content);
+		}
+		catch (e) {
+			console.log(`Failed to load snippet file ${fileOrFolder.path}:`, e);
+			new Notice(`Failed to load snippet file ${fileOrFolder.name}`);
+		}
 	}
 
 	// Sorting needs to happen after all the snippet files have been parsed

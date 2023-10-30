@@ -130,7 +130,7 @@ const processSnippet = (snippet: ParsedSnippet, effectiveLine: string, range:  S
 
 		// Add $ to match the end of the string
 		// i.e. look for a match at the cursor's current position
-		const regex = new RegExp(trigger + "$");
+		const regex = new RegExp(trigger + "$", snippet.flags);
 		const result = regex.exec(effectiveLine);
 
 		if (!(result)) {

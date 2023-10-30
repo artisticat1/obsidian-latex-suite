@@ -397,7 +397,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				let success = true;
 
 				try {
-					parseSnippets(value);
+					await parseSnippets(value);
 				}
 				catch (e) {
 					success = false;

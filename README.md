@@ -131,6 +131,7 @@ Snippets are formatted as follows:
 - `trigger` : The text that triggers this snippet.
 - `replacement` : The text to replace the `trigger` with.
 - `options` : See below.
+- `flags` (optional): Flags for regex snippets.
 - `description` (optional): A description for this snippet.
 - `priority` (optional): This snippet's priority. Defaults to 0. Snippets with higher priority are run first. Can be negative.
 
@@ -149,8 +150,10 @@ Insert **tabstops** for the cursor to jump to by writing "$0", "$1", etc. in the
 
 For more details on writing snippets, including **regex** snippets, [see the documentation here](DOCS.md). You can [view snippets written by others and share your own snippets here](https://github.com/artisticat1/obsidian-latex-suite/discussions/50).
 
-
-
+> ❗ **Warning**
+> 
+> Snippet files are interpreted as JavaScript and can execute arbitrary code.
+> Always be careful with snippets shared from others to avoid running malicious code.
 
 ## Cheatsheet
 
@@ -183,7 +186,7 @@ When running a snippet that **moves the cursor inside brackets {}, press <kbd>Ta
 ### Greek letters
 
 | Trigger | Replacement  | Trigger | Replacement |
-|---------|--------------|---------|-------------|
+| ------- | ------------ | ------- | ----------- |
 | @a      | \\alpha      | eta     | \\eta       |
 | @b      | \\beta       | mu      | \\mu        |
 | @g      | \\gamma      | nu      | \\nu        |
