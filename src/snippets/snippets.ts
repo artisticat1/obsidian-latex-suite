@@ -19,7 +19,7 @@ export class ParsedSnippet {
 	
 	constructor(raw: RawSnippet) {
 		// normalize triggers as strings
-		const override: RawSnippet = { ...raw }
+		const override: RawSnippet = { ...raw };
 		if (raw.trigger instanceof RegExp) {
 			override.options = `r${raw.options}`;
 			override.trigger = raw.trigger.source;
