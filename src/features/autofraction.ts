@@ -102,7 +102,10 @@ export const runAutoFractionCursor = (view: EditorView, ctx: Context, range: Sel
 	
 	// Remove unnecessary outer parentheses
 	if (numerator.at(0) === "(" && numerator.at(-1) === ")") {
+		const closing = findMatchingBracket(numerator, 0, "(", ")", false);
+		if (closing === numerator.length - 1) {
 			numerator = numerator.slice(1, -1);
+		}
 	}
 
 	const replacement = `${settings.autofractionSymbol}{${numerator}}{$0}$1`
