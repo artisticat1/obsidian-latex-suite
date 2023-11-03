@@ -50,16 +50,12 @@
 }
 
 .snippets-editor-wrapper .cm-editor {
-    height: 20em;
-    font-size: var(--font-inputs);
-    text-align: left;
-    outline: none !important;
-
     border: 1px solid var(--background-modifier-border);
-}
-
-.snippets-editor-wrapper .cm-editor, .cm-scroller {
     border-radius: 4px;
+    font-size: var(--font-inputs);
+    height: 20em;
+    outline: none !important;
+    text-align: left;
 }
 
 .snippets-editor-wrapper .cm-line, .snippets-editor-wrapper .cm-lineNumbers {
