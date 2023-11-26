@@ -23,7 +23,7 @@ export const autoEnlargeBrackets = (view: EditorView) => {
 
 	for (let i = start; i < end; i++) {
 
-		const brackets:{[open: string]: string} = {"(": ")", "[": "]", "\\{": "\\}", "\\langle": "\\rangle", "\\lvert": "\\rvert"};
+		const brackets:{[open: string]: string} = {"(": ")", "[": "]", "\\{": "\\}", "\\langle": "\\rangle", "\\lvert": "\\rvert", "\\lceil": "\\rceil", "\\lfloor": "\\rfloor"};
 		const openBrackets = Object.keys(brackets);
 		let found = false;
 		let open = "";
