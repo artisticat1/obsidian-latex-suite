@@ -240,7 +240,7 @@ export const DEFAULT_SNIPPETS_ARR = [
 	{trigger: "pu", replacement: "\\pu{ $0 }", options: "mA"},
 	{trigger: "msun", replacement: "M_{\\odot}", options: "mA"},
 	{trigger: "solm", replacement: "M_{\\odot}", options: "mA"},
-	{trigger: "ce", replacement: "\\ce{ $0 }", options: "mA"},
+	{trigger: "cee", replacement: "\\ce{ $0 }", options: "mA"},
 	{trigger: "iso", replacement: "{}^{${0:4}}_{${1:2}}${2:He}", options: "mA"},
 	{trigger: "hel4", replacement: "{}^{4}_{2}He ", options: "mA"},
 	{trigger: "hel3", replacement: "{}^{3}_{2}He ", options: "mA"},
@@ -261,6 +261,8 @@ export const DEFAULT_SNIPPETS_ARR = [
 	// Brackets
 	{trigger: "avg", replacement: "\\langle $0 \\rangle $1", options: "mA"},
 	{trigger: "norm", replacement: "\\lvert $0 \\rvert $1", options: "mA", priority: 1},
+	{trigger: "ceil", replacement: "\\lceil $0 \\rceil $1", options: "mA"},
+	{trigger: "floor", replacement: "\\lfloor $0 \\rfloor $1", options: "mA"},
 	{trigger: "mod", replacement: "|$0|$1", options: "mA"},
 	{trigger: "(", replacement: "(${VISUAL})", options: "mA"},
 	{trigger: "[", replacement: "[${VISUAL}]", options: "mA"},
