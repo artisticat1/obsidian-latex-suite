@@ -125,7 +125,14 @@ When a snippet containing "\\sum", "\\int" or "\\frac" is triggered, any enclosi
 Snippets are formatted as follows:
 
 ```typescript
-{trigger: string | RegExp, replacement: string, options: string, priority?: number, description?: string, flags?: string}
+{
+  trigger: string | RegExp,
+  replacement: string | ((str: string) => string) | ((match: RegExpExecArray) => string) | ((selection: string) => (string | false)),
+  options: string,
+  priority?: number,
+  description?: string,
+  flags?: string,
+}
 ```
 
 - `trigger` : The text that triggers this snippet.

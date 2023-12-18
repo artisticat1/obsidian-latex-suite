@@ -3,7 +3,14 @@
 Snippets are formatted as follows:
 
 ```typescript
-{trigger: string | RegExp, replacement: string, options: string, priority?: number, description?: string, flags?: string}
+{
+  trigger: string | RegExp,
+  replacement: string | ((str: string) => string) | ((match: RegExpExecArray) => string) | ((selection: string) => (string | false)),
+  options: string,
+  priority?: number,
+  description?: string,
+  flags?: string,
+}
 ```
 
 - `trigger` : The text that triggers this snippet.
@@ -55,7 +62,8 @@ To create a regex snippet, you can
 
 When creating a regex snippet,
 - In the `trigger`, surround an expression with brackets `()` to create a capturing group.
-- Inside the `replacement` string, strings of the form `[[X]]` will be replaced by matches in increasing order of X, starting from 0.
+- Inside a `replacement` string, strings of the form `[[X]]` will be replaced by matches in increasing order of X, starting from 0.
+- A `replacement` function takes the `RegExpExecArray` match as the parameter.
 
 #### Example
 The snippet
@@ -74,16 +82,23 @@ Using a RegExp literal, the same snippet can be written as
 >   - (One backslash to escape the special character, and another to escape that backslash)
 > - [Lookbehind regex is not supported on iOS.](https://github.com/bicarlsen/obsidian_image_caption/issues/4#issuecomment-982982629) Using lookbehind regex will cause snippets to break on iOS.
 
+### Visual snippets
+To create a visual snippet, you can
+- use the `v` option, or
+- make the replacement a string containing the special string `${VISUAL}`.
+
+Visual snippets will not expand unless text is selected.
+
+When creating a visual snippet,
+- In a `replacement` string, when the snippet is expanded, the special string `${VISUAL}` is replaced with the current selection.
+- A `replacement` function takes the selection as the parameter.
+    - A visual snippet will not expand if its `replacement` function returns `false` given the selection.
+
+#### Example
+![visual snippets](gifs/visual_snippets.gif)
 
 ### Snippet variables
 The following variables are available for use in a `trigger` or `replacement`:
-
-- `${VISUAL}` : Can be inserted in a `replacement`. When the snippet is expanded, "${VISUAL}" is replaced with the current selection.
-	- Visual snippets will not expand unless text is selected.
-
-	**Examples**
-  ![visual snippets](gifs/visual_snippets.gif)
-
 
 - `${GREEK}` : Can be inserted in a `trigger`. Shorthand for the following by default:
 
