@@ -55,5 +55,19 @@ interface StringSnippet extends _Snippet {
 	flags?: string;
 }
 
+/**
+ * serialize some snippet-like value.
+ * specifically, does a pretty-printed JSON.stringify (2-space indent)
+ * that serializes functions to the string "[[Function]]"
+ */
+export function serializeSnippet(snippet: unknown): string {
+	function replacer(k: string, v: unknown) {
+		if (typeof v === "function") { return "[[Function]]"; }
+		if (v instanceof RegExp) { return `[[RegExp]]: /${v.source}/${v.flags}`; }
+		return v;
+	}
+	return JSON.stringify(snippet, replacer, 2);
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Fn<Args extends readonly any[], Ret> = (...args: Args) => Ret;

@@ -1,6 +1,6 @@
 import { optional, object, string as string_, union, instance, parse, number, Output, special, array } from "valibot";
 import { encode } from "js-base64";
-import { Snippet, SnippetType, VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER } from "./snippets";
+import { serializeSnippet, Snippet, SnippetType, VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER } from "./snippets";
 import { Options } from "./options";
 import { sortSnippets } from "./sort";
 
@@ -23,12 +23,20 @@ export async function parseSnippets(snippetsStr: string) {
 	try {
 		// validate the shape of the raw snippets
 		rawSnippets = validateRawSnippets(rawSnippets);
-		// normalize the raw snippets
-		const normalizedRawSnippets = rawSnippets.map(normalizeRawSnippet);
-		// and convert them into Snippets
-		parsedSnippets = normalizedRawSnippets.map(parseSnippet);
+		
+		parsedSnippets = rawSnippets.map((raw) => {
+			try {
+				// normalize the raw snippet
+				const normalized = normalizeRawSnippet(raw);
+				// and convert it into a Snippet
+				return parseSnippet(normalized);
+			} catch (e) {
+				// provide context of which snippet errored
+				throw `${e}\nerroring snippet:\n${serializeSnippet(raw)}`;
+			}
+		});
 	} catch(e) {
-		throw "Invalid snippet format." + e;
+		throw `Invalid snippet format: ${e}`;
 	}
 
 	sortSnippets(parsedSnippets);
@@ -75,14 +83,19 @@ const RawSnippetSchema = object({
 
 type RawSnippet = Output<typeof RawSnippetSchema>;
 
-const RawSnippetsSchema = array(RawSnippetSchema);
-
 /**
  * tries to parse an unknown value as an array of raw snippets
  * @throws if the value does not adhere to the raw snippet array schema
  */
 function validateRawSnippets(snippets: unknown): RawSnippet[] {
-  return parse(RawSnippetsSchema, snippets);
+  if (!Array.isArray(snippets)) { throw "Expected snippets to be an array"; }
+	return snippets.map((raw) => {
+		try {
+			return parse(RawSnippetSchema, raw);
+		} catch (e) {
+			throw `Value does not resemble snippet.\nerroring snippet:\n${serializeSnippet(raw)}`;
+		}
+	})
 }
 
 /** normalize raw snippets to a more consistent representation */
@@ -196,7 +209,7 @@ export function parseSnippet(normalized: NormalizedRawSnippet): Snippet {
 function getSnippetType(normalized: NormalizedRawSnippet): SnippetType {
 	const r = isRegexSnippet(normalized);
   const v = isVisualSnippet(normalized);
-  if (r && v) { console.log("snippet cannot be both regex and visual", JSON.stringify(normalized, null, 2)); return "regex" }
+  if (r && v) { throw "snippet cannot be both regex and visual."; }
   if (r) { return "regex"; }
 	if (v) { return "visual"; }
 	return "string";
