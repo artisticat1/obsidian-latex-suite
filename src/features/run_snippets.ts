@@ -124,7 +124,7 @@ function processSnippet(
 				replacement = snippet.replacement.replace("${VISUAL}", sel);
 			} else {
 				const result = snippet.replacement(sel);
-				if (result === false) { return null; }
+				if (typeof result !== "string") { return null; }
 				replacement = result;
 			}
 
@@ -153,6 +153,10 @@ function processSnippet(
 					);
 			} else {
 				replacement = snippet.replacement(result);
+				
+				// sanity check - if replacement was a function,
+				// we have no way to validate beforehand that it really does return a string
+				if (typeof replacement !== "string") { return null; }
 			}
 
 			return { triggerPos, replacement };
@@ -165,6 +169,10 @@ function processSnippet(
 			const replacement = typeof snippet.replacement === "string"
 				? snippet.replacement
 				: snippet.replacement(trigger);
+
+			// sanity check - if replacement was a function,
+			// we have no way to validate beforehand that it really does return a string
+			if (typeof replacement !== "string") { return null; }
 
 			return { triggerPos, replacement };
 		}
