@@ -1,40 +1,42 @@
-import { ParsedSnippet, RawSnippet } from "./snippets";
+import { optional, object, string as string_, union, instance, parse, number, Output, special, array } from "valibot";
 import { encode } from "js-base64";
+import { Snippet, SnippetType, VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER } from "./snippets";
+import { Options } from "./options";
+import { sortSnippets } from "./sort";
 
-export function sortSnippets(snippets:ParsedSnippet[]) {
-	// Sort snippets by trigger length so longer snippets will have higher priority
-
-	function compareTriggerLength(a:ParsedSnippet, b:ParsedSnippet) {
-		const aTriggerLength = a.trigger.length;
-		const bTriggerLength = b.trigger.length;
-
-		if (aTriggerLength < bTriggerLength){
-			return 1;
+export async function parseSnippets(snippetsStr: string) {
+	let rawSnippets;
+	try {
+		try {
+			// first, try to import as a plain js module
+			// js-base64.encode is needed over builtin `window.btoa` because the latter errors on unicode
+			rawSnippets = await importModuleDefault(`data:text/javascript;base64,${encode(snippetsStr)}`);
+		} catch {
+			// otherwise, try to import as a standalone js array
+			rawSnippets = await importModuleDefault(`data:text/javascript;base64,${encode(`export default ${snippetsStr}`)}`);
 		}
-		if (aTriggerLength > bTriggerLength){
-			return -1;
-		}
-		return 0;
-	}
-	snippets.sort(compareTriggerLength);
-
-	// Sort snippets in order of priority
-
-	function comparePriority(a:ParsedSnippet, b:ParsedSnippet) {
-		const aPriority = a.priority ? a.priority : 0;
-		const bPriority = b.priority ? b.priority : 0;
-
-		if (aPriority < bPriority){
-			return 1;
-		}
-		if (aPriority > bPriority){
-			return -1;
-		}
-		return 0;
+	} catch (e) {
+		throw "Invalid snippet format.";	
 	}
 
-	snippets.sort(comparePriority);
+	let parsedSnippets;
+	try {
+		// validate the shape of the raw snippets
+		rawSnippets = validateRawSnippets(rawSnippets);
+		// normalize the raw snippets
+		const normalizedRawSnippets = rawSnippets.map(normalizeRawSnippet);
+		// and convert them into Snippets
+		parsedSnippets = normalizedRawSnippets.map(parseSnippet);
+	} catch(e) {
+		throw "Invalid snippet format." + e;
+	}
+
+	sortSnippets(parsedSnippets);
+
+	return parsedSnippets;
 }
+
+/** load snippet string as module */
 
 /**
  * imports the default export of a given module.
@@ -60,60 +62,154 @@ async function importModuleDefault(module: string): Promise<unknown> {
 	return data.default;
 }
 
-export async function parseSnippets(snippetsStr: string) {
-	let rawSnippets;
-	try {
-		try {
-			// first, try to import as a plain js module
-			// js-base64.encode is needed over builtin `window.btoa` because the latter errors on unicode
-			rawSnippets = await importModuleDefault(`data:text/javascript;base64,${encode(snippetsStr)}`);
-		} catch {
-			// otherwise, try to import as a standalone js array
-			rawSnippets = await importModuleDefault(`data:text/javascript;base64,${encode(`export default ${snippetsStr}`)}`);
-		}
-	} catch (e) {
-		throw "Invalid snippet format.";	
-	}
+/** raw snippet IR */
 
-	if (!validateSnippets(rawSnippets)) { throw "Invalid snippet format."; }
+const RawSnippetSchema = object({
+  trigger: union([string_(), instance(RegExp)]),
+  replacement: union([string_(), special<AnyFunction>(x => typeof x === "function")]),
+  options: string_(),
+  flags: optional(string_()),
+  priority: optional(number()),
+  description: optional(string_()),
+});
 
-	const parsedSnippets = rawSnippets.map(rawSnippet => new ParsedSnippet(rawSnippet));
-	sortSnippets(parsedSnippets);
+type RawSnippet = Output<typeof RawSnippetSchema>;
 
-	return parsedSnippets;
+const RawSnippetsSchema = array(RawSnippetSchema);
+
+/**
+ * tries to parse an unknown value as an array of raw snippets
+ * @throws if the value does not adhere to the raw snippet array schema
+ */
+function validateRawSnippets(snippets: unknown): RawSnippet[] {
+  return parse(RawSnippetsSchema, snippets);
 }
 
-export function validateSnippets(snippets: unknown): snippets is RawSnippet[] {
-	if (!Array.isArray(snippets)) { return false; }
+/** normalize raw snippets to a more consistent representation */
 
-	return snippets.every(snippet => (
-		typeof snippet === "object"
-		&& validateTrigger(snippet.trigger)
-		&& validateReplacement(snippet.replacement)
-		&& validateOptions(snippet.options)
-		&& validateFlags(snippet.flags)
-		&& validatePriority(snippet.priority)
-	));
+/**
+ * the intermediate normalized raw snippet interface.
+ * it makes parsing them into the final snippet representation easier.
+ */
+interface NormalizedRawSnippet {
+  trigger: string;
+  replacement: string | AnyFunction;
+  options: Options;
+  flags: string;
+  priority?: number;
+  description?: string;
 }
 
-function validateTrigger(trigger: unknown): boolean {
-	return typeof trigger === "string" || trigger instanceof RegExp;
+/**
+ * "normalizes" a raw snippet.
+ * after normalization, the following are guaranteed about the snippet:
+ * - the trigger is a string
+ * - the flags are defined and a string (possibly empty)
+ * - the `options.regex` and `options.visual` fields are set properly
+ */
+function normalizeRawSnippet(raw: RawSnippet): NormalizedRawSnippet {
+  const { replacement, priority, description } = raw;
+  
+  // normalize flags to a string
+  let flags = raw.flags ?? "";
+
+  // we leave trigger unassigned here instead of starting from raw.trigger to keep typescript happy
+  let trigger: string;
+
+  const options = Options.fromSource(raw.options);
+
+  // normalize regex triggers
+  if (raw.trigger instanceof RegExp) {
+    options.regex = true;
+    trigger = raw.trigger.source;
+    flags = `${raw.trigger.flags}${flags}`
+  } else {
+    // we for proper typing
+    trigger = raw.trigger;
+  }
+
+  // normalize visual replacements
+  if (typeof replacement === "string" && replacement.includes(VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER)) {
+    options.visual = true;
+  }
+
+	flags = filterFlags(flags);
+
+  return { trigger, replacement, options, flags, priority, description };
 }
 
-function validateReplacement(replacement: unknown): boolean {
-	return typeof replacement === "string" || typeof replacement === "function";
+/**
+ * removes duplicate flags and filters out invalid ones from a flags string.
+ */
+function filterFlags(flags: string): string {
+  // filter out invalid flags
+	const validFlags = [
+		// "d", // doesn't affect the search
+		// "g", // doesn't affect the pattern match and is almost certainly undesired behavior
+		"i",
+		"m",
+		"s",
+		"u",
+		"v",
+		// "y", // almost certainly undesired behavior
+	];
+	return Array.from(new Set(flags.split("")))
+      .filter(flag => validFlags.includes(flag))
+      .join("");
 }
 
-function validateOptions(options: unknown): options is string {
-	return typeof options === "string";
+/** parse normalized raw snippet into final snippet representation */
+
+/**
+ * parses a normalized raw snippet into a Snippet
+ */
+export function parseSnippet(normalized: NormalizedRawSnippet): Snippet {
+  const type = getSnippetType(normalized);
+
+  if (type !== "regex") {
+    delete normalized.flags;
+  }
+
+  switch (type) {
+    case "visual": {
+      const { trigger, replacement, options, priority, description } = normalized;
+      return { type, trigger, replacement, options, priority, description };
+    }
+    case "regex": {
+      const { trigger, replacement, options, flags, priority, description } = normalized;
+      return { type, trigger, replacement, options, flags, priority, description };
+    }
+    case "string": {
+      const { trigger, replacement, options, priority, description } = normalized;
+      return { type, trigger, replacement, options, priority, description };
+    }
+    default:
+			throw "internal error: unrecognized snippet type";
+  }
 }
 
-function validateFlags(flags: unknown) {
-	// flags are optional
-	return typeof flags === "undefined" || typeof flags === "string";
+/**
+ * determines the type of a normalized snippet.
+ * 
+ * @throws if it detects an invalid type arrangement (e.g. it satisfies more than one snippet type)
+ */
+function getSnippetType(normalized: NormalizedRawSnippet): SnippetType {
+	const r = isRegexSnippet(normalized);
+  const v = isVisualSnippet(normalized);
+  if (r && v) { console.log("snippet cannot be both regex and visual", JSON.stringify(normalized, null, 2)); return "regex" }
+  if (r) { return "regex"; }
+	if (v) { return "visual"; }
+	return "string";
 }
 
-function validatePriority(priority: unknown): priority is number | undefined {
-	// priority is optional
-	return typeof priority === "undefined" || typeof priority === "number";
+function isVisualSnippet(normalized: NormalizedRawSnippet) {
+  return normalized.options.visual;
 }
+function isRegexSnippet(normalized: NormalizedRawSnippet) {
+  return normalized.options.regex;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Fn<Args extends readonly any[], Ret> = (...args: Args) => Ret;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyFunction = Fn<any, any>;

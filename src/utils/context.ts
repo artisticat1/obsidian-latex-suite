@@ -2,7 +2,7 @@ import { EditorState, SelectionRange } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { Direction, escalateToToken, findMatchingBracket, getCloseBracket } from "src/utils/editor_utils";
 import { Mode } from "../snippets/options";
-import { Environment } from "../snippets/snippets";
+import { Environment } from "../snippets/environment";
 import { getLatexSuiteConfig } from "../snippets/codemirror/config";
 import { syntaxTree } from "@codemirror/language";
 

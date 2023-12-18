@@ -1,7 +1,8 @@
 import LatexSuitePlugin from "../main";
 import { Vault, TFile, TFolder, Notice, debounce, TAbstractFile } from "obsidian";
-import { ParsedSnippet } from "../snippets/snippets";
-import { parseSnippets, sortSnippets } from "../snippets/parse_snippets";
+import { Snippet } from "../snippets/snippets";
+import { parseSnippets } from "../snippets/parse_snippets";
+import { sortSnippets } from "../snippets/sort";
 
 function isInFolder(file: TFile, dir: TFolder) {
 	let cur = file.parent;
@@ -60,7 +61,7 @@ export const onFileDelete = (plugin: LatexSuitePlugin, file:TAbstractFile) => {
 
 async function getSnippetsFromFile(vault: Vault, file: TFile) {
 	const content = await vault.cachedRead(file);
-	let snippets:ParsedSnippet[] = [];
+	let snippets:Snippet[] = [];
 
 	try {
 		snippets = await parseSnippets(content);
@@ -74,7 +75,7 @@ async function getSnippetsFromFile(vault: Vault, file: TFile) {
 }
 
 async function getSnippetsWithinFolder(vault: Vault, folder: TFolder) {
-	const snippets:ParsedSnippet[] = [];
+	const snippets:Snippet[] = [];
 
 	for (const fileOrFolder of folder.children) {
 		if (fileOrFolder instanceof TFile) {
@@ -90,7 +91,7 @@ async function getSnippetsWithinFolder(vault: Vault, folder: TFolder) {
 }
 
 export async function getSnippetsWithinFileOrFolder(vault: Vault, path: string) {
-	let snippets:ParsedSnippet[];
+	let snippets:Snippet[];
 	const fileOrFolder = vault.getAbstractFileByPath(path);
 
 	if (fileOrFolder instanceof TFolder) {

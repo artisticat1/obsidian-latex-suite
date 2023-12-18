@@ -1,12 +1,13 @@
 import { EditorView } from "@codemirror/view";
 import { EditorState, SelectionRange } from "@codemirror/state";
-import { queueSnippet } from "src/snippets/codemirror/snippet_queue_state_field";
-import { expandSnippets } from "src/snippets/snippet_management";
-import { ParsedSnippet, EXCLUSIONS } from "src/snippets/snippets";
-import { autoEnlargeBrackets } from "./auto_enlarge_brackets";
-import { Context } from "src/utils/context";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
+import { queueSnippet } from "src/snippets/codemirror/snippet_queue_state_field";
+import { EXCLUSIONS } from "src/snippets/environment";
 import { Mode, Options } from "src/snippets/options";
+import { Snippet } from "src/snippets/snippets";
+import { expandSnippets } from "src/snippets/snippet_management";
+import { Context } from "src/utils/context";
+import { autoEnlargeBrackets } from "./auto_enlarge_brackets";
 
 
 export const runSnippets = (view: EditorView, ctx: Context, key: string):boolean => {
@@ -97,13 +98,12 @@ type ProcessSnippetResult =
 	| null
 
 function processSnippet(
-	snippet: ParsedSnippet,
+	snippet: Snippet,
 	effectiveLine: string,
 	range: SelectionRange,
 	sel: string,
 	snippetVariables: Record<string, string>,
 ): ProcessSnippetResult {
-	let triggerPos;
 	let trigger = snippet.trigger;
 	trigger = insertSnippetVariables(trigger, snippetVariables);
 
@@ -111,7 +111,7 @@ function processSnippet(
 	const isVisual = snippet.type === "visual";
 	// visual snippets only run when there is a selection,
 	// and non-visual snippets only run when there is no selection.
-	if (hasSelection != isVisual) { return null; }
+	if (hasSelection !== isVisual) { return null; }
 
 	switch (snippet.type) {
 		case "visual": {
@@ -123,7 +123,7 @@ function processSnippet(
 			if (typeof snippet.replacement === "string") {
 				replacement = snippet.replacement.replace("${VISUAL}", sel);
 			} else {
-				const result = (snippet.replacement as (match: string) => string | false)(sel);
+				const result = snippet.replacement(sel);
 				if (result === false) { return null; }
 				replacement = result;
 			}
@@ -137,7 +137,7 @@ function processSnippet(
 			const result = regex.exec(effectiveLine);
 			if (result === null) { return null; }
 
-			triggerPos = result.index;
+			const triggerPos = result.index;
 
 			let replacement;
 			if (typeof snippet.replacement === "string") {
@@ -152,7 +152,7 @@ function processSnippet(
 						snippet.replacement
 					);
 			} else {
-				replacement = (snippet.replacement as (match: RegExpExecArray) => string)(result);
+				replacement = snippet.replacement(result);
 			}
 
 			return { triggerPos, replacement };
@@ -164,7 +164,7 @@ function processSnippet(
 			const triggerPos = effectiveLine.length - trigger.length;
 			const replacement = typeof snippet.replacement === "string"
 				? snippet.replacement
-				: (snippet.replacement as (match: string) => string)(trigger);
+				: snippet.replacement(trigger);
 
 			return { triggerPos, replacement };
 		}
