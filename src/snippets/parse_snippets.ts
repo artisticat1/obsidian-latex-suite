@@ -1,4 +1,4 @@
-import { optional, object, string as string_, union, instance, parse, number, Output, special, array } from "valibot";
+import { optional, object, string as string_, union, instance, parse, number, Output, special } from "valibot";
 import { encode } from "js-base64";
 import { serializeSnippet, Snippet, SnippetType, VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER } from "./snippets";
 import { Options } from "./options";
