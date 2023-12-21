@@ -4,7 +4,7 @@ import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
 import { queueSnippet } from "src/snippets/codemirror/snippet_queue_state_field";
 import { EXCLUSIONS } from "src/snippets/environment";
 import { Mode, Options } from "src/snippets/options";
-import { Snippet } from "src/snippets/snippets";
+import { Snippet, VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER } from "src/snippets/snippets";
 import { expandSnippets } from "src/snippets/snippet_management";
 import { Context } from "src/utils/context";
 import { autoEnlargeBrackets } from "./auto_enlarge_brackets";
@@ -121,7 +121,7 @@ function processSnippet(
 			const triggerPos = range.from;
 			let replacement;
 			if (typeof snippet.replacement === "string") {
-				replacement = snippet.replacement.replace("${VISUAL}", sel);
+				replacement = snippet.replacement.replace(VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER, sel);
 			} else {
 				const result = snippet.replacement(sel);
 				if (typeof result !== "string") { return null; }
