@@ -5,7 +5,7 @@ Snippets are formatted as follows:
 ```typescript
 {
   trigger: string | RegExp,
-  replacement: string | ((str: string) => string) | ((match: RegExpExecArray) => string) | ((selection: string) => (string | false)),
+  replacement: string,
   options: string,
   priority?: number,
   description?: string,
@@ -64,7 +64,6 @@ To create a regex snippet, you can
 When creating a regex snippet,
 - In the `trigger`, surround an expression with brackets `()` to create a capturing group.
 - Inside a `replacement` string, strings of the form `[[X]]` will be replaced by matches in increasing order of X, starting from 0.
-- A `replacement` function takes the `RegExpExecArray` match as the parameter.
 
 #### Example
 The snippet
@@ -90,10 +89,7 @@ To create a visual snippet, you can
 
 Visual snippets will not expand unless text is selected.
 
-When creating a visual snippet,
-- In a `replacement` string, when the snippet is expanded, the special string `${VISUAL}` is replaced with the current selection.
-- A `replacement` function takes the selection as the parameter.
-    - A visual snippet will not expand if its `replacement` function returns `false` given the selection.
+When a visual snippet is expanded, the special string `${VISUAL}` in its replacement is replaced with the current selection.
 
 #### Example
 ![visual snippets](gifs/visual_snippets.gif)
@@ -128,6 +124,25 @@ The following variables are available for use in a `trigger` or `replacement`:
 
 Snippet variables can be changed in the settings, under **Advanced editor settings > Snippet variables**.
 
+### Function snippets
+
+Replacements can also be functions. **Function snippets** take the form
+
+```ts
+{
+  replacement:
+    // string snippet
+    | ((str: string) => string)
+    // regex snippet
+    | ((match: RegExpExecArray) => string)
+    // visual snippet
+    | ((selection: string) => (string | false))
+}
+```
+
+based on which type of snippet the replacement applies to.
+
+If a snippet replacement function returns a non-string value, the snippet is ignored and will not expand.
 
 ## Snippet files
 You can choose to load snippets from a file or from all files within a folder. To do this, toggle the setting **Snippets > Load snippets from file or folder**. The file or folder must be within your vault, and not in a hidden folder (such as `.obsidian/`).

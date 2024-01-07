@@ -127,7 +127,7 @@ Snippets are formatted as follows:
 ```typescript
 {
   trigger: string | RegExp,
-  replacement: string | ((str: string) => string) | ((match: RegExpExecArray) => string) | ((selection: string) => (string | false)),
+  replacement: string,
   options: string,
   priority?: number,
   description?: string,
