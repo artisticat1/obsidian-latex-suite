@@ -11,6 +11,7 @@ import { reconfigureLatexSuiteConfig } from "./snippets/codemirror/config";
 import { parseSnippets } from "./snippets/parse_snippets";
 import type { Snippet } from "./snippets/snippets";
 import { latexSuiteExtensions, optionalExtensions } from "./latex_suite";
+import { getSnippetVariables } from "./snippets/snippet_variables";
 
 export default class LatexSuitePlugin extends Plugin {
 	settings: LatexSuitePluginSettings;
@@ -75,9 +76,11 @@ export default class LatexSuitePlugin extends Plugin {
 		}
 
 		if (this.settings.loadSnippetsFromFile) {
+			const tempSnippetVariables = getSnippetVariables(this.settings.snippetVariables);
+
 			let tempSnippets: Snippet[] = [];
 			try {
-				tempSnippets = await parseSnippets(this.settings.snippets);
+				tempSnippets = await parseSnippets(this.settings.snippets, tempSnippetVariables);
 			} catch (e) {
 				new Notice(`Failed to load snippets:\n${e}`);
 				console.log("Failed to load snippets:\n", e);
@@ -101,10 +104,12 @@ export default class LatexSuitePlugin extends Plugin {
 	}
 
 	async getSnippets() {
+		const snippetVariables = getSnippetVariables(this.settings.snippetVariables);
+
 		if (!this.settings.loadSnippetsFromFile) {
 			let snippets: Snippet[] = [];
 			try {
-				snippets = await parseSnippets(this.settings.snippets);
+				snippets = await parseSnippets(this.settings.snippets, snippetVariables);
 			} catch (e) {
 				new Notice("Failed to load snippets from settings");
 				console.log("Failed to load snippets from settings:", e);
@@ -112,7 +117,7 @@ export default class LatexSuitePlugin extends Plugin {
 			return snippets;
 		}
 		else {
-			const snippets = await getSnippetsWithinFileOrFolder(this.app.vault, this.settings.snippetsFileLocation);
+			const snippets = await getSnippetsWithinFileOrFolder(this.app.vault, this.settings.snippetsFileLocation, snippetVariables);
 
 			return snippets;
 		}

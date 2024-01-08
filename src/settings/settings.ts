@@ -1,6 +1,7 @@
 import { DEFAULT_SNIPPETS } from "../default_snippets";
 import { Snippet } from "../snippets/snippets";
 import { Environment } from "../snippets/environment";
+import { getSnippetVariables } from "src/snippets/snippet_variables";
 
 interface LatexSuiteBasicSettings {
 	snippetsEnabled: boolean;
@@ -100,19 +101,6 @@ export function processLatexSuiteSettings(snippets: Snippet[], settings: LatexSu
 		}
 
 		return envs;
-	}
-
-	function getSnippetVariables(snippetVarsStr: string) {
-		let vars = [];
-
-		try {
-			vars = JSON.parse(snippetVarsStr);
-		}
-		catch (e) {
-			console.log(e);
-		}
-
-		return vars;
 	}
 
 	return {

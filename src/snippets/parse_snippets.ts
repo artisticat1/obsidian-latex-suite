@@ -3,8 +3,9 @@ import { encode } from "js-base64";
 import { serializeSnippet, Snippet, SnippetType, VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER } from "./snippets";
 import { Options } from "./options";
 import { sortSnippets } from "./sort";
+import type { SnippetVariables } from "./snippet_variables";
 
-export async function parseSnippets(snippetsStr: string) {
+export async function parseSnippets(snippetsStr: string, snippetVariables: SnippetVariables) {
 	let rawSnippets;
 	try {
 		try {
@@ -27,7 +28,7 @@ export async function parseSnippets(snippetsStr: string) {
 		parsedSnippets = rawSnippets.map((raw) => {
 			try {
 				// normalize the raw snippet
-				const normalized = normalizeRawSnippet(raw);
+				const normalized = normalizeRawSnippet(raw, snippetVariables);
 				// and convert it into a Snippet
 				return parseSnippet(normalized);
 			} catch (e) {
@@ -120,7 +121,7 @@ interface NormalizedRawSnippet {
  * - the flags are defined and a string (possibly empty)
  * - the `options.regex` and `options.visual` fields are set properly
  */
-function normalizeRawSnippet(raw: RawSnippet): NormalizedRawSnippet {
+function normalizeRawSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): NormalizedRawSnippet {
 	const { replacement, priority, description } = raw;
 	
 	// normalize flags to a string
@@ -137,7 +138,7 @@ function normalizeRawSnippet(raw: RawSnippet): NormalizedRawSnippet {
 		trigger = raw.trigger.source;
 		flags = `${raw.trigger.flags}${flags}`
 	} else {
-		// we for proper typing
+		// we do this for proper typing
 		trigger = raw.trigger;
 	}
 
@@ -147,6 +148,9 @@ function normalizeRawSnippet(raw: RawSnippet): NormalizedRawSnippet {
 	}
 
 	flags = filterFlags(flags);
+
+	// substitute snippet variables
+	trigger = insertSnippetVariables(trigger, snippetVariables);
 
 	return { trigger, replacement, options, flags, priority, description };
 }
@@ -220,6 +224,14 @@ function isVisualSnippet(normalized: NormalizedRawSnippet) {
 }
 function isRegexSnippet(normalized: NormalizedRawSnippet) {
 	return normalized.options.regex;
+}
+
+function insertSnippetVariables(trigger: string, variables: SnippetVariables) {
+	for (const [variable, replacement] of Object.entries(variables)) {
+		trigger = trigger.replace(variable, replacement);
+	}
+
+	return trigger;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

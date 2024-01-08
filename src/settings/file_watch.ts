@@ -3,6 +3,7 @@ import { Vault, TFile, TFolder, Notice, debounce, TAbstractFile } from "obsidian
 import { Snippet } from "../snippets/snippets";
 import { parseSnippets } from "../snippets/parse_snippets";
 import { sortSnippets } from "../snippets/sort";
+import type { SnippetVariables } from "src/snippets/snippet_variables";
 
 function isInFolder(file: TFile, dir: TFolder) {
 	let cur = file.parent;
@@ -59,12 +60,12 @@ export const onFileDelete = (plugin: LatexSuitePlugin, file:TAbstractFile) => {
 	}
 }
 
-async function getSnippetsFromFile(vault: Vault, file: TFile) {
+async function getSnippetsFromFile(vault: Vault, file: TFile, snippetVariables: SnippetVariables) {
 	const content = await vault.cachedRead(file);
 	let snippets:Snippet[] = [];
 
 	try {
-		snippets = await parseSnippets(content);
+		snippets = await parseSnippets(content, snippetVariables);
 	}
 	catch (e) {
 		new Notice(`Failed to load snippet file ${file.name}`);
@@ -74,15 +75,15 @@ async function getSnippetsFromFile(vault: Vault, file: TFile) {
 	return snippets;
 }
 
-async function getSnippetsWithinFolder(vault: Vault, folder: TFolder) {
+async function getSnippetsWithinFolder(vault: Vault, folder: TFolder, snippetVariables: SnippetVariables) {
 	const snippets:Snippet[] = [];
 
 	for (const fileOrFolder of folder.children) {
 		if (fileOrFolder instanceof TFile) {
-			snippets.push(...await getSnippetsFromFile(vault, fileOrFolder));
+			snippets.push(...await getSnippetsFromFile(vault, fileOrFolder, snippetVariables));
 		}
 		else if (fileOrFolder instanceof TFolder) {
-			const folderSnippets = await getSnippetsWithinFolder(vault, fileOrFolder);
+			const folderSnippets = await getSnippetsWithinFolder(vault, fileOrFolder, snippetVariables);
 			snippets.push(...folderSnippets);
 		}
 	}
@@ -90,15 +91,15 @@ async function getSnippetsWithinFolder(vault: Vault, folder: TFolder) {
 	return snippets;
 }
 
-export async function getSnippetsWithinFileOrFolder(vault: Vault, path: string) {
+export async function getSnippetsWithinFileOrFolder(vault: Vault, path: string, snippetVariables: SnippetVariables) {
 	let snippets:Snippet[];
 	const fileOrFolder = vault.getAbstractFileByPath(path);
 
 	if (fileOrFolder instanceof TFolder) {
-		snippets = await getSnippetsWithinFolder(vault, fileOrFolder);
+		snippets = await getSnippetsWithinFolder(vault, fileOrFolder, snippetVariables);
 	}
 	else if (fileOrFolder instanceof TFile) {
-		snippets = await getSnippetsFromFile(vault, fileOrFolder);
+		snippets = await getSnippetsFromFile(vault, fileOrFolder, snippetVariables);
 	}
 	else {
 		return [];

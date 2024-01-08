@@ -7,6 +7,7 @@ import LatexSuitePlugin from "../main";
 import { FileSuggest } from "./ui/file_suggest";
 import { DEFAULT_SETTINGS } from "./settings";
 import { parseSnippets } from "src/snippets/parse_snippets";
+import { getSnippetVariables } from "src/snippets/snippet_variables";
 
 
 export class LatexSuiteSettingTab extends PluginSettingTab {
@@ -398,8 +399,9 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				const value = v.state.doc.toString();
 				let success = true;
 
+				const snippetVariables = getSnippetVariables(this.plugin.settings.snippetVariables);
 				try {
-					await parseSnippets(value);
+					await parseSnippets(value, snippetVariables);
 				}
 				catch (e) {
 					success = false;

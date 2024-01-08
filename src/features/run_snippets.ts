@@ -63,7 +63,7 @@ const runSnippetCursor = (view: EditorView, ctx: Context, key: string, range: Se
 		}
 
 
-		const result = processSnippet(snippet, effectiveLine, range, sel, settings.snippetVariables);
+		const result = processSnippet(snippet, effectiveLine, range, sel);
 		if (result === null) continue;
 		const triggerPos = result.triggerPos;
 
@@ -102,10 +102,8 @@ function processSnippet(
 	effectiveLine: string,
 	range: SelectionRange,
 	sel: string,
-	snippetVariables: Record<string, string>,
 ): ProcessSnippetResult {
-	let trigger = snippet.trigger;
-	trigger = insertSnippetVariables(trigger, snippetVariables);
+	const trigger = snippet.trigger;
 
 	const hasSelection = !!sel;
 	const isVisual = snippet.type === "visual";
@@ -213,14 +211,6 @@ const isOnWordBoundary = (state: EditorState, triggerPos: number, to: number, wo
 	wordDelimiters = wordDelimiters.replace("\\n", "\n");
 
 	return (wordDelimiters.contains(prevChar) && wordDelimiters.contains(nextChar));
-}
-
-const insertSnippetVariables = (trigger: string, variables: {[key: string]: string}) => {
-	for (const [variable, replacement] of Object.entries(variables)) {
-		trigger = trigger.replace(variable, replacement);
-	}
-
-	return trigger;
 }
 
 const trimWhitespace = (replacement: string, ctx: Context) => {
