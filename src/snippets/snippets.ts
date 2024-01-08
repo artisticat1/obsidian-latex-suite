@@ -63,7 +63,7 @@ interface StringSnippet extends _Snippet {
 export function serializeSnippet(snippet: unknown): string {
 	function replacer(k: string, v: unknown) {
 		if (typeof v === "function") { return "[[Function]]"; }
-		if (v instanceof RegExp) { return `[[RegExp]]: /${v.source}/${v.flags}`; }
+		if (v instanceof RegExp) { return `[[RegExp]]: ${v.toString()}`; }
 		return v;
 	}
 	return JSON.stringify(snippet, replacer, 2);
