@@ -73,12 +73,12 @@ async function importModuleDefault(module: string): Promise<unknown> {
 /** raw snippet IR */
 
 const RawSnippetSchema = object({
-  trigger: union([string_(), instance(RegExp)]),
-  replacement: union([string_(), special<AnyFunction>(x => typeof x === "function")]),
-  options: string_(),
-  flags: optional(string_()),
-  priority: optional(number()),
-  description: optional(string_()),
+	trigger: union([string_(), instance(RegExp)]),
+	replacement: union([string_(), special<AnyFunction>(x => typeof x === "function")]),
+	options: string_(),
+	flags: optional(string_()),
+	priority: optional(number()),
+	description: optional(string_()),
 });
 
 type RawSnippet = Output<typeof RawSnippetSchema>;
@@ -88,7 +88,7 @@ type RawSnippet = Output<typeof RawSnippetSchema>;
  * @throws if the value does not adhere to the raw snippet array schema
  */
 function validateRawSnippets(snippets: unknown): RawSnippet[] {
-  if (!Array.isArray(snippets)) { throw "Expected snippets to be an array"; }
+	if (!Array.isArray(snippets)) { throw "Expected snippets to be an array"; }
 	return snippets.map((raw) => {
 		try {
 			return parse(RawSnippetSchema, raw);
@@ -105,12 +105,12 @@ function validateRawSnippets(snippets: unknown): RawSnippet[] {
  * it makes parsing them into the final snippet representation easier.
  */
 interface NormalizedRawSnippet {
-  trigger: string;
-  replacement: string | AnyFunction;
-  options: Options;
-  flags: string;
-  priority?: number;
-  description?: string;
+	trigger: string;
+	replacement: string | AnyFunction;
+	options: Options;
+	flags: string;
+	priority?: number;
+	description?: string;
 }
 
 /**
@@ -121,41 +121,41 @@ interface NormalizedRawSnippet {
  * - the `options.regex` and `options.visual` fields are set properly
  */
 function normalizeRawSnippet(raw: RawSnippet): NormalizedRawSnippet {
-  const { replacement, priority, description } = raw;
-  
-  // normalize flags to a string
-  let flags = raw.flags ?? "";
+	const { replacement, priority, description } = raw;
+	
+	// normalize flags to a string
+	let flags = raw.flags ?? "";
 
-  // we leave trigger unassigned here instead of starting from raw.trigger to keep typescript happy
-  let trigger: string;
+	// we leave trigger unassigned here instead of starting from raw.trigger to keep typescript happy
+	let trigger: string;
 
-  const options = Options.fromSource(raw.options);
+	const options = Options.fromSource(raw.options);
 
-  // normalize regex triggers
-  if (raw.trigger instanceof RegExp) {
-    options.regex = true;
-    trigger = raw.trigger.source;
-    flags = `${raw.trigger.flags}${flags}`
-  } else {
-    // we for proper typing
-    trigger = raw.trigger;
-  }
+	// normalize regex triggers
+	if (raw.trigger instanceof RegExp) {
+		options.regex = true;
+		trigger = raw.trigger.source;
+		flags = `${raw.trigger.flags}${flags}`
+	} else {
+		// we for proper typing
+		trigger = raw.trigger;
+	}
 
-  // normalize visual replacements
-  if (typeof replacement === "string" && replacement.includes(VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER)) {
-    options.visual = true;
-  }
+	// normalize visual replacements
+	if (typeof replacement === "string" && replacement.includes(VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER)) {
+		options.visual = true;
+	}
 
 	flags = filterFlags(flags);
 
-  return { trigger, replacement, options, flags, priority, description };
+	return { trigger, replacement, options, flags, priority, description };
 }
 
 /**
  * removes duplicate flags and filters out invalid ones from a flags string.
  */
 function filterFlags(flags: string): string {
-  // filter out invalid flags
+	// filter out invalid flags
 	const validFlags = [
 		// "d", // doesn't affect the search
 		// "g", // doesn't affect the pattern match and is almost certainly undesired behavior
@@ -167,8 +167,8 @@ function filterFlags(flags: string): string {
 		// "y", // almost certainly undesired behavior
 	];
 	return Array.from(new Set(flags.split("")))
-      .filter(flag => validFlags.includes(flag))
-      .join("");
+			.filter(flag => validFlags.includes(flag))
+			.join("");
 }
 
 /** parse normalized raw snippet into final snippet representation */
@@ -177,28 +177,28 @@ function filterFlags(flags: string): string {
  * parses a normalized raw snippet into a Snippet
  */
 export function parseSnippet(normalized: NormalizedRawSnippet): Snippet {
-  const type = getSnippetType(normalized);
+	const type = getSnippetType(normalized);
 
-  if (type !== "regex") {
-    delete normalized.flags;
-  }
+	if (type !== "regex") {
+		delete normalized.flags;
+	}
 
-  switch (type) {
-    case "visual": {
-      const { trigger, replacement, options, priority, description } = normalized;
-      return { type, trigger, replacement, options, priority, description };
-    }
-    case "regex": {
-      const { trigger, replacement, options, flags, priority, description } = normalized;
-      return { type, trigger, replacement, options, flags, priority, description };
-    }
-    case "string": {
-      const { trigger, replacement, options, priority, description } = normalized;
-      return { type, trigger, replacement, options, priority, description };
-    }
-    default:
+	switch (type) {
+		case "visual": {
+			const { trigger, replacement, options, priority, description } = normalized;
+			return { type, trigger, replacement, options, priority, description };
+		}
+		case "regex": {
+			const { trigger, replacement, options, flags, priority, description } = normalized;
+			return { type, trigger, replacement, options, flags, priority, description };
+		}
+		case "string": {
+			const { trigger, replacement, options, priority, description } = normalized;
+			return { type, trigger, replacement, options, priority, description };
+		}
+		default:
 			throw "internal error: unrecognized snippet type";
-  }
+	}
 }
 
 /**
@@ -208,18 +208,18 @@ export function parseSnippet(normalized: NormalizedRawSnippet): Snippet {
  */
 function getSnippetType(normalized: NormalizedRawSnippet): SnippetType {
 	const r = isRegexSnippet(normalized);
-  const v = isVisualSnippet(normalized);
-  if (r && v) { throw "snippet cannot be both regex and visual."; }
-  if (r) { return "regex"; }
+	const v = isVisualSnippet(normalized);
+	if (r && v) { throw "snippet cannot be both regex and visual."; }
+	if (r) { return "regex"; }
 	if (v) { return "visual"; }
 	return "string";
 }
 
 function isVisualSnippet(normalized: NormalizedRawSnippet) {
-  return normalized.options.visual;
+	return normalized.options.visual;
 }
 function isRegexSnippet(normalized: NormalizedRawSnippet) {
-  return normalized.options.regex;
+	return normalized.options.regex;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
