@@ -38,20 +38,20 @@ interface _Snippet {
 interface VisualSnippet extends _Snippet {
 	type: "visual";
 	trigger: string;
-	replacement: string | Fn<[selection: string], string | false>;
+	replacement: string | ((selection: string) => string | false);
 }
 
 interface RegexSnippet extends _Snippet {
 	type: "regex";
 	trigger: string;
-	replacement: string | Fn<[match: RegExpExecArray], string>;
+	replacement: string | ((match: RegExpExecArray) => string);
 	flags?: string;
 }
 
 interface StringSnippet extends _Snippet {
 	type: "string";
 	trigger: string;
-	replacement: string | Fn<[match: string], string>;
+	replacement: string | ((match: string) => string);
 	flags?: string;
 }
 
@@ -68,6 +68,3 @@ export function serializeSnippet(snippet: unknown): string {
 	}
 	return JSON.stringify(snippet, replacer, 2);
 }
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Fn<Args extends readonly any[], Ret> = (...args: Args) => Ret;
