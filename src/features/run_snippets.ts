@@ -2,9 +2,7 @@ import { EditorView } from "@codemirror/view";
 import { EditorState, SelectionRange } from "@codemirror/state";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
 import { queueSnippet } from "src/snippets/codemirror/snippet_queue_state_field";
-import { EXCLUSIONS } from "src/snippets/environment";
 import { Mode, Options } from "src/snippets/options";
-import { Snippet, VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER } from "src/snippets/snippets";
 import { expandSnippets } from "src/snippets/snippet_management";
 import { Context } from "src/utils/context";
 import { autoEnlargeBrackets } from "./auto_enlarge_brackets";
@@ -56,17 +54,19 @@ const runSnippetCursor = (view: EditorView, ctx: Context, key: string, range: Se
 		}
 
 		// Check that this snippet is not excluded in a certain environment
-		if (snippet.trigger in EXCLUSIONS) {
-			const environment = EXCLUSIONS[snippet.trigger];
-
-			if (ctx.isWithinEnvironment(to, environment)) continue;
+		let isExcluded = false;
+		// in practice, a snippet should have very few excluded environments, if any,
+		// so the cost of this check shouldn't be very high
+		for (const environment of snippet.excludedEnvironments) {
+			if (ctx.isWithinEnvironment(to, environment)) { isExcluded = true; }
 		}
+		// we could've used a labelled outer for loop to `continue` from within the inner for loop,
+		// but labels are extremely rarely used, so we do this construction instead
+		if (isExcluded) { continue; }
 
-
-		const result = processSnippet(snippet, effectiveLine, range, sel);
+		const result = snippet.process(effectiveLine, range, sel);
 		if (result === null) continue;
 		const triggerPos = result.triggerPos;
-
 
 		if (snippet.options.onWordBoundary) {
 			// Check that the trigger is preceded and followed by a word delimiter
@@ -84,102 +84,12 @@ const runSnippetCursor = (view: EditorView, ctx: Context, key: string, range: Se
 		const start = triggerPos;
 		queueSnippet(view, start, to, replacement, key);
 
-
 		const containsTrigger = settings.autoEnlargeBracketsTriggers.some(word => replacement.contains("\\" + word));
 		return {success: true, shouldAutoEnlargeBrackets: containsTrigger};
 	}
 
 
 	return {success: false, shouldAutoEnlargeBrackets: false};
-}
-
-type ProcessSnippetResult =
-	| { triggerPos: number, replacement: string }
-	| null
-
-function processSnippet(
-	snippet: Snippet,
-	effectiveLine: string,
-	range: SelectionRange,
-	sel: string,
-): ProcessSnippetResult {
-	const trigger = snippet.trigger;
-
-	const hasSelection = !!sel;
-	const isVisual = snippet.type === "visual";
-	// visual snippets only run when there is a selection,
-	// and non-visual snippets only run when there is no selection.
-	if (hasSelection !== isVisual) { return null; }
-
-	switch (snippet.type) {
-		case "visual": {
-			// Check whether the trigger text was typed
-			if (!(effectiveLine.slice(-trigger.length) === trigger)) { return null; }
-
-			const triggerPos = range.from;
-			let replacement;
-			if (typeof snippet.replacement === "string") {
-				replacement = snippet.replacement.replace(VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER, sel);
-			} else {
-				const result = snippet.replacement(sel);
-				if (typeof result !== "string") { return null; }
-				replacement = result;
-			}
-
-			return { triggerPos, replacement };
-		}
-		case "regex": {
-			// Add $ to match the end of the string
-			// i.e. look for a match at the cursor's current position
-			const regex = new RegExp(`${trigger}$`, snippet.flags);
-			const result = regex.exec(effectiveLine);
-			if (result === null) { return null; }
-
-			const triggerPos = result.index;
-
-			let replacement;
-			if (typeof snippet.replacement === "string") {
-				// Compute the replacement string
-				// result.length - 1 = the number of capturing groups
-
-				const nCaptureGroups = result.length - 1;
-				replacement = Array.from({ length: nCaptureGroups })
-					.map((_, i) => i + 1)
-					.reduce(
-						(replacement, i) => replacement.replaceAll(`[[${i - 1}]]`, result[i]),
-						snippet.replacement
-					);
-			} else {
-				replacement = snippet.replacement(result);
-				
-				// sanity check - if replacement was a function,
-				// we have no way to validate beforehand that it really does return a string
-				if (typeof replacement !== "string") { return null; }
-			}
-
-			return { triggerPos, replacement };
-		}
-		case "string": {
-			// Check whether the trigger text was typed
-			if (!(effectiveLine.slice(-trigger.length) === trigger)) return null;
-
-			const triggerPos = effectiveLine.length - trigger.length;
-			const replacement = typeof snippet.replacement === "string"
-				? snippet.replacement
-				: snippet.replacement(trigger);
-
-			// sanity check - if replacement was a function,
-			// we have no way to validate beforehand that it really does return a string
-			if (typeof replacement !== "string") { return null; }
-
-			return { triggerPos, replacement };
-		}
-		default: {
-			// throw new Error("internal error: unrecognized snippet type");
-		}
-	}
-
-	return null;
 }
 
 const snippetShouldRunInMode = (options: Options, mode: Mode) => {

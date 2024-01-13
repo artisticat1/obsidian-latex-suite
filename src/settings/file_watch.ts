@@ -106,7 +106,7 @@ export async function getSnippetsWithinFileOrFolder(vault: Vault, path: string, 
 	}
 
 	// Sorting needs to happen after all the snippet files have been parsed
-	sortSnippets(snippets);
+	snippets = sortSnippets(snippets);
 	return snippets;
 }
 

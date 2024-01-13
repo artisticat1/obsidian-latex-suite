@@ -1,9 +1,10 @@
 import { optional, object, string as string_, union, instance, parse, number, Output, special } from "valibot";
 import { encode } from "js-base64";
-import { serializeSnippet, Snippet, SnippetType, VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER } from "./snippets";
+import { RegexSnippet, serializeSnippetLike, Snippet, SnippetType, StringSnippet, VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER, VisualSnippet } from "./snippets";
 import { Options } from "./options";
 import { sortSnippets } from "./sort";
 import type { SnippetVariables } from "./snippet_variables";
+import { EXCLUSIONS, Environment } from "./environment";
 
 export async function parseSnippets(snippetsStr: string, snippetVariables: SnippetVariables) {
 	let rawSnippets;
@@ -33,14 +34,14 @@ export async function parseSnippets(snippetsStr: string, snippetVariables: Snipp
 				return parseSnippet(normalized);
 			} catch (e) {
 				// provide context of which snippet errored
-				throw `${e}\nerroring snippet:\n${serializeSnippet(raw)}`;
+				throw `${e}\nerroring snippet:\n${serializeSnippetLike(raw)}`;
 			}
 		});
 	} catch(e) {
 		throw `Invalid snippet format: ${e}`;
 	}
 
-	sortSnippets(parsedSnippets);
+	parsedSnippets = sortSnippets(parsedSnippets);
 
 	return parsedSnippets;
 }
@@ -94,7 +95,7 @@ function validateRawSnippets(snippets: unknown): RawSnippet[] {
 		try {
 			return parse(RawSnippetSchema, raw);
 		} catch (e) {
-			throw `Value does not resemble snippet.\nerroring snippet:\n${serializeSnippet(raw)}`;
+			throw `Value does not resemble snippet.\nerroring snippet:\n${serializeSnippetLike(raw)}`;
 		}
 	})
 }
@@ -104,55 +105,97 @@ function validateRawSnippets(snippets: unknown): RawSnippet[] {
 /**
  * the intermediate normalized raw snippet interface.
  * it makes parsing them into the final snippet representation easier.
+ * 
+ * a normalized raw snippet has the following guarantees:
+ * - snippet variables are substituted into the trigger
+ * - `options.regex` and `options.visual` are set properly
+ * - if it is a regex snippet, the trigger is represented as a RegExp instance with flags set
  */
-interface NormalizedRawSnippet {
-	trigger: string;
+type NormalizedRawSnippet =
+	| NormalizedRawStringOrVisualSnippet
+	| NormalizedRawRegexSnippet
+
+interface BaseNormalizedRawSnippet {
+	trigger: string | RegExp;
 	replacement: string | AnyFunction;
 	options: Options;
-	flags: string;
 	priority?: number;
 	description?: string;
+	excludedEnvironments: Environment[] | null;
+}
+
+interface NormalizedRawStringOrVisualSnippet extends BaseNormalizedRawSnippet {
+	trigger: string;
+	replacement: string | AnyFunction;
+	// flags: string;
+}
+
+interface NormalizedRawRegexSnippet extends BaseNormalizedRawSnippet {
+	trigger: RegExp;
+	replacement: string | AnyFunction;
 }
 
 /**
  * "normalizes" a raw snippet.
  * after normalization, the following are guaranteed about the snippet:
- * - the trigger is a string
- * - the flags are defined and a string (possibly empty)
- * - the `options.regex` and `options.visual` fields are set properly
+ * - snippet variables are substituted into the trigger
+ * - `options.regex` and `options.visual` are set properly
+ * - if it is a regex snippet, the trigger is represented as a RegExp instance with flags set
  */
 function normalizeRawSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): NormalizedRawSnippet {
 	const { replacement, priority, description } = raw;
 	
-	// normalize flags to a string
-	let flags = raw.flags ?? "";
-
-	// we leave trigger unassigned here instead of starting from raw.trigger to keep typescript happy
-	let trigger: string;
-
 	const options = Options.fromSource(raw.options);
 
-	// normalize regex triggers
-	if (raw.trigger instanceof RegExp) {
+	// we have a regex snippet
+	if (options.regex || raw.trigger instanceof RegExp) {
+		let triggerStr: string;
+		// normalize flags to a string
+		let flags = raw.flags ?? "";
+
+		// extract trigger string from trigger,
+		// and merge flags, if trigger is a regexp already
+		if (raw.trigger instanceof RegExp) {
+			triggerStr = raw.trigger.source;
+			flags = `${(raw.trigger as RegExp).flags}${flags}`;
+		} else {
+			triggerStr = raw.trigger;
+		}
+		// filter out invalid flags
+		flags = filterFlags(flags);
+
+		// substitute snippet variables
+		triggerStr = insertSnippetVariables(triggerStr, snippetVariables);
+		
+		// get excluded environment(s) for this trigger, if any
+		const excludedEnvironments = getExcludedEnvironments(triggerStr);
+
+		// Add $ so regex matches end of string
+		// i.e. look for a match at the cursor's current position	
+		triggerStr = `${triggerStr}$`;
+
+		// convert trigger into RegExp instance
+		const trigger = new RegExp(triggerStr, flags);
+
 		options.regex = true;
-		trigger = raw.trigger.source;
-		flags = `${raw.trigger.flags}${flags}`
-	} else {
-		// we do this for proper typing
-		trigger = raw.trigger;
+		
+		return { trigger, replacement, options, priority, description, excludedEnvironments };
 	}
+
+	let trigger = raw.trigger as string;
+	// substitute snippet variables
+	trigger = insertSnippetVariables(trigger, snippetVariables);
+
+	// get excluded environment(s) for this trigger, if any
+	const excludedEnvironments = getExcludedEnvironments(trigger);
+
 
 	// normalize visual replacements
 	if (typeof replacement === "string" && replacement.includes(VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER)) {
 		options.visual = true;
 	}
 
-	flags = filterFlags(flags);
-
-	// substitute snippet variables
-	trigger = insertSnippetVariables(trigger, snippetVariables);
-
-	return { trigger, replacement, options, flags, priority, description };
+	return { trigger, replacement, options, priority, description, excludedEnvironments };
 }
 
 /**
@@ -183,22 +226,18 @@ function filterFlags(flags: string): string {
 export function parseSnippet(normalized: NormalizedRawSnippet): Snippet {
 	const type = getSnippetType(normalized);
 
-	if (type !== "regex") {
-		delete normalized.flags;
-	}
-
 	switch (type) {
 		case "visual": {
-			const { trigger, replacement, options, priority, description } = normalized;
-			return { type, trigger, replacement, options, priority, description };
+			const { trigger, replacement, options, priority, description, excludedEnvironments } = normalized as NormalizedRawStringOrVisualSnippet;
+			return new VisualSnippet({ trigger, replacement, options, priority, description, excludedEnvironments });
 		}
 		case "regex": {
-			const { trigger, replacement, options, flags, priority, description } = normalized;
-			return { type, trigger, replacement, options, flags, priority, description };
+			const { trigger, replacement, options, priority, description, excludedEnvironments } = normalized as NormalizedRawRegexSnippet;
+			return new RegexSnippet({ trigger, replacement, options, priority, description, excludedEnvironments });
 		}
 		case "string": {
-			const { trigger, replacement, options, priority, description } = normalized;
-			return { type, trigger, replacement, options, priority, description };
+			const { trigger, replacement, options, priority, description, excludedEnvironments } = normalized as NormalizedRawStringOrVisualSnippet;
+			return new StringSnippet({ trigger, replacement, options, priority, description, excludedEnvironments });
 		}
 		default:
 			throw "internal error: unrecognized snippet type";
@@ -232,6 +271,14 @@ function insertSnippetVariables(trigger: string, variables: SnippetVariables) {
 	}
 
 	return trigger;
+}
+
+function getExcludedEnvironments(trigger: string): Environment[] {
+	const result = [];
+	if (EXCLUSIONS.hasOwnProperty(trigger)) {
+		result.push(EXCLUSIONS[trigger]);
+	}
+	return result;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
