@@ -1,5 +1,7 @@
 import { DEFAULT_SNIPPETS } from "../default_snippets";
-import { Environment, ParsedSnippet } from "../snippets/snippets";
+import { Snippet } from "../snippets/snippets";
+import { Environment } from "../snippets/environment";
+import { getSnippetVariables } from "src/snippets/snippet_variables";
 
 interface LatexSuiteBasicSettings {
 	snippetsEnabled: boolean;
@@ -40,7 +42,7 @@ interface LatexSuiteParsedSettings {
 }
 
 export type LatexSuitePluginSettings = {snippets: string} & LatexSuiteBasicSettings & LatexSuiteRawSettings;
-export type LatexSuiteCMSettings = {snippets: ParsedSnippet[]} & LatexSuiteBasicSettings & LatexSuiteParsedSettings;
+export type LatexSuiteCMSettings = {snippets: Snippet[]} & LatexSuiteBasicSettings & LatexSuiteParsedSettings;
 
 export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
 	snippets: DEFAULT_SNIPPETS,
@@ -79,7 +81,7 @@ export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
 }`
 }
 
-export function processLatexSuiteSettings(snippets: ParsedSnippet[], settings: LatexSuitePluginSettings):LatexSuiteCMSettings {
+export function processLatexSuiteSettings(snippets: Snippet[], settings: LatexSuitePluginSettings):LatexSuiteCMSettings {
 
 	function strToArray(str: string) {
 		return str.replace(/\s/g,"").split(",");
@@ -99,19 +101,6 @@ export function processLatexSuiteSettings(snippets: ParsedSnippet[], settings: L
 		}
 
 		return envs;
-	}
-
-	function getSnippetVariables(snippetVarsStr: string) {
-		let vars = [];
-
-		try {
-			vars = JSON.parse(snippetVarsStr);
-		}
-		catch (e) {
-			console.log(e);
-		}
-
-		return vars;
 	}
 
 	return {

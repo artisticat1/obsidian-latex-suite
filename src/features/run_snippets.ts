@@ -1,12 +1,11 @@
 import { EditorView } from "@codemirror/view";
 import { EditorState, SelectionRange } from "@codemirror/state";
-import { queueSnippet } from "src/snippets/codemirror/snippet_queue_state_field";
-import { expandSnippets } from "src/snippets/snippet_management";
-import { ParsedSnippet, EXCLUSIONS } from "src/snippets/snippets";
-import { autoEnlargeBrackets } from "./auto_enlarge_brackets";
-import { Context } from "src/utils/context";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
+import { queueSnippet } from "src/snippets/codemirror/snippet_queue_state_field";
 import { Mode, Options } from "src/snippets/options";
+import { expandSnippets } from "src/snippets/snippet_management";
+import { Context } from "src/utils/context";
+import { autoEnlargeBrackets } from "./auto_enlarge_brackets";
 
 
 export const runSnippets = (view: EditorView, ctx: Context, key: string):boolean => {
@@ -43,7 +42,7 @@ const runSnippetCursor = (view: EditorView, ctx: Context, key: string, range: Se
 			continue;
 		}
 
-		if (snippet.options.automatic || snippet.replacement.contains("${VISUAL}")) {
+		if (snippet.options.automatic || snippet.type === "visual") {
 			// If the key pressed wasn't a text character, continue
 			if (!(key.length === 1)) continue;
 
@@ -55,17 +54,19 @@ const runSnippetCursor = (view: EditorView, ctx: Context, key: string, range: Se
 		}
 
 		// Check that this snippet is not excluded in a certain environment
-		if (snippet.trigger in EXCLUSIONS) {
-			const environment = EXCLUSIONS[snippet.trigger];
-
-			if (ctx.isWithinEnvironment(to, environment)) continue;
+		let isExcluded = false;
+		// in practice, a snippet should have very few excluded environments, if any,
+		// so the cost of this check shouldn't be very high
+		for (const environment of snippet.excludedEnvironments) {
+			if (ctx.isWithinEnvironment(to, environment)) { isExcluded = true; }
 		}
+		// we could've used a labelled outer for loop to `continue` from within the inner for loop,
+		// but labels are extremely rarely used, so we do this construction instead
+		if (isExcluded) { continue; }
 
-
-		const result = processSnippet(snippet, effectiveLine, range, sel, settings.snippetVariables);
+		const result = snippet.process(effectiveLine, range, sel);
 		if (result === null) continue;
 		const triggerPos = result.triggerPos;
-
 
 		if (snippet.options.onWordBoundary) {
 			// Check that the trigger is preceded and followed by a word delimiter
@@ -83,72 +84,12 @@ const runSnippetCursor = (view: EditorView, ctx: Context, key: string, range: Se
 		const start = triggerPos;
 		queueSnippet(view, start, to, replacement, key);
 
-
 		const containsTrigger = settings.autoEnlargeBracketsTriggers.some(word => replacement.contains("\\" + word));
 		return {success: true, shouldAutoEnlargeBrackets: containsTrigger};
 	}
 
 
 	return {success: false, shouldAutoEnlargeBrackets: false};
-}
-
-
-const processSnippet = (snippet: ParsedSnippet, effectiveLine: string, range:  SelectionRange, sel: string, snippetVariables: {[key: string]: string}):{triggerPos: number; replacement: string} => {
-	let triggerPos;
-	let trigger = snippet.trigger;
-	trigger = insertSnippetVariables(trigger, snippetVariables);
-
-	let replacement = snippet.replacement;
-
-
-	if (snippet.replacement.contains("${VISUAL}")) {
-		// "Visual" snippets
-		if (!sel) return null;
-
-		// Check whether the trigger text was typed
-		if (!(effectiveLine.slice(-trigger.length) === trigger)) return null;
-
-
-		triggerPos = range.from;
-		replacement = snippet.replacement.replace("${VISUAL}", sel);
-
-	}
-	else if (sel) {
-		// Don't run non-visual snippets when there is a selection
-		return null;
-	}
-	else if (!(snippet.options.regex)) {
-
-		// Check whether the trigger text was typed
-		if (!(effectiveLine.slice(-trigger.length) === trigger)) return null;
-
-		triggerPos = effectiveLine.length - trigger.length;
-
-	}
-	else {
-		// Regex snippet
-
-		// Add $ to match the end of the string
-		// i.e. look for a match at the cursor's current position
-		const regex = new RegExp(trigger + "$", snippet.flags);
-		const result = regex.exec(effectiveLine);
-
-		if (!(result)) {
-			return null;
-		}
-
-		// Compute the replacement string
-		// result.length - 1 = the number of capturing groups
-
-		for (let i = 1; i < result.length; i++) {
-			// i-1 to start from 0
-			replacement = replacement.replaceAll("[[" + (i-1) + "]]", result[i]);
-		}
-
-		triggerPos = result.index;
-	}
-
-	return {triggerPos: triggerPos, replacement: replacement};
 }
 
 const snippetShouldRunInMode = (options: Options, mode: Mode) => {
@@ -180,14 +121,6 @@ const isOnWordBoundary = (state: EditorState, triggerPos: number, to: number, wo
 	wordDelimiters = wordDelimiters.replace("\\n", "\n");
 
 	return (wordDelimiters.contains(prevChar) && wordDelimiters.contains(nextChar));
-}
-
-const insertSnippetVariables = (trigger: string, variables: {[key: string]: string}) => {
-	for (const [variable, replacement] of Object.entries(variables)) {
-		trigger = trigger.replace(variable, replacement);
-	}
-
-	return trigger;
 }
 
 const trimWhitespace = (replacement: string, ctx: Context) => {

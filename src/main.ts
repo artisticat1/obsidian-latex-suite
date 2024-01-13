@@ -8,8 +8,10 @@ import { ICONS } from "./settings/ui/icons";
 import { getEditorCommands } from "./features/editor_commands";
 import { iterateCM6 } from "./utils/editor_utils";
 import { reconfigureLatexSuiteConfig } from "./snippets/codemirror/config";
-import { latexSuiteExtensions, optionalExtensions } from "./latex_suite";
 import { parseSnippets } from "./snippets/parse_snippets";
+import type { Snippet } from "./snippets/snippets";
+import { latexSuiteExtensions, optionalExtensions } from "./latex_suite";
+import { getSnippetVariables } from "./snippets/snippet_variables";
 
 export default class LatexSuitePlugin extends Plugin {
 	settings: LatexSuitePluginSettings;
@@ -74,10 +76,19 @@ export default class LatexSuitePlugin extends Plugin {
 		}
 
 		if (this.settings.loadSnippetsFromFile) {
-			// Use onLayoutReady so that we don't try to read the snippets file too early
-			const tempSnippets = await parseSnippets(this.settings.snippets);
+			const tempSnippetVariables = getSnippetVariables(this.settings.snippetVariables);
+
+			let tempSnippets: Snippet[] = [];
+			try {
+				tempSnippets = await parseSnippets(this.settings.snippets, tempSnippetVariables);
+			} catch (e) {
+				new Notice(`Failed to load snippets:\n${e}`);
+				console.log("Failed to load snippets:\n", e);
+			}
+
 			this.CMSettings = processLatexSuiteSettings(tempSnippets, this.settings);
 
+			// Use onLayoutReady so that we don't try to read the snippets file too early
 			this.app.workspace.onLayoutReady(() => {
 				this.processSettings();
 			});
@@ -93,11 +104,20 @@ export default class LatexSuitePlugin extends Plugin {
 	}
 
 	async getSnippets() {
+		const snippetVariables = getSnippetVariables(this.settings.snippetVariables);
+
 		if (!this.settings.loadSnippetsFromFile) {
-			return await parseSnippets(this.settings.snippets);
+			let snippets: Snippet[] = [];
+			try {
+				snippets = await parseSnippets(this.settings.snippets, snippetVariables);
+			} catch (e) {
+				new Notice("Failed to load snippets from settings");
+				console.log("Failed to load snippets from settings:", e);
+			}
+			return snippets;
 		}
 		else {
-			const snippets = await getSnippetsWithinFileOrFolder(this.app.vault, this.settings.snippetsFileLocation);
+			const snippets = await getSnippetsWithinFileOrFolder(this.app.vault, this.settings.snippetsFileLocation, snippetVariables);
 
 			return snippets;
 		}

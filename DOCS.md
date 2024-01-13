@@ -3,12 +3,20 @@
 Snippets are formatted as follows:
 
 ```typescript
-{trigger: string | RegExp, replacement: string, options: string, priority?: number, description?: string, flags?: string}
+{
+  trigger: string | RegExp,
+  replacement: string,
+  options: string,
+  priority?: number,
+  description?: string,
+  flags?: string,
+}
 ```
 
 - `trigger` : The text that triggers this snippet.
-  - It can also be a regular expression. See [regex snippets](#regex).
+  - It can also be a regular expression. See [regex snippets](#regex-snippets).
 - `replacement` : The text to replace the `trigger` with.
+  - Replacements can also be functions. See [function snippets](#function-snippets).
 - `options` : See below.
 - `priority` (optional): This snippet's priority. Snippets with higher priority are run first. Can be negative. Defaults to 0.
 - `description` (optional): A description for this snippet.
@@ -22,13 +30,14 @@ Snippets are formatted as follows:
 - `M` : Block math mode. Only run this snippet inside a `$$ ... $$` block
 - `n` : Inline math mode. Only run this snippet inside a `$ ... $` block
 - `A` : Auto. Expand this snippet as soon as the trigger is typed. If omitted, the <kbd>Tab</kbd> key must be pressed to expand the snippet
-- `r` : Regex. The `trigger` will be treated as a regular expression
+- `r` : [Regex](#regex-snippets). The `trigger` will be treated as a regular expression
+- `v` : [Visual](#visual-snippets). Only run this snippet on a selection. The trigger should be a single character.
 - `w` : Word boundary. Only run this snippet when the trigger is preceded (and followed by) a word delimiter, such as `.`, `,`, or `-`.
 - `c` : Code mode. Only run this snippet inside a ```` ``` ... ``` ```` block
 	- Languages using `$` as part of their syntax won't trigger math mode while in their codeblock
 	- The `math` language from https://github.com/ocapraro/obsidian-math-plus doesn't trigger code mode, but block math mode instead
 
-Multiple options can be used at once.
+Multiple options can be used at once. As an exception, regex and visual are mutually exclusive.
 
 No mode specified means that this snippet can be triggered _at all times_. Multiple modes specified mean that a snippet can be triggered in the given modes, independent of each other.
 
@@ -55,14 +64,14 @@ To create a regex snippet, you can
 
 When creating a regex snippet,
 - In the `trigger`, surround an expression with brackets `()` to create a capturing group.
-- Inside the `replacement` string, strings of the form `[[X]]` will be replaced by matches in increasing order of X, starting from 0.
+- Inside a `replacement` string, strings of the form `[[X]]` will be replaced by matches in increasing order of X, starting from 0.
 
 #### Example
 The snippet
 ```typescript
 {trigger: "([A-Za-z])(\\d)", replacement: "[[0]]_{[[1]]}", options: "rA"}
 ```
-will expand `x2` to `x_{2}`.
+will expand `x2` to `x_{2}`, `a1` to `a_{1}` and so on.
 
 Using a RegExp literal, the same snippet can be written as
 ```typescript
@@ -74,18 +83,37 @@ Using a RegExp literal, the same snippet can be written as
 >   - (One backslash to escape the special character, and another to escape that backslash)
 > - [Lookbehind regex is not supported on iOS.](https://github.com/bicarlsen/obsidian_image_caption/issues/4#issuecomment-982982629) Using lookbehind regex will cause snippets to break on iOS.
 
+### Visual snippets
+Sometimes you want to annotate math, or cancel or cross out terms. **Visual snippets** can be used to surround your current selection with other text.
+
+For example, the snippet
+```typescript
+{trigger: "U", replacement: "\\underbrace{ ${VISUAL} }_{ $0 }", options: "mA"},
+```
+will surround your selection with an `\underbrace` when "U" is typed.
+
+![visual snippets](gifs/visual_snippets.gif)
+
+
+To create a visual snippet, you can
+- make the replacement a string containing the special string `${VISUAL}`, or
+- use the `v` option, and make the replacement a function.
+
+When a visual snippet is expanded, the special string `${VISUAL}` in its replacement is replaced with the current selection.
+
+To create a visual snippet, you can alternatively use the `v` option and make the replacement a [function](#function-snippets) that takes the selection as an argument. For example, the previous snippet can be written as
+
+```typescript
+{trigger: "U", replacement: (sel) => ("\\underbrace{" + sel + "}_{ $0 }"), options: "mv"},
+```
+.
+
+Visual snippets will not expand unless text is selected.
 
 ### Snippet variables
-The following variables are available for use in a `trigger` or `replacement`:
+Snippet variables are used as shortcuts when writing snippets. By default, the following variables are available for use in a `trigger`:
 
-- `${VISUAL}` : Can be inserted in a `replacement`. When the snippet is expanded, "${VISUAL}" is replaced with the current selection.
-	- Visual snippets will not expand unless text is selected.
-
-	**Examples**
-  ![visual snippets](gifs/visual_snippets.gif)
-
-
-- `${GREEK}` : Can be inserted in a `trigger`. Shorthand for the following by default:
+- `${GREEK}` : Shorthand for the following by default:
 
   ```
   alpha|beta|gamma|Gamma|delta|Delta|epsilon|varepsilon|zeta|eta|theta|Theta|iota|kappa|lambda|Lambda|mu|nu|xi|Xi|pi|Pi|rho|sigma|Sigma|tau|upsilon|phi|Phi|chi|psi|Psi|omega|Omega
@@ -93,7 +121,7 @@ The following variables are available for use in a `trigger` or `replacement`:
 
   Recommended for use with the regex option "r".
 
-- `${SYMBOL}` : Can be inserted in a `trigger`. Shorthand for the following by default:
+- `${SYMBOL}` : Shorthand for the following by default:
 
   ```
   hbar|ell|nabla|infty|dots|leftrightarrow|mapsto|setminus|mid|cap|cup|land|lor|subseteq|subset|implies|impliedby|iff|exists|equiv|square|neq|geq|leq|gg|ll|sim|simeq|approx|propto|cdot|oplus|otimes|times|star|perp|det|exp|ln|log|partial
@@ -101,7 +129,7 @@ The following variables are available for use in a `trigger` or `replacement`:
 
   Recommended for use with the regex option "r".
 
-- `${SHORT_SYMBOL}` : Can be inserted in a `trigger`. Shorthand for the following by default:
+- `${SHORT_SYMBOL}` : Shorthand for the following by default:
 
   ```
   to|pm|mp
@@ -112,8 +140,89 @@ The following variables are available for use in a `trigger` or `replacement`:
 
 Snippet variables can be changed in the settings, under **Advanced editor settings > Snippet variables**.
 
+### Function snippets
+***(To be released in the next update)***
+
+Replacements can also be functions, written in JavaScript. For example, the snippet
+```typescript
+{trigger: "date", replacement: () => (new Date().toDateString()), options: "t"},
+```
+will expand "date<kbd>Tab</kbd>" to the current date, such as "Mon Jan 15 2023".
+
+Function snippets work with regex and visual snippets as well.
+
+#### Regex function snippets
+
+For [**regex** snippets](#regex-snippets), Latex Suite will pass in the `RegExpExecArray` returned by the matching regular expression to your replacement function. This lets you access the value of capture groups inside your function. For example, the regex snippet
+
+```typescript
+{trigger: /id(\d)/, replacement: (match) => {
+    const n = match[1];
+
+    let arr = [];
+    for (let j = 0; j < n; j++) {
+        arr[j] = [];
+        for (let i = 0; i < n; i++) {
+            arr[j][i] = (i === j) ? 1 : 0;
+        }
+    }
+
+    let output = arr.map(el => el.join(" & ")).join(" \\\\\n");
+    output = `\\begin{pmatrix}\n${output}\n\\end{pmatrix}`;
+    return output;
+}, options: 'm'},
+```
+
+will expand "id4<kbd>Tab</kbd>" to a 4×4 identity matrix:
+
+```latex
+\begin{pmatrix}
+1 & 0 & 0 & 0 \\
+0 & 1 & 0 & 0 \\
+0 & 0 & 1 & 0 \\
+0 & 0 & 0 & 1
+\end{pmatrix}
+```
+. More generally, it will expand "idN<kbd>Tab</kbd>" to an N×N identity matrix.
+
+#### Visual function snippets
+
+Function replacements can also be used for [visual snippets](#visual-snippets). To do this, use the `v` option, and make the replacement a function that takes the selection as an argument. Latex Suite will pass in the selection to your replacement function.
+
+For example, the snippet
+
+```typescript
+{trigger: "K", replacement: (sel) => ("\\cancelto{ $0 }{" + sel + "}"), options: "mv"},
+```
+
+will surround your selection with a `\cancelto` when "K" is typed.
+
+The snippet
+```typescript
+{trigger: "-", replacement: sel => { if (!sel.includes(" ")) { return false } return sel.replaceAll(/\s+/g, "-")}, options: "vA"},
+```
+
+will convert all spaces in your selection to hypens (for example, `hello world` will expand to `hello-world`) when "-" is typed.
+
+---
+
+In general, **function snippets** take the form
+
+```ts
+{
+  replacement:
+    | ((str: string) => string)
+    | ((match: RegExpExecArray) => string) // Regex snippets
+    | ((selection: string) => (string | false)) // Visual snippets
+}
+```
+
+based on which type of snippet the replacement applies to.
+
+If a snippet replacement function returns a non-string value, the snippet is ignored and will not expand.
 
 ## Snippet files
+
 You can choose to load snippets from a file or from all files within a folder. To do this, toggle the setting **Snippets > Load snippets from file or folder**. The file or folder must be within your vault, and not in a hidden folder (such as `.obsidian/`).
 
 Snippet files can be saved with any extension. However, to obtain syntax highlighting in external editors, you may wish to save your snippet files with an extension of `.js`.
