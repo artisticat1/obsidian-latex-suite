@@ -10,8 +10,6 @@ export function sortSnippets(snippets: Snippet[]): Snippet[] {
 	// but to get "length" of regex we need to get its source
 	// (the debate regarding regex length being treated the same as regular string length is another issue).
 	// the idea here is that to avoid calling `RegExp.source()` over and over again when sorting.
-	// then sort with our precomputed values in mind,
-	// and finally  back the snippet.
 	return snippets
 		// first precompute trigger lengths for each snippet while keeping a reference to the original snippet (via index in `snippets`),
 		.map((snippet, i) => [getPriority(snippet), getTriggerLength(snippet), i])
