@@ -9,14 +9,14 @@ export const VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER = "${VISUAL}";
 
 /**
  * there are 3 distinct types of snippets:
- * 
+ *
  * `visual` snippets only trigger on text selections.
  * visual snippets support only (single-character) string triggers, and string or function replacements.
  * visual replacement functions take in the text selection and return a string, or `false` to indicate to actually not do anything.
- * 
+ *
  * `regex` snippets support string (with the "r" raw option set) or regex triggers, and string or function replacements.
  * regex replacement functions take in the regex match and return a string.
- * 
+ *
  * `string` snippets support string triggers (when no "r" raw option set), and string or function replacements.
  * string replacement functions take in the matched string and return a string.
  */
@@ -54,7 +54,7 @@ export abstract class Snippet<T extends SnippetType = SnippetType> {
 	options: Options;
 	priority?: number;
 	description?: string;
-	
+
 	excludedEnvironments: Environment[];
 
 	constructor(
@@ -80,9 +80,7 @@ export abstract class Snippet<T extends SnippetType = SnippetType> {
 	get trigger(): SnippetData<T>["trigger"] { return this.data.trigger; }
 	get replacement(): SnippetData<T>["replacement"] { return this.data.replacement; }
 
-	process(effectiveLine: string, range: SelectionRange, sel: string): ProcessSnippetResult {
-		return null;
-	}
+	abstract process(effectiveLine: string, range: SelectionRange, sel: string): ProcessSnippetResult;
 
 	toString() {
 		return serializeSnippetLike({
@@ -97,7 +95,7 @@ export abstract class Snippet<T extends SnippetType = SnippetType> {
 	}
 }
 
-export class VisualSnippet extends Snippet<"visual"> {	
+export class VisualSnippet extends Snippet<"visual"> {
 	constructor({ trigger, replacement, options, priority, description, excludedEnvironments }: CreateSnippet<"visual">) {
 		super("visual", trigger, replacement, options, priority, description, excludedEnvironments);
 	}
@@ -116,7 +114,7 @@ export class VisualSnippet extends Snippet<"visual"> {
 			replacement = this.replacement.replace(VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER, sel);
 		} else {
 			replacement = this.replacement(sel);
-			
+
 			// sanity check - if this.replacement was a function,
 			// we have no way to validate beforehand that it really does return a string
 			if (typeof replacement !== "string") { return null; }
@@ -127,7 +125,7 @@ export class VisualSnippet extends Snippet<"visual"> {
 }
 
 export class RegexSnippet extends Snippet<"regex"> {
-	
+
 	constructor({ trigger, replacement, options, priority, description, excludedEnvironments }: CreateSnippet<"regex">) {
 		super("regex", trigger, replacement, options, priority, description, excludedEnvironments);
 	}
@@ -156,7 +154,7 @@ export class RegexSnippet extends Snippet<"regex"> {
 				);
 		} else {
 			replacement = this.replacement(result);
-			
+
 			// sanity check - if this.replacement was a function,
 			// we have no way to validate beforehand that it really does return a string
 			if (typeof replacement !== "string") { return null; }
@@ -168,7 +166,7 @@ export class RegexSnippet extends Snippet<"regex"> {
 
 export class StringSnippet extends Snippet<"string"> {
 	data: SnippetData<"string">;
-	
+
 	constructor({ trigger, replacement, options, priority, description, excludedEnvironments: excludeIn }: CreateSnippet<"string">) {
 		super("string", trigger, replacement, options, priority, description, excludeIn);
 	}
@@ -196,9 +194,9 @@ export class StringSnippet extends Snippet<"string"> {
 
 /**
  * replacer function for serializing snippets
- * @param k 
- * @param v 
- * @returns 
+ * @param k
+ * @param v
+ * @returns
  */
 function replacer(k: string, v: unknown) {
 	if (typeof v === "function") { return "[[Function]]"; }
