@@ -106,7 +106,7 @@ export class VisualSnippet extends Snippet<"visual"> {
 		if (!hasSelection) { return null; }
 
 		// check whether the trigger text was typed
-		if (!(effectiveLine.slice(-this.trigger.length) === this.trigger)) { return null; }
+		if (!(effectiveLine.endsWith(this.trigger))) { return null; }
 
 		const triggerPos = range.from;
 		let replacement;
@@ -177,7 +177,7 @@ export class StringSnippet extends Snippet<"string"> {
 		if (hasSelection) { return null; }
 
 		// Check whether the trigger text was typed
-		if (!(effectiveLine.slice(-this.trigger.length) === this.trigger)) { return null; }
+		if (!(effectiveLine.endsWith(this.trigger))) { return null; }
 
 		const triggerPos = effectiveLine.length - this.trigger.length;
 		const replacement = typeof this.replacement === "string"
