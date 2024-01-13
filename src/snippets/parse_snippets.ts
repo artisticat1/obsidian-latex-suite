@@ -18,20 +18,18 @@ export async function parseSnippets(snippetsStr: string, snippetVariables: Snipp
 			rawSnippets = await importModuleDefault(`data:text/javascript;base64,${encode(`export default ${snippetsStr}`)}`);
 		}
 	} catch (e) {
-		throw "Invalid snippet format.";	
+		throw "Invalid snippet format.";
 	}
 
 	let parsedSnippets;
 	try {
 		// validate the shape of the raw snippets
 		rawSnippets = validateRawSnippets(rawSnippets);
-		
+
 		parsedSnippets = rawSnippets.map((raw) => {
 			try {
-				// normalize the raw snippet
-				const normalized = normalizeRawSnippet(raw, snippetVariables);
-				// and convert it into a Snippet
-				return parseSnippet(normalized);
+				// Normalize the raw snippet and convert it into a Snippet
+				return parseSnippet(raw, snippetVariables);
 			} catch (e) {
 				// provide context of which snippet errored
 				throw `${e}\nerroring snippet:\n${serializeSnippetLike(raw)}`;
@@ -50,7 +48,7 @@ export async function parseSnippets(snippetsStr: string, snippetVariables: Snipp
 
 /**
  * imports the default export of a given module.
- * 
+ *
  * @param module the module to import. this can be a resource path, data url, etc
  * @returns the default export of said module
  * @throws if import fails or default export is undefined
@@ -62,7 +60,7 @@ async function importModuleDefault(module: string): Promise<unknown> {
 	} catch (e) {
 		throw `failed to import module ${module}`;
 	}
-	
+
 	// it's safe to use `in` here - it has a null prototype, so `Object.hasOwnProperty` isn't available,
 	// but on the other hand we don't need to worry about something further up the prototype chain messing with this check
 	if (!("default" in data)) {
@@ -100,52 +98,18 @@ function validateRawSnippets(snippets: unknown): RawSnippet[] {
 	})
 }
 
-/** normalize raw snippets to a more consistent representation */
-
 /**
- * the intermediate normalized raw snippet interface.
- * it makes parsing them into the final snippet representation easier.
- * 
- * a normalized raw snippet has the following guarantees:
+ * Parses a raw snippet.
+ * This does the following:
  * - snippet variables are substituted into the trigger
  * - `options.regex` and `options.visual` are set properly
  * - if it is a regex snippet, the trigger is represented as a RegExp instance with flags set
  */
-type NormalizedRawSnippet =
-	| NormalizedRawStringOrVisualSnippet
-	| NormalizedRawRegexSnippet
-
-interface BaseNormalizedRawSnippet {
-	trigger: string | RegExp;
-	replacement: string | AnyFunction;
-	options: Options;
-	priority?: number;
-	description?: string;
-	excludedEnvironments: Environment[] | null;
-}
-
-interface NormalizedRawStringOrVisualSnippet extends BaseNormalizedRawSnippet {
-	trigger: string;
-	replacement: string | AnyFunction;
-	// flags: string;
-}
-
-interface NormalizedRawRegexSnippet extends BaseNormalizedRawSnippet {
-	trigger: RegExp;
-	replacement: string | AnyFunction;
-}
-
-/**
- * "normalizes" a raw snippet.
- * after normalization, the following are guaranteed about the snippet:
- * - snippet variables are substituted into the trigger
- * - `options.regex` and `options.visual` are set properly
- * - if it is a regex snippet, the trigger is represented as a RegExp instance with flags set
- */
-function normalizeRawSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): NormalizedRawSnippet {
+function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snippet {
 	const { replacement, priority, description } = raw;
-	
 	const options = Options.fromSource(raw.options);
+	let trigger;
+	let excludedEnvironments;
 
 	// we have a regex snippet
 	if (options.regex || raw.trigger instanceof RegExp) {
@@ -166,36 +130,45 @@ function normalizeRawSnippet(raw: RawSnippet, snippetVariables: SnippetVariables
 
 		// substitute snippet variables
 		triggerStr = insertSnippetVariables(triggerStr, snippetVariables);
-		
+
 		// get excluded environment(s) for this trigger, if any
-		const excludedEnvironments = getExcludedEnvironments(triggerStr);
+		excludedEnvironments = getExcludedEnvironments(triggerStr);
 
 		// Add $ so regex matches end of string
-		// i.e. look for a match at the cursor's current position	
+		// i.e. look for a match at the cursor's current position
 		triggerStr = `${triggerStr}$`;
 
 		// convert trigger into RegExp instance
-		const trigger = new RegExp(triggerStr, flags);
+		trigger = new RegExp(triggerStr, flags);
 
 		options.regex = true;
-		
-		return { trigger, replacement, options, priority, description, excludedEnvironments };
+
+		const normalised = { trigger, replacement, options, priority, description, excludedEnvironments };
+
+		return new RegexSnippet(normalised);
 	}
+	else {
+		let trigger = raw.trigger as string;
+		// substitute snippet variables
+		trigger = insertSnippetVariables(trigger, snippetVariables);
 
-	let trigger = raw.trigger as string;
-	// substitute snippet variables
-	trigger = insertSnippetVariables(trigger, snippetVariables);
+		// get excluded environment(s) for this trigger, if any
+		excludedEnvironments = getExcludedEnvironments(trigger);
 
-	// get excluded environment(s) for this trigger, if any
-	const excludedEnvironments = getExcludedEnvironments(trigger);
+		// normalize visual replacements
+		if (typeof replacement === "string" && replacement.includes(VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER)) {
+			options.visual = true;
+		}
 
+		const normalised = { trigger, replacement, options, priority, description, excludedEnvironments };
 
-	// normalize visual replacements
-	if (typeof replacement === "string" && replacement.includes(VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER)) {
-		options.visual = true;
+		if (options.visual) {
+			return new VisualSnippet(normalised);
+		}
+		else {
+			return new StringSnippet(normalised);
+		}
 	}
-
-	return { trigger, replacement, options, priority, description, excludedEnvironments };
 }
 
 /**
@@ -216,53 +189,6 @@ function filterFlags(flags: string): string {
 	return Array.from(new Set(flags.split("")))
 			.filter(flag => validFlags.includes(flag))
 			.join("");
-}
-
-/** parse normalized raw snippet into final snippet representation */
-
-/**
- * parses a normalized raw snippet into a Snippet
- */
-export function parseSnippet(normalized: NormalizedRawSnippet): Snippet {
-	const type = getSnippetType(normalized);
-
-	switch (type) {
-		case "visual": {
-			const { trigger, replacement, options, priority, description, excludedEnvironments } = normalized as NormalizedRawStringOrVisualSnippet;
-			return new VisualSnippet({ trigger, replacement, options, priority, description, excludedEnvironments });
-		}
-		case "regex": {
-			const { trigger, replacement, options, priority, description, excludedEnvironments } = normalized as NormalizedRawRegexSnippet;
-			return new RegexSnippet({ trigger, replacement, options, priority, description, excludedEnvironments });
-		}
-		case "string": {
-			const { trigger, replacement, options, priority, description, excludedEnvironments } = normalized as NormalizedRawStringOrVisualSnippet;
-			return new StringSnippet({ trigger, replacement, options, priority, description, excludedEnvironments });
-		}
-		default:
-			throw "internal error: unrecognized snippet type";
-	}
-}
-
-/**
- * determines the type of a normalized snippet.
- * 
- * @throws if it detects an invalid type arrangement (e.g. it satisfies more than one snippet type)
- */
-function getSnippetType(normalized: NormalizedRawSnippet): SnippetType {
-	const r = isRegexSnippet(normalized);
-	const v = isVisualSnippet(normalized);
-	if (r && v) { throw "snippet cannot be both regex and visual."; }
-	if (r) { return "regex"; }
-	if (v) { return "visual"; }
-	return "string";
-}
-
-function isVisualSnippet(normalized: NormalizedRawSnippet) {
-	return normalized.options.visual;
-}
-function isRegexSnippet(normalized: NormalizedRawSnippet) {
-	return normalized.options.regex;
 }
 
 function insertSnippetVariables(trigger: string, variables: SnippetVariables) {
