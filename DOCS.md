@@ -14,9 +14,9 @@ Snippets are formatted as follows:
 ```
 
 - `trigger` : The text that triggers this snippet.
-  - It can also be a regular expression. See [regex snippets](#regex-snippets).
+  - Triggers can also be regular expressions. See [regex snippets](#regex-snippets).
 - `replacement` : The text to replace the `trigger` with.
-  - Replacements can also be functions. See [function snippets](#function-snippets).
+  - Replacements can also be JavaScript functions. See [function snippets](#function-snippets).
 - `options` : See below.
 - `priority` (optional): This snippet's priority. Snippets with higher priority are run first. Can be negative. Defaults to 0.
 - `description` (optional): A description for this snippet.
@@ -31,7 +31,7 @@ Snippets are formatted as follows:
 - `n` : Inline math mode. Only run this snippet inside a `$ ... $` block
 - `A` : Auto. Expand this snippet as soon as the trigger is typed. If omitted, the <kbd>Tab</kbd> key must be pressed to expand the snippet
 - `r` : [Regex](#regex-snippets). The `trigger` will be treated as a regular expression
-- `v` : [Visual](#visual-snippets). Only run this snippet on a selection. The trigger should be a single character.
+- `v` : [Visual](#visual-snippets). Only run this snippet on a selection. The trigger should be a single character
 - `w` : Word boundary. Only run this snippet when the trigger is preceded (and followed by) a word delimiter, such as `.`, `,`, or `-`.
 - `c` : Code mode. Only run this snippet inside a ```` ``` ... ``` ```` block
 	- Languages using `$` as part of their syntax won't trigger math mode while in their codeblock
@@ -65,6 +65,7 @@ To create a regex snippet, you can
 When creating a regex snippet,
 - In the `trigger`, surround an expression with brackets `()` to create a capturing group.
 - Inside a `replacement` string, strings of the form `[[X]]` will be replaced by matches in increasing order of X, starting from 0.
+- You can also make the `replacement` a JavaScript function. See [function snippets](#function-snippets) for more details.
 
 #### Example
 The snippet
@@ -83,32 +84,6 @@ Using a RegExp literal, the same snippet can be written as
 >   - (One backslash to escape the special character, and another to escape that backslash)
 > - [Lookbehind regex is not supported on iOS.](https://github.com/bicarlsen/obsidian_image_caption/issues/4#issuecomment-982982629) Using lookbehind regex will cause snippets to break on iOS.
 
-### Visual snippets
-Sometimes you want to annotate math, or cancel or cross out terms. **Visual snippets** can be used to surround your current selection with other text.
-
-For example, the snippet
-```typescript
-{trigger: "U", replacement: "\\underbrace{ ${VISUAL} }_{ $0 }", options: "mA"},
-```
-will surround your selection with an `\underbrace` when "U" is typed.
-
-![visual snippets](gifs/visual_snippets.gif)
-
-
-To create a visual snippet, you can
-- make the replacement a string containing the special string `${VISUAL}`, or
-- use the `v` option, and make the replacement a function.
-
-When a visual snippet is expanded, the special string `${VISUAL}` in its replacement is replaced with the current selection.
-
-To create a visual snippet, you can alternatively use the `v` option and make the replacement a [function](#function-snippets) that takes the selection as an argument. For example, the previous snippet can be written as
-
-```typescript
-{trigger: "U", replacement: (sel) => ("\\underbrace{" + sel + "}_{ $0 }"), options: "mv"},
-```
-.
-
-Visual snippets will not expand unless text is selected.
 
 ### Snippet variables
 Snippet variables are used as shortcuts when writing snippets. By default, the following variables are available for use in a `trigger`:
@@ -139,6 +114,35 @@ Snippet variables are used as shortcuts when writing snippets. By default, the f
 
 
 Snippet variables can be changed in the settings, under **Advanced editor settings > Snippet variables**.
+
+
+### Visual snippets
+Sometimes you want to annotate math, or cancel or cross out terms. **Visual snippets** can be used to surround your current selection with other text.
+
+For example, the snippet
+```typescript
+{trigger: "U", replacement: "\\underbrace{ ${VISUAL} }_{ $0 }", options: "mA"},
+```
+will surround your selection with an `\underbrace` when "U" is typed.
+
+![visual snippets](gifs/visual_snippets.gif)
+
+
+To create a visual snippet, you can
+- make the replacement a string containing the special string `${VISUAL}`, or
+- use the `v` option, and make the replacement a function.
+
+When a visual snippet is expanded, the special string `${VISUAL}` in its replacement is replaced with the current selection.
+
+To create a visual snippet, you can alternatively use the `v` option and make the replacement a [function](#function-snippets) that takes the selection as an argument. For example, the previous snippet can be written as
+
+```typescript
+{trigger: "U", replacement: (sel) => ("\\underbrace{" + sel + "}_{ $0 }"), options: "mv"},
+```
+.
+
+Visual snippets will not expand unless text is selected.
+
 
 ### Function snippets
 ***(To be released in the next update)***

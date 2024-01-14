@@ -136,7 +136,9 @@ Snippets are formatted as follows:
 ```
 
 - `trigger` : The text that triggers this snippet.
+  - Triggers can also be regular expressions. [See here for more info.](./DOCS.md#regex-snippets)
 - `replacement` : The text to replace the `trigger` with.
+  - Replacements can also be JavaScript functions. [See here for more info.](./DOCS.md#function-snippets)
 - `options` : See below.
 - `priority` (optional): This snippet's priority. Snippets with higher priority are run first. Can be negative. Defaults to 0.
 - `description` (optional): A description for this snippet.
@@ -149,14 +151,14 @@ Snippets are formatted as follows:
 - `M` : Block math mode. Only run this snippet inside a `$$ ... $$` block
 - `n` : Inline math mode. Only run this snippet inside a `$ ... $` block
 - `A` : Auto. Expand this snippet as soon as the trigger is typed. If omitted, the <kbd>Tab</kbd> key must be pressed to expand the snippet
-- `r` : Regex. The `trigger` will be treated as a regular expression
-- `v` : Visual. Only run this snippet when there is a selection. The trigger should be a single character
+- `r` : [Regex](./DOCS.md#regex-snippets). The `trigger` will be treated as a regular expression
+- `v` : [Visual](./DOCS.md#visual-snippets). Only run this snippet on a selection. The trigger should be a single character
 - `w` : Word boundary. Only run this snippet when the trigger is preceded (and followed by) a word delimiter, such as `.`, `,`, or `-`.
 - `c` : Code mode. Only run this snippet inside a ```` ``` ... ``` ```` block
 
 Insert **tabstops** for the cursor to jump to by writing "$0", "$1", etc. in the `replacement`.
 
-For more details on writing snippets, including **regex** snippets, [see the documentation here](DOCS.md). You can [view snippets written by others and share your own snippets here](https://github.com/artisticat1/obsidian-latex-suite/discussions/50).
+For more details on writing snippets, including **regex** snippets and **function** snippets, [see the **documentation** here](DOCS.md). You can [view snippets written by others and share your own snippets here](https://github.com/artisticat1/obsidian-latex-suite/discussions/50).
 
 > [!WARNING]
 > Snippet files are interpreted as JavaScript and can execute arbitrary code.
@@ -218,17 +220,14 @@ For greek letters with short names (2-3 characters), just type their name,
 e.g. "pi" → "\\pi"
 
 
-
 ## Contributing
 Any contributions and PRs are welcome!
-
 
 
 ## Acknowledgements
 - [@tth05](https://github.com/tth05)'s [Obsidian Completr](https://github.com/tth05/obsidian-completr) for the basis of the tabstop code
 - [Dynamic Highlights](https://github.com/nothingislost/obsidian-dynamic-highlights/blob/master/src/settings/ui.ts) for reference
 - [Quick Latex for Obsidian](https://github.com/joeyuping/quick_latex_obsidian) for inspiration
-
 
 
 ## Support
