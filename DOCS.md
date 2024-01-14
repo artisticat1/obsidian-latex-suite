@@ -174,7 +174,7 @@ For [**regex** snippets](#regex-snippets), Latex Suite will pass in the `RegExpE
     let output = arr.map(el => el.join(" & ")).join(" \\\\\n");
     output = `\\begin{pmatrix}\n${output}\n\\end{pmatrix}`;
     return output;
-}, options: 'm'},
+}, options: "m"},
 ```
 
 will expand "id4<kbd>Tab</kbd>" to a 4×4 identity matrix:
