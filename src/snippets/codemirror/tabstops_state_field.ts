@@ -1,8 +1,9 @@
 import { EditorView, Decoration } from "@codemirror/view";
-import { StateEffect, StateField } from "@codemirror/state";
+import { EditorSelection, StateEffect, StateField } from "@codemirror/state";
 import { TabstopGroup } from "../tabstop";
 
 const addTabstopsEffect = StateEffect.define<TabstopGroup[]>();
+const filterTabstopsEffect = StateEffect.define<EditorSelection>();
 const removeTabstopEffect = StateEffect.define();
 const removeAllTabstopsEffect = StateEffect.define();
 
@@ -19,6 +20,19 @@ export const tabstopsStateField = StateField.define<TabstopGroup[]>({
 		for (const effect of transaction.effects) {
 			if (effect.is(addTabstopsEffect)) {
 				tabstopGroups.unshift(...effect.value);
+			}
+			else if (effect.is(filterTabstopsEffect)) {
+				tabstopGroups = tabstopGroups.filter((value: TabstopGroup) => {
+					return (value.decos.size != 0);
+				})
+
+				// Hide tabstops equivalent to the current selection
+				const editorSel = effect.value;
+				tabstopGroups.forEach((value: TabstopGroup) => {
+					if (editorSel.eq(value.toEditorSelection())) {
+						value.hideFromEditor();
+					}
+				})
 			}
 			else if (effect.is(removeTabstopEffect)) {
 				tabstopGroups.shift();
@@ -57,6 +71,12 @@ export function getTabstopGroupsFromView(view: EditorView) {
 export function addTabstops(view: EditorView, tabstopGroups: TabstopGroup[]) {
 	view.dispatch({
 		effects: [addTabstopsEffect.of(tabstopGroups)],
+	});
+}
+
+export function filterTabstops(view: EditorView) {
+	view.dispatch({
+		effects: [filterTabstopsEffect.of(view.state.selection)],
 	});
 }
 

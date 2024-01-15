@@ -3,7 +3,7 @@ import { ChangeSet } from "@codemirror/state";
 import { startSnippet } from "./codemirror/history";
 import { isolateHistory } from "@codemirror/commands";
 import { TabstopSpec, tabstopSpecsToTabstopGroups } from "./tabstop";
-import { addTabstops, removeTabstop, removeAllTabstops, getTabstopGroupsFromView, getNextTabstopColor } from "./codemirror/tabstops_state_field";
+import { addTabstops, removeTabstop, removeAllTabstops, getTabstopGroupsFromView, getNextTabstopColor, filterTabstops } from "./codemirror/tabstops_state_field";
 import { clearSnippetQueue, snippetQueueStateField } from "./codemirror/snippet_queue_state_field";
 import { SnippetChangeSpec } from "./codemirror/snippet_change_spec";
 
@@ -100,10 +100,13 @@ function expandTabstops(view: EditorView, tabstops: TabstopSpec[]) {
 	const firstGrp = getTabstopGroupsFromView(view)[0];
 	firstGrp.select(view, false, true); // "true" here marks the transaction as the end of the snippet (for undo/history purposes)
 
-	removeOnlyTabstop(view);
+	tidyTabstops(view);
 }
 
-function removeOnlyTabstop(view: EditorView) {
+export function tidyTabstops(view: EditorView) {
+	// Hide (filter out) tabstops equivalent to the editor's current selection
+	filterTabstops(view);
+
 	// Clear all tabstop groups if there's just one remaining
 	const currentTabstopGroups = getTabstopGroupsFromView(view);
 
@@ -134,6 +137,7 @@ export function consumeAndGotoNextTabstop(view: EditorView): boolean {
 	// Select the next tabstop
 	const oldSel = view.state.selection;
 	const nextGrp = getTabstopGroupsFromView(view)[0];
+	if (!nextGrp) return false;
 
 	// If the old tabstop(s) lie within the new tabstop(s), simply move the cursor
 	const shouldMoveToEndpoints = nextGrp.containsSelection(oldSel);
@@ -146,7 +150,7 @@ export function consumeAndGotoNextTabstop(view: EditorView): boolean {
 		return consumeAndGotoNextTabstop(view);
 
 	// If this was the last tabstop group waiting to be selected, remove it
-	removeOnlyTabstop(view);
+	tidyTabstops(view);
 
 	return true;
 }

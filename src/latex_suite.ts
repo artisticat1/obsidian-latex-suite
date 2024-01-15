@@ -7,7 +7,7 @@ import { tabout, shouldTaboutByCloseBracket } from "./features/tabout";
 import { runMatrixShortcuts } from "./features/matrix_shortcuts";
 
 import { Context } from "./utils/context";
-import { consumeAndGotoNextTabstop, isInsideATabstop } from "./snippets/snippet_management";
+import { consumeAndGotoNextTabstop, isInsideATabstop, tidyTabstops } from "./snippets/snippet_management";
 import { removeAllTabstops } from "./snippets/codemirror/tabstops_state_field";
 import { getLatexSuiteConfigExtension, getLatexSuiteConfig } from "./snippets/codemirror/config";
 import { clearSnippetQueue } from "./snippets/codemirror/snippet_queue_state_field";
@@ -95,6 +95,8 @@ export const handleKeydown = (key: string, shiftKey: boolean, ctrlKey: boolean, 
 			if (success) return true;
 		}
 	}
+
+	tidyTabstops(view);
 
 	return false;
 }
