@@ -145,7 +145,6 @@ Visual snippets will not expand unless text is selected.
 
 
 ### Function snippets
-***(To be released in the next update)***
 
 Replacements can also be functions, written in JavaScript. For example, the snippet
 ```typescript
