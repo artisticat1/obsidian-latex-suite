@@ -279,7 +279,7 @@
 
 	// Misc
 	{trigger: "tayl", replacement: "${0:f}(${1:x} + ${2:h}) = ${0:f}(${1:x}) + ${0:f}'(${1:x})${2:h} + ${0:f}''(${1:x}) \\frac{${2:h}^{2}}{2!} + \\dots$3", options: "mA"},
-	{trigger: /id(\d)/, replacement: (match) => {
+	{trigger: /iden(\d)/, replacement: (match) => {
 		const n = match[1];
 
 		let arr = [];
@@ -293,5 +293,5 @@
 		let output = arr.map(el => el.join(" & ")).join(" \\\\\n");
 		output = `\\begin{pmatrix}\n${output}\n\\end{pmatrix}`;
 		return output;
-	}, options: "m", description: "N x N identity matrix"},
+	}, options: "mA", description: "N x N identity matrix"},
 ]

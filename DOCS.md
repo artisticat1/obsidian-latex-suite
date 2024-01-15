@@ -160,7 +160,7 @@ Function snippets work with regex and visual snippets as well.
 For [**regex** snippets](#regex-snippets), Latex Suite will pass in the `RegExpExecArray` returned by the matching regular expression to your replacement function. This lets you access the value of capture groups inside your function. For example, the regex snippet
 
 ```typescript
-{trigger: /id(\d)/, replacement: (match) => {
+{trigger: /iden(\d)/, replacement: (match) => {
     const n = match[1];
 
     let arr = [];
@@ -174,10 +174,10 @@ For [**regex** snippets](#regex-snippets), Latex Suite will pass in the `RegExpE
     let output = arr.map(el => el.join(" & ")).join(" \\\\\n");
     output = `\\begin{pmatrix}\n${output}\n\\end{pmatrix}`;
     return output;
-}, options: "m"},
+}, options: "mA"},
 ```
 
-will expand "id4<kbd>Tab</kbd>" to a 4×4 identity matrix:
+will expand "iden4" to a 4×4 identity matrix:
 
 ```latex
 \begin{pmatrix}
@@ -187,7 +187,7 @@ will expand "id4<kbd>Tab</kbd>" to a 4×4 identity matrix:
 0 & 0 & 0 & 1
 \end{pmatrix}
 ```
-. More generally, it will expand "idN<kbd>Tab</kbd>" to an N×N identity matrix.
+. More generally, it will expand "idenN" to an N×N identity matrix.
 
 #### Visual function snippets
 
