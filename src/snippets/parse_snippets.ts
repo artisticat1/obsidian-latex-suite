@@ -1,6 +1,6 @@
 import { optional, object, string as string_, union, instance, parse, number, Output, special } from "valibot";
 import { encode } from "js-base64";
-import { RegexSnippet, serializeSnippetLike, Snippet, SnippetType, StringSnippet, VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER, VisualSnippet } from "./snippets";
+import { RegexSnippet, serializeSnippetLike, Snippet, StringSnippet, VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER, VisualSnippet } from "./snippets";
 import { Options } from "./options";
 import { sortSnippets } from "./sort";
 import type { SnippetVariables } from "./snippet_variables";
@@ -32,7 +32,7 @@ export async function parseSnippets(snippetsStr: string, snippetVariables: Snipp
 				return parseSnippet(raw, snippetVariables);
 			} catch (e) {
 				// provide context of which snippet errored
-				throw `${e}\nerroring snippet:\n${serializeSnippetLike(raw)}`;
+				throw `${e}\nErroring snippet:\n${serializeSnippetLike(raw)}`;
 			}
 		});
 	} catch(e) {
@@ -93,7 +93,7 @@ function validateRawSnippets(snippets: unknown): RawSnippet[] {
 		try {
 			return parse(RawSnippetSchema, raw);
 		} catch (e) {
-			throw `Value does not resemble snippet.\nerroring snippet:\n${serializeSnippetLike(raw)}`;
+			throw `Value does not resemble snippet.\nErroring snippet:\n${serializeSnippetLike(raw)}`;
 		}
 	})
 }
