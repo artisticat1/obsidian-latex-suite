@@ -2,10 +2,10 @@ import { App, PluginSettingTab, Setting, Modal, setIcon, ButtonComponent, ExtraB
 import { EditorView, ViewUpdate } from "@codemirror/view";
 import { EditorState, Extension } from "@codemirror/state";
 import { basicSetup } from "./ui/snippets_editor/extensions";
-import { DEFAULT_SNIPPETS } from "../default_snippets";
 import LatexSuitePlugin from "../main";
 import { FileSuggest } from "./ui/file_suggest";
 import { DEFAULT_SETTINGS } from "./settings";
+import { DEFAULT_SNIPPETS } from "src/utils/default_snippets";
 import { parseSnippets } from "src/snippets/parse_snippets";
 import { getSnippetVariables } from "src/snippets/snippet_variables";
 

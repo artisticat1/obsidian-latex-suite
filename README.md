@@ -15,7 +15,7 @@ The plugin's main feature is **snippets**, which help you write LaTeX quicker th
 See [Gilles Castel's writeup](https://castel.dev/post/lecture-notes-1/) for more information.
 
 
-The plugin comes with a [set of default snippets](https://github.com/artisticat1/obsidian-latex-suite/blob/main/src/default_snippets.ts), loosely based on [Gilles Castel's](https://castel.dev/post/lecture-notes-1/#other-snippets). You can modify them, remove them, and write your own.
+The plugin comes with a [set of default snippets](https://github.com/artisticat1/obsidian-latex-suite/blob/main/src/default_snippets.js), loosely based on [Gilles Castel's](https://castel.dev/post/lecture-notes-1/#other-snippets). You can modify them, remove them, and write your own.
 
 
 ## Usage
@@ -30,7 +30,7 @@ To get started, type "dm" to enter display math mode. Try typing the following:
 **Have a look at the [cheatsheet](#cheatsheet)** for a list of commonly used default snippets.
 
 
-Once these feel familiar, you can check out the [default snippets](https://github.com/artisticat1/obsidian-latex-suite/blob/main/src/default_snippets.ts) for more commands. e.g.
+Once these feel familiar, you can check out the [default snippets](https://github.com/artisticat1/obsidian-latex-suite/blob/main/src/default_snippets.js) for more commands. e.g.
 
 - "par <kbd>Tab</kbd> f <kbd>Tab</kbd> x <kbd>Tab</kbd>" → "\\frac{\\partial f}{\\partial x}".
 

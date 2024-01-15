@@ -1,7 +1,7 @@
-import { DEFAULT_SNIPPETS } from "../default_snippets";
 import { Snippet } from "../snippets/snippets";
 import { Environment } from "../snippets/environment";
 import { getSnippetVariables } from "src/snippets/snippet_variables";
+import { DEFAULT_SNIPPETS } from "src/utils/default_snippets";
 
 interface LatexSuiteBasicSettings {
 	snippetsEnabled: boolean;
