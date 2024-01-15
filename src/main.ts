@@ -41,7 +41,8 @@ export default class LatexSuitePlugin extends Plugin {
 	}
 
 	legacyEditorWarning() {
-		if ((this.app.vault as any).config?.legacyEditor) {
+		// @ts-ignore
+		if (this.app.vault.config?.legacyEditor) {
 			const message = "Obsidian Latex Suite: This plugin does not support the legacy editor. Switch to Live Preview mode to use this plugin.";
 
 			new Notice(message, 100000);
@@ -57,7 +58,8 @@ export default class LatexSuitePlugin extends Plugin {
 		// Migrate settings from v1.8.0 - v1.8.4
 		const shouldMigrateSettings = data ? "basicSettings" in data : false;
 
-		function migrateSettings(oldSettings: any) {
+		// @ts-ignore
+		function migrateSettings(oldSettings) {
 			return {
 				...oldSettings.basicSettings,
 				...oldSettings.rawSettings,
