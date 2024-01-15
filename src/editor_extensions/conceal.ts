@@ -92,7 +92,7 @@ function escapeRegex(regex: string) {
 /**
  * gets the updated end index to include "\\limits" in the concealed text of some conceal match,
  * if said match is directly followed by "\\limits"
- * 
+ *
  * @param eqn source text
  * @param end index of eqn corresponding to the end of a match to conceal
  * @returns the updated end index to conceal
@@ -127,7 +127,7 @@ function concealSymbols(eqn: string, prefix: string, suffix: string, symbolMap: 
 				continue;
 			}
 		}
-		
+
 		const end = getEndIncludingLimits(eqn, match.index + match[0].length);
 
 		concealments.push({start: match.index, end: end, replacement: symbolMap[symbol], class: className});
@@ -295,7 +295,7 @@ function concealOperators(eqn: string, symbols: string[]):Concealment[] {
 
 		const start = match.index;
 		const end = getEndIncludingLimits(eqn, start + match[1].length);
-		
+
 		concealments.push({start: start, end: end, replacement: value, class: "cm-concealed-mathrm cm-variable-2"});
 	}
 
@@ -493,6 +493,13 @@ function conceal(view: EditorView) {
 				const end = bounds.start + concealment.end;
 				const symbol = concealment.replacement;
 
+				// Improve selecting empty replacements such as "\frac" -> ""
+				let inclusiveStart = false;
+				let inclusiveEnd = false;
+				if (symbol === "") {
+					inclusiveStart = true;
+				}
+
 				if (!mousedown && selectionAndRangeOverlap(selection, start, end)) continue;
 
 				if (start === end) {
@@ -508,7 +515,8 @@ function conceal(view: EditorView) {
 					widgets.push(
 						Decoration.replace({
 							widget: new ConcealWidget(symbol, concealment.class, concealment.elementType),
-							inclusive: false,
+							inclusiveStart: inclusiveStart,
+							inclusiveEnd: inclusiveEnd,
 							block: false,
 						}).range(start, end)
 					);
