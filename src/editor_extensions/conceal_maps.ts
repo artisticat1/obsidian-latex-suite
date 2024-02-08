@@ -500,6 +500,8 @@ export const brackets = {
 	"rangle": "〉",
 	"lvert": "|",
 	"rvert": "|",
+	"lVert": "||",
+	"rVert": "||",
 	"vert": "|"
 }
 
