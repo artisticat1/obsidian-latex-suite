@@ -20,7 +20,7 @@ export class SnippetChangeSpec {
         const tabstops:TabstopSpec[] = [];
         const text = view.state.doc.toString();
 
-        for (let i = 0; i < text.length; i++) {
+        for (let i = start; i < start + this.insert.length; i++) {
 
             if (!(text.charAt(i) === "$")) {
                 continue;
