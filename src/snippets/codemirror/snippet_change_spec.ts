@@ -39,7 +39,7 @@ export class SnippetChangeSpec {
                 if (!(text.charAt(i+1) === "{")) continue;
     
                 // Find the index of the matching closing bracket
-                const closingIndex = text.indexOf("}", i)
+                const closingIndex = findMatchingBracket(text, i+1, "{", "}", false, start + this.insert.length);
                 
                 // Create a copy of the entire tabstop string from the document
                 const tabstopString = text.slice(i, closingIndex+1)
