@@ -35,7 +35,7 @@ function getCursorTooltips(state: EditorState): readonly Tooltip[] {
 	return [
 		{
 			pos: bounds.start,
-			above: true,
+			above: false,
 			strictSide: true,
 			arrow: true,
 			create: () => {
@@ -61,10 +61,10 @@ export const cursorTooltipBaseTheme = EditorView.baseTheme({
 		padding: "4px 6px",
 		borderRadius: "6px",
 		"& .cm-tooltip-arrow:before": {
-			borderTopColor: "var(--background-modifier-border-hover)",
+			borderBottomColor: "var(--background-modifier-border-hover)",
 		},
 		"& .cm-tooltip-arrow:after": {
-			borderTopColor: "var(--background-secondary)",
+			borderBottomColor: "var(--background-secondary)",
 		},
 		"& p": {
 			margin: "0px",
