@@ -149,7 +149,6 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					.setValue(this.plugin.settings.concealEnabled)
 					.onChange(async (value) => {
 						this.plugin.settings.concealEnabled = value;
-						this.plugin.refreshCMExtensions();
 						await this.plugin.saveSettings();
 					})
 				);
@@ -165,8 +164,6 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.colorPairedBracketsEnabled)
 				.onChange(async (value) => {
 					this.plugin.settings.colorPairedBracketsEnabled = value;
-
-					this.plugin.refreshCMExtensions();
 					await this.plugin.saveSettings();
 				}));
 		new Setting(containerEl)
@@ -176,7 +173,6 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.highlightCursorBracketsEnabled)
 				.onChange(async (value) => {
 					this.plugin.settings.highlightCursorBracketsEnabled = value;
-					this.plugin.refreshCMExtensions();
 					await this.plugin.saveSettings();
 				}));
 
@@ -199,7 +195,6 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.mathPreviewEnabled)
 				.onChange(async (value) => {
 					this.plugin.settings.mathPreviewEnabled = value;
-					this.plugin.refreshCMExtensions();
 					await this.plugin.saveSettings();
 				}));
 
