@@ -42,13 +42,13 @@ export class SnippetChangeSpec {
                 const closingIndex = findMatchingBracket(text, i+1, "{", "}", false, start + this.insert.length);
                 
                 // Create a copy of the entire tabstop string from the document
-                const tabstopString = text.slice(i, closingIndex+1)
+                const tabstopString = text.slice(i, closingIndex+1);
     
                 // If there is not a colon in the tabstop string, it is incorrectly formatted
                 if (!tabstopString.includes(":")) continue;
     
                 // Get the first index of a colon, which we will use as our number/replacement split point
-                const colonIndex = tabstopString.indexOf(":")
+                const colonIndex = tabstopString.indexOf(":");
     
                 // Parse the number from the tabstop string, which is all characters after the {
                 // and before the colon index
@@ -66,7 +66,7 @@ export class SnippetChangeSpec {
     
             // Replace the tabstop indicator "$X" with ""
             const tabstop = {number: number, from: tabstopStart, to: tabstopEnd, replacement: tabstopReplacement};
-            tabstops.push(tabstop)
+            tabstops.push(tabstop);
         }
 
         return tabstops;

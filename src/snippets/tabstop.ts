@@ -124,7 +124,7 @@ export function tabstopSpecsToTabstopGroups(tabstops: TabstopSpec[], color: numb
 
     const result = [];
     const numbers = Object.keys(tabstopsByNumber);
-    numbers.sort();
+    numbers.sort((a,b) => parseInt(a) - parseInt(b));
 
     for (const number of numbers) {
         const grp = new TabstopGroup(tabstopsByNumber[number], color);
