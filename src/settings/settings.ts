@@ -14,6 +14,7 @@ interface LatexSuiteBasicSettings {
 	colorPairedBracketsEnabled: boolean;
 	highlightCursorBracketsEnabled: boolean;
 	mathPreviewEnabled: boolean;
+	mathPreviewPosition: "Below" | "Above";
 	autofractionSymbol: string;
 	autofractionBreakingChars: string;
 	matrixShortcutsEnabled: boolean;
@@ -57,6 +58,7 @@ export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
 	colorPairedBracketsEnabled: true,
 	highlightCursorBracketsEnabled: true,
 	mathPreviewEnabled: true,
+	mathPreviewPosition: "Below",
 	autofractionEnabled: true,
 	autofractionSymbol: "\\frac",
 	autofractionBreakingChars: "+-=\t",

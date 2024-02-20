@@ -185,7 +185,6 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		const popup_space = document.createElement("br");
 		const popup_line4 = document.createElement("div");
 		popup_line4.setText("The popup preview will be shown for all inline math equations, as well as for block math equations in Source mode.");
-
 		popup_fragment.append(popup_line1, popup_space, popup_line4);
 
 		new Setting(containerEl)
@@ -195,8 +194,31 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.mathPreviewEnabled)
 				.onChange(async (value) => {
 					this.plugin.settings.mathPreviewEnabled = value;
+
+					// update visibility of the position setting
+					mathPreviewPositionSetting.settingEl.toggleClass("hidden", !value);
+
 					await this.plugin.saveSettings();
 				}));
+
+		const mathPreviewPositionSetting = new Setting(containerEl)
+      .setName("Position")
+      .setDesc("Where to display the popup preview relative to the target.")
+      .addDropdown((dropdown) => dropdown
+        .addOption("Below", "Below")
+        .addOption("Above", "Above")
+        .setValue(this.plugin.settings.mathPreviewPosition)
+        .onChange(async (value) => {
+          this.plugin.settings.mathPreviewPosition = value as "Below" | "Above";
+          await this.plugin.saveSettings();
+        })
+      );
+
+    // hide the position setting if math preview is disabled
+		{
+			const enabled = this.plugin.settings.mathPreviewEnabled;
+			mathPreviewPositionSetting.settingEl.toggleClass("hidden", !enabled);
+		}
 
 
 		this.addHeading(containerEl, "Auto-fraction", "math-x-divide-y-2");
