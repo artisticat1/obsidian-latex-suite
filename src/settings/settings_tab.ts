@@ -195,15 +195,12 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				.onChange(async (value) => {
 					this.plugin.settings.mathPreviewEnabled = value;
 
-					// update visibility of the position setting
-					mathPreviewPositionSetting.settingEl.toggleClass("hidden", !value);
-
 					await this.plugin.saveSettings();
 				}));
 
 		const mathPreviewPositionSetting = new Setting(containerEl)
       .setName("Position")
-      .setDesc("Where to display the popup preview relative to the target.")
+      .setDesc("Where to display the popup preview relative to the equation source.")
       .addDropdown((dropdown) => dropdown
 		.addOption("Above", "Above")
         .addOption("Below", "Below")
@@ -213,13 +210,6 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
           await this.plugin.saveSettings();
         })
       );
-
-    // hide the position setting if math preview is disabled
-		{
-			const enabled = this.plugin.settings.mathPreviewEnabled;
-			mathPreviewPositionSetting.settingEl.toggleClass("hidden", !enabled);
-		}
-
 
 		this.addHeading(containerEl, "Auto-fraction", "math-x-divide-y-2");
 
