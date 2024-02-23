@@ -36,8 +36,8 @@ function getCursorTooltips(state: EditorState): readonly Tooltip[] {
 
 	return [
 		{
-			pos: bounds.start,
-			above: settings.mathPreviewPosition === "Above",
+			pos: (ctx.mode.inlineMath || settings.mathPreviewPositionIsAbove) ? bounds.start : bounds.end,
+			above: settings.mathPreviewPositionIsAbove,
 			strictSide: true,
 			arrow: true,
 			create: () => {

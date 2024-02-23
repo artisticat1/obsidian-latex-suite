@@ -205,11 +205,11 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
       .setName("Position")
       .setDesc("Where to display the popup preview relative to the target.")
       .addDropdown((dropdown) => dropdown
+		.addOption("Above", "Above")
         .addOption("Below", "Below")
-        .addOption("Above", "Above")
-        .setValue(this.plugin.settings.mathPreviewPosition)
+        .setValue(this.plugin.settings.mathPreviewPositionIsAbove ? "Above" : "Below")
         .onChange(async (value) => {
-          this.plugin.settings.mathPreviewPosition = value as "Below" | "Above";
+          this.plugin.settings.mathPreviewPositionIsAbove = (value === "Above");
           await this.plugin.saveSettings();
         })
       );
