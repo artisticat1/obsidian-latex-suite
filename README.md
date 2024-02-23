@@ -103,6 +103,7 @@ When the cursor is inside inline math, a popup window showing the rendered math 
 Sometimes you want to annotate math, or cancel or cross out terms. Selecting some math with the cursor and typing
 
 - "U" will surround it with "\\underbrace".
+- "O" will surround it with "\\overbrace".
 - "C" will surround it with "\\cancel".
 - "K" will surround it with "\\cancelto".
 - "B" will surround it with "\\underset".
