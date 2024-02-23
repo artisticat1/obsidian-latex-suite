@@ -149,7 +149,6 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					.setValue(this.plugin.settings.concealEnabled)
 					.onChange(async (value) => {
 						this.plugin.settings.concealEnabled = value;
-						this.plugin.refreshCMExtensions();
 						await this.plugin.saveSettings();
 					})
 				);
@@ -165,8 +164,6 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.colorPairedBracketsEnabled)
 				.onChange(async (value) => {
 					this.plugin.settings.colorPairedBracketsEnabled = value;
-
-					this.plugin.refreshCMExtensions();
 					await this.plugin.saveSettings();
 				}));
 		new Setting(containerEl)
@@ -176,7 +173,6 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.highlightCursorBracketsEnabled)
 				.onChange(async (value) => {
 					this.plugin.settings.highlightCursorBracketsEnabled = value;
-					this.plugin.refreshCMExtensions();
 					await this.plugin.saveSettings();
 				}));
 
@@ -189,7 +185,6 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		const popup_space = document.createElement("br");
 		const popup_line4 = document.createElement("div");
 		popup_line4.setText("The popup preview will be shown for all inline math equations, as well as for block math equations in Source mode.");
-
 		popup_fragment.append(popup_line1, popup_space, popup_line4);
 
 		new Setting(containerEl)
@@ -199,10 +194,22 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.mathPreviewEnabled)
 				.onChange(async (value) => {
 					this.plugin.settings.mathPreviewEnabled = value;
-					this.plugin.refreshCMExtensions();
+
 					await this.plugin.saveSettings();
 				}));
 
+		const mathPreviewPositionSetting = new Setting(containerEl)
+      .setName("Position")
+      .setDesc("Where to display the popup preview relative to the equation source.")
+      .addDropdown((dropdown) => dropdown
+		.addOption("Above", "Above")
+        .addOption("Below", "Below")
+        .setValue(this.plugin.settings.mathPreviewPositionIsAbove ? "Above" : "Below")
+        .onChange(async (value) => {
+          this.plugin.settings.mathPreviewPositionIsAbove = (value === "Above");
+          await this.plugin.saveSettings();
+        })
+      );
 
 		this.addHeading(containerEl, "Auto-fraction", "math-x-divide-y-2");
 
