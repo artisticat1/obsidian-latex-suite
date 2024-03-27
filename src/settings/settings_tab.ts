@@ -1,19 +1,19 @@
-import { App, PluginSettingTab, Setting, Modal, setIcon, ButtonComponent, ExtraButtonComponent } from "obsidian";
-import { EditorView, ViewUpdate } from "@codemirror/view";
 import { EditorState, Extension } from "@codemirror/state";
-import { basicSetup } from "./ui/snippets_editor/extensions";
-import LatexSuitePlugin from "../main";
-import { FileSuggest } from "./ui/file_suggest";
-import { DEFAULT_SETTINGS } from "./settings";
+import { EditorView, ViewUpdate } from "@codemirror/view";
+import { App, ButtonComponent, ExtraButtonComponent, Modal, PluginSettingTab, Setting, setIcon } from "obsidian";
+import { parseSnippetVariables, parseSnippets } from "src/snippets/parse";
 import { DEFAULT_SNIPPETS } from "src/utils/default_snippets";
-import { parseSnippets } from "src/snippets/parse_snippets";
-import { getSnippetVariables } from "src/snippets/snippet_variables";
+import LatexSuitePlugin from "../main";
+import { DEFAULT_SETTINGS } from "./settings";
+import { FileSuggest } from "./ui/file_suggest";
+import { basicSetup } from "./ui/snippets_editor/extensions";
 
 
 export class LatexSuiteSettingTab extends PluginSettingTab {
 	plugin: LatexSuitePlugin;
 	snippetsEditor: EditorView;
 	snippetsFileLocEl: HTMLElement;
+	snippetVariablesFileLocEl: HTMLElement;
 
 	constructor(app: App, plugin: LatexSuitePlugin) {
 		super(app, plugin);
@@ -328,7 +328,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 		this.addHeading(containerEl, "Advanced snippet settings");
 
-		new Setting(containerEl)
+		const snippetVariablesSetting = new Setting(containerEl)
 			.setName("Snippet variables")
 			.setDesc("Assign snippet variables that can be used as shortcuts when writing snippets.")
 			.addTextArea(text => text
@@ -341,17 +341,66 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			.setClass("latex-suite-snippet-variables-setting");
 
 		new Setting(containerEl)
-			.setName("Word delimiters")
-			.setDesc("Symbols that will be treated as word delimiters, for use with the \"w\" snippet option.")
-			.addText(text => text
-				.setPlaceholder(DEFAULT_SETTINGS.wordDelimiters)
-				.setValue(this.plugin.settings.wordDelimiters)
+			.setName("Load snippet variables from file or folder")
+			.setDesc("Whether to load snippet variables from a specified file, or from all files within a folder (instead of from the plugin settings).")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.loadSnippetVariablesFromFile)
 				.onChange(async (value) => {
-					this.plugin.settings.wordDelimiters = value;
+					this.plugin.settings.loadSnippetVariablesFromFile = value;
+
+					snippetVariablesSetting.settingEl.toggleClass("hidden", value);
+					if (this.snippetVariablesFileLocEl != undefined)
+						this.snippetVariablesFileLocEl.toggleClass("hidden", !value);
 
 					await this.plugin.saveSettings();
 				}));
+		
+		const snippetVariablesFileLocDesc = new DocumentFragment();
+		snippetVariablesFileLocDesc.createDiv({}, (div) => {
+			div.innerHTML = `
+			The file or folder to load snippet variables from. The file or folder must be within your vault, and not within a hidden folder (such as <code>.obsidian/</code>).`;
+		});
 
+		const snippetVariablesFileLoc = new Setting(containerEl)
+			.setName("Snippet variables file or folder location")
+			.setDesc(snippetVariablesFileLocDesc);
+
+
+		let inputVariablesEl;
+		snippetVariablesFileLoc.addText(text => {
+			text
+				.setPlaceholder(DEFAULT_SETTINGS.snippetVariablesFileLocation)
+				.setValue(this.plugin.settings.snippetVariablesFileLocation)
+				.onChange(async (value) => {
+					this.plugin.settings.snippetVariablesFileLocation = value;
+
+					await this.plugin.saveSettings();
+				});
+
+				inputVariablesEl = text.inputEl;
+		}
+		);
+
+		this.snippetVariablesFileLocEl = snippetVariablesFileLoc.settingEl;
+		new FileSuggest(this.app, inputVariablesEl);
+
+
+		// Hide settings that are not relevant when "loadSnippetsFromFile" is set to true/false
+		const loadSnippetVariablesFromFile = this.plugin.settings.loadSnippetVariablesFromFile;
+		snippetVariablesSetting.settingEl.toggleClass("hidden", loadSnippetVariablesFromFile);
+		this.snippetVariablesFileLocEl.toggleClass("hidden", !loadSnippetVariablesFromFile);
+
+		new Setting(containerEl)
+		.setName("Word delimiters")
+		.setDesc("Symbols that will be treated as word delimiters, for use with the \"w\" snippet option.")
+		.addText(text => text
+			.setPlaceholder(DEFAULT_SETTINGS.wordDelimiters)
+			.setValue(this.plugin.settings.wordDelimiters)
+			.onChange(async (value) => {
+				this.plugin.settings.wordDelimiters = value;
+
+				await this.plugin.saveSettings();
+			}));
 
 		new Setting(containerEl)
 		.setName("Remove trailing whitespaces in snippets in inline math")
@@ -403,12 +452,13 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 		const change = EditorView.updateListener.of(async (v: ViewUpdate) => {
 			if (v.docChanged) {
-				const value = v.state.doc.toString();
+				const snippets = v.state.doc.toString();
 				let success = true;
 
-				const snippetVariables = getSnippetVariables(this.plugin.settings.snippetVariables);
+				let snippetVariables;
 				try {
-					await parseSnippets(value, snippetVariables);
+					snippetVariables = await parseSnippetVariables(this.plugin.settings.snippetVariables)
+					await parseSnippets(snippets, snippetVariables);
 				}
 				catch (e) {
 					success = false;
@@ -418,8 +468,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 				if (!success) return;
 
-
-				this.plugin.settings.snippets = value;
+				this.plugin.settings.snippets = snippets;
 				await this.plugin.saveSettings();
 			}
 		});

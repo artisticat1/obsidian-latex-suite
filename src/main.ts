@@ -1,6 +1,6 @@
 import { Extension } from "@codemirror/state";
 import { Plugin, Notice, loadMathJax, addIcon } from "obsidian";
-import { onFileCreate, onFileChange, onFileDelete, getSnippetsWithinFileOrFolder } from "./settings/file_watch";
+import { onFileCreate, onFileChange, onFileDelete, getSnippetVariablesWithinFileOrFolder, getSnippetsWithinFileOrFolder } from "./settings/file_watch";
 import { LatexSuitePluginSettings, DEFAULT_SETTINGS, LatexSuiteCMSettings, processLatexSuiteSettings } from "./settings/settings";
 import { LatexSuiteSettingTab } from "./settings/settings_tab";
 import { ICONS } from "./settings/ui/icons";
@@ -8,10 +8,9 @@ import { ICONS } from "./settings/ui/icons";
 import { getEditorCommands } from "./features/editor_commands";
 import { iterateCM6 } from "./utils/editor_utils";
 import { reconfigureLatexSuiteConfig } from "./snippets/codemirror/config";
-import { parseSnippets } from "./snippets/parse_snippets";
+import { SnippetVariables, parseSnippetVariables, parseSnippets } from "./snippets/parse";
 import type { Snippet } from "./snippets/snippets";
 import { latexSuiteExtensions, optionalExtensions } from "./latex_suite";
-import { getSnippetVariables } from "./snippets/snippet_variables";
 
 export default class LatexSuitePlugin extends Plugin {
 	settings: LatexSuitePluginSettings;
@@ -30,8 +29,8 @@ export default class LatexSuitePlugin extends Plugin {
 		// Register Latex Suite extensions and optional editor extensions for editor enhancements
 		this.registerEditorExtension(this.editorExtensions);
 
-		// Watch for changes to the snippets file
-		this.watchSnippetFiles();
+		// Watch for changes to the snippet variables and snippets files
+		this.watchFiles();
 
 		this.addEditorCommands();
 	}
@@ -78,7 +77,13 @@ export default class LatexSuitePlugin extends Plugin {
 		}
 
 		if (this.settings.loadSnippetsFromFile) {
-			const tempSnippetVariables = getSnippetVariables(this.settings.snippetVariables);
+			let tempSnippetVariables: SnippetVariables = {};
+			try {
+				tempSnippetVariables = await parseSnippetVariables(this.settings.snippets);
+			} catch (e) {
+				new Notice(`Failed to load snippet variables:\n${e}`);
+				console.log("Failed to load snippet variables:\n", e);
+			}
 
 			let tempSnippets: Snippet[] = [];
 			try {
@@ -105,9 +110,27 @@ export default class LatexSuitePlugin extends Plugin {
 		this.processSettings();
 	}
 
-	async getSnippets() {
-		const snippetVariables = getSnippetVariables(this.settings.snippetVariables);
+	async getSnippetVariables() {
+		if (!this.settings.loadSnippetVariablesFromFile) {
+			let snippetVariables: SnippetVariables = {};
+			try {
+				snippetVariables = await parseSnippetVariables(this.settings.snippetVariables);
+			} catch (e) {
+				new Notice("Failed to load snippet variables from settings");
+				console.log("Failed to load snippet variables from settings:", e);
+			}
+			return snippetVariables;
+		}
+		else {
+			const snippetVariables = await getSnippetVariablesWithinFileOrFolder(this.app.vault, this.settings.snippetVariablesFileLocation);
 
+			return snippetVariables;
+		}
+	}
+
+	async getSnippets() {
+		const snippetVariables = await this.getSnippetVariables();
+		
 		if (!this.settings.loadSnippetsFromFile) {
 			let snippets: Snippet[] = [];
 			try {
@@ -165,7 +188,7 @@ export default class LatexSuitePlugin extends Plugin {
 		}
 	}
 
-	watchSnippetFiles() {
+	watchFiles() {
 		const eventsAndCallbacks = {
 			"modify": onFileChange,
 			"delete": onFileDelete,

@@ -1,21 +1,88 @@
-import { optional, object, string as string_, union, instance, parse, number, Output, special } from "valibot";
 import { encode } from "js-base64";
-import { RegexSnippet, serializeSnippetLike, Snippet, StringSnippet, VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER, VisualSnippet } from "./snippets";
-import { Options } from "./options";
-import { sortSnippets } from "./sort";
-import type { SnippetVariables } from "./snippet_variables";
+import {
+	Output,
+	instance,
+	number,
+	object,
+	optional,
+	parse,
+	special,
+	string as string_,
+	union,
+} from "valibot";
 import { EXCLUSIONS, Environment } from "./environment";
+import { Options } from "./options";
+import {
+	RegexSnippet,
+	Snippet,
+	StringSnippet,
+	VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER,
+	VisualSnippet,
+	serializeSnippetLike,
+} from "./snippets";
+import { sortSnippets } from "./sort";
 
-export async function parseSnippets(snippetsStr: string, snippetVariables: SnippetVariables) {
+export type SnippetVariables = Record<string, string>;
+
+export async function parseSnippetVariables(snippetVariablesStr: string) {
+	let rawSnippetVariables;
+	try {
+		try {
+			// first, try to import as a plain js module
+			// js-base64.encode is needed over builtin `window.btoa` because the latter errors on unicode
+			rawSnippetVariables = await importModuleDefault(
+				`data:text/javascript;base64,${encode(snippetVariablesStr)}`
+			);
+		} catch {
+			// otherwise, try to import as a standalone js array
+			rawSnippetVariables = await importModuleDefault(
+				`data:text/javascript;base64,${encode(
+					`export default ${snippetVariablesStr}`
+				)}`
+			);
+		}
+	} catch (e) {
+		throw "Invalid snippet variables format.";
+	}
+
+	let snippetVariables: SnippetVariables = {};
+	for (let [variable, value] of Object.entries(
+		rawSnippetVariables as SnippetVariables
+	)) {
+		if (variable.startsWith("${")) {
+			if (!variable.endsWith("}")) {
+				throw `Invalid snippet variable name '${variable}': Starts with '\${' but does not end with '}'. You need to have both or nither.`;
+			}
+			snippetVariables[variable] = value;
+		} else {
+			if (variable.endsWith("}")) {
+				throw `Invalid snippet variable name '${variable}': Ends with '}' but does not start with '\${'. You need to have both or nither.`;
+			}
+			snippetVariables["${" + variable + "}"] = value;
+		}
+	}
+	return snippetVariables;
+}
+
+export async function parseSnippets(
+	snippetsStr: string,
+	snippetVariables: SnippetVariables
+) {
 	let rawSnippets;
 	try {
 		try {
 			// first, try to import as a plain js module
 			// js-base64.encode is needed over builtin `window.btoa` because the latter errors on unicode
-			rawSnippets = await importModuleDefault(`data:text/javascript;base64,${encode(snippetsStr)}`);
+			rawSnippets = await importModuleDefault(
+				`data:text/javascript;base64,${encode(snippetsStr)}`
+			);
 		} catch {
 			// otherwise, try to import as a standalone js array
-			rawSnippets = await importModuleDefault(`data:text/javascript;base64,${encode(`export default ${snippetsStr}`)}`);
+			rawSnippets = await importModuleDefault(
+				`data:text/javascript;base64,${encode(
+					`export default ${snippetsStr}`
+				)}`
+			);
 		}
 	} catch (e) {
 		throw "Invalid snippet format.";
@@ -35,7 +102,7 @@ export async function parseSnippets(snippetsStr: string, snippetVariables: Snipp
 				throw `${e}\nErroring snippet:\n${serializeSnippetLike(raw)}`;
 			}
 		});
-	} catch(e) {
+	} catch (e) {
 		throw `Invalid snippet format: ${e}`;
 	}
 
@@ -74,7 +141,10 @@ async function importModuleDefault(module: string): Promise<unknown> {
 
 const RawSnippetSchema = object({
 	trigger: union([string_(), instance(RegExp)]),
-	replacement: union([string_(), special<AnyFunction>(x => typeof x === "function")]),
+	replacement: union([
+		string_(),
+		special<AnyFunction>((x) => typeof x === "function"),
+	]),
 	options: string_(),
 	flags: optional(string_()),
 	priority: optional(number()),
@@ -88,14 +158,18 @@ type RawSnippet = Output<typeof RawSnippetSchema>;
  * @throws if the value does not adhere to the raw snippet array schema
  */
 function validateRawSnippets(snippets: unknown): RawSnippet[] {
-	if (!Array.isArray(snippets)) { throw "Expected snippets to be an array"; }
+	if (!Array.isArray(snippets)) {
+		throw "Expected snippets to be an array";
+	}
 	return snippets.map((raw) => {
 		try {
 			return parse(RawSnippetSchema, raw);
 		} catch (e) {
-			throw `Value does not resemble snippet.\nErroring snippet:\n${serializeSnippetLike(raw)}`;
+			throw `Value does not resemble snippet.\nErroring snippet:\n${serializeSnippetLike(
+				raw
+			)}`;
 		}
-	})
+	});
 }
 
 /**
@@ -105,7 +179,10 @@ function validateRawSnippets(snippets: unknown): RawSnippet[] {
  * - `options.regex` and `options.visual` are set properly
  * - if it is a regex snippet, the trigger is represented as a RegExp instance with flags set
  */
-function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snippet {
+function parseSnippet(
+	raw: RawSnippet,
+	snippetVariables: SnippetVariables
+): Snippet {
 	const { replacement, priority, description } = raw;
 	const options = Options.fromSource(raw.options);
 	let trigger;
@@ -143,11 +220,17 @@ function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snip
 
 		options.regex = true;
 
-		const normalised = { trigger, replacement, options, priority, description, excludedEnvironments };
+		const normalised = {
+			trigger,
+			replacement,
+			options,
+			priority,
+			description,
+			excludedEnvironments,
+		};
 
 		return new RegexSnippet(normalised);
-	}
-	else {
+	} else {
 		let trigger = raw.trigger as string;
 		// substitute snippet variables
 		trigger = insertSnippetVariables(trigger, snippetVariables);
@@ -156,16 +239,25 @@ function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snip
 		excludedEnvironments = getExcludedEnvironments(trigger);
 
 		// normalize visual replacements
-		if (typeof replacement === "string" && replacement.includes(VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER)) {
+		if (
+			typeof replacement === "string" &&
+			replacement.includes(VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER)
+		) {
 			options.visual = true;
 		}
 
-		const normalised = { trigger, replacement, options, priority, description, excludedEnvironments };
+		const normalised = {
+			trigger,
+			replacement,
+			options,
+			priority,
+			description,
+			excludedEnvironments,
+		};
 
 		if (options.visual) {
 			return new VisualSnippet(normalised);
-		}
-		else {
+		} else {
 			return new StringSnippet(normalised);
 		}
 	}
@@ -187,8 +279,8 @@ function filterFlags(flags: string): string {
 		// "y", // almost certainly undesired behavior
 	];
 	return Array.from(new Set(flags.split("")))
-			.filter(flag => validFlags.includes(flag))
-			.join("");
+		.filter((flag) => validFlags.includes(flag))
+		.join("");
 }
 
 function insertSnippetVariables(trigger: string, variables: SnippetVariables) {
