@@ -86,7 +86,11 @@ Using a RegExp literal, the same snippet can be written as
 
 
 ### Snippet variables
-Snippet variables are used as shortcuts when writing snippets. By default, the following variables are available for use in a `trigger`:
+Snippet variables are used as shortcuts when writing snippets. Strings with the format `"${VARIABLE}"` will be replaced with the contents of  `VARIABLE` if it's defined (and left unchanged otherwise).
+
+Snippet variables can be changed in the settings, under **Advanced editor settings > Snippet variables**. They are defined using a JavaScript object. For your convince `VARIABLE`, `"VARIABLE"` and `"${VARIABLE}"` are all accepted.
+
+ By default, the following variables are available for use in a `trigger`:
 
 - `${GREEK}` : Shorthand for the following by default:
 
@@ -111,9 +115,6 @@ Snippet variables are used as shortcuts when writing snippets. By default, the f
   ```
 
   Recommended for use with the regex option "r".
-
-
-Snippet variables can be changed in the settings, under **Advanced editor settings > Snippet variables**.
 
 
 ### Visual snippets
@@ -224,15 +225,19 @@ based on which type of snippet the replacement applies to.
 
 If a snippet replacement function returns a non-string value, the snippet is ignored and will not expand.
 
-## Snippet files
+## Snippet/Variable files
 
-You can choose to load snippets from a file or from all files within a folder. To do this, toggle the setting **Snippets > Load snippets from file or folder**. The file or folder must be within your vault, and not in a hidden folder (such as `.obsidian/`).
+You can choose to load snippets/variables from a file or from all files within a folder. To do this, toggle the setting **Snippets > Load snippets from file or folder** or **Advanced editor settings > Snippet variables > Load snippets from file or folder**. The file or folder must be within your vault, and not in a hidden folder (such as `.obsidian/`).
 
-Snippet files can be saved with any extension. However, to obtain syntax highlighting in external editors, you may wish to save your snippet files with an extension of `.js`.
+Snippet/variable files can be saved with any extension. However, to obtain syntax highlighting in external editors, you may wish to save your snippet/variable files with an extension of `.js`.
 
 A snippets file is a JavaScript array of snippets, or a JavaScript module with a default export of an array of snippets.
 
 _Note: an **array** is a list of items. In JavaScript, this is represented with the bracket symbols `[` `]`, with the items between them and separated by commas, e.g. `[ item1, item2 ]`._
+
+A variables file is a JavaScript object, or a JavaScript module with a default export of an object.
+
+_Note: an **object** is a mapping of names to values. In JavaScript, this is represented with the braces symbols `{` `}`, with a `:` between the name and value, and a comma between name-value pairs, e.g. `{ name: "value", "name2": "value2" }`._
 
 ### Example
 A snippet file containing an array of snippets:
@@ -245,10 +250,22 @@ A snippet file containing an array of snippets:
 ]
 ```
 
+A variable file containing an object of variables, with the 3 legal formats:
+
+```typescript
+{
+  GREEK:
+    "alpha|beta|gamma|Gamma|delta|Delta|epsilon|varepsilon|zeta|eta|theta|Theta|iota|kappa|lambda|Lambda|mu|nu|omicron|xi|Xi|pi|Pi|rho|sigma|Sigma|tau|upsilon|Upsilon|varphi|phi|Phi|chi|psi|Psi|omega|Omega",
+  "SYMBOL":
+    "hbar|ell|nabla|infty|dots|leftrightarrow|mapsto|setminus|mid|bigcap|bigcup|cap|cup|land|lor|subseteq|subset|implies|impliedby|iff|exists|forall|equiv|square|neq|geq|leq|gg|ll|sim|simeq|approx|propto|cdot|oplus|otimes|times|star|perp|det|exp|ln|log|partial",
+  "${SHORT_SYMBOL}": "to|pm|mp",
+}
+```
+
 ## Sharing snippets
 
 You can [view snippets written by others and share your own snippets here](https://github.com/artisticat1/obsidian-latex-suite/discussions/50).
 
 > [!WARNING]
-> Snippet files are interpreted as JavaScript and can execute arbitrary code.
+> Snippet/variable files are interpreted as JavaScript and can execute arbitrary code.
 > Always be careful with snippets shared from others to avoid running malicious code.

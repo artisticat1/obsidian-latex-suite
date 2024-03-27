@@ -1,9 +1,8 @@
 import LatexSuitePlugin from "../main";
 import { Vault, TFile, TFolder, Notice, debounce, TAbstractFile } from "obsidian";
 import { Snippet } from "../snippets/snippets";
-import { parseSnippets } from "../snippets/parse_snippets";
+import { parseSnippets, parseSnippetVariables, type SnippetVariables } from "../snippets/parse";
 import { sortSnippets } from "../snippets/sort";
-import type { SnippetVariables } from "src/snippets/snippet_variables";
 
 function isInFolder(file: TFile, dir: TFolder) {
 	let cur = file.parent;
@@ -20,20 +19,28 @@ function isInFolder(file: TFile, dir: TFolder) {
 	return false;
 }
 
-function fileIsInSnippetsFolder(plugin: LatexSuitePlugin, file: TFile) {
-	const snippetDir = plugin.app.vault.getAbstractFileByPath(plugin.settings.snippetsFileLocation);
+function fileIsInFolder(plugin: LatexSuitePlugin, folderPath: string, file: TFile) {
+	const snippetDir = plugin.app.vault.getAbstractFileByPath(folderPath);
 	const isFolder = snippetDir instanceof TFolder;
 
 	return (isFolder && isInFolder(file, snippetDir));
 }
 
 export const onFileChange = async (plugin: LatexSuitePlugin, file: TAbstractFile) => {
-	if (!(plugin.settings.loadSnippetsFromFile)) return;
 	if (!(file instanceof TFile)) return;
 
-	if (file.path === plugin.settings.snippetsFileLocation || fileIsInSnippetsFolder(plugin, file)) {
+	if (plugin.settings.loadSnippetVariablesFromFile && file.path === plugin.settings.snippetVariablesFileLocation || fileIsInFolder(plugin, plugin.settings.snippetVariablesFileLocation, file)) {
 		try {
-			await refreshSnippetsFromFileOrFolder(plugin);
+			refreshSnippetVariablesFromFileOrFolder(plugin);
+		}
+		catch {
+			new Notice("Failed to load snippet variables.", 5000);
+		}
+	}
+
+	if (plugin.settings.loadSnippetsFromFile && file.path === plugin.settings.snippetsFileLocation || fileIsInFolder(plugin, plugin.settings.snippetsFileLocation, file)) {
+		try {
+			refreshSnippetsFromFileOrFolder(plugin);
 		}
 		catch {
 			new Notice("Failed to load snippets.", 5000);
@@ -42,22 +49,46 @@ export const onFileChange = async (plugin: LatexSuitePlugin, file: TAbstractFile
 }
 
 export const onFileCreate = (plugin: LatexSuitePlugin, file:TAbstractFile) => {
-	if (!(plugin.settings.loadSnippetsFromFile)) return;
+	if (!(file instanceof TFile)) return;
 
-	if (file instanceof TFile && fileIsInSnippetsFolder(plugin, file)) {
+	if (plugin.settings.loadSnippetVariablesFromFile && fileIsInFolder(plugin,plugin.settings.snippetVariablesFileLocation, file)) {
+		refreshSnippetVariablesFromFileOrFolder(plugin);
+	}
+
+	if (plugin.settings.loadSnippetsFromFile && fileIsInFolder(plugin,plugin.settings.snippetsFileLocation, file)) {
 		refreshSnippetsFromFileOrFolder(plugin);
 	}
 }
 
 export const onFileDelete = (plugin: LatexSuitePlugin, file:TAbstractFile) => {
-	if (!(plugin.settings.loadSnippetsFromFile)) return;
+	if (!(file instanceof TFile)) return;
+
+	const snippetVariablesDir = plugin.app.vault.getAbstractFileByPath(plugin.settings.snippetVariablesFileLocation);
+
+	if (plugin.settings.loadSnippetVariablesFromFile && (snippetVariablesDir instanceof TFolder && file.path.contains(snippetVariablesDir.path))) {
+		refreshSnippetVariablesFromFileOrFolder(plugin);
+	}
 
 	const snippetDir = plugin.app.vault.getAbstractFileByPath(plugin.settings.snippetsFileLocation);
-	const isFolder = snippetDir instanceof TFolder;
 
-	if (file instanceof TFile && (isFolder && file.path.contains(snippetDir.path))) {
+	if (plugin.settings.loadSnippetsFromFile && (snippetDir instanceof TFolder && file.path.contains(snippetDir.path))) {
 		refreshSnippetsFromFileOrFolder(plugin);
 	}
+}
+
+async function getSnippetVariablesFromFile(vault: Vault, file: TFile) {
+	const content = await vault.cachedRead(file);
+	let snippetVariables: SnippetVariables = {};
+
+	try {
+		snippetVariables = await parseSnippetVariables(content);
+	}
+	catch (e) {
+		new Notice(`Failed to load snippet variables file ${file.name}`);
+		console.log(`Failed to load snippet variables file ${file.path}:`, e);
+	}
+
+	return snippetVariables;
 }
 
 async function getSnippetsFromFile(vault: Vault, file: TFile, snippetVariables: SnippetVariables) {
@@ -75,6 +106,21 @@ async function getSnippetsFromFile(vault: Vault, file: TFile, snippetVariables: 
 	return snippets;
 }
 
+async function getSnippetVariablesWithinFolder(vault: Vault, folder: TFolder) {
+	const snippetVariables: SnippetVariables = {};
+
+	for (const fileOrFolder of folder.children) {
+		if (fileOrFolder instanceof TFile) {
+			Object.assign(snippetVariables, await getSnippetVariablesFromFile(vault, fileOrFolder));
+		}
+		else if (fileOrFolder instanceof TFolder) {
+			Object.assign(snippetVariables, await getSnippetVariablesWithinFolder(vault, fileOrFolder));
+		}
+	}
+
+	return snippetVariables;
+}
+
 async function getSnippetsWithinFolder(vault: Vault, folder: TFolder, snippetVariables: SnippetVariables) {
 	const snippets:Snippet[] = [];
 
@@ -89,6 +135,20 @@ async function getSnippetsWithinFolder(vault: Vault, folder: TFolder, snippetVar
 	}
 
 	return snippets;
+}
+
+export async function getSnippetVariablesWithinFileOrFolder(vault: Vault, path: string) {
+	const fileOrFolder = vault.getAbstractFileByPath(path);
+
+	if (fileOrFolder instanceof TFolder) {
+		return await getSnippetVariablesWithinFolder(vault, fileOrFolder);
+	}
+	else if (fileOrFolder instanceof TFile) {
+		return await getSnippetVariablesFromFile(vault, fileOrFolder);
+	}
+	else {
+		return {};
+	}
 }
 
 export async function getSnippetsWithinFileOrFolder(vault: Vault, path: string, snippetVariables: SnippetVariables) {
@@ -109,6 +169,14 @@ export async function getSnippetsWithinFileOrFolder(vault: Vault, path: string, 
 	snippets = sortSnippets(snippets);
 	return snippets;
 }
+
+export const refreshSnippetVariablesFromFileOrFolder = debounce(async (plugin: LatexSuitePlugin) => {
+	if (!(plugin.settings.loadSnippetVariablesFromFile)) return;
+
+	plugin.processSettings();
+
+	new Notice("Successfully reloaded snippet variables.", 5000);
+}, 500, true);
 
 export const refreshSnippetsFromFileOrFolder = debounce(async (plugin: LatexSuitePlugin) => {
 	if (!(plugin.settings.loadSnippetsFromFile)) return;
