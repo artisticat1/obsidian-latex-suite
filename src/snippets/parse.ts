@@ -24,31 +24,27 @@ import { sortSnippets } from "./sort";
 
 export type SnippetVariables = Record<string, string>;
 
-export async function parseSnippetVariables(snippetVariablesStr: string) {
-	let rawSnippetVariables;
+async function importRaw(maybeJavaScriptCode: string) {
+	let raw;
 	try {
 		try {
 			// first, try to import as a plain js module
 			// js-base64.encode is needed over builtin `window.btoa` because the latter errors on unicode
-			rawSnippetVariables = await importModuleDefault(
-				`data:text/javascript;base64,${encode(snippetVariablesStr)}`
-			);
+			raw = await importModuleDefault(`data:text/javascript;base64,${encode(maybeJavaScriptCode)}`);
 		} catch {
-			// otherwise, try to import as a standalone js array
-			rawSnippetVariables = await importModuleDefault(
-				`data:text/javascript;base64,${encode(
-					`export default ${snippetVariablesStr}`
-				)}`
-			);
+			// otherwise, try to import as a standalone js object
+			raw = await importModuleDefault(`data:text/javascript;base64,${encode(`export default ${maybeJavaScriptCode}`)}`);
 		}
 	} catch (e) {
-		throw "Invalid snippet variables format.";
+		throw "Invalid format.";
 	}
+}
+
+export async function parseSnippetVariables(snippetVariablesStr: string) {
+	const rawSnippetVariables = importRaw(snippetVariablesStr) as SnippetVariables;
 
 	let snippetVariables: SnippetVariables = {};
-	for (let [variable, value] of Object.entries(
-		rawSnippetVariables as SnippetVariables
-	)) {
+	for (let [variable, value] of Object.entries(rawSnippetVariables)) {
 		if (variable.startsWith("${")) {
 			if (!variable.endsWith("}")) {
 				throw `Invalid snippet variable name '${variable}': Starts with '\${' but does not end with '}'. You need to have both or nither.`;
@@ -65,19 +61,7 @@ export async function parseSnippetVariables(snippetVariablesStr: string) {
 }
 
 export async function parseSnippets(snippetsStr: string, snippetVariables: SnippetVariables) {
-	let rawSnippets;
-	try {
-		try {
-			// first, try to import as a plain js module
-			// js-base64.encode is needed over builtin `window.btoa` because the latter errors on unicode
-			rawSnippets = await importModuleDefault(`data:text/javascript;base64,${encode(snippetsStr)}`);
-		} catch {
-			// otherwise, try to import as a standalone js array
-			rawSnippets = await importModuleDefault(`data:text/javascript;base64,${encode(`export default ${snippetsStr}`)}`);
-		}
-	} catch (e) {
-		throw "Invalid snippet format.";
-	}
+	let rawSnippets = importRaw(snippetsStr);
 
 	let parsedSnippets;
 	try {
