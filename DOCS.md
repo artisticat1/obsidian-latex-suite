@@ -86,9 +86,9 @@ Using a RegExp literal, the same snippet can be written as
 
 
 ### Snippet variables
-Snippet variables are used as shortcuts when writing snippets. Strings with the format `"${VARIABLE}"` will be replaced with the contents of  `VARIABLE` if it's defined (and left unchanged otherwise).
+Snippet variables are used as shortcuts when writing snippets. In the `trigger` of a snippet, strings with the format `"${VARIABLE}"` will be replaced with the contents of the matching variable if it's defined, and left unchanged otherwise.
 
-Snippet variables can be changed in the settings, under **Advanced editor settings > Snippet variables**. They are defined using a JavaScript object. For your convince `VARIABLE`, `"VARIABLE"` and `"${VARIABLE}"` are all accepted.
+Snippet variables can be changed in the settings, under **Advanced editor settings > Snippet variables**.
 
  By default, the following variables are available for use in a `trigger`:
 
@@ -225,19 +225,15 @@ based on which type of snippet the replacement applies to.
 
 If a snippet replacement function returns a non-string value, the snippet is ignored and will not expand.
 
-## Snippet/Variable files
+## Snippet files
 
-You can choose to load snippets/variables from a file or from all files within a folder. To do this, toggle the setting **Snippets > Load snippets from file or folder** or **Advanced editor settings > Snippet variables > Load snippets from file or folder**. The file or folder must be within your vault, and not in a hidden folder (such as `.obsidian/`).
+You can choose to load snippets from a file or from all files within a folder. To do this, toggle the setting **Snippets > Load snippets from file or folder**. The file or folder must be within your vault, and not in a hidden folder (such as `.obsidian/`).
 
-Snippet/variable files can be saved with any extension. However, to obtain syntax highlighting in external editors, you may wish to save your snippet/variable files with an extension of `.js`.
+Snippet files can be saved with any extension. However, to obtain syntax highlighting in external editors, you may wish to save your snippet files with an extension of `.js`.
 
 A snippets file is a JavaScript array of snippets, or a JavaScript module with a default export of an array of snippets.
 
 _Note: an **array** is a list of items. In JavaScript, this is represented with the bracket symbols `[` `]`, with the items between them and separated by commas, e.g. `[ item1, item2 ]`._
-
-A variables file is a JavaScript object, or a JavaScript module with a default export of an object.
-
-_Note: an **object** is a mapping of names to values. In JavaScript, this is represented with the braces symbols `{` `}`, with a `:` between the name and value, and a comma between name-value pairs, e.g. `{ name: "value", "name2": "value2" }`._
 
 ### Example
 A snippet file containing an array of snippets:
@@ -250,7 +246,20 @@ A snippet file containing an array of snippets:
 ]
 ```
 
-A variable file containing an object of variables, with the 3 legal formats:
+## Snippet variable files
+
+You can choose to load variables from a file or from all files within a folder. To do this, toggle the setting **Advanced editor settings > Snippet variables > Load snippet variables from file or folder**. The file or folder must be within your vault, and not in a hidden folder (such as `.obsidian/`).
+
+Variable files can be saved with any extension. However, to obtain syntax highlighting in external editors, you may wish to save your variable files with an extension of `.js`.
+
+A variables file is a JavaScript object, or a JavaScript module with a default export of an object.
+
+The `${}` around the variable may be ommited, i.e. `"${VARIABLE}": "..."` and `"VARIABLE": "..."` are both accepted.
+
+_Note: an **object** is a mapping of names to values. In JavaScript, this is represented with the braces symbols `{}`, with a `:` between the name and value, and a comma between name-value pairs, e.g. `{ name: "value1", "name2": "value2" }`. In most cases, the key may be written with or without quotes. Specifically, `VARIABLE: "..."` is also acceptable_
+
+### Example
+A variable file containing an object of variables, with the 3 acceptable formats:
 
 ```typescript
 {
@@ -267,5 +276,5 @@ A variable file containing an object of variables, with the 3 legal formats:
 You can [view snippets written by others and share your own snippets here](https://github.com/artisticat1/obsidian-latex-suite/discussions/50).
 
 > [!WARNING]
-> Snippet/variable files are interpreted as JavaScript and can execute arbitrary code.
+> Snippet files are interpreted as JavaScript and can execute arbitrary code.
 > Always be careful with snippets shared from others to avoid running malicious code.
