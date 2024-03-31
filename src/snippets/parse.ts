@@ -64,25 +64,16 @@ export async function parseSnippetVariables(snippetVariablesStr: string) {
 	return snippetVariables;
 }
 
-export async function parseSnippets(
-	snippetsStr: string,
-	snippetVariables: SnippetVariables
-) {
+export async function parseSnippets(snippetsStr: string, snippetVariables: SnippetVariables) {
 	let rawSnippets;
 	try {
 		try {
 			// first, try to import as a plain js module
 			// js-base64.encode is needed over builtin `window.btoa` because the latter errors on unicode
-			rawSnippets = await importModuleDefault(
-				`data:text/javascript;base64,${encode(snippetsStr)}`
-			);
+			rawSnippets = await importModuleDefault(`data:text/javascript;base64,${encode(snippetsStr)}`);
 		} catch {
 			// otherwise, try to import as a standalone js array
-			rawSnippets = await importModuleDefault(
-				`data:text/javascript;base64,${encode(
-					`export default ${snippetsStr}`
-				)}`
-			);
+			rawSnippets = await importModuleDefault(`data:text/javascript;base64,${encode(`export default ${snippetsStr}`)}`);
 		}
 	} catch (e) {
 		throw "Invalid snippet format.";
@@ -102,7 +93,7 @@ export async function parseSnippets(
 				throw `${e}\nErroring snippet:\n${serializeSnippetLike(raw)}`;
 			}
 		});
-	} catch (e) {
+	} catch(e) {
 		throw `Invalid snippet format: ${e}`;
 	}
 
@@ -141,10 +132,7 @@ async function importModuleDefault(module: string): Promise<unknown> {
 
 const RawSnippetSchema = object({
 	trigger: union([string_(), instance(RegExp)]),
-	replacement: union([
-		string_(),
-		special<AnyFunction>((x) => typeof x === "function"),
-	]),
+	replacement: union([string_(), special<AnyFunction>(x => typeof x === "function")]),
 	options: string_(),
 	flags: optional(string_()),
 	priority: optional(number()),
@@ -158,18 +146,14 @@ type RawSnippet = Output<typeof RawSnippetSchema>;
  * @throws if the value does not adhere to the raw snippet array schema
  */
 function validateRawSnippets(snippets: unknown): RawSnippet[] {
-	if (!Array.isArray(snippets)) {
-		throw "Expected snippets to be an array";
-	}
+	if (!Array.isArray(snippets)) { throw "Expected snippets to be an array"; }
 	return snippets.map((raw) => {
 		try {
 			return parse(RawSnippetSchema, raw);
 		} catch (e) {
-			throw `Value does not resemble snippet.\nErroring snippet:\n${serializeSnippetLike(
-				raw
-			)}`;
+			throw `Value does not resemble snippet.\nErroring snippet:\n${serializeSnippetLike(raw)}`;
 		}
-	});
+	})
 }
 
 /**
@@ -179,10 +163,7 @@ function validateRawSnippets(snippets: unknown): RawSnippet[] {
  * - `options.regex` and `options.visual` are set properly
  * - if it is a regex snippet, the trigger is represented as a RegExp instance with flags set
  */
-function parseSnippet(
-	raw: RawSnippet,
-	snippetVariables: SnippetVariables
-): Snippet {
+function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snippet {
 	const { replacement, priority, description } = raw;
 	const options = Options.fromSource(raw.options);
 	let trigger;
@@ -220,17 +201,11 @@ function parseSnippet(
 
 		options.regex = true;
 
-		const normalised = {
-			trigger,
-			replacement,
-			options,
-			priority,
-			description,
-			excludedEnvironments,
-		};
+		const normalised = { trigger, replacement, options, priority, description, excludedEnvironments };
 
 		return new RegexSnippet(normalised);
-	} else {
+	}
+	else {
 		let trigger = raw.trigger as string;
 		// substitute snippet variables
 		trigger = insertSnippetVariables(trigger, snippetVariables);
@@ -239,25 +214,16 @@ function parseSnippet(
 		excludedEnvironments = getExcludedEnvironments(trigger);
 
 		// normalize visual replacements
-		if (
-			typeof replacement === "string" &&
-			replacement.includes(VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER)
-		) {
+		if (typeof replacement === "string" && replacement.includes(VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER)) {
 			options.visual = true;
 		}
 
-		const normalised = {
-			trigger,
-			replacement,
-			options,
-			priority,
-			description,
-			excludedEnvironments,
-		};
+		const normalised = { trigger, replacement, options, priority, description, excludedEnvironments };
 
 		if (options.visual) {
 			return new VisualSnippet(normalised);
-		} else {
+		}
+		else {
 			return new StringSnippet(normalised);
 		}
 	}
@@ -279,7 +245,7 @@ function filterFlags(flags: string): string {
 		// "y", // almost certainly undesired behavior
 	];
 	return Array.from(new Set(flags.split("")))
-		.filter((flag) => validFlags.includes(flag))
+		.filter(flag => validFlags.includes(flag))
 		.join("");
 }
 
