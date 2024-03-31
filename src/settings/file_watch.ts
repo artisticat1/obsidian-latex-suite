@@ -109,8 +109,8 @@ async function* getWithinFileOrFolder<T>(vault: Vault, path: string, parse: (con
 export async function getSnippetVariablesWithinFileOrFolder(vault: Vault, path: string) {
 	const snippetVariables: SnippetVariables = {};
 	
-	for await (const fileSariables of getWithinFileOrFolder(vault, path, parseSnippetVariables)) {
-		Object.assign(snippetVariables, fileSariables);
+	for await (const fileVariables of getWithinFileOrFolder(vault, path, parseSnippetVariables)) {
+		Object.assign(snippetVariables, fileVariables);
 	}
 	
 	return snippetVariables;
@@ -120,7 +120,7 @@ export async function getSnippetsWithinFileOrFolder(vault: Vault, path: string, 
 	const snippets: Snippet[] = []
 	
 	for await (const fileSnippets of getWithinFileOrFolder(vault, path, (content) => parseSnippets(content, snippetVariables))) {
-		snippets.concat(fileSnippets);
+		snippets.push(...fileSnippets);
 	}
 	
 	// Sorting needs to happen after all the snippet files have been parsed

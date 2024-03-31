@@ -38,10 +38,11 @@ async function importRaw(maybeJavaScriptCode: string) {
 	} catch (e) {
 		throw "Invalid format.";
 	}
+	return raw;
 }
 
 export async function parseSnippetVariables(snippetVariablesStr: string) {
-	const rawSnippetVariables = importRaw(snippetVariablesStr) as SnippetVariables;
+	const rawSnippetVariables = await importRaw(snippetVariablesStr) as SnippetVariables;
 
 	let snippetVariables: SnippetVariables = {};
 	for (let [variable, value] of Object.entries(rawSnippetVariables)) {
@@ -61,7 +62,7 @@ export async function parseSnippetVariables(snippetVariablesStr: string) {
 }
 
 export async function parseSnippets(snippetsStr: string, snippetVariables: SnippetVariables) {
-	let rawSnippets = importRaw(snippetsStr);
+	let rawSnippets = await importRaw(snippetsStr) as RawSnippet[];
 
 	let parsedSnippets;
 	try {
