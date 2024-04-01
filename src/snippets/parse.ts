@@ -1,26 +1,9 @@
+import { optional, object, string as string_, union, instance, parse, number, Output, special } from "valibot";
 import { encode } from "js-base64";
-import {
-	Output,
-	instance,
-	number,
-	object,
-	optional,
-	parse,
-	special,
-	string as string_,
-	union,
-} from "valibot";
-import { EXCLUSIONS, Environment } from "./environment";
+import { RegexSnippet, serializeSnippetLike, Snippet, StringSnippet, VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER, VisualSnippet } from "./snippets";
 import { Options } from "./options";
-import {
-	RegexSnippet,
-	Snippet,
-	StringSnippet,
-	VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER,
-	VisualSnippet,
-	serializeSnippetLike,
-} from "./snippets";
 import { sortSnippets } from "./sort";
+import { EXCLUSIONS, Environment } from "./environment";
 
 export type SnippetVariables = Record<string, string>;
 
@@ -230,8 +213,8 @@ function filterFlags(flags: string): string {
 		// "y", // almost certainly undesired behavior
 	];
 	return Array.from(new Set(flags.split("")))
-		.filter(flag => validFlags.includes(flag))
-		.join("");
+			.filter(flag => validFlags.includes(flag))
+			.join("");
 }
 
 function insertSnippetVariables(trigger: string, variables: SnippetVariables) {
