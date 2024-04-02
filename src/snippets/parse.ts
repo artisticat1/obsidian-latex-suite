@@ -31,12 +31,12 @@ export async function parseSnippetVariables(snippetVariablesStr: string) {
 	for (let [variable, value] of Object.entries(rawSnippetVariables)) {
 		if (variable.startsWith("${")) {
 			if (!variable.endsWith("}")) {
-				throw `Invalid snippet variable name '${variable}': Starts with '\${' but does not end with '}'. You need to have both or nither.`;
+				throw `Invalid snippet variable name '${variable}': Starts with '\${' but does not end with '}'. You need to have both or neither.`;
 			}
 			snippetVariables[variable] = value;
 		} else {
 			if (variable.endsWith("}")) {
-				throw `Invalid snippet variable name '${variable}': Ends with '}' but does not start with '\${'. You need to have both or nither.`;
+				throw `Invalid snippet variable name '${variable}': Ends with '}' but does not start with '\${'. You need to have both or neither.`;
 			}
 			snippetVariables["${" + variable + "}"] = value;
 		}
