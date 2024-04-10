@@ -1,5 +1,5 @@
 import { Extension } from "@codemirror/state";
-import { Plugin, Notice, loadMathJax, addIcon } from "obsidian";
+import { Plugin, Notice, loadMathJax, addIcon, debounce } from "obsidian";
 import { onFileCreate, onFileChange, onFileDelete, getSnippetsFromFiles, getFileSets, getVariablesFromFiles, tryGetVariablesFromUnknownFiles } from "./settings/file_watch";
 import { LatexSuitePluginSettings, DEFAULT_SETTINGS, LatexSuiteCMSettings, processLatexSuiteSettings } from "./settings/settings";
 import { LatexSuiteSettingTab } from "./settings/settings_tab";
@@ -11,6 +11,11 @@ import { reconfigureLatexSuiteConfig } from "./snippets/codemirror/config";
 import { SnippetVariables, parseSnippetVariables, parseSnippets } from "./snippets/parse";
 import { latexSuiteExtensions, optionalExtensions } from "./latex_suite";
 import { sortSnippets } from "./snippets/sort";
+import { Snippet } from "./snippets/snippets";
+
+const showCountsNotice = debounce((snippetVariables: SnippetVariables, snippets: Snippet[]) => 
+	new Notice(`Loaded ${snippets.length} snippets and ${Object.keys(snippetVariables).length} snippet variables.`)
+, 2000, true)
 
 export default class LatexSuitePlugin extends Plugin {
 	settings: LatexSuitePluginSettings;
@@ -139,7 +144,8 @@ export default class LatexSuitePlugin extends Plugin {
 				? await getSnippetsFromFiles(this, files, snippetVariables)
 				: await this.getSettingsSnippets(snippetVariables);
 		
-		new Notice(`Loaded ${snippets.length} snippets and ${Object.keys(snippetVariables).length} snippet variables.`);
+		if (this.settings.loadSnippetVariablesFromFile || this.settings.loadSnippetsFromFile)
+			showCountsNotice(snippetVariables, snippets);
 		
 		return sortSnippets(snippets);
 	}
