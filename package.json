@@ -36,6 +36,8 @@
 		"typescript": "^5.3.3"
 	},
 	"dependencies": {
+		"set.prototype.difference": "^1.1.5",
+		"set.prototype.intersection": "^1.1.5",
 		"valibot": "^0.24.1"
 	}
 }
