@@ -120,7 +120,7 @@ export default class LatexSuitePlugin extends Plugin {
 	async getSnippets() {
 		// Get files in snippet/variable folders.
 		// If either is set to be loaded from settings the set will just be empty.
-		const files = await getFileSets(this);
+		const files = getFileSets(this);
 		
 		const snippetVariables =
 			this.settings.loadSnippetVariablesFromFile

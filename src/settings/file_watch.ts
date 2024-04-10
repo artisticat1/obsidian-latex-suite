@@ -84,7 +84,7 @@ function* generateFilesWithin(fileOrFolder: TAbstractFile): Generator<TFile> {
 			yield* generateFilesWithin(child);
 }
 
-export function getFilesWithin(vault: Vault, path: string): Set<TFile> {
+function getFilesWithin(vault: Vault, path: string): Set<TFile> {
 	const fileOrFolder = vault.getAbstractFileByPath(path);
 	const files = generateFilesWithin(fileOrFolder);
 	return new Set(files)
@@ -96,7 +96,7 @@ interface FileSets {
 	snippetOrVariableFiles: Set<TFile>;
 }
 
-export async function getFileSets(plugin: LatexSuitePlugin): Promise<FileSets> {
+export function getFileSets(plugin: LatexSuitePlugin): FileSets {
 	const variablesFolder =
 		plugin.settings.loadSnippetVariablesFromFile
 		? getFilesWithin(plugin.app.vault, plugin.settings.snippetVariablesFileLocation)
