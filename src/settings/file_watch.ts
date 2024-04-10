@@ -3,9 +3,9 @@ import { Vault, TFile, TFolder, Notice, debounce, TAbstractFile } from "obsidian
 import { Snippet } from "../snippets/snippets";
 import { parseSnippets, parseSnippetVariables, type SnippetVariables } from "../snippets/parse";
 // @ts-ignore
-import differenceImplementation from 'set.prototype.difference';
+import differenceImplementation from "set.prototype.difference";
 // @ts-ignore
-import intersectionImplementation from 'set.prototype.intersection';
+import intersectionImplementation from "set.prototype.intersection";
 
 const difference: <T>(self: Set<T>, other: Set<T>) => Set<T> = differenceImplementation;
 const intersection: <T>(self: Set<T>, other: Set<T>) => Set<T> = intersectionImplementation;
