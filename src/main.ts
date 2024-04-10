@@ -133,7 +133,7 @@ export default class LatexSuitePlugin extends Plugin {
 			// But we only use the values if the user wants them
 			Object.assign(snippetVariables, unknownFileVariables);
 		}
-		 
+
 		const snippets =
 			this.settings.loadSnippetsFromFile
 				? await getSnippetsFromFiles(this, files, snippetVariables)
