@@ -26,9 +26,9 @@ function fileIsInFolder(plugin: LatexSuitePlugin, folderPath: string, file: TFil
 	return (isFolder && isInFolder(file, snippetDir));
 }
 
-const refreshFromFileOrFolder = debounce(async (plugin: LatexSuitePlugin) => {
+const refreshFromFiles = debounce(async (plugin: LatexSuitePlugin) => {
 	if (plugin.settings.loadSnippetVariablesFromFile || plugin.settings.loadSnippetsFromFile) {
-		plugin.processSettings();
+		await plugin.processSettings();
 		new Notice("Successfully reloaded snippet/variable files.", 5000);
 	}
 }, 500, true);
@@ -41,12 +41,7 @@ export const onFileChange = async (plugin: LatexSuitePlugin, file: TAbstractFile
 		|| fileIsInFolder(plugin, plugin.settings.snippetVariablesFileLocation, file) 
 		|| fileIsInFolder(plugin, plugin.settings.snippetsFileLocation, file)
 	) {
-		try {
-			refreshFromFileOrFolder(plugin);
-		}
-		catch {
-			new Notice("Failed to load snippet/variable files.", 5000);
-		}
+		refreshFromFiles(plugin);
 	}
 }
 
@@ -56,7 +51,7 @@ export const onFileCreate = (plugin: LatexSuitePlugin, file: TAbstractFile) => {
 	if (plugin.settings.loadSnippetVariablesFromFile && fileIsInFolder(plugin,plugin.settings.snippetVariablesFileLocation, file) 
 		|| plugin.settings.loadSnippetsFromFile && fileIsInFolder(plugin,plugin.settings.snippetsFileLocation, file)
 	) {
-		refreshFromFileOrFolder(plugin);
+		refreshFromFiles(plugin);
 	}
 }
 
@@ -69,7 +64,7 @@ export const onFileDelete = (plugin: LatexSuitePlugin, file: TAbstractFile) => {
 	if (plugin.settings.loadSnippetVariablesFromFile && snippetVariablesDir instanceof TFolder && file.path.contains(snippetVariablesDir.path)
 	 	|| plugin.settings.loadSnippetsFromFile && snippetDir instanceof TFolder && file.path.contains(snippetDir.path)
 	) {
-		refreshFromFileOrFolder(plugin);
+		refreshFromFiles(plugin);
 	}
 }
 
