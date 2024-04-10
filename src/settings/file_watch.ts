@@ -69,7 +69,7 @@ export const onFileDelete = (plugin: LatexSuitePlugin, file: TAbstractFile) => {
 	const snippetDir = plugin.app.vault.getAbstractFileByPath(plugin.settings.snippetsFileLocation);
 
 	if (plugin.settings.loadSnippetVariablesFromFile && snippetVariablesDir instanceof TFolder && file.path.contains(snippetVariablesDir.path)
-	 	|| plugin.settings.loadSnippetsFromFile && snippetDir instanceof TFolder && file.path.contains(snippetDir.path)
+		|| plugin.settings.loadSnippetsFromFile && snippetDir instanceof TFolder && file.path.contains(snippetDir.path)
 	) {
 		refreshFromFiles(plugin);
 	}
@@ -87,7 +87,7 @@ function* generateFilesWithin(fileOrFolder: TAbstractFile): Generator<TFile> {
 function getFilesWithin(vault: Vault, path: string): Set<TFile> {
 	const fileOrFolder = vault.getAbstractFileByPath(path);
 	const files = generateFilesWithin(fileOrFolder);
-	return new Set(files)
+	return new Set(files);
 }
 
 interface FileSets {
@@ -111,11 +111,11 @@ export function getFileSets(plugin: LatexSuitePlugin): FileSets {
 	const definitelySnippetFiles = difference(snippetsFolder, variablesFolder);
 	const snippetOrVariableFiles = intersection(variablesFolder, snippetsFolder);
 
-	return {definitelyVariableFiles, definitelySnippetFiles, snippetOrVariableFiles}
+	return {definitelyVariableFiles, definitelySnippetFiles, snippetOrVariableFiles};
 }
 
 export async function getVariablesFromFiles(plugin: LatexSuitePlugin, files: FileSets) {
-	const snippetVariables: SnippetVariables = {}
+	const snippetVariables: SnippetVariables = {};
 	
 	for (const file of files.definitelyVariableFiles) {
 		const content = await plugin.app.vault.cachedRead(file);
@@ -132,7 +132,7 @@ export async function getVariablesFromFiles(plugin: LatexSuitePlugin, files: Fil
 }
 
 export async function tryGetVariablesFromUnknownFiles(plugin: LatexSuitePlugin, files: FileSets) {
-	const snippetVariables: SnippetVariables = {}
+	const snippetVariables: SnippetVariables = {};
 	
 	for (const file of files.snippetOrVariableFiles) {
 		const content = await plugin.app.vault.cachedRead(file);
