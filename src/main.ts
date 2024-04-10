@@ -1,6 +1,6 @@
 import { Extension } from "@codemirror/state";
 import { Plugin, Notice, loadMathJax, addIcon } from "obsidian";
-import { onFileCreate, onFileChange, onFileDelete, getSnippetVariablesWithinFileOrFolder, getSnippetsWithinFileOrFolder } from "./settings/file_watch";
+import { onFileCreate, onFileChange, onFileDelete, getSnippetsFromFiles, getFileSets, getVariablesFromFiles, tryGetVariablesFromUnknownFiles } from "./settings/file_watch";
 import { LatexSuitePluginSettings, DEFAULT_SETTINGS, LatexSuiteCMSettings, processLatexSuiteSettings } from "./settings/settings";
 import { LatexSuiteSettingTab } from "./settings/settings_tab";
 import { ICONS } from "./settings/ui/icons";
@@ -9,8 +9,8 @@ import { getEditorCommands } from "./features/editor_commands";
 import { iterateCM6 } from "./utils/editor_utils";
 import { reconfigureLatexSuiteConfig } from "./snippets/codemirror/config";
 import { SnippetVariables, parseSnippetVariables, parseSnippets } from "./snippets/parse";
-import type { Snippet } from "./snippets/snippets";
 import { latexSuiteExtensions, optionalExtensions } from "./latex_suite";
+import { sortSnippets } from "./snippets/sort";
 
 export default class LatexSuitePlugin extends Plugin {
 	settings: LatexSuitePluginSettings;
@@ -76,24 +76,11 @@ export default class LatexSuitePlugin extends Plugin {
 			this.saveSettings();
 		}
 
-		if (this.settings.loadSnippetsFromFile) {
-			let tempSnippetVariables: SnippetVariables = {};
-			try {
-				tempSnippetVariables = await parseSnippetVariables(this.settings.snippets);
-			} catch (e) {
-				new Notice(`Failed to load snippet variables:\n${e}`);
-				console.log("Failed to load snippet variables:\n", e);
-			}
+		if (this.settings.loadSnippetsFromFile || this.settings.loadSnippetVariablesFromFile) {
+			const tempSnippetVariables = await this.getSettingsSnippetVariables();
+			const tempSnippets = await this.getSettingsSnippets(tempSnippetVariables);
 
-			let tempSnippets: Snippet[] = [];
-			try {
-				tempSnippets = await parseSnippets(this.settings.snippets, tempSnippetVariables);
-			} catch (e) {
-				new Notice(`Failed to load snippets:\n${e}`);
-				console.log("Failed to load snippets:\n", e);
-			}
-
-			this.CMSettings = processLatexSuiteSettings(tempSnippets, this.settings);
+			this.CMSettings = processLatexSuiteSettings(sortSnippets(tempSnippets), this.settings);
 
 			// Use onLayoutReady so that we don't try to read the snippets file too early
 			this.app.workspace.onLayoutReady(() => {
@@ -110,42 +97,54 @@ export default class LatexSuitePlugin extends Plugin {
 		this.processSettings();
 	}
 
-	async getSnippetVariables() {
-		if (!this.settings.loadSnippetVariablesFromFile) {
-			let snippetVariables: SnippetVariables = {};
-			try {
-				snippetVariables = await parseSnippetVariables(this.settings.snippetVariables);
-			} catch (e) {
-				new Notice("Failed to load snippet variables from settings");
-				console.log("Failed to load snippet variables from settings:", e);
-			}
-			return snippetVariables;
+	async getSettingsSnippetVariables() {
+		try {
+			return await parseSnippetVariables(this.settings.snippetVariables);
+		} catch (e) {
+			new Notice(`Failed to load snippet variables from settings: ${e}`);
+			console.log(`Failed to load snippet variables from settings: ${e}`);
+			return {};
 		}
-		else {
-			const snippetVariables = await getSnippetVariablesWithinFileOrFolder(this.app.vault, this.settings.snippetVariablesFileLocation);
+	}
 
-			return snippetVariables;
+	async getSettingsSnippets(snippetVariables: SnippetVariables) {
+		try {
+			return await parseSnippets(this.settings.snippets, snippetVariables);
+		} catch (e) {
+			new Notice(`Failed to load snippets from settings: ${e}`);
+			console.log(`Failed to load snippets from settings: ${e}`);
+			return [];
 		}
 	}
 
 	async getSnippets() {
-		const snippetVariables = await this.getSnippetVariables();
+		// Get files in snippet/variable folders.
+		// If either is set to be loaded from settings the set will just be empty.
+		const files = await getFileSets(this);
 		
-		if (!this.settings.loadSnippetsFromFile) {
-			let snippets: Snippet[] = [];
-			try {
-				snippets = await parseSnippets(this.settings.snippets, snippetVariables);
-			} catch (e) {
-				new Notice("Failed to load snippets from settings");
-				console.log("Failed to load snippets from settings:", e);
-			}
-			return snippets;
+		const snippetVariables =
+			this.settings.loadSnippetVariablesFromFile
+				? await getVariablesFromFiles(this, files)
+				: await this.getSettingsSnippetVariables();
+		
+		// This must be done in either case, because it also updates the set of snippet files
+		const unknownFileVariables = await tryGetVariablesFromUnknownFiles(this, files);
+		if (this.settings.loadSnippetVariablesFromFile) { 
+			// But we only use the values if the user wants them
+			Object.assign(snippetVariables, unknownFileVariables);
 		}
-		else {
-			const snippets = await getSnippetsWithinFileOrFolder(this.app.vault, this.settings.snippetsFileLocation, snippetVariables);
+		 
+		new Notice(`Loaded ${Object.keys(snippetVariables).length} variables`)
+		
 
-			return snippets;
-		}
+		const snippets =
+			this.settings.loadSnippetsFromFile
+				? await getSnippetsFromFiles(this, files, snippetVariables)
+				: await this.getSettingsSnippets(snippetVariables);
+		
+		new Notice(`Loaded ${snippets.length} snippets`)
+		
+		return sortSnippets(snippets);
 	}
 
 	async processSettings() {
