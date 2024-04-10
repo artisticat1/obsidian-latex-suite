@@ -1,6 +1,6 @@
 import { EditorState, Extension } from "@codemirror/state";
 import { EditorView, ViewUpdate } from "@codemirror/view";
-import { App, ButtonComponent, ExtraButtonComponent, Modal, PluginSettingTab, Setting, setIcon } from "obsidian";
+import { App, ButtonComponent, ExtraButtonComponent, Modal, PluginSettingTab, Setting, debounce, setIcon } from "obsidian";
 import { parseSnippetVariables, parseSnippets } from "src/snippets/parse";
 import { DEFAULT_SNIPPETS } from "src/utils/default_snippets";
 import LatexSuitePlugin from "../main";
@@ -95,11 +95,10 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			text
 				.setPlaceholder(DEFAULT_SETTINGS.snippetsFileLocation)
 				.setValue(this.plugin.settings.snippetsFileLocation)
-				.onChange(async (value) => {
+				.onChange(debounce(async (value) => {
 					this.plugin.settings.snippetsFileLocation = value;
-
 					await this.plugin.saveSettings();
-				});
+				}, 500, true));
 
 			inputEl = text.inputEl;
 		}
@@ -371,11 +370,10 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			text
 				.setPlaceholder(DEFAULT_SETTINGS.snippetVariablesFileLocation)
 				.setValue(this.plugin.settings.snippetVariablesFileLocation)
-				.onChange(async (value) => {
+				.onChange(debounce(async (value) => {
 					this.plugin.settings.snippetVariablesFileLocation = value;
-
 					await this.plugin.saveSettings();
-				});
+				}, 500, true));
 
 				inputVariablesEl = text.inputEl;
 		}
