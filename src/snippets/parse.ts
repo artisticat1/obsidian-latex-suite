@@ -28,10 +28,10 @@ export async function parseSnippetVariables(snippetVariablesStr: string) {
 	const rawSnippetVariables = await importRaw(snippetVariablesStr) as SnippetVariables;
 
 	if (Array.isArray(rawSnippetVariables))
-		throw `Cannot parse an array as a variables object`
+		throw "Cannot parse an array as a variables object";
 
-	let snippetVariables: SnippetVariables = {};
-	for (let [variable, value] of Object.entries(rawSnippetVariables)) {
+	const snippetVariables: SnippetVariables = {};
+	for (const [variable, value] of Object.entries(rawSnippetVariables)) {
 		if (variable.startsWith("${")) {
 			if (!variable.endsWith("}")) {
 				throw `Invalid snippet variable name '${variable}': Starts with '\${' but does not end with '}'. You need to have both or neither.`;
