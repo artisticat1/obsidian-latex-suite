@@ -27,6 +27,9 @@ async function importRaw(maybeJavaScriptCode: string) {
 export async function parseSnippetVariables(snippetVariablesStr: string) {
 	const rawSnippetVariables = await importRaw(snippetVariablesStr) as SnippetVariables;
 
+	if (Array.isArray(rawSnippetVariables))
+		throw `Cannot parse an array as a variables object`
+
 	let snippetVariables: SnippetVariables = {};
 	for (let [variable, value] of Object.entries(rawSnippetVariables)) {
 		if (variable.startsWith("${")) {
