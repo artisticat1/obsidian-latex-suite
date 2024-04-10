@@ -134,15 +134,12 @@ export default class LatexSuitePlugin extends Plugin {
 			Object.assign(snippetVariables, unknownFileVariables);
 		}
 		 
-		new Notice(`Loaded ${Object.keys(snippetVariables).length} variables`)
-		
-
 		const snippets =
 			this.settings.loadSnippetsFromFile
 				? await getSnippetsFromFiles(this, files, snippetVariables)
 				: await this.getSettingsSnippets(snippetVariables);
 		
-		new Notice(`Loaded ${snippets.length} snippets`)
+		new Notice(`Loaded ${snippets.length} snippets and ${Object.keys(snippetVariables).length} snippet variables.`);
 		
 		return sortSnippets(snippets);
 	}
