@@ -201,16 +201,23 @@ export default class LatexSuitePlugin extends Plugin {
 	}
 
 	watchFiles() {
-		const eventsAndCallbacks = {
-			"modify": onFileChange,
-			"delete": onFileDelete,
-			"create": onFileCreate
-		};
+		// Only begin watching files once the layout is ready
+		// Otherwise, we'll be unnecessarily reacting to many onFileCreate events of snippet files
+		// that occur when Obsidian first loads
 
-		for (const [key, value] of Object.entries(eventsAndCallbacks)) {
-			// @ts-expect-error
-			this.registerEvent(this.app.vault.on(key, (file) => value(this, file)));
-		}
+		this.app.workspace.onLayoutReady(() => {
+
+			const eventsAndCallbacks = {
+				"modify": onFileChange,
+				"delete": onFileDelete,
+				"create": onFileCreate
+			};
+
+			for (const [key, value] of Object.entries(eventsAndCallbacks)) {
+				// @ts-expect-error
+				this.registerEvent(this.app.vault.on(key, (file) => value(this, file)));
+			}
+		});
 	}
 
 	loadIcons() {
