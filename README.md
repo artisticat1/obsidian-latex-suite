@@ -179,7 +179,8 @@ For more details on writing snippets, including **regex** snippets and **functio
 | sq                 | \\sqrt{ }        |
 | x/y <kbd>Tab</kbd> | \\frac{x}{y}     |
 | //                 | \\frac{ }{ }     |
-| te <kbd>Tab</kbd>  | \\text{ }        |
+| "                  | \\text{ }        |
+| text               | \\text{ }        |
 | x1                 | x_{1}            |
 | x,.                | \\mathbf{x}      |
 | x.,                | \\mathbf{x}      |
@@ -190,6 +191,7 @@ For more details on writing snippets, including **regex** snippets and **functio
 | xtilde             | \\tilde{x}       |
 | xund               | \\underline{x}   |
 | ee                 | e^{ }            |
+| invs               | ^{-1}            |
 
 When running a snippet that **moves the cursor inside brackets {}, press <kbd>Tab</kbd> to exit the brackets**.
 
