@@ -93,16 +93,12 @@
 }
 
 .snippets-editor-validity-indicator.valid {
-    background-color: #7dc535;
+    background-color: var(--color-green);
     visibility: visible;
 }
 
-.theme-dark .snippets-editor-validity-indicator.valid {
-    background-color: #588b24;
-}
-
 .snippets-editor-validity-indicator.invalid {
-    background-color: #ea5555;
+    background-color: var(--color-red);
     visibility: visible;
 }
 
