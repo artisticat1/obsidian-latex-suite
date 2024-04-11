@@ -58,11 +58,9 @@ export const runAutoFractionCursor = (view: EditorView, ctx: Context, range: Sel
 		// Also, allow spaces after greek letters
 		// By replacing spaces after greek letters with a dummy character (#)
 
-		const greek = settings.snippetVariables["${GREEK}"];
-		if (greek !== undefined) {
-			const regex = new RegExp("(" + greek + ") ([^ ])", "g");
-			curLine = curLine.replace(regex, "$1#$2");
-		}
+		const greek = "alpha|beta|gamma|Gamma|delta|Delta|epsilon|varepsilon|zeta|eta|theta|Theta|iota|kappa|lambda|Lambda|mu|nu|omicron|xi|Xi|pi|Pi|rho|sigma|Sigma|tau|upsilon|Upsilon|varphi|phi|Phi|chi|psi|Psi|omega|Omega";
+		const regex = new RegExp("(" + greek + ") ([^ ])", "g");
+		curLine = curLine.replace(regex, "$1#$2");
 
 
 		for (let i = curLine.length - 1; i >= eqnStart; i--) {
@@ -99,7 +97,7 @@ export const runAutoFractionCursor = (view: EditorView, ctx: Context, range: Sel
 
 	// Run autofraction
 	let numerator = view.state.sliceDoc(start, to);
-	
+
 	// Remove unnecessary outer parentheses
 	if (numerator.at(0) === "(" && numerator.at(-1) === ")") {
 		const closing = findMatchingBracket(numerator, 0, "(", ")", false);

@@ -86,7 +86,11 @@ Using a RegExp literal, the same snippet can be written as
 
 
 ### Snippet variables
-Snippet variables are used as shortcuts when writing snippets. By default, the following variables are available for use in a `trigger`:
+Snippet variables are used as shortcuts when writing snippets. In the `trigger` of a snippet, strings with the format `"${VARIABLE}"` will be replaced with the contents of the matching variable if it's defined, and left unchanged otherwise.
+
+Snippet variables can be changed in the settings, under **Advanced editor settings > Snippet variables**.
+
+ By default, the following variables are available for use in a `trigger`:
 
 - `${GREEK}` : Shorthand for the following by default:
 
@@ -111,9 +115,6 @@ Snippet variables are used as shortcuts when writing snippets. By default, the f
   ```
 
   Recommended for use with the regex option "r".
-
-
-Snippet variables can be changed in the settings, under **Advanced editor settings > Snippet variables**.
 
 
 ### Visual snippets
@@ -243,6 +244,31 @@ A snippet file containing an array of snippets:
 	{trigger: "dm", replacement: "$$\n$0\n$$", options: "tAw"},
 	{trigger: /([A-Za-z])(\d)/, replacement: "[[0]]_{[[1]]}", options: "mA"}
 ]
+```
+
+## Snippet variable files
+
+You can choose to load variables from a file or from all files within a folder. To do this, toggle the setting **Advanced editor settings > Snippet variables > Load snippet variables from file or folder**. The file or folder must be within your vault, and not in a hidden folder (such as `.obsidian/`).
+
+Variable files can be saved with any extension. However, to obtain syntax highlighting in external editors, you may wish to save your variable files with an extension of `.js`.
+
+A variables file is a JavaScript object, or a JavaScript module with a default export of an object.
+
+The `${}` around the variable may be ommited, i.e. `"${VARIABLE}": "..."` and `"VARIABLE": "..."` are both accepted.
+
+_Note: an **object** is a mapping of names to values. In JavaScript, this is represented with the braces symbols `{}`, with a `:` between the name and value, and a comma between name-value pairs, e.g. `{ name: "value1", "name2": "value2" }`. In most cases, the key may be written with or without quotes. Specifically, `VARIABLE: "..."` is also acceptable_
+
+### Example
+A variable file containing an object of variables, with the 3 acceptable formats:
+
+```typescript
+{
+  GREEK:
+    "alpha|beta|gamma|Gamma|delta|Delta|epsilon|varepsilon|zeta|eta|theta|Theta|iota|kappa|lambda|Lambda|mu|nu|omicron|xi|Xi|pi|Pi|rho|sigma|Sigma|tau|upsilon|Upsilon|varphi|phi|Phi|chi|psi|Psi|omega|Omega",
+  "SYMBOL":
+    "hbar|ell|nabla|infty|dots|leftrightarrow|mapsto|setminus|mid|bigcap|bigcup|cap|cup|land|lor|subseteq|subset|implies|impliedby|iff|exists|forall|equiv|square|neq|geq|leq|gg|ll|sim|simeq|approx|propto|cdot|oplus|otimes|times|star|perp|det|exp|ln|log|partial",
+  "${SHORT_SYMBOL}": "to|pm|mp",
+}
 ```
 
 ## Sharing snippets

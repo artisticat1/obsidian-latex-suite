@@ -27,7 +27,7 @@
 		"@typescript-eslint/parser": "^6.18.0",
 		"builtin-modules": "^3.2.0",
 		"codemirror": "^6.0.0",
-		"esbuild": "0.13.12",
+		"esbuild": "^0.20.2",
 		"esbuild-plugin-inline-import": "^1.0.2",
 		"eslint": "^8.56.0",
 		"js-base64": "^3.7.5",
@@ -36,6 +36,8 @@
 		"typescript": "^5.3.3"
 	},
 	"dependencies": {
+		"set.prototype.difference": "^1.1.5",
+		"set.prototype.intersection": "^1.1.5",
 		"valibot": "^0.24.1"
 	}
 }

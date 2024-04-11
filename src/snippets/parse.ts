@@ -3,23 +3,52 @@ import { encode } from "js-base64";
 import { RegexSnippet, serializeSnippetLike, Snippet, StringSnippet, VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER, VisualSnippet } from "./snippets";
 import { Options } from "./options";
 import { sortSnippets } from "./sort";
-import type { SnippetVariables } from "./snippet_variables";
 import { EXCLUSIONS, Environment } from "./environment";
 
-export async function parseSnippets(snippetsStr: string, snippetVariables: SnippetVariables) {
-	let rawSnippets;
+export type SnippetVariables = Record<string, string>;
+
+async function importRaw(maybeJavaScriptCode: string) {
+	let raw;
 	try {
 		try {
 			// first, try to import as a plain js module
 			// js-base64.encode is needed over builtin `window.btoa` because the latter errors on unicode
-			rawSnippets = await importModuleDefault(`data:text/javascript;base64,${encode(snippetsStr)}`);
+			raw = await importModuleDefault(`data:text/javascript;base64,${encode(maybeJavaScriptCode)}`);
 		} catch {
-			// otherwise, try to import as a standalone js array
-			rawSnippets = await importModuleDefault(`data:text/javascript;base64,${encode(`export default ${snippetsStr}`)}`);
+			// otherwise, try to import as a standalone js object
+			raw = await importModuleDefault(`data:text/javascript;base64,${encode(`export default ${maybeJavaScriptCode}`)}`);
 		}
 	} catch (e) {
-		throw "Invalid snippet format.";
+		throw "Invalid format.";
 	}
+	return raw;
+}
+
+export async function parseSnippetVariables(snippetVariablesStr: string) {
+	const rawSnippetVariables = await importRaw(snippetVariablesStr) as SnippetVariables;
+
+	if (Array.isArray(rawSnippetVariables))
+		throw "Cannot parse an array as a variables object";
+
+	const snippetVariables: SnippetVariables = {};
+	for (const [variable, value] of Object.entries(rawSnippetVariables)) {
+		if (variable.startsWith("${")) {
+			if (!variable.endsWith("}")) {
+				throw `Invalid snippet variable name '${variable}': Starts with '\${' but does not end with '}'. You need to have both or neither.`;
+			}
+			snippetVariables[variable] = value;
+		} else {
+			if (variable.endsWith("}")) {
+				throw `Invalid snippet variable name '${variable}': Ends with '}' but does not start with '\${'. You need to have both or neither.`;
+			}
+			snippetVariables["${" + variable + "}"] = value;
+		}
+	}
+	return snippetVariables;
+}
+
+export async function parseSnippets(snippetsStr: string, snippetVariables: SnippetVariables) {
+	let rawSnippets = await importRaw(snippetsStr) as RawSnippet[];
 
 	let parsedSnippets;
 	try {

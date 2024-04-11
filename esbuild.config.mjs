@@ -12,7 +12,7 @@ if you want to view the source, please visit the github repository of this plugi
 
 const prod = (process.argv[2] === "production");
 
-esbuild.build({
+esbuild.context({
 	banner: {
 		js: banner,
 	},
@@ -45,7 +45,6 @@ esbuild.build({
 		"@lezer/highlight",
 		...builtins],
 	format: "cjs",
-	watch: !prod,
 	target: "es2016",
 	logLevel: "info",
 	sourcemap: prod ? false : "inline",
@@ -54,4 +53,4 @@ esbuild.build({
 	plugins: [
 		inlineImportPlugin()
 	]
-}).catch(() => process.exit(1));
+}).then(ctx => prod || ctx.watch()).catch(() => process.exit(1));
