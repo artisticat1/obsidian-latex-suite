@@ -115,6 +115,9 @@
     border: none;
 }
 
+.search-input-container input.latex-suite-location-input-el {
+    width: initial;
+}
 
 /*
 Snippet color classes.

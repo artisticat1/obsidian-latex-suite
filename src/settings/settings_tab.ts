@@ -89,10 +89,9 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			.setName("Snippets file or folder location")
 			.setDesc(snippetsFileLocDesc);
 
-
 		let inputEl;
-		snippetsFileLoc.addText(text => {
-			text
+		snippetsFileLoc.addSearch(component => {
+			component
 				.setPlaceholder(DEFAULT_SETTINGS.snippetsFileLocation)
 				.setValue(this.plugin.settings.snippetsFileLocation)
 				.onChange(debounce(async (value) => {
@@ -100,9 +99,9 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings(true);
 				}, 500, true));
 
-			inputEl = text.inputEl;
-		}
-		);
+			inputEl = component.inputEl;
+			inputEl.addClass("latex-suite-location-input-el");
+		})
 
 		this.snippetsFileLocEl = snippetsFileLoc.settingEl;
 		new FileSuggest(this.app, inputEl);
@@ -366,8 +365,8 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 
 		let inputVariablesEl;
-		snippetVariablesFileLoc.addText(text => {
-			text
+		snippetVariablesFileLoc.addSearch(component => {
+			component
 				.setPlaceholder(DEFAULT_SETTINGS.snippetVariablesFileLocation)
 				.setValue(this.plugin.settings.snippetVariablesFileLocation)
 				.onChange(debounce(async (value) => {
@@ -375,7 +374,8 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings(true);
 				}, 500, true));
 
-				inputVariablesEl = text.inputEl;
+				inputVariablesEl = component.inputEl;
+				inputVariablesEl.addClass("latex-suite-location-input-el");
 		}
 		);
 
