@@ -11,8 +11,7 @@ if you want to view the source, please visit the github repository of this plugi
 `;
 
 const prod = (process.argv[2] === "production");
-
-esbuild.context({
+const args = {
 	banner: {
 		js: banner,
 	},
@@ -53,4 +52,12 @@ esbuild.context({
 	plugins: [
 		inlineImportPlugin()
 	]
-}).then(ctx => prod || ctx.watch()).catch(() => process.exit(1));
+};
+
+if (!prod) {
+	const ctx = await esbuild.context(args);
+	ctx.watch().catch(() => process.exit(1));
+}
+else {
+	esbuild.build(args).catch(() => process.exit(1));
+}
