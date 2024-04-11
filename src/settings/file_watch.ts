@@ -1,5 +1,5 @@
 import LatexSuitePlugin from "../main";
-import { Vault, TFile, TFolder, Notice, debounce, TAbstractFile } from "obsidian";
+import { Vault, TFile, TFolder, TAbstractFile, Notice, debounce } from "obsidian";
 import { Snippet } from "../snippets/snippets";
 import { parseSnippets, parseSnippetVariables, type SnippetVariables } from "../snippets/parse";
 // @ts-ignore
@@ -34,18 +34,20 @@ function fileIsInFolder(plugin: LatexSuitePlugin, folderPath: string, file: TFil
 }
 
 const refreshFromFiles = debounce(async (plugin: LatexSuitePlugin) => {
-	if (plugin.settings.loadSnippetVariablesFromFile || plugin.settings.loadSnippetsFromFile) {
-		await plugin.processSettings();
-		new Notice("Successfully reloaded snippet/variable files.", 5000);
+	if (!(plugin.settings.loadSnippetVariablesFromFile || plugin.settings.loadSnippetsFromFile)) {
+		return;
 	}
+
+	await plugin.processSettings(false, true);
+
 }, 500, true);
 
 export const onFileChange = async (plugin: LatexSuitePlugin, file: TAbstractFile) => {
 	if (!(file instanceof TFile)) return;
 
-	if (plugin.settings.loadSnippetVariablesFromFile && file.path === plugin.settings.snippetVariablesFileLocation 
-		|| plugin.settings.loadSnippetsFromFile && file.path === plugin.settings.snippetsFileLocation 
-		|| fileIsInFolder(plugin, plugin.settings.snippetVariablesFileLocation, file) 
+	if (plugin.settings.loadSnippetVariablesFromFile && file.path === plugin.settings.snippetVariablesFileLocation
+		|| plugin.settings.loadSnippetsFromFile && file.path === plugin.settings.snippetsFileLocation
+		|| fileIsInFolder(plugin, plugin.settings.snippetVariablesFileLocation, file)
 		|| fileIsInFolder(plugin, plugin.settings.snippetsFileLocation, file)
 	) {
 		refreshFromFiles(plugin);
@@ -55,7 +57,7 @@ export const onFileChange = async (plugin: LatexSuitePlugin, file: TAbstractFile
 export const onFileCreate = (plugin: LatexSuitePlugin, file: TAbstractFile) => {
 	if (!(file instanceof TFile)) return;
 
-	if (plugin.settings.loadSnippetVariablesFromFile && fileIsInFolder(plugin,plugin.settings.snippetVariablesFileLocation, file) 
+	if (plugin.settings.loadSnippetVariablesFromFile && fileIsInFolder(plugin,plugin.settings.snippetVariablesFileLocation, file)
 		|| plugin.settings.loadSnippetsFromFile && fileIsInFolder(plugin,plugin.settings.snippetsFileLocation, file)
 	) {
 		refreshFromFiles(plugin);
@@ -78,7 +80,7 @@ export const onFileDelete = (plugin: LatexSuitePlugin, file: TAbstractFile) => {
 function* generateFilesWithin(fileOrFolder: TAbstractFile): Generator<TFile> {
 	if (fileOrFolder instanceof TFile)
 		yield fileOrFolder;
-	
+
 	else if (fileOrFolder instanceof TFolder)
 		for (const child of fileOrFolder.children)
 			yield* generateFilesWithin(child);
@@ -101,12 +103,12 @@ export function getFileSets(plugin: LatexSuitePlugin): FileSets {
 		plugin.settings.loadSnippetVariablesFromFile
 		? getFilesWithin(plugin.app.vault, plugin.settings.snippetVariablesFileLocation)
 		: new Set<TFile>();
-	
+
 	const snippetsFolder =
 		plugin.settings.loadSnippetsFromFile
 		? getFilesWithin(plugin.app.vault, plugin.settings.snippetsFileLocation)
 			: new Set<TFile>();
-	
+
 	const definitelyVariableFiles = difference(variablesFolder, snippetsFolder);
 	const definitelySnippetFiles = difference(snippetsFolder, variablesFolder);
 	const snippetOrVariableFiles = intersection(variablesFolder, snippetsFolder);
@@ -116,7 +118,7 @@ export function getFileSets(plugin: LatexSuitePlugin): FileSets {
 
 export async function getVariablesFromFiles(plugin: LatexSuitePlugin, files: FileSets) {
 	const snippetVariables: SnippetVariables = {};
-	
+
 	for (const file of files.definitelyVariableFiles) {
 		const content = await plugin.app.vault.cachedRead(file);
 		try {
@@ -128,12 +130,12 @@ export async function getVariablesFromFiles(plugin: LatexSuitePlugin, files: Fil
 		}
 	}
 
-	return snippetVariables;	
+	return snippetVariables;
 }
 
 export async function tryGetVariablesFromUnknownFiles(plugin: LatexSuitePlugin, files: FileSets) {
 	const snippetVariables: SnippetVariables = {};
-	
+
 	for (const file of files.snippetOrVariableFiles) {
 		const content = await plugin.app.vault.cachedRead(file);
 		try {
@@ -146,7 +148,7 @@ export async function tryGetVariablesFromUnknownFiles(plugin: LatexSuitePlugin, 
 		}
 		files.snippetOrVariableFiles.delete(file);
 	}
-	
+
 	return snippetVariables;
 }
 
@@ -156,8 +158,8 @@ export async function getSnippetsFromFiles(
 	snippetVariables: SnippetVariables
 ) {
 	const snippets: Snippet[] = [];
-	
-	for (const file of files.definitelySnippetFiles) { 
+
+	for (const file of files.definitelySnippetFiles) {
 		const content = await plugin.app.vault.cachedRead(file);
 		try {
 			snippets.push(...await parseSnippets(content, snippetVariables));
@@ -167,6 +169,6 @@ export async function getSnippetsFromFiles(
 			files.definitelySnippetFiles.delete(file);
 		}
 	}
-	
+
 	return snippets;
 }

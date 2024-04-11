@@ -97,7 +97,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.snippetsFileLocation)
 				.onChange(debounce(async (value) => {
 					this.plugin.settings.snippetsFileLocation = value;
-					await this.plugin.saveSettings();
+					await this.plugin.saveSettings(true);
 				}, 500, true));
 
 			inputEl = text.inputEl;
@@ -197,18 +197,18 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
-		const mathPreviewPositionSetting = new Setting(containerEl)
-      .setName("Position")
-      .setDesc("Where to display the popup preview relative to the equation source.")
-      .addDropdown((dropdown) => dropdown
-		.addOption("Above", "Above")
-        .addOption("Below", "Below")
-        .setValue(this.plugin.settings.mathPreviewPositionIsAbove ? "Above" : "Below")
-        .onChange(async (value) => {
-          this.plugin.settings.mathPreviewPositionIsAbove = (value === "Above");
-          await this.plugin.saveSettings();
-        })
-      );
+		new Setting(containerEl)
+		.setName("Position")
+		.setDesc("Where to display the popup preview relative to the equation source.")
+		.addDropdown((dropdown) => dropdown
+			.addOption("Above", "Above")
+			.addOption("Below", "Below")
+			.setValue(this.plugin.settings.mathPreviewPositionIsAbove ? "Above" : "Below")
+			.onChange(async (value) => {
+				this.plugin.settings.mathPreviewPositionIsAbove = (value === "Above");
+				await this.plugin.saveSettings();
+			})
+		);
 
 		this.addHeading(containerEl, "Auto-fraction", "math-x-divide-y-2");
 
@@ -353,7 +353,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 					await this.plugin.saveSettings();
 				}));
-		
+
 		const snippetVariablesFileLocDesc = new DocumentFragment();
 		snippetVariablesFileLocDesc.createDiv({}, (div) => {
 			div.innerHTML = `
@@ -372,7 +372,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.snippetVariablesFileLocation)
 				.onChange(debounce(async (value) => {
 					this.plugin.settings.snippetVariablesFileLocation = value;
-					await this.plugin.saveSettings();
+					await this.plugin.saveSettings(true);
 				}, 500, true));
 
 				inputVariablesEl = text.inputEl;

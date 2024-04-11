@@ -1,5 +1,5 @@
 import { Extension } from "@codemirror/state";
-import { Plugin, Notice, loadMathJax, addIcon, debounce } from "obsidian";
+import { Plugin, Notice, loadMathJax, addIcon } from "obsidian";
 import { onFileCreate, onFileChange, onFileDelete, getSnippetsFromFiles, getFileSets, getVariablesFromFiles, tryGetVariablesFromUnknownFiles } from "./settings/file_watch";
 import { LatexSuitePluginSettings, DEFAULT_SETTINGS, LatexSuiteCMSettings, processLatexSuiteSettings } from "./settings/settings";
 import { LatexSuiteSettingTab } from "./settings/settings_tab";
@@ -11,11 +11,6 @@ import { reconfigureLatexSuiteConfig } from "./snippets/codemirror/config";
 import { SnippetVariables, parseSnippetVariables, parseSnippets } from "./snippets/parse";
 import { latexSuiteExtensions, optionalExtensions } from "./latex_suite";
 import { sortSnippets } from "./snippets/sort";
-import { Snippet } from "./snippets/snippets";
-
-const showCountsNotice = debounce((snippetVariables: SnippetVariables, snippets: Snippet[]) => 
-	new Notice(`Loaded ${snippets.length} snippets and ${Object.keys(snippetVariables).length} snippet variables.`)
-, 2000, true)
 
 export default class LatexSuitePlugin extends Plugin {
 	settings: LatexSuitePluginSettings;
@@ -97,9 +92,9 @@ export default class LatexSuitePlugin extends Plugin {
 		}
 	}
 
-	async saveSettings() {
+	async saveSettings(didFileLocationChange = false) {
 		await this.saveData(this.settings);
-		this.processSettings();
+		this.processSettings(didFileLocationChange);
 	}
 
 	async getSettingsSnippetVariables() {
@@ -122,19 +117,19 @@ export default class LatexSuitePlugin extends Plugin {
 		}
 	}
 
-	async getSnippets() {
+	async getSnippets(becauseFileLocationUpdated: boolean, becauseFileUpdated: boolean) {
 		// Get files in snippet/variable folders.
 		// If either is set to be loaded from settings the set will just be empty.
 		const files = getFileSets(this);
-		
+
 		const snippetVariables =
 			this.settings.loadSnippetVariablesFromFile
 				? await getVariablesFromFiles(this, files)
 				: await this.getSettingsSnippetVariables();
-		
+
 		// This must be done in either case, because it also updates the set of snippet files
 		const unknownFileVariables = await tryGetVariablesFromUnknownFiles(this, files);
-		if (this.settings.loadSnippetVariablesFromFile) { 
+		if (this.settings.loadSnippetVariablesFromFile) {
 			// But we only use the values if the user wants them
 			Object.assign(snippetVariables, unknownFileVariables);
 		}
@@ -143,15 +138,14 @@ export default class LatexSuitePlugin extends Plugin {
 			this.settings.loadSnippetsFromFile
 				? await getSnippetsFromFiles(this, files, snippetVariables)
 				: await this.getSettingsSnippets(snippetVariables);
-		
-		if (this.settings.loadSnippetVariablesFromFile || this.settings.loadSnippetsFromFile)
-			showCountsNotice(snippetVariables, snippets);
-		
+
+		this.showSnippetsLoadedNotice(snippets.length, Object.keys(snippetVariables).length,  becauseFileLocationUpdated, becauseFileUpdated);
+
 		return sortSnippets(snippets);
 	}
 
-	async processSettings() {
-		this.CMSettings = processLatexSuiteSettings(await this.getSnippets(), this.settings);
+	async processSettings(becauseFileLocationUpdated = false, becauseFileUpdated = false) {
+		this.CMSettings = processLatexSuiteSettings(await this.getSnippets(becauseFileLocationUpdated, becauseFileUpdated), this.settings);
 		this.reconfigureLatexSuiteConfig();
 		this.refreshCMExtensions();
 	}
@@ -182,6 +176,22 @@ export default class LatexSuitePlugin extends Plugin {
 			}
 		}
 		this.app.workspace.updateOptions();
+	}
+
+	showSnippetsLoadedNotice(nSnippets: number, nSnippetVariables: number, becauseFileLocationUpdated: boolean, becauseFileUpdated: boolean) {
+		if (!(becauseFileLocationUpdated || becauseFileUpdated))
+			return;
+
+		const prefix = becauseFileLocationUpdated ? "Loaded " : "Successfully reloaded ";
+		const body = [];
+
+		if (this.settings.loadSnippetsFromFile)
+			body.push(`${nSnippets} snippets`);
+		if (this.settings.loadSnippetVariablesFromFile)
+			body.push(`${nSnippetVariables} snippet variables`);
+
+		const suffix = " from files.";
+		new Notice(prefix + body.join(" and ") + suffix, 5000);
 	}
 
 	addEditorCommands() {
