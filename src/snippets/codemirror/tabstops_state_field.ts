@@ -92,8 +92,8 @@ export function removeAllTabstops(view: EditorView) {
 	});
 }
 
-// const COLORS = ["lightskyblue", "orange", "lime", "pink", "cornsilk", "magenta", "navajowhite"];
-const N_COLORS = 7;
+// const COLORS = ["lightskyblue", "orange", "lime"];
+const N_COLORS = 3;
 
 export function getNextTabstopColor(view: EditorView) {
 	const field = view.state.field(tabstopsStateField);

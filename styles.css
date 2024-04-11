@@ -123,36 +123,36 @@ Snippet color classes.
 nesting multiple decorations. */
 
 .latex-suite-snippet-placeholder {
-    border-width: 1px 0 1px 0;
-    border-style: solid;
+    border-radius: 2px;
+    background-color: var(--placeholder-bg);
+    outline: var(--placeholder-outline) solid 1px;
 }
 
 .latex-suite-snippet-placeholder-0, span.latex-suite-snippet-placeholder-0 span {
-    border-color: lightskyblue;
+    --placeholder-bg: #87cefa2e;
+    --placeholder-outline: #87cefa6e;
+}
+
+.theme-dark .latex-suite-snippet-placeholder-0, span.latex-suite-snippet-placeholder-0 span {
+    --placeholder-outline: #87cefa43;
 }
 
 .latex-suite-snippet-placeholder-1, span.latex-suite-snippet-placeholder-1 span {
-    border-color: orange;
+    --placeholder-bg: #ffa50033;
+    --placeholder-outline: #ffa5006b;
+}
+
+.theme-dark .latex-suite-snippet-placeholder-1, span.latex-suite-snippet-placeholder-1 span {
+    --placeholder-outline: #ffa5004d;
 }
 
 .latex-suite-snippet-placeholder-2, span.latex-suite-snippet-placeholder-2 span {
-    border-color: lime;
+    --placeholder-bg: #00ff0022;
+    --placeholder-outline: #00ff0060;
 }
 
-.latex-suite-snippet-placeholder-3, span.latex-suite-snippet-placeholder-3 span {
-    border-color: pink;
-}
-
-.latex-suite-snippet-placeholder-4, span.latex-suite-snippet-placeholder-4 span {
-    border-color: cornsilk;
-}
-
-.latex-suite-snippet-placeholder-5, span.latex-suite-snippet-placeholder-5 span {
-    border-color: magenta;
-}
-
-.latex-suite-snippet-placeholder-6, span.latex-suite-snippet-placeholder-6 span {
-    border-color: navajowhite;
+.theme-dark .latex-suite-snippet-placeholder-2, span.latex-suite-snippet-placeholder-2 span {
+    --placeholder-outline: #00ff003d;
 }
 
 
