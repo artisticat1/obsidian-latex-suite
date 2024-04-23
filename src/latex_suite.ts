@@ -7,6 +7,7 @@ import { tabout, shouldTaboutByCloseBracket } from "./features/tabout";
 import { runMatrixShortcuts } from "./features/matrix_shortcuts";
 
 import { Context } from "./utils/context";
+import { getCharacterAtPos, replaceRange } from "./utils/editor_utils";
 import { consumeAndGotoNextTabstop, isInsideATabstop, tidyTabstops } from "./snippets/snippet_management";
 import { removeAllTabstops } from "./snippets/codemirror/tabstops_state_field";
 import { getLatexSuiteConfigExtension, getLatexSuiteConfig } from "./snippets/codemirror/config";
@@ -48,6 +49,20 @@ export const handleKeydown = (key: string, shiftKey: boolean, ctrlKey: boolean, 
 	const ctx = Context.fromView(view);
 
 	let success = false;
+
+	/*
+	* When backspace is pressed, if the cursor is inside an empty inline math,
+	* delete both $ symbols, not just the first one.
+	*/
+	if (key === "Backspace") {
+		const char_at_pos = getCharacterAtPos(view, ctx.pos);
+		const char_at_prev_pos = getCharacterAtPos(view, ctx.pos - 1);
+
+		if (char_at_pos === "$" && char_at_prev_pos === "$") {
+			replaceRange(view, ctx.pos - 1, ctx.pos + 1, "");
+			return true;
+		}
+	}
 
 	if (settings.snippetsEnabled) {
 
