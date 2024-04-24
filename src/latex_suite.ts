@@ -20,6 +20,7 @@ import { concealPlugin } from "./editor_extensions/conceal";
 import { LatexSuiteCMSettings } from "./settings/settings";
 import { colorPairedBracketsPluginLowestPrec, highlightCursorBracketsPlugin } from "./editor_extensions/highlight_brackets";
 import { cursorTooltipBaseTheme, cursorTooltipField } from "./editor_extensions/math_tooltip";
+import { isComposing } from "./utils/editor_utils";
 
 export const handleUpdate = (update: ViewUpdate) => {
 	const cursorTriggeredByChange = update.state.field(cursorTriggerStateField, false);
@@ -37,13 +38,7 @@ export const handleUpdate = (update: ViewUpdate) => {
 }
 
 export const onKeydown = (event: KeyboardEvent, view: EditorView) => {
-	// Check if the user is typing in an IME composition.
-	// view.composing and event.isComposing are false for the first keydown event of an IME composition,
-	// so we need to check for event.keyCode === 229 to prevent IME from triggering keydown events.
-	// Note that keyCode is deprecated - it is used here because it is apparently the only way to detect the first keydown event of an IME composition.
-	const isIME = view.composing || event.keyCode === 229;
-	
-	const success = handleKeydown(event.key, event.shiftKey, event.ctrlKey || event.metaKey, isIME, view);
+	const success = handleKeydown(event.key, event.shiftKey, event.ctrlKey || event.metaKey, isComposing(view, event), view);
 
 	if (success) event.preventDefault();
 }
