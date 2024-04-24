@@ -42,7 +42,7 @@ export const onKeydown = (event: KeyboardEvent, view: EditorView) => {
 	// so we need to check for event.keyCode === 229 to prevent IME from triggering keydown events.
 	// Note that keyCode is deprecated - it is used here because it is apparently the only way to detect the first keydown event of an IME composition.
 	const isIME = view.composing || event.keyCode === 229;
-
+	
 	const success = handleKeydown(event.key, event.shiftKey, event.ctrlKey || event.metaKey, isIME, view);
 
 	if (success) event.preventDefault();
