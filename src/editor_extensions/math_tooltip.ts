@@ -28,61 +28,72 @@ export function handleMathTooltip(update: ViewUpdate) {
 	const settings = getLatexSuiteConfig(update.state);
 	const ctx = Context.fromState(update.state);
 
+	if (!shouldShowTooltip(update.state, ctx)) {
+		const currTooltips = update.state.field(cursorTooltipField);
+		// a little optimization:
+		// If the tooltip is not currently shown and there is no need to show it,
+		// we don't dispatch an transaction.
+		if (currTooltips.length > 0) {
+			update.view.dispatch({
+				effects: [updateTooltipEffect.of([])],
+			});
+		}
+		return;
+	}
+
+	/*
+	* process when there is a need to show the tooltip: from here
+	*/
+
+	// HACK: eqnBounds is not null because shouldShowTooltip was true
+	const eqnBounds = ctx.getBounds();
+	const eqn = update.state.sliceDoc(eqnBounds.start, eqnBounds.end);
+
+	const above = settings.mathPreviewPositionIsAbove;
+	const create = () => {
+		const dom = document.createElement("div");
+		dom.className = "cm-tooltip-cursor";
+
+		const renderedEqn = renderMath(eqn, ctx.mode.blockMath || ctx.mode.codeMath);
+		dom.appendChild(renderedEqn);
+		finishRenderMath();
+
+		return { dom };
+	};
+
 	let newTooltips: Tooltip[] = [];
 
-	if (shouldShowTooltip(update.state, ctx)) {
-		// HACK: eqnBounds is not null because shouldShowTooltip was true
-		const eqnBounds = ctx.getBounds();
-		const eqn = update.state.sliceDoc(eqnBounds.start, eqnBounds.end);
+	if (ctx.mode.blockMath || ctx.mode.codeMath) {
+		newTooltips = [{
+			pos: above ? eqnBounds.start : eqnBounds.end,
+			above: above,
+			strictSide: true,
+			arrow: true,
+			create: create,
+		}];
+	} else if (ctx.mode.inlineMath && above) {
+		newTooltips = [{
+			pos: eqnBounds.start,
+			above: true,
+			strictSide: true,
+			arrow: true,
+			create: create,
+		}];
+	} else if (ctx.mode.inlineMath && !above) {
+		const endRange = EditorSelection.range(eqnBounds.end, eqnBounds.end);
 
-		const above = settings.mathPreviewPositionIsAbove;
-		const create = () => {
-			const dom = document.createElement("div");
-			dom.className = "cm-tooltip-cursor";
-
-			const renderedEqn = renderMath(eqn, ctx.mode.blockMath || ctx.mode.codeMath);
-			dom.appendChild(renderedEqn);
-			finishRenderMath();
-
-			return { dom };
-		};
-
-		if (ctx.mode.blockMath || ctx.mode.codeMath) {
-			newTooltips = [{
-				pos: above ? eqnBounds.start : eqnBounds.end,
-				above: above,
-				strictSide: true,
-				arrow: true,
-				create: create,
-			}];
-		}
-
-		if (ctx.mode.inlineMath && above) {
-			newTooltips = [{
-				pos: eqnBounds.start,
-				above: true,
-				strictSide: true,
-				arrow: true,
-				create: create,
-			}];
-		}
-
-		if (ctx.mode.inlineMath && !above) {
-			const endRange = EditorSelection.range(eqnBounds.end, eqnBounds.end);
-
-			newTooltips = [{
-				pos: Math.max(
-					eqnBounds.start,
-					// the beginning position of the visual line where eqnBounds.end is
-					// located
-					update.view.moveToLineBoundary(endRange, false).anchor,
-				),
-				above: false,
-				strictSide: true,
-				arrow: true,
-				create: create,
-			}];
-		}
+		newTooltips = [{
+			pos: Math.max(
+				eqnBounds.start,
+				// the beginning position of the visual line where eqnBounds.end is
+				// located
+				update.view.moveToLineBoundary(endRange, false).anchor,
+			),
+			above: false,
+			strictSide: true,
+			arrow: true,
+			create: create,
+		}];
 	}
 
 	update.view.dispatch({
