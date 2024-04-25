@@ -60,6 +60,8 @@ export const handleKeydown = (key: string, shiftKey: boolean, ctrlKey: boolean, 
 
 		if (char_at_pos === "$" && char_at_prev_pos === "$") {
 			replaceRange(view, ctx.pos - 1, ctx.pos + 1, "");
+			// note: not sure if removeAllTabstops is necessary
+			removeAllTabstops(view);
 			return true;
 		}
 	}
