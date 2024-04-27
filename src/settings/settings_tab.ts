@@ -411,6 +411,17 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			}));
 
 		new Setting(containerEl)
+			.setName("Don't trigger snippets when IME is active")
+			.setDesc("Whether to suppress the snippet triggering when an IME is active.")
+			.addToggle((toggle) => toggle
+				.setValue(this.plugin.settings.suppressSnippetTriggerOnIME)
+				.onChange(async (value) => {
+					this.plugin.settings.suppressSnippetTriggerOnIME = value;
+					await this.plugin.saveSettings();
+				})
+			);
+
+		new Setting(containerEl)
 		.setName("Code languages to interpret as math mode")
 		.setDesc("Codeblock languages where the whole code block should be treated like a math block, separated by commas.")
 		.addText(text => text

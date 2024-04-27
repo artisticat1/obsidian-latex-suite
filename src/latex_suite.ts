@@ -20,6 +20,7 @@ import { concealPlugin } from "./editor_extensions/conceal";
 import { LatexSuiteCMSettings } from "./settings/settings";
 import { colorPairedBracketsPluginLowestPrec, highlightCursorBracketsPlugin } from "./editor_extensions/highlight_brackets";
 import { cursorTooltipBaseTheme, cursorTooltipField, handleMathTooltip } from "./editor_extensions/math_tooltip";
+import { isComposing } from "./utils/editor_utils";
 
 export const handleUpdate = (update: ViewUpdate) => {
 	// The math tooltip handler is driven by view updates because it utilizes
@@ -41,12 +42,12 @@ export const handleUpdate = (update: ViewUpdate) => {
 }
 
 export const onKeydown = (event: KeyboardEvent, view: EditorView) => {
-	const success = handleKeydown(event.key, event.shiftKey, event.ctrlKey || event.metaKey, view);
+	const success = handleKeydown(event.key, event.shiftKey, event.ctrlKey || event.metaKey, isComposing(view, event), view);
 
 	if (success) event.preventDefault();
 }
 
-export const handleKeydown = (key: string, shiftKey: boolean, ctrlKey: boolean, view: EditorView) => {
+export const handleKeydown = (key: string, shiftKey: boolean, ctrlKey: boolean, isIME: boolean, view: EditorView) => {
 
 	const settings = getLatexSuiteConfig(view);
 	const ctx = Context.fromView(view);
@@ -55,6 +56,9 @@ export const handleKeydown = (key: string, shiftKey: boolean, ctrlKey: boolean, 
 
 	if (settings.snippetsEnabled) {
 
+		// Prevent IME from triggering keydown events.
+		if (settings.suppressSnippetTriggerOnIME && isIME) return;
+	
 		// Allows Ctrl + z for undo, instead of triggering a snippet ending with z
 		if (!ctrlKey) {
 			try {
