@@ -22,7 +22,7 @@ export const cursorTooltipField = StateField.define<readonly Tooltip[]>({
 
 // update the tooltip by dispatching an updateTooltipEffect
 export function handleMathTooltip(update: ViewUpdate) {
-  const shouldUpdate = update.docChanged || update.selectionSet;
+	const shouldUpdate = update.docChanged || update.selectionSet;
 	if (!shouldUpdate) return;
 
 	const settings = getLatexSuiteConfig(update.state);
@@ -52,7 +52,7 @@ export function handleMathTooltip(update: ViewUpdate) {
 	const above = settings.mathPreviewPositionIsAbove;
 	const create = () => {
 		const dom = document.createElement("div");
-		dom.className = "cm-tooltip-cursor";
+		dom.addClass("cm-tooltip-cursor");
 
 		const renderedEqn = renderMath(eqn, ctx.mode.blockMath || ctx.mode.codeMath);
 		dom.appendChild(renderedEqn);
