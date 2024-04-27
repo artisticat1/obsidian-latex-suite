@@ -19,10 +19,14 @@ import { concealPlugin } from "./editor_extensions/conceal";
 
 import { LatexSuiteCMSettings } from "./settings/settings";
 import { colorPairedBracketsPluginLowestPrec, highlightCursorBracketsPlugin } from "./editor_extensions/highlight_brackets";
-import { cursorTooltipBaseTheme, cursorTooltipField } from "./editor_extensions/math_tooltip";
+import { cursorTooltipBaseTheme, cursorTooltipField, handleMathTooltip } from "./editor_extensions/math_tooltip";
 import { isComposing } from "./utils/editor_utils";
 
 export const handleUpdate = (update: ViewUpdate) => {
+	// The math tooltip handler is driven by view updates because it utilizes
+	// information about visual line, which is not available in EditorState
+	handleMathTooltip(update);
+
 	const cursorTriggeredByChange = update.state.field(cursorTriggerStateField, false);
 
 	// Remove all tabstops when the user manually moves the cursor (e.g. on mouse click; using arrow keys)
