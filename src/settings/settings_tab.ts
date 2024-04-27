@@ -20,7 +20,6 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		this.plugin = plugin;
 	}
 
-
 	hide() {
 		this.snippetsEditor?.destroy();
 	}
@@ -38,9 +37,21 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 	display(): void {
 		const { containerEl } = this;
-
 		containerEl.empty();
 
+		this.displaySnippetSettings();
+		this.displayConcealSettings();
+		this.displayColorHighlightBracketsSettings();
+		this.displayPopupPreviewSettings();
+		this.displayAutofractionSettings();
+		this.displayMatrixShortcutsSettings();
+		this.displayTaboutSettings();
+		this.displayAutoEnlargeBracketsSettings();
+		this.displayAdvancedSnippetSettings();
+	}
+
+	private displaySnippetSettings() {
+		const containerEl = this.containerEl;
 		this.addHeading(containerEl, "Snippets", "ballpen");
 
 		new Setting(containerEl)
@@ -82,7 +93,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		const snippetsFileLocDesc = new DocumentFragment();
 		snippetsFileLocDesc.createDiv({}, div => {
 			div.innerHTML = `
-			The file or folder to load snippets from. The file or folder must be within your vault, and not within a hidden folder (such as <code>.obsidian/</code>).`
+			The file or folder to load snippets from. The file or folder must be within your vault, and not within a hidden folder (such as <code>.obsidian/</code>).`;
 		});
 
 		const snippetsFileLoc = new Setting(containerEl)
@@ -101,7 +112,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 			inputEl = component.inputEl;
 			inputEl.addClass("latex-suite-location-input-el");
-		})
+		});
 
 		this.snippetsFileLocEl = snippetsFileLoc.settingEl;
 		new FileSuggest(this.app, inputEl);
@@ -126,8 +137,10 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				})
 			);
+	}
 
-
+	private displayConcealSettings() {
+		const containerEl = this.containerEl;
 		this.addHeading(containerEl, "Conceal", "math-integral-x");
 
 		{
@@ -151,8 +164,10 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					})
 				);
 		}
+	}
 
-
+	private displayColorHighlightBracketsSettings() {
+		const containerEl = this.containerEl;
 		this.addHeading(containerEl, "Highlight and color brackets", "parentheses");
 
 		new Setting(containerEl)
@@ -173,17 +188,19 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					this.plugin.settings.highlightCursorBracketsEnabled = value;
 					await this.plugin.saveSettings();
 				}));
+	}
 
-
+	private displayPopupPreviewSettings() {
+		const containerEl = this.containerEl;
 		this.addHeading(containerEl, "Math popup preview", "superscript");
 
 		const popup_fragment = document.createDocumentFragment();
 		const popup_line1 = document.createElement("div");
 		popup_line1.setText("When inside an equation, show a popup preview window of the rendered math.");
 		const popup_space = document.createElement("br");
-		const popup_line4 = document.createElement("div");
-		popup_line4.setText("The popup preview will be shown for all inline math equations, as well as for block math equations in Source mode.");
-		popup_fragment.append(popup_line1, popup_space, popup_line4);
+		const popup_line2 = document.createElement("div");
+		popup_line2.setText("The popup preview will be shown for all inline math equations, as well as for block math equations in Source mode.");
+		popup_fragment.append(popup_line1, popup_space, popup_line2);
 
 		new Setting(containerEl)
 			.setName("Enabled")
@@ -197,18 +214,21 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-		.setName("Position")
-		.setDesc("Where to display the popup preview relative to the equation source.")
-		.addDropdown((dropdown) => dropdown
-			.addOption("Above", "Above")
-			.addOption("Below", "Below")
-			.setValue(this.plugin.settings.mathPreviewPositionIsAbove ? "Above" : "Below")
-			.onChange(async (value) => {
-				this.plugin.settings.mathPreviewPositionIsAbove = (value === "Above");
-				await this.plugin.saveSettings();
-			})
-		);
+			.setName("Position")
+			.setDesc("Where to display the popup preview relative to the equation source.")
+			.addDropdown((dropdown) => dropdown
+				.addOption("Above", "Above")
+				.addOption("Below", "Below")
+				.setValue(this.plugin.settings.mathPreviewPositionIsAbove ? "Above" : "Below")
+				.onChange(async (value) => {
+					this.plugin.settings.mathPreviewPositionIsAbove = (value === "Above");
+					await this.plugin.saveSettings();
+				})
+			);
+	}
 
+	private displayAutofractionSettings() {
+		const containerEl = this.containerEl;
 		this.addHeading(containerEl, "Auto-fraction", "math-x-divide-y-2");
 
 		new Setting(containerEl)
@@ -257,8 +277,10 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 					await this.plugin.saveSettings();
 				}));
+	}
 
-
+	private displayMatrixShortcutsSettings() {
+		const containerEl = this.containerEl;
 		this.addHeading(containerEl, "Matrix shortcuts", "brackets-contain");
 
 		new Setting(containerEl)
@@ -270,7 +292,6 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					this.plugin.settings.matrixShortcutsEnabled = value;
 					await this.plugin.saveSettings();
 				}));
-
 
 		new Setting(containerEl)
 			.setName("Environments")
@@ -284,7 +305,10 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
+	}
 
+	private displayTaboutSettings() {
+		const containerEl = this.containerEl;
 		this.addHeading(containerEl, "Tabout", "tabout");
 
 		new Setting(containerEl)
@@ -296,8 +320,10 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					this.plugin.settings.taboutEnabled = value;
 					await this.plugin.saveSettings();
 				}));
+	}
 
-
+	private displayAutoEnlargeBracketsSettings() {
+		const containerEl = this.containerEl;
 		this.addHeading(containerEl, "Auto-enlarge brackets", "parentheses");
 
 		new Setting(containerEl)
@@ -322,8 +348,10 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 					await this.plugin.saveSettings();
 				}));
+	}
 
-
+	private displayAdvancedSnippetSettings() {
+		const containerEl = this.containerEl;
 		this.addHeading(containerEl, "Advanced snippet settings");
 
 		const snippetVariablesSetting = new Setting(containerEl)
@@ -374,8 +402,8 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings(true);
 				}, 500, true));
 
-				inputVariablesEl = component.inputEl;
-				inputVariablesEl.addClass("latex-suite-location-input-el");
+			inputVariablesEl = component.inputEl;
+			inputVariablesEl.addClass("latex-suite-location-input-el");
 		}
 		);
 
@@ -389,30 +417,30 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		this.snippetVariablesFileLocEl.toggleClass("hidden", !loadSnippetVariablesFromFile);
 
 		new Setting(containerEl)
-		.setName("Word delimiters")
-		.setDesc("Symbols that will be treated as word delimiters, for use with the \"w\" snippet option.")
-		.addText(text => text
-			.setPlaceholder(DEFAULT_SETTINGS.wordDelimiters)
-			.setValue(this.plugin.settings.wordDelimiters)
-			.onChange(async (value) => {
-				this.plugin.settings.wordDelimiters = value;
+			.setName("Word delimiters")
+			.setDesc("Symbols that will be treated as word delimiters, for use with the \"w\" snippet option.")
+			.addText(text => text
+				.setPlaceholder(DEFAULT_SETTINGS.wordDelimiters)
+				.setValue(this.plugin.settings.wordDelimiters)
+				.onChange(async (value) => {
+					this.plugin.settings.wordDelimiters = value;
 
-				await this.plugin.saveSettings();
-			}));
+					await this.plugin.saveSettings();
+				}));
 
 		new Setting(containerEl)
-		.setName("Remove trailing whitespaces in snippets in inline math")
-		.setDesc("Whether to remove trailing whitespaces when expanding snippets at the end of inline math blocks.")
-		.addToggle(toggle => toggle
-			.setValue(this.plugin.settings.removeSnippetWhitespace)
-			.onChange(async (value) => {
-				this.plugin.settings.removeSnippetWhitespace = value;
-				await this.plugin.saveSettings();
-			}));
+			.setName("Remove trailing whitespaces in snippets in inline math")
+			.setDesc("Whether to remove trailing whitespaces when expanding snippets at the end of inline math blocks.")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.removeSnippetWhitespace)
+				.onChange(async (value) => {
+					this.plugin.settings.removeSnippetWhitespace = value;
+					await this.plugin.saveSettings();
+				}));
 
 		new Setting(containerEl)
 			.setName("Don't trigger snippets when IME is active")
-			.setDesc("Whether to suppress the snippet triggering when an IME is active.")
+			.setDesc("Whether to suppress snippets triggering when an IME is active.")
 			.addToggle((toggle) => toggle
 				.setValue(this.plugin.settings.suppressSnippetTriggerOnIME)
 				.onChange(async (value) => {
@@ -422,18 +450,17 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-		.setName("Code languages to interpret as math mode")
-		.setDesc("Codeblock languages where the whole code block should be treated like a math block, separated by commas.")
-		.addText(text => text
-			.setPlaceholder(DEFAULT_SETTINGS.forceMathLanguages)
-			.setValue(this.plugin.settings.forceMathLanguages)
-			.onChange(async (value) => {
-				this.plugin.settings.forceMathLanguages = value;
+			.setName("Code languages to interpret as math mode")
+			.setDesc("Codeblock languages where the whole code block should be treated like a math block, separated by commas.")
+			.addText(text => text
+				.setPlaceholder(DEFAULT_SETTINGS.forceMathLanguages)
+				.setValue(this.plugin.settings.forceMathLanguages)
+				.onChange(async (value) => {
+					this.plugin.settings.forceMathLanguages = value;
 
-				await this.plugin.saveSettings();
-			}));
+					await this.plugin.saveSettings();
+				}));
 	}
-
 
 	createSnippetsEditor(snippetsSetting: Setting) {
 		const customCSSWrapper = snippetsSetting.controlEl.createDiv("snippets-editor-wrapper");
@@ -532,6 +559,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			});
 	}
 }
+
 class ConfirmationModal extends Modal {
 
 	constructor(app: App, body: string, buttonCallback: (button: ButtonComponent) => void, clickCallback: () => Promise<void>) {
