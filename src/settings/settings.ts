@@ -6,6 +6,7 @@ import { DEFAULT_SNIPPET_VARIABLES } from "src/utils/default_snippet_variables";
 interface LatexSuiteBasicSettings {
 	snippetsEnabled: boolean;
 	snippetsTrigger: "Tab" | " "
+	suppressSnippetTriggerOnIME: boolean;
 	removeSnippetWhitespace: boolean;
 	loadSnippetsFromFile: boolean;
 	loadSnippetVariablesFromFile: boolean;
@@ -52,6 +53,7 @@ export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
 	// Basic settings
 	snippetsEnabled: true,
 	snippetsTrigger: "Tab",
+	suppressSnippetTriggerOnIME: true,
 	removeSnippetWhitespace: true,
 	loadSnippetsFromFile: false,
 	loadSnippetVariablesFromFile: false,
