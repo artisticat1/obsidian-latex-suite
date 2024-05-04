@@ -7,6 +7,7 @@ interface LatexSuiteBasicSettings {
 	snippetsEnabled: boolean;
 	snippetsTrigger: "Tab" | " "
 	removeSnippetWhitespace: boolean;
+	autoDelete$: boolean;
 	loadSnippetsFromFile: boolean;
 	loadSnippetVariablesFromFile: boolean;
 	snippetsFileLocation: string;
@@ -53,6 +54,7 @@ export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
 	snippetsEnabled: true,
 	snippetsTrigger: "Tab",
 	removeSnippetWhitespace: true,
+	autoDelete$: true,
 	loadSnippetsFromFile: false,
 	loadSnippetVariablesFromFile: false,
 	snippetsFileLocation: "",

@@ -54,7 +54,7 @@ export const handleKeydown = (key: string, shiftKey: boolean, ctrlKey: boolean, 
 	* When backspace is pressed, if the cursor is inside an empty inline math,
 	* delete both $ symbols, not just the first one.
 	*/
-	if (key === "Backspace") {
+	if (settings.autoDelete$ && key === "Backspace") {
 		const char_at_pos = getCharacterAtPos(view, ctx.pos);
 		const char_at_prev_pos = getCharacterAtPos(view, ctx.pos - 1);
 

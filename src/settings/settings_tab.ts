@@ -411,6 +411,16 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			}));
 
 		new Setting(containerEl)
+		.setName("Automatically delete ending $ of blank inline math")
+		.setDesc("When you delete the starting $ of a blank inline math, the ending $ will be automatically deleted as well.")
+		.addToggle((toggle) => toggle
+			.setValue(this.plugin.settings.autoDelete$)
+			.onChange(async (value) => {
+				this.plugin.settings.autoDelete$ = value;
+				await this.plugin.saveSettings();
+			}));
+
+		new Setting(containerEl)
 		.setName("Code languages to interpret as math mode")
 		.setDesc("Codeblock languages where the whole code block should be treated like a math block, separated by commas.")
 		.addText(text => text
