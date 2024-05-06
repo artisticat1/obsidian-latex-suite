@@ -1,58 +1,121 @@
-import { Tooltip, showTooltip, EditorView } from "@codemirror/view";
-import { StateField, EditorState } from "@codemirror/state";
+import { Tooltip, showTooltip, EditorView, ViewUpdate } from "@codemirror/view";
+import { StateField, EditorState, EditorSelection, StateEffect } from "@codemirror/state";
 import { renderMath, finishRenderMath, editorLivePreviewField } from "obsidian";
 import { Context } from "src/utils/context";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
 
+const updateTooltipEffect = StateEffect.define<Tooltip[]>();
+
 export const cursorTooltipField = StateField.define<readonly Tooltip[]>({
-	create: getCursorTooltips,
+	create: () => [],
 
 	update(tooltips, tr) {
-		if (!tr.docChanged && !tr.selection) return tooltips;
-		return getCursorTooltips(tr.state);
+		for (const effect of tr.effects) {
+			if (effect.is(updateTooltipEffect)) return effect.value;
+		}
+
+		return tooltips;
 	},
 
 	provide: (f) => showTooltip.computeN([f], (state) => state.field(f)),
 });
 
-function getCursorTooltips(state: EditorState): readonly Tooltip[] {
-	const settings = getLatexSuiteConfig(state);
-	const ctx = Context.fromState(state);
+// update the tooltip by dispatching an updateTooltipEffect
+export function handleMathTooltip(update: ViewUpdate) {
+	const shouldUpdate = update.docChanged || update.selectionSet;
+	if (!shouldUpdate) return;
 
-	if (!ctx.mode.inMath()) {
-		return [];
+	const settings = getLatexSuiteConfig(update.state);
+	const ctx = Context.fromState(update.state);
+
+	if (!shouldShowTooltip(update.state, ctx)) {
+		const currTooltips = update.state.field(cursorTooltipField);
+		// a little optimization:
+		// If the tooltip is not currently shown and there is no need to show it,
+		// we don't dispatch an transaction.
+		if (currTooltips.length > 0) {
+			update.view.dispatch({
+				effects: [updateTooltipEffect.of([])],
+			});
+		}
+		return;
 	}
 
-	const isLivePreview = state.field(editorLivePreviewField);
-	if (ctx.mode.blockMath && isLivePreview) return [];
+	/*
+	* process when there is a need to show the tooltip: from here
+	*/
 
-	const bounds = ctx.getBounds();
-	if (!bounds) return [];
+	// HACK: eqnBounds is not null because shouldShowTooltip was true
+	const eqnBounds = ctx.getBounds();
+	const eqn = update.state.sliceDoc(eqnBounds.start, eqnBounds.end);
 
-	const eqn = state.sliceDoc(bounds.start, bounds.end);
+	const above = settings.mathPreviewPositionIsAbove;
+	const create = () => {
+		const dom = document.createElement("div");
+		dom.addClass("cm-tooltip-cursor");
 
-	// Don't render an empty equation
-	if (eqn.trim() === "") return [];
+		const renderedEqn = renderMath(eqn, ctx.mode.blockMath || ctx.mode.codeMath);
+		dom.appendChild(renderedEqn);
+		finishRenderMath();
 
-	return [
-		{
-			pos: (ctx.mode.inlineMath || settings.mathPreviewPositionIsAbove) ? bounds.start : bounds.end,
-			above: settings.mathPreviewPositionIsAbove,
+		return { dom };
+	};
+
+	let newTooltips: Tooltip[] = [];
+
+	if (ctx.mode.blockMath || ctx.mode.codeMath) {
+		newTooltips = [{
+			pos: above ? eqnBounds.start : eqnBounds.end,
+			above: above,
 			strictSide: true,
 			arrow: true,
-			create: () => {
-				const dom = document.createElement("div");
-				dom.className = "cm-tooltip-cursor";
+			create: create,
+		}];
+	} else if (ctx.mode.inlineMath && above) {
+		newTooltips = [{
+			pos: eqnBounds.start,
+			above: true,
+			strictSide: true,
+			arrow: true,
+			create: create,
+		}];
+	} else if (ctx.mode.inlineMath && !above) {
+		const endRange = EditorSelection.range(eqnBounds.end, eqnBounds.end);
 
-				const renderedEqn = renderMath(eqn, ctx.mode.blockMath || ctx.mode.codeMath);
-				dom.appendChild(renderedEqn);
-				finishRenderMath();
+		newTooltips = [{
+			pos: Math.max(
+				eqnBounds.start,
+				// the beginning position of the visual line where eqnBounds.end is
+				// located
+				update.view.moveToLineBoundary(endRange, false).anchor,
+			),
+			above: false,
+			strictSide: true,
+			arrow: true,
+			create: create,
+		}];
+	}
 
-				return { dom };
-			}
-		}
-	];
+	update.view.dispatch({
+		effects: [updateTooltipEffect.of(newTooltips)]
+	});
+}
 
+function shouldShowTooltip(state: EditorState, ctx: Context): boolean {
+	if (!ctx.mode.inMath()) return false;
+
+	const isLivePreview = state.field(editorLivePreviewField);
+	if (ctx.mode.blockMath && isLivePreview) return false;
+
+	// FIXME: eqnBounds can be null
+	const eqnBounds = ctx.getBounds();
+	if (!eqnBounds) return false;
+
+	// Don't render an empty equation
+	const eqn = state.sliceDoc(eqnBounds.start, eqnBounds.end).trim();
+	if (eqn === "") return false;
+
+	return true;
 }
 
 export const cursorTooltipBaseTheme = EditorView.baseTheme({
