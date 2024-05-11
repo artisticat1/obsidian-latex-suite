@@ -1,6 +1,7 @@
 import { Platform, Workspace, MarkdownView } from "obsidian";
 import { EditorView } from "@codemirror/view";
 import { SyntaxNode, TreeCursor } from "@lezer/common";
+import { EditorState } from "@codemirror/state";
 
 export function replaceRange(view: EditorView, start: number, end: number, replacement: string) {
 	view.dispatch({
@@ -16,9 +17,9 @@ export function iterateCM6(workspace: Workspace, callback: (editor: EditorView) 
     });
 }
 
-export function getCharacterAtPos(view: EditorView, pos: number) {
-	const doc = view.state.doc;
-
+export function getCharacterAtPos(viewOrState: EditorView | EditorState, pos: number) {
+	const state = viewOrState instanceof EditorView ? viewOrState.state : viewOrState;
+	const doc = state.doc;
 	return doc.slice(pos, pos+1).toString();
 }
 

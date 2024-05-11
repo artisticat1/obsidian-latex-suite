@@ -1,6 +1,6 @@
 import { EditorState, SelectionRange } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
-import { Direction, escalateToToken, findMatchingBracket, getCloseBracket } from "src/utils/editor_utils";
+import { Direction, escalateToToken, findMatchingBracket, getCharacterAtPos, getCloseBracket } from "src/utils/editor_utils";
 import { Mode } from "../snippets/options";
 import { Environment } from "../snippets/environment";
 import { getLatexSuiteConfig } from "../snippets/codemirror/config";
@@ -259,21 +259,31 @@ const getCodeblockBounds = (state: EditorState, pos: number = state.selection.ma
 	return { start: blockBegin.to + 1, end: blockEnd.from - 1 };
 }
 
-const langIfWithinCodeblock = (view: EditorView | EditorState): string | null => {
-	const state = view instanceof EditorView ? view.state : view;
+const langIfWithinCodeblock = (state: EditorState): string | null => {
 	const tree = syntaxTree(state);
 
 	const pos = state.selection.ranges[0].from;
 
+	/*
+	* get a tree cursor at the position
+	*
+	* A newline does not belong to any syntax nodes except for the Document,
+	* which corresponds to the whole document. So, we change the `mode` of the
+	* `cursorAt` depending on whether the character just before the cursor is a
+	* newline.
+	*/
+	const cursor =
+		pos === 0 || getCharacterAtPos(state, pos - 1) === "\n"
+		? tree.cursorAt(pos, 1)
+		: tree.cursorAt(pos, -1);
+
 	// check if we're in a codeblock atm at all
-	// somehow only the -1 side is reliable, all other ones are sporadically active
-	const inCodeblock = tree.resolveInner(pos, -1).name.contains("codeblock");
+	const inCodeblock = cursor.name.contains("codeblock");
 	if (!inCodeblock) {
 		return null;
 	}
 
 	// locate the start of the block
-	const cursor = tree.cursorAt(pos, -1);
 	const codeblockBegin = escalateToToken(cursor, Direction.Backward, "HyperMD-codeblock_HyperMD-codeblock-begin");
 
 	if (codeblockBegin == null) {
