@@ -269,7 +269,7 @@
 
 
     // Misc
-
+    {trigger: "exm", replacement: "> **Example:** $0\n> $1", options: "tA"},
     // Automatically convert standalone letters in text to math (except a, A, I).
     // (Un-comment to enable)
     // {trigger: /([^'])\b([B-HJ-Zb-z])\b([\n\s.,?!:'])/, replacement: "[[0]]$[[1]]$[[2]]", options: "tA"},
