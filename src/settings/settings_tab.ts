@@ -439,6 +439,16 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
+		.setName("Remove closing $ when backspacing inside blank inline math")
+		.setDesc("Whether to also remove the closing $ when you delete the opening $ symbol inside blank inline math.")
+		.addToggle((toggle) => toggle
+			.setValue(this.plugin.settings.autoDelete$)
+			.onChange(async (value) => {
+				this.plugin.settings.autoDelete$ = value;
+				await this.plugin.saveSettings();
+			}));
+
+		new Setting(containerEl)
 			.setName("Don't trigger snippets when IME is active")
 			.setDesc("Whether to suppress snippets triggering when an IME is active.")
 			.addToggle((toggle) => toggle
