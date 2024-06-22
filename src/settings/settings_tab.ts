@@ -439,8 +439,8 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-		.setName("Automatically delete ending $ of blank inline math")
-		.setDesc("When you delete the starting $ of a blank inline math, the ending $ will be automatically deleted as well.")
+		.setName("Remove closing $ when backspacing inside blank inline math")
+		.setDesc("Whether to also remove the closing $ when you delete the opening $ symbol inside blank inline math.")
 		.addToggle((toggle) => toggle
 			.setValue(this.plugin.settings.autoDelete$)
 			.onChange(async (value) => {
