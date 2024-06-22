@@ -59,13 +59,13 @@ export const handleKeydown = (key: string, shiftKey: boolean, ctrlKey: boolean, 
 	* When backspace is pressed, if the cursor is inside an empty inline math,
 	* delete both $ symbols, not just the first one.
 	*/
-	if (settings.autoDelete$ && key === "Backspace") {
-		const char_at_pos = getCharacterAtPos(view, ctx.pos);
-		const char_at_prev_pos = getCharacterAtPos(view, ctx.pos - 1);
+	if (settings.autoDelete$ && key === "Backspace" && ctx.mode.inMath()) {
+		const charAtPos = getCharacterAtPos(view, ctx.pos);
+		const charAtPrevPos = getCharacterAtPos(view, ctx.pos - 1);
 
-		if (char_at_pos === "$" && char_at_prev_pos === "$") {
+		if (charAtPos === "$" && charAtPrevPos === "$") {
 			replaceRange(view, ctx.pos - 1, ctx.pos + 1, "");
-			// note: not sure if removeAllTabstops is necessary
+			// Note: not sure if removeAllTabstops is necessary
 			removeAllTabstops(view);
 			return true;
 		}
@@ -75,7 +75,7 @@ export const handleKeydown = (key: string, shiftKey: boolean, ctrlKey: boolean, 
 
 		// Prevent IME from triggering keydown events.
 		if (settings.suppressSnippetTriggerOnIME && isIME) return;
-	
+
 		// Allows Ctrl + z for undo, instead of triggering a snippet ending with z
 		if (!ctrlKey) {
 			try {
