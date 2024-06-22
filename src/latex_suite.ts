@@ -24,9 +24,13 @@ import { cursorTooltipBaseTheme, cursorTooltipField, handleMathTooltip } from ".
 import { isComposing } from "./utils/editor_utils";
 
 export const handleUpdate = (update: ViewUpdate) => {
+	const settings = getLatexSuiteConfig(update.state);
+
 	// The math tooltip handler is driven by view updates because it utilizes
 	// information about visual line, which is not available in EditorState
-	handleMathTooltip(update);
+	if (settings.mathPreviewEnabled) {
+		handleMathTooltip(update);
+	}
 
 	const cursorTriggeredByChange = update.state.field(cursorTriggerStateField, false);
 
