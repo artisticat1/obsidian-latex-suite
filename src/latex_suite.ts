@@ -81,9 +81,7 @@ export const handleKeydown = (key: string, shiftKey: boolean, ctrlKey: boolean, 
 		}
 	}
 
-	const taboutByCloseBracket = shouldTaboutByCloseBracket(view, key);
-
-	if (key === "Tab" || taboutByCloseBracket) {
+	if (key === "Tab") {
 		success = setSelectionToNextTabstop(view);
 
 		if (success) return true;
@@ -106,7 +104,7 @@ export const handleKeydown = (key: string, shiftKey: boolean, ctrlKey: boolean, 
 	}
 
 	if (settings.taboutEnabled) {
-		if (key === "Tab") {
+		if (key === "Tab" || shouldTaboutByCloseBracket(view, key)) {
 			success = tabout(view, ctx);
 
 			if (success) return true;
