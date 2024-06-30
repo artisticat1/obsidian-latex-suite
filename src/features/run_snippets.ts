@@ -124,6 +124,11 @@ const isOnWordBoundary = (state: EditorState, triggerPos: number, to: number, wo
 }
 
 const trimWhitespace = (replacement: string, ctx: Context) => {
+	// Modify matrix expansion for inline math
+	const regex = new RegExp("\\n\\$0\\n", "g");
+  	replacement = replacement.replace(regex, " $0 "); 
+
+	// Trim whitespace
 	let spaceIndex = 0;
 
 	if (replacement.endsWith(" ")) {
