@@ -3,8 +3,6 @@ import { EditorSelection, StateEffect, StateField } from "@codemirror/state";
 import { TabstopGroup } from "../tabstop";
 
 const addTabstopsEffect = StateEffect.define<TabstopGroup[]>();
-const filterTabstopsEffect = StateEffect.define<EditorSelection>();
-const removeTabstopEffect = StateEffect.define();
 const removeAllTabstopsEffect = StateEffect.define();
 
 export const tabstopsStateField = StateField.define<TabstopGroup[]>({
@@ -21,27 +19,27 @@ export const tabstopsStateField = StateField.define<TabstopGroup[]>({
 			if (effect.is(addTabstopsEffect)) {
 				tabstopGroups.unshift(...effect.value);
 			}
-			else if (effect.is(filterTabstopsEffect)) {
-				tabstopGroups = tabstopGroups.filter((value: TabstopGroup) => {
-					return (value.decos.size != 0);
-				})
-
-				// Hide tabstops equivalent to the current selection
-				const editorSel = effect.value;
-				tabstopGroups.forEach((value: TabstopGroup) => {
-					if (editorSel.eq(value.toEditorSelection())) {
-						value.hideFromEditor();
-					}
-				})
-			}
-			else if (effect.is(removeTabstopEffect)) {
-				tabstopGroups.shift();
-			}
 			else if (effect.is(removeAllTabstopsEffect)) {
 				tabstopGroups = [];
 			}
 		}
 
+		// Remove the tabstop groups that the cursor has passed. This scenario
+		// happens when the user manually moves the cursor using arrow keys or mouse
+		if (transaction.selection) {
+			const currTabstopGroupIndex = getCurrentTabstopGroupIndex(
+				tabstopGroups,
+				transaction.selection
+			);
+			tabstopGroups = tabstopGroups.slice(currTabstopGroupIndex);
+			
+			if (tabstopGroups.length <= 1) {
+				// Clear all tabstop groups if there's just one remaining
+				tabstopGroups = [];
+			} else {
+				tabstopGroups[0].hideFromEditor();
+			}
+		}
 
 		return tabstopGroups;
 	},
@@ -62,6 +60,17 @@ export const tabstopsStateField = StateField.define<TabstopGroup[]>({
 	}
 });
 
+function getCurrentTabstopGroupIndex(
+	tabstopGroups: TabstopGroup[],
+	sel: EditorSelection
+): number {
+	for (let i = 0; i < tabstopGroups.length; i++) {
+		const tabstopGroup = tabstopGroups[i];
+		if (tabstopGroup.containsSelection(sel)) return i;
+	}
+	return tabstopGroups.length;
+}
+
 export function getTabstopGroupsFromView(view: EditorView) {
 	const currentTabstopGroups = view.state.field(tabstopsStateField);
 
@@ -71,18 +80,6 @@ export function getTabstopGroupsFromView(view: EditorView) {
 export function addTabstops(view: EditorView, tabstopGroups: TabstopGroup[]) {
 	view.dispatch({
 		effects: [addTabstopsEffect.of(tabstopGroups)],
-	});
-}
-
-export function filterTabstops(view: EditorView) {
-	view.dispatch({
-		effects: [filterTabstopsEffect.of(view.state.selection)],
-	});
-}
-
-export function removeTabstop(view: EditorView) {
-	view.dispatch({
-		effects: [removeTabstopEffect.of(null)],
 	});
 }
 

@@ -8,11 +8,10 @@ import { runMatrixShortcuts } from "./features/matrix_shortcuts";
 
 import { Context } from "./utils/context";
 import { getCharacterAtPos, replaceRange } from "./utils/editor_utils";
-import { consumeAndGotoNextTabstop, isInsideATabstop, tidyTabstops } from "./snippets/snippet_management";
+import { setSelectionToNextTabstop } from "./snippets/snippet_management";
 import { removeAllTabstops } from "./snippets/codemirror/tabstops_state_field";
 import { getLatexSuiteConfigExtension, getLatexSuiteConfig } from "./snippets/codemirror/config";
 import { clearSnippetQueue } from "./snippets/codemirror/snippet_queue_state_field";
-import { cursorTriggerStateField } from "./snippets/codemirror/cursor_trigger_state_field";
 import { handleUndoRedo } from "./snippets/codemirror/history";
 import { snippetExtensions } from "./snippets/codemirror/extensions";
 
@@ -30,17 +29,6 @@ export const handleUpdate = (update: ViewUpdate) => {
 	// information about visual line, which is not available in EditorState
 	if (settings.mathPreviewEnabled) {
 		handleMathTooltip(update);
-	}
-
-	const cursorTriggeredByChange = update.state.field(cursorTriggerStateField, false);
-
-	// Remove all tabstops when the user manually moves the cursor (e.g. on mouse click; using arrow keys)
-	if (update.selectionSet) {
-		if (!cursorTriggeredByChange) {
-			if (!isInsideATabstop(update.view)) {
-				removeAllTabstops(update.view);
-			}
-		}
 	}
 
 	handleUndoRedo(update);
@@ -93,10 +81,8 @@ export const handleKeydown = (key: string, shiftKey: boolean, ctrlKey: boolean, 
 		}
 	}
 
-	const taboutByCloseBracket = shouldTaboutByCloseBracket(view, key);
-
-	if (key === "Tab" || taboutByCloseBracket) {
-		success = handleTabstops(view);
+	if (key === "Tab") {
+		success = setSelectionToNextTabstop(view);
 
 		if (success) return true;
 	}
@@ -118,23 +104,14 @@ export const handleKeydown = (key: string, shiftKey: boolean, ctrlKey: boolean, 
 	}
 
 	if (settings.taboutEnabled) {
-		if (key === "Tab") {
+		if (key === "Tab" || shouldTaboutByCloseBracket(view, key)) {
 			success = tabout(view, ctx);
 
 			if (success) return true;
 		}
 	}
 
-	tidyTabstops(view);
-
 	return false;
-}
-
-export const handleTabstops = (view: EditorView) =>
-{
-	const success = consumeAndGotoNextTabstop(view);
-
-	return success;
 }
 
 // CodeMirror extensions that are required for Latex Suite to run

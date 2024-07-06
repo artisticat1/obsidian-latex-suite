@@ -59,8 +59,11 @@ export class TabstopGroup {
         return ranges;
     }
 
-    toEditorSelection() {
-        return EditorSelection.create(this.toSelectionRanges());
+    toEditorSelection(endpoints = false) {
+        let sel = EditorSelection.create(this.toSelectionRanges());
+        if (endpoints)
+            sel = getEditorSelectionEndpoints(sel);
+        return sel;
     }
 
     containsSelection(selection: EditorSelection) {

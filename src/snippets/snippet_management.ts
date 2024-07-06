@@ -3,9 +3,10 @@ import { ChangeSet } from "@codemirror/state";
 import { startSnippet } from "./codemirror/history";
 import { isolateHistory } from "@codemirror/commands";
 import { TabstopSpec, tabstopSpecsToTabstopGroups } from "./tabstop";
-import { addTabstops, removeTabstop, removeAllTabstops, getTabstopGroupsFromView, getNextTabstopColor, filterTabstops } from "./codemirror/tabstops_state_field";
+import { addTabstops, getTabstopGroupsFromView, getNextTabstopColor, tabstopsStateField } from "./codemirror/tabstops_state_field";
 import { clearSnippetQueue, snippetQueueStateField } from "./codemirror/snippet_queue_state_field";
 import { SnippetChangeSpec } from "./codemirror/snippet_change_spec";
+import { resetCursorBlink } from "src/utils/editor_utils";
 
 export function expandSnippets(view: EditorView):boolean {
 	const snippetsToExpand = view.state.field(snippetQueueStateField);
@@ -99,58 +100,34 @@ function expandTabstops(view: EditorView, tabstops: TabstopSpec[]) {
 	// Select the first tabstop
 	const firstGrp = getTabstopGroupsFromView(view)[0];
 	firstGrp.select(view, false, true); // "true" here marks the transaction as the end of the snippet (for undo/history purposes)
-
-	tidyTabstops(view);
 }
 
-export function tidyTabstops(view: EditorView) {
-	// Hide (filter out) tabstops equivalent to the editor's current selection
-	filterTabstops(view);
+// Returns true if the transaction was dispatched
+export function setSelectionToNextTabstop(view: EditorView): boolean {
+	const tabstopGroups = view.state.field(tabstopsStateField);
 
-	// Clear all tabstop groups if there's just one remaining
-	const currentTabstopGroups = getTabstopGroupsFromView(view);
+	function aux(nextGrpIndex: number) {
+		const nextGrp = tabstopGroups[nextGrpIndex];
+		if (!nextGrp) return false;
 
-	if (currentTabstopGroups.length === 1) {
-		removeAllTabstops(view);
-	}
-}
-
-export function isInsideATabstop(view: EditorView):boolean {
-	const currentTabstopGroups = getTabstopGroupsFromView(view);
-
-	for (const tabstopGroup of currentTabstopGroups) {
-		if (tabstopGroup.containsSelection(view.state.selection)) {
-			return true;
+		const currSel = view.state.selection;
+		// If the current selection lies within the next tabstop(s), move the cursor
+		// to the endpoint(s) of the next tabstop(s)
+		let nextGrpSel = nextGrp.toEditorSelection();
+		if (nextGrp.containsSelection(currSel)) {
+			nextGrpSel = nextGrp.toEditorSelection(true);
 		}
+
+		if (currSel.eq(nextGrpSel))
+			return aux(nextGrpIndex + 1);
+
+		view.dispatch({
+			selection: nextGrpSel,
+		});
+		resetCursorBlink();
+
+		return true;
 	}
 
-	return false;
-}
-
-export function consumeAndGotoNextTabstop(view: EditorView): boolean {
-	// Check whether there are currently any tabstops
-	if (getTabstopGroupsFromView(view).length === 0) return false;
-
-	// Remove the tabstop that we're inside of
-	removeTabstop(view);
-
-	// Select the next tabstop
-	const oldSel = view.state.selection;
-	const nextGrp = getTabstopGroupsFromView(view)[0];
-	if (!nextGrp) return false;
-
-	// If the old tabstop(s) lie within the new tabstop(s), simply move the cursor
-	const shouldMoveToEndpoints = nextGrp.containsSelection(oldSel);
-	nextGrp.select(view, shouldMoveToEndpoints, false);
-
-	// If we haven't moved, go again
-	const newSel = view.state.selection;
-
-	if (oldSel.eq(newSel))
-		return consumeAndGotoNextTabstop(view);
-
-	// If this was the last tabstop group waiting to be selected, remove it
-	tidyTabstops(view);
-
-	return true;
+	return aux(1);
 }
