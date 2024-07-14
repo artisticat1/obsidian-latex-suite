@@ -6,6 +6,7 @@ import { parseSnippets, parseSnippetVariables, type SnippetVariables } from "../
 import differenceImplementation from "set.prototype.difference";
 // @ts-ignore
 import intersectionImplementation from "set.prototype.intersection";
+import { sortSnippets } from "src/snippets/sort";
 
 const difference: <T>(self: Set<T>, other: Set<T>) => Set<T> = differenceImplementation;
 const intersection: <T>(self: Set<T>, other: Set<T>) => Set<T> = intersectionImplementation;
@@ -170,5 +171,5 @@ export async function getSnippetsFromFiles(
 		}
 	}
 
-	return snippets;
+	return sortSnippets(snippets);
 }

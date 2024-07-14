@@ -10,7 +10,6 @@ import { iterateCM6 } from "./utils/editor_utils";
 import { reconfigureLatexSuiteConfig } from "./snippets/codemirror/config";
 import { SnippetVariables, parseSnippetVariables, parseSnippets } from "./snippets/parse";
 import { latexSuiteExtensions, optionalExtensions } from "./latex_suite";
-import { sortSnippets } from "./snippets/sort";
 
 export default class LatexSuitePlugin extends Plugin {
 	settings: LatexSuitePluginSettings;
@@ -35,9 +34,7 @@ export default class LatexSuitePlugin extends Plugin {
 		this.addEditorCommands();
 	}
 
-	onunload() {
-
-	}
+	onunload() {}
 
 	legacyEditorWarning() {
 		// @ts-ignore
@@ -80,7 +77,7 @@ export default class LatexSuitePlugin extends Plugin {
 			const tempSnippetVariables = await this.getSettingsSnippetVariables();
 			const tempSnippets = await this.getSettingsSnippets(tempSnippetVariables);
 
-			this.CMSettings = processLatexSuiteSettings(sortSnippets(tempSnippets), this.settings);
+			this.CMSettings = processLatexSuiteSettings(tempSnippets, this.settings);
 
 			// Use onLayoutReady so that we don't try to read the snippets file too early
 			this.app.workspace.onLayoutReady(() => {
@@ -141,7 +138,7 @@ export default class LatexSuitePlugin extends Plugin {
 
 		this.showSnippetsLoadedNotice(snippets.length, Object.keys(snippetVariables).length,  becauseFileLocationUpdated, becauseFileUpdated);
 
-		return sortSnippets(snippets);
+		return snippets;
 	}
 
 	async processSettings(becauseFileLocationUpdated = false, becauseFileUpdated = false) {
