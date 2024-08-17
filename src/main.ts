@@ -1,4 +1,4 @@
-import { Extension } from "@codemirror/state";
+import { Extension, Prec } from "@codemirror/state";
 import { Plugin, Notice, loadMathJax, addIcon } from "obsidian";
 import { onFileCreate, onFileChange, onFileDelete, getSnippetsFromFiles, getFileSets, getVariablesFromFiles, tryGetVariablesFromUnknownFiles } from "./settings/file_watch";
 import { LatexSuitePluginSettings, DEFAULT_SETTINGS, LatexSuiteCMSettings, processLatexSuiteSettings } from "./settings/settings";
@@ -7,14 +7,19 @@ import { ICONS } from "./settings/ui/icons";
 
 import { getEditorCommands } from "./features/editor_commands";
 import { iterateCM6 } from "./utils/editor_utils";
-import { reconfigureLatexSuiteConfig } from "./snippets/codemirror/config";
+import { getLatexSuiteConfigExtension, reconfigureLatexSuiteConfig } from "./snippets/codemirror/config";
 import { SnippetVariables, parseSnippetVariables, parseSnippets } from "./snippets/parse";
-import { latexSuiteExtensions, optionalExtensions } from "./latex_suite";
+import { handleUpdate, onKeydown } from "./latex_suite";
+import { EditorView, tooltips } from "@codemirror/view";
+import { snippetExtensions } from "./snippets/codemirror/extensions";
+import { concealPlugin } from "./editor_extensions/conceal";
+import { colorPairedBracketsPluginLowestPrec, highlightCursorBracketsPlugin } from "./editor_extensions/highlight_brackets";
+import { cursorTooltipBaseTheme, cursorTooltipField } from "./editor_extensions/math_tooltip";
 
 export default class LatexSuitePlugin extends Plugin {
 	settings: LatexSuitePluginSettings;
 	CMSettings: LatexSuiteCMSettings;
-	editorExtensions:Extension[] = [];
+	editorExtensions: Extension[] = [];
 
 	async onload() {
 		await this.loadSettings();
@@ -144,7 +149,9 @@ export default class LatexSuitePlugin extends Plugin {
 	async processSettings(becauseFileLocationUpdated = false, becauseFileUpdated = false) {
 		this.CMSettings = processLatexSuiteSettings(await this.getSnippets(becauseFileLocationUpdated, becauseFileUpdated), this.settings);
 		this.reconfigureLatexSuiteConfig();
-		this.refreshCMExtensions();
+		this.setEditorExtensions();
+		// Request Obsidian to reconfigure CM extensions
+		this.app.workspace.updateOptions();
 	}
 
 	reconfigureLatexSuiteConfig() {
@@ -155,24 +162,34 @@ export default class LatexSuitePlugin extends Plugin {
 		})
 	}
 
-	refreshCMExtensions() {
+	// Set 'this.editorExtensions' based on the contents of 'this.CMSettings'
+	setEditorExtensions() {
 		// Remove all currently loaded CM extensions
+		// In order for 'this.app.workspace.updateOptions()' to function as
+		// expected, you cannot assign a new array to 'this.editorExtensions'.
 		while (this.editorExtensions.length) this.editorExtensions.pop();
 
-		// Load Latex Suite extensions
-		this.editorExtensions.push(latexSuiteExtensions(this.CMSettings));
+		// Compulsory extensions
+		this.editorExtensions.push([
+			getLatexSuiteConfigExtension(this.CMSettings),
+			Prec.highest(EditorView.domEventHandlers({ "keydown": onKeydown })),
+			EditorView.updateListener.of(handleUpdate),
+			snippetExtensions,
+		]);
 
-		// Load optional CM extensions according to plugin settings
-		const extensionDict = optionalExtensions;
-		const features = Object.keys(optionalExtensions);
-
-		for (const feature of features) {
-			// @ts-ignore
-			if (this.CMSettings[feature + "Enabled"]) {
-				this.editorExtensions.push(extensionDict[feature]);
-			}
-		}
-		this.app.workspace.updateOptions();
+		// Optional extensions
+		if (this.CMSettings.concealEnabled)
+			this.editorExtensions.push(concealPlugin.extension);
+		if (this.CMSettings.colorPairedBracketsEnabled)
+			this.editorExtensions.push(colorPairedBracketsPluginLowestPrec);
+		if (this.CMSettings.highlightCursorBracketsEnabled)
+			this.editorExtensions.push(highlightCursorBracketsPlugin.extension);
+		if (this.CMSettings.mathPreviewEnabled)
+			this.editorExtensions.push([
+				cursorTooltipField.extension,
+				cursorTooltipBaseTheme,
+				tooltips({ position: "absolute" }),
+			]);
 	}
 
 	showSnippetsLoadedNotice(nSnippets: number, nSnippetVariables: number, becauseFileLocationUpdated: boolean, becauseFileUpdated: boolean) {

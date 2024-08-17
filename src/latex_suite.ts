@@ -1,5 +1,4 @@
-import { Prec, Extension } from "@codemirror/state";
-import { EditorView, ViewUpdate, tooltips } from "@codemirror/view";
+import { EditorView, ViewUpdate } from "@codemirror/view";
 
 import { runSnippets } from "./features/run_snippets";
 import { runAutoFraction } from "./features/autofraction";
@@ -10,16 +9,11 @@ import { Context } from "./utils/context";
 import { getCharacterAtPos, replaceRange } from "./utils/editor_utils";
 import { setSelectionToNextTabstop } from "./snippets/snippet_management";
 import { removeAllTabstops } from "./snippets/codemirror/tabstops_state_field";
-import { getLatexSuiteConfigExtension, getLatexSuiteConfig } from "./snippets/codemirror/config";
+import { getLatexSuiteConfig } from "./snippets/codemirror/config";
 import { clearSnippetQueue } from "./snippets/codemirror/snippet_queue_state_field";
 import { handleUndoRedo } from "./snippets/codemirror/history";
-import { snippetExtensions } from "./snippets/codemirror/extensions";
 
-import { concealPlugin } from "./editor_extensions/conceal";
-
-import { LatexSuiteCMSettings } from "./settings/settings";
-import { colorPairedBracketsPluginLowestPrec, highlightCursorBracketsPlugin } from "./editor_extensions/highlight_brackets";
-import { cursorTooltipBaseTheme, cursorTooltipField, handleMathTooltip } from "./editor_extensions/math_tooltip";
+import { handleMathTooltip } from "./editor_extensions/math_tooltip";
 import { isComposing } from "./utils/editor_utils";
 
 export const handleUpdate = (update: ViewUpdate) => {
@@ -112,20 +106,4 @@ export const handleKeydown = (key: string, shiftKey: boolean, ctrlKey: boolean, 
 	}
 
 	return false;
-}
-
-// CodeMirror extensions that are required for Latex Suite to run
-export const latexSuiteExtensions = (settings: LatexSuiteCMSettings) => [
-	getLatexSuiteConfigExtension(settings),
-	Prec.highest(EditorView.domEventHandlers({"keydown": onKeydown})), // Register keymaps
-	EditorView.updateListener.of(handleUpdate),
-	snippetExtensions
-];
-
-// Optional CodeMirror extensions for optional features
-export const optionalExtensions: {[feature: string]: Extension[]} = {
-	"conceal": [concealPlugin.extension],
-	"colorPairedBrackets": [colorPairedBracketsPluginLowestPrec],
-	"highlightCursorBrackets": [highlightCursorBracketsPlugin.extension],
-	"mathPreview": [cursorTooltipField.extension, cursorTooltipBaseTheme, tooltips({position: "absolute"})]
 }
