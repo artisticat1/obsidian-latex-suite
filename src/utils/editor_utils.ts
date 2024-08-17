@@ -1,4 +1,4 @@
-import { Platform, Workspace, MarkdownView } from "obsidian";
+import { Platform } from "obsidian";
 import { EditorView } from "@codemirror/view";
 import { SyntaxNode, TreeCursor } from "@lezer/common";
 import { EditorState } from "@codemirror/state";
@@ -7,14 +7,6 @@ export function replaceRange(view: EditorView, start: number, end: number, repla
 	view.dispatch({
 		changes: {from: start, to: end, insert: replacement}
 	});
-}
-
-export function iterateCM6(workspace: Workspace, callback: (editor: EditorView) => unknown) {
-    workspace.iterateAllLeaves(leaf => {
-        leaf?.view instanceof MarkdownView &&
-        (leaf.view.editor as any)?.cm instanceof EditorView &&
-        callback((leaf.view.editor as any).cm);
-    });
 }
 
 export function getCharacterAtPos(viewOrState: EditorView | EditorState, pos: number) {

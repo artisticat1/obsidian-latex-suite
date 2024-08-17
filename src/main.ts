@@ -6,8 +6,7 @@ import { LatexSuiteSettingTab } from "./settings/settings_tab";
 import { ICONS } from "./settings/ui/icons";
 
 import { getEditorCommands } from "./features/editor_commands";
-import { iterateCM6 } from "./utils/editor_utils";
-import { getLatexSuiteConfigExtension, reconfigureLatexSuiteConfig } from "./snippets/codemirror/config";
+import { getLatexSuiteConfigExtension } from "./snippets/codemirror/config";
 import { SnippetVariables, parseSnippetVariables, parseSnippets } from "./snippets/parse";
 import { handleUpdate, onKeydown } from "./latex_suite";
 import { EditorView, tooltips } from "@codemirror/view";
@@ -148,18 +147,9 @@ export default class LatexSuitePlugin extends Plugin {
 
 	async processSettings(becauseFileLocationUpdated = false, becauseFileUpdated = false) {
 		this.CMSettings = processLatexSuiteSettings(await this.getSnippets(becauseFileLocationUpdated, becauseFileUpdated), this.settings);
-		this.reconfigureLatexSuiteConfig();
 		this.setEditorExtensions();
 		// Request Obsidian to reconfigure CM extensions
 		this.app.workspace.updateOptions();
-	}
-
-	reconfigureLatexSuiteConfig() {
-		iterateCM6(this.app.workspace, (view) => {
-			view.dispatch({
-				effects: reconfigureLatexSuiteConfig(this.CMSettings)
-			});
-		})
 	}
 
 	// Set 'this.editorExtensions' based on the contents of 'this.CMSettings'
