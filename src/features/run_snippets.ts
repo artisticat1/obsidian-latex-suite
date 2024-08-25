@@ -34,9 +34,10 @@ const runSnippetCursor = (view: EditorView, ctx: Context, key: string, range: Se
 	const settings = getLatexSuiteConfig(view);
 	const {from, to} = range;
 	const sel = view.state.sliceDoc(from, to);
-
+	const line = view.state.sliceDoc(0, to);
+	const updatedLine = line + key;
 	for (const snippet of settings.snippets) {
-		let effectiveLine = view.state.sliceDoc(0, to);
+		let effectiveLine = line;
 
 		if (!snippetShouldRunInMode(snippet.options, ctx.mode)) {
 			continue;
@@ -45,8 +46,7 @@ const runSnippetCursor = (view: EditorView, ctx: Context, key: string, range: Se
 		if (snippet.options.automatic || snippet.type === "visual") {
 			// If the key pressed wasn't a text character, continue
 			if (!(key.length === 1)) continue;
-
-			effectiveLine += key;
+			effectiveLine = updatedLine;
 		}
 		else if (!(key === settings.snippetsTrigger)) {
 			// The snippet must be triggered by a key
