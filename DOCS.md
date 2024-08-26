@@ -1,6 +1,6 @@
 # Documentation
 ## Snippets
-Snippets are formatted as follows:
+*Snippets* are shortcuts that allow you to insert certain text based on certain triggers. The structure of a snippet is as follows:
 
 ```typescript
 {
@@ -58,7 +58,11 @@ No mode specified means that this snippet can be triggered _at all times_. Multi
 
 
 ### Regex snippets
-To create a regex snippet, you can
+[Regular expressions](https://en.wikipedia.org/wiki/Regular_expression) are sequences of characters that specify a match pattern. (If you're unfamiliar with regex, [here's a tutorial you might like to check out](https://regexone.com).)
+
+In Latex Suite, you can use regular expressions to write more general snippets that expand according to some match pattern that you specify.
+
+ To create a regex snippet, you can
 - use the `r` option, or
 - make the `trigger` a RegExp literal (such as `/regex-goes-here/`).
 

@@ -30,17 +30,20 @@ To get started, type "dm" to enter display math mode. Try typing the following:
 **Have a look at the [cheatsheet](#cheatsheet)** for a list of commonly used default snippets.
 
 
-Once these feel familiar, you can check out the [default snippets](https://github.com/artisticat1/obsidian-latex-suite/blob/main/src/default_snippets.js) for more commands. e.g.
+Once these feel familiar, you can check out the [**default snippets**](https://github.com/artisticat1/obsidian-latex-suite/blob/main/src/default_snippets.js) for more commands. e.g.
 
 - "par <kbd>Tab</kbd> f <kbd>Tab</kbd> x <kbd>Tab</kbd>" → "\\frac{\\partial f}{\\partial x}".
 
 - "dint <kbd>Tab</kbd> 2pi <kbd>Tab</kbd> sin @t <kbd>Tab</kbd> @t <kbd>Tab</kbd>" → "\\int_{0}^{2\pi} \\sin \\theta \\, d\\theta".
 
 
-You can also add your own snippets! [See here for more info on writing snippets](#snippets). You can [view snippets written by others and share your own snippets here](https://github.com/artisticat1/obsidian-latex-suite/discussions/50).
+You can also add your own snippets! [For more info on writing snippets, see **here**](#snippets). You can [view snippets written by others and share your own snippets here](https://github.com/artisticat1/obsidian-latex-suite/discussions/50).
+
+Aside from snippets, the plugin also comes with several other features that aim to make writing LaTeX easier.
 
 
 ## Features
+
 ### Auto-fraction
 Lets you type "1/x" instead of "\frac{1}{x}".
 
@@ -59,44 +62,40 @@ Once done typing the denominator, press <kbd>Tab</kbd> to exit the fraction.
 ### Matrix shortcuts
 While inside a matrix, array, align, or cases environment,
 
-- Pressing <kbd>Tab</kbd> will insert the "&" symbol
-- Pressing <kbd>Enter</kbd> will insert "\\\\" and move to a new line
-- Pressing <kbd>Shift + Enter</kbd> will move to the end of the next line (can be used to exit the matrix)
+- Pressing <kbd>Tab</kbd> will insert the "&" symbol.
+- Pressing <kbd>Enter</kbd> will insert "\\\\" and move to a new line.
+- Pressing <kbd>Shift + Enter</kbd> will move to the end of the next line (which you can use to exit the matrix).
 
 ![matrix shortcuts](https://raw.githubusercontent.com/artisticat1/obsidian-latex-suite/main/gifs/matrix_shortcuts.gif)
 
 
 ### Conceal
-*This feature must be enabled in settings!*
+*This feature must be enabled in the plugin settings.*
 
-Make your equations more readable by hiding LaTeX code, instead rendering it in a pretty format.
+Make your equations more readable by hiding LaTeX markup and instead displaying it in a pretty format.
 
 For example, "\dot{x}^{2} + \dot{y}^{2}" will be displayed as "ẋ² + ẏ²".
 
-To reveal the LaTeX code, move the cursor over it.
+"\sqrt{ 1-\beta^{2} }" will be displayed as "√{ 1-β² }".
 
-![conceal demo](https://raw.githubusercontent.com/artisticat1/obsidian-latex-suite/main/gifs/conceal.png)
+To reveal the LaTeX syntax, move your cursor over it.
+
 ![conceal demo 2](https://raw.githubusercontent.com/artisticat1/obsidian-latex-suite/main/gifs/conceal.gif)
+![conceal demo](https://raw.githubusercontent.com/artisticat1/obsidian-latex-suite/main/gifs/conceal.png)
 
 
 ### Tabout
-- Pressing <kbd>Tab</kbd> while the cursor is at the end of an equation will move the cursor outside the $ symbols.
-- Otherwise, pressing <kbd>Tab</kbd> will advance the cursor to the next closing bracket: ), ], }, >, or |.
+To make it easier to navigate and exit equations,
+
+- Pressing <kbd>Tab</kbd> while the cursor is at the end of an equation will move the cursor outside the `$` symbols.
+- Otherwise, pressing <kbd>Tab</kbd> will advance the cursor to the next closing bracket: `)`, `]`, `}`, `>`, or `|`.
 
 
 ### Preview inline math
-When the cursor is inside inline math, a popup window showing the rendered math will be displayed.
+When your cursor is inside inline math, a popup window showing the rendered math will be displayed.
 
 <img width=500 src="https://raw.githubusercontent.com/artisticat1/obsidian-latex-suite/main/gifs/inline_math_preview_1.png">
 <img width=650 src="https://raw.githubusercontent.com/artisticat1/obsidian-latex-suite/main/gifs/inline_math_preview_2.png">
-
-
-### Color & highlight matching brackets
-- Matching brackets are rendered in the same color, to help with readability.
-- When the cursor is adjacent to a bracket, that bracket and its pair will be highlighted.
-- When the cursor is inside brackets, the enclosing brackets will be highlighted.
-
-![color and highlight matching brackets demo](https://raw.githubusercontent.com/artisticat1/obsidian-latex-suite/main/gifs/color_brackets.gif)
 
 
 ### Visual snippets
@@ -112,18 +111,41 @@ Sometimes you want to annotate math, or cancel or cross out terms. Selecting som
 
 
 ### Auto-enlarge brackets
-When a snippet containing "\\sum", "\\int" or "\\frac" is triggered, any enclosing brackets will be enlarged with "\\left" and "\\right".
+When a snippet containing "\\sum", "\\int" or "\\frac" is triggered, any enclosing brackets will automatically be enlarged with "\\left" and "\\right".
 
 ![auto-enlarge brackets](https://raw.githubusercontent.com/artisticat1/obsidian-latex-suite/main/gifs/auto-enlarge_brackets.gif)
 
 
+### Color and highlight matching brackets
+
+To help make your equations more readable,
+
+- Matching brackets will be displayed in the same color.
+- When your cursor is adjacent to a bracket, that bracket and its pair will be highlighted.
+- When your cursor is inside brackets, the enclosing brackets will be highlighted.
+
+![color and highlight matching brackets demo](https://raw.githubusercontent.com/artisticat1/obsidian-latex-suite/main/gifs/color_brackets.gif)
+
+
 ### Editor commands
-- Box current equation – surround the equation the cursor is currently in with a box.
-- Select current equation – select the equation the cursor is currently in.
+
+The plugin also adds the following commands to the Command palette:
+
+- **Box current equation** — surround the equation the cursor is currently in with a box, using "\boxed{ ... }".
+- **Select current equation** – select the equation the cursor is currently in.
 
 
 ### Snippets
-Snippets are formatted as follows:
+
+*Snippets* are shortcuts that allow you to insert certain text based on certain triggers. For example, the default snippet
+
+```typescript
+{trigger: "@l", replacement: "\\lambda", options: "mA"}
+```
+
+will expand "@l" to "\lambda".
+
+Snippets can be edited in the plugin settings. The structure of a snippet is as follows:
 
 ```typescript
 {
@@ -159,7 +181,9 @@ Snippets are formatted as follows:
 
 Insert **tabstops** for the cursor to jump to by writing "$0", "$1", etc. in the `replacement`.
 
-For more details on writing snippets, including **regex** snippets and **function** snippets, [see the **documentation** here](DOCS.md). You can [view snippets written by others and share your own snippets here](https://github.com/artisticat1/obsidian-latex-suite/discussions/50).
+For examples and more details on writing snippets, including **regex** snippets and **function** snippets, [have a look at the **documentation**](DOCS.md).
+
+You can [view snippets written by others and share your own snippets here](https://github.com/artisticat1/obsidian-latex-suite/discussions/50).
 
 > [!WARNING]
 > Snippet files are interpreted as JavaScript and can execute arbitrary code.
@@ -219,21 +243,21 @@ When running a snippet that **moves the cursor inside brackets {}, press <kbd>Ta
 | @o      | \\omega      |         |             |
 | ome     | \\omega      |         |             |
 
-For greek letters with short names (2-3 characters), just type their name,
-e.g. "pi" → "\\pi"
+For Greek letters with short names (2-3 characters), just type their name,
+e.g. "pi" → "\\pi".
+
+
+## Acknowledgements
+- [@tth05](https://github.com/tth05)'s [Obsidian Completr](https://github.com/tth05/obsidian-completr) for the basis of the tabstop code.
+- [Dynamic Highlights](https://github.com/nothingislost/obsidian-dynamic-highlights/blob/master/src/settings/ui.ts) for reference.
+- [Quick Latex for Obsidian](https://github.com/joeyuping/quick_latex_obsidian) for inspiration.
 
 
 ## Contributing
 Any contributions and PRs are welcome!
 
 
-## Acknowledgements
-- [@tth05](https://github.com/tth05)'s [Obsidian Completr](https://github.com/tth05/obsidian-completr) for the basis of the tabstop code
-- [Dynamic Highlights](https://github.com/nothingislost/obsidian-dynamic-highlights/blob/master/src/settings/ui.ts) for reference
-- [Quick Latex for Obsidian](https://github.com/joeyuping/quick_latex_obsidian) for inspiration
-
-
 ## Support
-If you like this plugin and want to say thanks, you can buy me a coffee here!
+If you like this plugin and want to say thanks, you can buy me a coffee here.
 
-<a href='https://ko-fi.com/J3J6BBZAW' target='_blank'><img height='56' style='border:0px;height:56px;' src='https://cdn.ko-fi.com/cdn/kofi1.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
+<a href='https://ko-fi.com/J3J6BBZAW' target='_blank'><img height='42' style='border:0px;height:42px;' src='https://cdn.ko-fi.com/cdn/kofi1.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
