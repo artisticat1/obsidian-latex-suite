@@ -432,9 +432,9 @@ function concealFraction(eqn: string, selection: EditorSelection, eqnStartBound:
 	return concealments;
 }
 
-function conceal(view: EditorView) {
+function conceal(view: EditorView): Concealment[] {
+	const concealments: Concealment[] = [];
 
-	const widgets: Range<Decoration>[] = [];
 	const selection = view.state.selection;
 
 	// Make selecting LaTeX source easier
@@ -462,7 +462,7 @@ function conceal(view: EditorView) {
 
 			const ALL_SYMBOLS = {...greek, ...cmd_symbols};
 
-			const concealments = [
+			const localConcealments = [
 				...concealSymbols(eqn, "\\^", "", map_super),
 				...concealSymbols(eqn, "_", "", map_sub),
 				...concealSymbols(eqn, "\\\\frac", "", fractions),
@@ -487,56 +487,72 @@ function conceal(view: EditorView) {
 				...concealOperators(eqn, operators)
 			];
 
+			for (const conc of localConcealments) {
+				// Make the 'start' and 'end' fields represent positions in the entire
+				// document (not in a math expression)
+				conc.start += bounds.start;
+				conc.end += bounds.start;
 
-			for (const concealment of concealments) {
-				const start = bounds.start + concealment.start;
-				const end = bounds.start + concealment.end;
-				const symbol = concealment.replacement;
+				if (
+					!mousedown &&
+					selectionAndRangeOverlap(selection, conc.start, conc.end)
+				) continue;
 
-				// Improve selecting empty replacements such as "\frac" -> ""
-				let inclusiveStart = false;
-				let inclusiveEnd = false;
-				if (symbol === "") {
-					inclusiveStart = true;
-				}
-
-				if (!mousedown && selectionAndRangeOverlap(selection, start, end)) continue;
-
-				if (start === end) {
-					// Add an additional "/" symbol, as part of concealing \\frac{}{} -> ()/()
-					widgets.push(
-						Decoration.widget({
-							widget: new TextWidget(symbol),
-							block: false
-						}).range(start, end)
-					);
-				}
-				else {
-					widgets.push(
-						Decoration.replace({
-							widget: new ConcealWidget(symbol, concealment.class, concealment.elementType),
-							inclusiveStart: inclusiveStart,
-							inclusiveEnd: inclusiveEnd,
-							block: false,
-						}).range(start, end)
-					);
-				}
+				concealments.push(conc);
 			}
 		}
 
 		});
 	}
 
-	return Decoration.set(widgets, true);
+	return concealments;
+}
+
+// Build a decoration set from the given concealments
+function buildDecoSet(concealments: Concealment[]) {
+	const decos: Range<Decoration>[] = []
+
+	for (const conc of concealments) {
+		// Improve selecting empty replacements such as "\frac" -> ""
+		// NOTE: This might not be necessary
+		const inclusiveStart = conc.replacement === "";
+		const inclusiveEnd = false;
+
+		if (conc.start === conc.end) {
+			// Add an additional "/" symbol, as part of concealing \\frac{}{} -> ()/()
+			decos.push(
+				Decoration.widget({
+					widget: new TextWidget(conc.replacement),
+					block: false,
+				}).range(conc.start, conc.end)
+			);
+		}
+		else {
+			decos.push(
+				Decoration.replace({
+					widget: new ConcealWidget(
+						conc.replacement,
+						conc.class,
+						conc.elementType
+					),
+					inclusiveStart,
+					inclusiveEnd,
+					block: false,
+				}).range(conc.start, conc.end)
+			);
+		}
+	}
+
+	return Decoration.set(decos, true);
 }
 
 export const concealPlugin = ViewPlugin.fromClass(class {
 	decorations: DecorationSet
 	constructor(view: EditorView) {
-		this.decorations = conceal(view)
+		this.decorations = buildDecoSet(conceal(view));
 	}
 	update(update: ViewUpdate) {
 		if (update.docChanged || update.viewportChanged || update.selectionSet)
-			this.decorations = conceal(update.view)
+			this.decorations = buildDecoSet(conceal(update.view));
 	}
 }, { decorations: v => v.decorations, });
