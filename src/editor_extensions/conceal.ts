@@ -1,17 +1,33 @@
 // https://discuss.codemirror.net/t/concealing-syntax/3135
 
 import { EditorView, ViewUpdate, Decoration, DecorationSet, WidgetType, ViewPlugin } from "@codemirror/view";
-import { Range } from "@codemirror/state";
+import { EditorSelection, Range } from "@codemirror/state";
 import { conceal } from "./conceal_fns";
+import { livePreviewState } from "obsidian";
 
-
-export interface Concealment {
+export type Replacement = {
 	start: number,
 	end: number,
-	replacement: string,
+	text: string,
 	class?: string,
-	elementType?: string
+	elementType?: string,
+};
+
+export type ConcealSpec = Replacement[];
+
+/**
+ * Make a ConcealSpec from the given list of Replacements.
+ * This function essentially does nothing but improves readability.
+ */
+export function mkConcealSpec(...replacements: Replacement[]) {
+	return replacements;
 }
+
+export type Concealment = {
+	spec: ConcealSpec,
+	cursorPosType: "within" | "apart" | "edge",
+	enable: boolean,
+};
 
 
 class ConcealWidget extends WidgetType {
@@ -63,38 +79,82 @@ class TextWidget extends WidgetType {
 	}
 }
 
+function determineCursorPosType(
+	sel: EditorSelection,
+	concealSpec: ConcealSpec,
+): Concealment["cursorPosType"] {
+	// Priority: "within" > "edge" > "apart"
+
+	let cursorPosType: Concealment["cursorPosType"] = "apart";
+
+	for (const range of sel.ranges) {
+		for (const replace of concealSpec) {
+			// 'cursorPosType' is guaranteed to be "edge" or "apart" at this point
+			const overlapRangeFrom = Math.max(range.from, replace.start);
+			const overlapRangeTo = Math.min(range.to, replace.end);
+
+			if (
+				overlapRangeFrom === overlapRangeTo &&
+				(overlapRangeFrom === replace.start || overlapRangeFrom === replace.end)
+			) {
+				cursorPosType = "edge";
+				continue;
+			}
+
+			if (overlapRangeFrom <= overlapRangeTo) return "within";
+		}
+	}
+
+	return cursorPosType;
+}
+
+function buildConcealment(spec: ConcealSpec, view: EditorView) {
+	const cursorPosType = determineCursorPosType(view.state.selection, spec);
+
+	// When the mouse is down, we enable all concealments to make selecting
+	// math expressions easier.
+	const mousedown = view.plugin(livePreviewState)?.mousedown;
+	const enable = mousedown || cursorPosType === "apart";
+
+	return { spec, cursorPosType, enable };
+}
+
 // Build a decoration set from the given concealments
 function buildDecoSet(concealments: Concealment[]) {
 	const decos: Range<Decoration>[] = []
 
 	for (const conc of concealments) {
-		// Improve selecting empty replacements such as "\frac" -> ""
-		// NOTE: This might not be necessary
-		const inclusiveStart = conc.replacement === "";
-		const inclusiveEnd = false;
+		if (!conc.enable) continue;
 
-		if (conc.start === conc.end) {
-			// Add an additional "/" symbol, as part of concealing \\frac{}{} -> ()/()
-			decos.push(
-				Decoration.widget({
-					widget: new TextWidget(conc.replacement),
-					block: false,
-				}).range(conc.start, conc.end)
-			);
-		}
-		else {
-			decos.push(
-				Decoration.replace({
-					widget: new ConcealWidget(
-						conc.replacement,
-						conc.class,
-						conc.elementType
-					),
-					inclusiveStart,
-					inclusiveEnd,
-					block: false,
-				}).range(conc.start, conc.end)
-			);
+		for (const replace of conc.spec) {
+			if (replace.start === replace.end) {
+				// Add an additional "/" symbol, as part of concealing \\frac{}{} -> ()/()
+				decos.push(
+					Decoration.widget({
+						widget: new TextWidget(replace.text),
+						block: false,
+					}).range(replace.start, replace.end)
+				);
+			}
+			else {
+				// Improve selecting empty replacements such as "\frac" -> ""
+				// NOTE: This might not be necessary
+				const inclusiveStart = replace.text === "";
+				const inclusiveEnd = false;
+
+				decos.push(
+					Decoration.replace({
+						widget: new ConcealWidget(
+							replace.text,
+							replace.class,
+							replace.elementType
+						),
+						inclusiveStart,
+						inclusiveEnd,
+						block: false,
+					}).range(replace.start, replace.end)
+				);
+			}
 		}
 	}
 
@@ -102,12 +162,20 @@ function buildDecoSet(concealments: Concealment[]) {
 }
 
 export const concealPlugin = ViewPlugin.fromClass(class {
-	decorations: DecorationSet
-	constructor(view: EditorView) {
-		this.decorations = buildDecoSet(conceal(view));
+	concealments: Concealment[];
+	decorations: DecorationSet;
+
+	updateFields(view: EditorView) {
+		this.concealments = conceal(view).map(spec => buildConcealment(spec, view));
+		this.decorations = buildDecoSet(this.concealments);
 	}
+
+	constructor(view: EditorView) {
+		this.updateFields(view);
+	}
+
 	update(update: ViewUpdate) {
 		if (update.docChanged || update.viewportChanged || update.selectionSet)
-			this.decorations = buildDecoSet(conceal(update.view));
+			this.updateFields(update.view);
 	}
 }, { decorations: v => v.decorations, });
