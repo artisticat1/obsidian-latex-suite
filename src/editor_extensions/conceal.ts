@@ -1,9 +1,9 @@
 // https://discuss.codemirror.net/t/concealing-syntax/3135
 
-import { ViewUpdate, Decoration, DecorationSet, WidgetType, ViewPlugin } from "@codemirror/view";
+import { ViewUpdate, Decoration, DecorationSet, WidgetType, ViewPlugin, EditorView } from "@codemirror/view";
 import { EditorSelection, Range } from "@codemirror/state";
 import { conceal } from "./conceal_fns";
-import { livePreviewState } from "obsidian";
+import { debounce, livePreviewState } from "obsidian";
 
 export type Replacement = {
 	start: number,
@@ -28,11 +28,6 @@ export type Concealment = {
 	cursorPosType: "within" | "apart" | "edge",
 	enable: boolean,
 };
-
-export type ConcealState = {
-	concealments: Concealment[],
-	revealTimeout: NodeJS.Timeout | null,
-}
 
 // Represents how a concealment should be handled
 // 'delay' means reveal after a time delay.
@@ -176,11 +171,11 @@ function determineAction(
 	else return "delay";
 }
 
-// Build a decoration set from the given conceal state
-function buildDecoSet(concealState: ConcealState) {
+// Build a decoration set from the given concealments
+function buildDecoSet(concealments: Concealment[]) {
 	const decos: Range<Decoration>[] = []
 
-	for (const conc of concealState.concealments) {
+	for (const conc of concealments) {
 		if (!conc.enable) continue;
 
 		for (const replace of conc.spec) {
@@ -219,22 +214,34 @@ function buildDecoSet(concealState: ConcealState) {
 }
 
 export const concealPlugin = ViewPlugin.fromClass(class {
-	state: ConcealState;
+	// Stateful ViewPlugin: you should avoid one in general, but here
+	// the approach based on StateField and updateListener conflicts with
+	// obsidian's internal logic and causes weird rendering.
+	concealments: Concealment[];
 	decorations: DecorationSet;
 
 	constructor() {
-		this.state = { concealments: [], revealTimeout: null };
+		this.concealments = [];
 		this.decorations = Decoration.none;
 	}
+
+	delayedReveal = debounce((delayedConcealments: Concealment[], view: EditorView) => {
+		// Implicitly change the state
+		for (const concealment of delayedConcealments) {
+			concealment.enable = false;
+		}
+		this.decorations = buildDecoSet(this.concealments);
+
+		// Invoke the update method to reflect the changes of this.decoration
+		view.dispatch();
+	}, 1000, true);
 
 	update(update: ViewUpdate) {
 		if (!(update.docChanged || update.viewportChanged || update.selectionSet))
 			return;
 
-		if (this.state.revealTimeout) {
-			// Cancel the delayed revealment whenever we update the concealments
-			clearTimeout(this.state.revealTimeout);
-		}
+		// Cancel the delayed revealment whenever we update the concealments
+		this.delayedReveal.cancel();
 
 		const selection = update.state.selection;
 		const mousedown = update.view.plugin(livePreviewState)?.mousedown;
@@ -248,7 +255,7 @@ export const concealPlugin = ViewPlugin.fromClass(class {
 
 		for (const spec of concealSpecs) {
 			const cursorPosType = determineCursorPosType(selection, spec);
-			const oldConcealment = this.state.concealments.find(
+			const oldConcealment = this.concealments.find(
 				(old) => atSamePosAfter(update, old.spec, spec)
 			);
 
@@ -269,23 +276,11 @@ export const concealPlugin = ViewPlugin.fromClass(class {
 			concealments.push(concealment);
 		}
 
-		// Set a timeout to reveal delayed concealments
-		let revealTimeout: NodeJS.Timeout | null = null;
 		if (delayedConcealments.length > 0) {
-			console.log("a");
-			revealTimeout = setTimeout(() => {
-				// Implicitly change the state
-				for (const concealment of delayedConcealments) {
-					concealment.enable = false;
-				}
-				this.decorations = buildDecoSet(this.state);
-
-				// Invoke this update method to reflect the field changes
-				update.view.dispatch();
-			}, 1000);
+			this.delayedReveal(delayedConcealments, update.view);
 		}
 
-		this.state = { concealments, revealTimeout };
-		this.decorations = buildDecoSet(this.state);
+		this.concealments = concealments;
+		this.decorations = buildDecoSet(this.concealments);
 	}
 }, { decorations: v => v.decorations, });
