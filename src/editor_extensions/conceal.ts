@@ -160,6 +160,7 @@ function determineAction(
 	oldCursor: Concealment["cursorPosType"] | undefined,
 	newCursor: Concealment["cursorPosType"],
 	mousedown: boolean,
+	delayEnabled: boolean,
 ): ConcealAction {
 	if (mousedown) return "conceal";
 
@@ -167,6 +168,8 @@ function determineAction(
 	if (newCursor === "within") return "reveal";
 
 	// newCursor === "edge"
+	if (!delayEnabled) return "reveal";
+	// delay is enabled
 	if (!oldCursor || oldCursor === "within") return "reveal";
 	else return "delay";
 }
@@ -219,10 +222,12 @@ export const mkConcealPlugin = (revealTimeout: number) => ViewPlugin.fromClass(c
 	// obsidian's internal logic and causes weird rendering.
 	concealments: Concealment[];
 	decorations: DecorationSet;
+	delayEnabled: boolean;
 
 	constructor() {
 		this.concealments = [];
 		this.decorations = Decoration.none;
+		this.delayEnabled = revealTimeout > 0;
 	}
 
 	delayedReveal = debounce((delayedConcealments: Concealment[], view: EditorView) => {
@@ -260,7 +265,7 @@ export const mkConcealPlugin = (revealTimeout: number) => ViewPlugin.fromClass(c
 			);
 
 			const concealAction = determineAction(
-				oldConcealment?.cursorPosType, cursorPosType, mousedown
+				oldConcealment?.cursorPosType, cursorPosType, mousedown, this.delayEnabled
 			);
 
 			const concealment: Concealment = {
