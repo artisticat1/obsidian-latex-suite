@@ -288,4 +288,7 @@ export const mkConcealPlugin = (revealTimeout: number) => ViewPlugin.fromClass(c
 		this.concealments = concealments;
 		this.decorations = buildDecoSet(this.concealments);
 	}
-}, { decorations: v => v.decorations, });
+}, {
+	decorations: v => v.decorations,
+	provide: (plugin) => EditorView.atomicRanges.of((view) => view.plugin(plugin).decorations),
+});
