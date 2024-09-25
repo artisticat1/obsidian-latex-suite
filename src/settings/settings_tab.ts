@@ -149,7 +149,6 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			fragment.createDiv({}, div => div.innerHTML = `
 				e.g. <code>\\dot{x}^{2} + \\dot{y}^{2}</code> will display as ẋ² + ẏ², and <code>\\sqrt{ 1-\\beta^{2} }</code> will display as √{ 1-β² }.
 			`);
-			fragment.createDiv({}, div => div.setText("LaTeX beneath the cursor will be revealed."));
 			fragment.createEl("br");
 			fragment.createDiv({}, div => div.setText("Disabled by default to not confuse new users. However, I recommend turning this on once you are comfortable with the plugin!"));
 
@@ -161,6 +160,24 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					.onChange(async (value) => {
 						this.plugin.settings.concealEnabled = value;
 						await this.plugin.saveSettings();
+					})
+				);
+		}
+
+		{
+			new Setting(containerEl)
+				.setName("Reveal timeout")
+				.setDesc("When the timeout is set to 0 (default value) the LaTeX source under the cursor will be revealed immediately. Setting the timeout to some positive value delays the revealment, making arrow key navigation more intuitive. After the timeout, the LaTeX source will be revealed. Please input a non-negative integer in milliseconds.")
+				.addText(text => text
+					.setPlaceholder(String(DEFAULT_SETTINGS.concealRevealTimeout))
+					.setValue(String(this.plugin.settings.concealRevealTimeout))
+					.onChange(value => {
+						// Make sure the value is a non-negative integer
+						const ok = /^\d+$/.test(value);
+						if (ok) {
+							this.plugin.settings.concealRevealTimeout = Number(value);
+							this.plugin.saveSettings();
+						}
 					})
 				);
 		}
