@@ -91,7 +91,7 @@
 	{trigger: /\\mathbf{([A-Za-z])}(\d)/, replacement: "\\mathbf{[[0]]}_{[[1]]}", options: "rmA"},
 
     {trigger: "xnn", replacement: "x_{n}", options: "mA"},
-	{trigger: "xii", replacement: "x_{i}", options: "mA"},
+	{trigger: "\\xii", replacement: "x_{i}", options: "mA", priority: 1},
 	{trigger: "xjj", replacement: "x_{j}", options: "mA"},
 	{trigger: "xp1", replacement: "x_{n+1}", options: "mA"},
 	{trigger: "ynn", replacement: "y_{n}", options: "mA"},
