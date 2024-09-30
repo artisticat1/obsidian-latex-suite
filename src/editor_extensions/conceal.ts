@@ -1,21 +1,37 @@
 // https://discuss.codemirror.net/t/concealing-syntax/3135
 
-import { livePreviewState } from "obsidian";
-import { EditorView, ViewUpdate, Decoration, DecorationSet, WidgetType, ViewPlugin } from "@codemirror/view";
-import { EditorSelection, Range } from "@codemirror/state";
-import { syntaxTree } from "@codemirror/language";
-import { findMatchingBracket } from "../utils/editor_utils";
-import { cmd_symbols, greek, map_super, map_sub, brackets, mathbb, mathscrcal, fractions, operators } from "./conceal_maps";
-import { getEquationBounds } from "src/utils/context";
+import { ViewUpdate, Decoration, DecorationSet, WidgetType, ViewPlugin, EditorView } from "@codemirror/view";
+import { EditorSelection, Range, RangeSet, RangeSetBuilder, RangeValue } from "@codemirror/state";
+import { conceal } from "./conceal_fns";
+import { debounce, livePreviewState } from "obsidian";
 
-
-export interface Concealment {
+export type Replacement = {
 	start: number,
 	end: number,
-	replacement: string,
+	text: string,
 	class?: string,
-	elementType?: string
+	elementType?: string,
+};
+
+export type ConcealSpec = Replacement[];
+
+/**
+ * Make a ConcealSpec from the given list of Replacements.
+ * This function essentially does nothing but improves readability.
+ */
+export function mkConcealSpec(...replacements: Replacement[]) {
+	return replacements;
 }
+
+export type Concealment = {
+	spec: ConcealSpec,
+	cursorPosType: "within" | "apart" | "edge",
+	enable: boolean,
+};
+
+// Represents how a concealment should be handled
+// 'delay' means reveal after a time delay.
+type ConcealAction = "conceal" | "reveal" | "delay";
 
 
 class ConcealWidget extends WidgetType {
@@ -67,476 +83,245 @@ class TextWidget extends WidgetType {
 	}
 }
 
-function selectionAndRangeOverlap(selection: EditorSelection, rangeFrom:
-	number, rangeTo: number) {
-
-	for (const range of selection.ranges) {
-		if ((range.from <= rangeTo) && (range.to) >= rangeFrom) {
-			return true;
-		}
-	}
-
-	return false;
-}
-
-function escapeRegex(regex: string) {
-	const escapeChars = ["\\", "(", ")", "+", "-", "[", "]", "{", "}"];
-
-	for (const escapeChar of escapeChars) {
-		regex = regex.replaceAll(escapeChar, "\\" + escapeChar);
-	}
-
-	return regex;
-}
-
 /**
- * gets the updated end index to include "\\limits" in the concealed text of some conceal match,
- * if said match is directly followed by "\\limits"
- *
- * @param eqn source text
- * @param end index of eqn corresponding to the end of a match to conceal
- * @returns the updated end index to conceal
+ * Determine if the two ConcealSpec instances before and after the update can be
+ * considered identical.
  */
-function getEndIncludingLimits(eqn: string, end: number): number {
-	const LIMITS = "\\limits";
-	if (eqn.substring(end, end + LIMITS.length) === LIMITS) {
-		return end + LIMITS.length;
+function atSamePosAfter(
+	update: ViewUpdate,
+	oldConceal: ConcealSpec,
+	newConceal: ConcealSpec,
+): boolean {
+	if (oldConceal.length !== newConceal.length) return false;
+
+	for (let i = 0; i < oldConceal.length; ++i) {
+		// Set associativity to ensure that insertions on either side of the
+		// concealed region do not expand the region
+		const oldStartUpdated = update.changes.mapPos(oldConceal[i].start, 1);
+		const oldEndUpdated = update.changes.mapPos(oldConceal[i].end, -1);
+		const b = oldStartUpdated == newConceal[i].start && oldEndUpdated == newConceal[i].end;
+		if (!b) return false;
 	}
-	return end;
+
+	return true;
 }
 
-function concealSymbols(eqn: string, prefix: string, suffix: string, symbolMap: {[key: string]: string}, className?: string, allowSucceedingLetters = true):Concealment[] {
-	const symbolNames = Object.keys(symbolMap);
+function determineCursorPosType(
+	sel: EditorSelection,
+	concealSpec: ConcealSpec,
+): Concealment["cursorPosType"] {
+	// Priority: "within" > "edge" > "apart"
 
-	const regexStr = prefix + "(" + escapeRegex(symbolNames.join("|")) + ")" + suffix;
-	const symbolRegex = new RegExp(regexStr, "g");
+	let cursorPosType: Concealment["cursorPosType"] = "apart";
 
+	for (const range of sel.ranges) {
+		for (const replace of concealSpec) {
+			// 'cursorPosType' is guaranteed to be "edge" or "apart" at this point
+			const overlapRangeFrom = Math.max(range.from, replace.start);
+			const overlapRangeTo = Math.min(range.to, replace.end);
 
-	const matches = [...eqn.matchAll(symbolRegex)];
-
-	const concealments:Concealment[] = [];
-
-	for (const match of matches) {
-		const symbol = match[1];
-
-		if (!allowSucceedingLetters) {
-			// If the symbol match is succeeded by a letter (e.g. "pm" in "pmatrix" is succeeded by "a"), don't conceal
-
-			const end = match.index + match[0].length;
-			if (eqn.charAt(end).match(/[a-zA-Z]/)) {
+			if (
+				overlapRangeFrom === overlapRangeTo &&
+				(overlapRangeFrom === replace.start || overlapRangeFrom === replace.end)
+			) {
+				cursorPosType = "edge";
 				continue;
 			}
+
+			if (overlapRangeFrom <= overlapRangeTo) return "within";
 		}
-
-		const end = getEndIncludingLimits(eqn, match.index + match[0].length);
-
-		concealments.push({start: match.index, end: end, replacement: symbolMap[symbol], class: className});
 	}
 
-	return concealments;
+	return cursorPosType;
 }
 
-function concealModifier(eqn: string, modifier: string, combiningCharacter: string):Concealment[] {
+/*
+* We determine how to handle a concealment based on its 'cursorPosType' before
+* and after an update and current mousedown state.
+*
+* When the mouse is down, we enable all concealments to make selecting math
+* expressions easier.
+*
+* When the mouse is up, we follow the table below.
+* The row represents the previous 'cursorPosType' and the column represents the
+* current 'cursorPosType'. Each cell contains the action to be taken.
+*
+*        |  apart  |  edge  | within
+* -----------------------------------
+* apart  | conceal | delay  | reveal
+* edge   | conceal | delay  | reveal
+* within | conceal | reveal | reveal
+* N/A    | conceal | reveal | reveal
+*
+* 'N/A' means that the concealment do not exist before the update, which should
+* be judged by 'atSamePosAfter' function.
+*/
+function determineAction(
+	oldCursor: Concealment["cursorPosType"] | undefined,
+	newCursor: Concealment["cursorPosType"],
+	mousedown: boolean,
+	delayEnabled: boolean,
+): ConcealAction {
+	if (mousedown) return "conceal";
 
-	const regexStr = ("\\\\" + modifier + "{([A-Za-z])}");
-	const symbolRegex = new RegExp(regexStr, "g");
+	if (newCursor === "apart") return "conceal";
+	if (newCursor === "within") return "reveal";
 
-
-	const matches = [...eqn.matchAll(symbolRegex)];
-
-	const concealments:Concealment[] = [];
-
-	for (const match of matches) {
-		const symbol = match[1];
-
-		concealments.push({start: match.index, end: match.index + match[0].length, replacement: symbol + combiningCharacter, class: "latex-suite-unicode"});
-	}
-
-	return concealments;
+	// newCursor === "edge"
+	if (!delayEnabled) return "reveal";
+	// delay is enabled
+	if (!oldCursor || oldCursor === "within") return "reveal";
+	else return "delay";
 }
 
-function concealSupSub(eqn: string, superscript: boolean, symbolMap: {[key: string]:string}):Concealment[] {
+// Build a decoration set from the given concealments
+function buildDecoSet(concealments: Concealment[]) {
+	const decos: Range<Decoration>[] = []
 
-	const prefix = superscript ? "\\^" : "_";
-	const regexStr = prefix + "{([A-Za-z0-9\\()\\[\\]/+-=<>':;\\\\ *]+)}";
-	const regex = new RegExp(regexStr, "g");
+	for (const conc of concealments) {
+		if (!conc.enable) continue;
 
-	const matches = [...eqn.matchAll(regex)];
-
-
-	const concealments:Concealment[] = [];
-
-	for (const match of matches) {
-
-		const exponent = match[1];
-		const elementType = superscript ? "sup" : "sub";
-
-
-		// Conceal super/subscript symbols as well
-		const symbolNames = Object.keys(symbolMap);
-
-		const symbolRegexStr = "\\\\(" + escapeRegex(symbolNames.join("|")) + ")";
-		const symbolRegex = new RegExp(symbolRegexStr, "g");
-
-		const replacement = exponent.replace(symbolRegex, (a, b) => {
-			return symbolMap[b];
-		});
-
-
-		concealments.push({start: match.index, end: match.index + match[0].length, replacement: replacement, class: "cm-number", elementType: elementType});
-	}
-
-	return concealments;
-}
-
-function concealModified_A_to_Z_0_to_9(eqn: string, mathBBsymbolMap: {[key: string]:string}):Concealment[] {
-
-	const regexStr = "\\\\(mathbf|boldsymbol|underline|mathrm|text|mathbb){([A-Za-z0-9 ]+)}";
-	const regex = new RegExp(regexStr, "g");
-
-	const matches = [...eqn.matchAll(regex)];
-
-	const concealments:Concealment[] = [];
-
-	for (const match of matches) {
-		const type = match[1];
-		const value = match[2];
-
-		const start = match.index;
-		const end = start + match[0].length;
-
-		if (type === "mathbf" || type === "boldsymbol") {
-			concealments.push({start: start, end: end, replacement: value, class: "cm-concealed-bold"});
-		}
-		else if (type === "underline") {
-			concealments.push({start: start, end: end, replacement: value, class: "cm-concealed-underline"});
-		}
-		else if (type === "mathrm") {
-			concealments.push({start: start, end: end, replacement: value, class: "cm-concealed-mathrm"});
-		}
-		else if (type === "text") {
-			// Conceal _\text{}
-			if (start > 0 && eqn.charAt(start - 1) === "_") {
-				concealments.push({start: start - 1, end: end, replacement: value, class: "cm-concealed-mathrm", elementType: "sub"});
+		for (const replace of conc.spec) {
+			if (replace.start === replace.end) {
+				// Add an additional "/" symbol, as part of concealing \\frac{}{} -> ()/()
+				decos.push(
+					Decoration.widget({
+						widget: new TextWidget(replace.text),
+						block: false,
+					}).range(replace.start, replace.end)
+				);
 			}
-		}
-		else if (type === "mathbb") {
-			const letters = Array.from(value);
-			const replacement = letters.map(el => mathBBsymbolMap[el]).join("");
-			concealments.push({start: start, end: end, replacement: replacement});
-		}
-
-	}
-
-	return concealments;
-}
-
-function concealModifiedGreekLetters(eqn: string, greekSymbolMap: {[key: string]:string}):Concealment[] {
-
-	const greekSymbolNames = Object.keys(greekSymbolMap);
-	const regexStr = "\\\\(underline|boldsymbol){\\\\(" + escapeRegex(greekSymbolNames.join("|"))  + ")}";
-	const regex = new RegExp(regexStr, "g");
-
-	const matches = [...eqn.matchAll(regex)];
-
-	const concealments:Concealment[] = [];
-
-	for (const match of matches) {
-		const type = match[1];
-		const value = match[2];
-
-		const start = match.index;
-		const end = start + match[0].length;
-
-		if (type === "underline") {
-			concealments.push({start: start, end: end, replacement: greekSymbolMap[value], class: "cm-concealed-underline"});
-		}
-		else if (type === "boldsymbol") {
-			concealments.push({start: start, end: end, replacement: greekSymbolMap[value], class: "cm-concealed-bold"});
-		}
-	}
-
-	return concealments;
-}
-
-function concealText(eqn: string):Concealment[] {
-
-	const regexStr = "\\\\text{([A-Za-z0-9-.!?() ]+)}";
-	const regex = new RegExp(regexStr, "g");
-
-	const matches = [...eqn.matchAll(regex)];
-
-	const concealments:Concealment[] = [];
-
-	for (const match of matches) {
-		const value = match[1];
-
-		const start = match.index;
-		const end = start + match[0].length;
-
-		concealments.push({start: start, end: end, replacement: value, class: "cm-concealed-mathrm cm-variable-2"});
-
-	}
-
-	return concealments;
-}
-
-function concealOperators(eqn: string, symbols: string[]):Concealment[] {
-
-	const regexStr = "(\\\\(" + symbols.join("|") + "))([^a-zA-Z]|$)";
-	const regex = new RegExp(regexStr, "g");
-
-	const matches = [...eqn.matchAll(regex)];
-
-	const concealments:Concealment[] = [];
-
-	for (const match of matches) {
-		const value = match[2];
-
-		const start = match.index;
-		const end = getEndIncludingLimits(eqn, start + match[1].length);
-
-		concealments.push({start: start, end: end, replacement: value, class: "cm-concealed-mathrm cm-variable-2"});
-	}
-
-	return concealments;
-}
-
-function concealAtoZ(eqn: string, prefix: string, suffix: string, symbolMap: {[key: string]: string}, className?: string):Concealment[] {
-
-	const regexStr = prefix + "([A-Z]+)" + suffix;
-	const symbolRegex = new RegExp(regexStr, "g");
-
-
-	const matches = [...eqn.matchAll(symbolRegex)];
-
-	const concealments:Concealment[] = [];
-
-	for (const match of matches) {
-		const symbol = match[1];
-		const letters = Array.from(symbol);
-		const replacement = letters.map(el => symbolMap[el]).join("");
-
-		concealments.push({start: match.index, end: match.index + match[0].length, replacement: replacement, class: className});
-	}
-
-	return concealments;
-}
-
-function concealBraKet(eqn: string, selection: EditorSelection, eqnStartBound: number, mousedown: boolean):Concealment[] {
-	const langle = "〈";
-	const rangle = "〉";
-	const vert = "|";
-
-	const regexStr = "\\\\(braket|bra|ket){";
-	const symbolRegex = new RegExp(regexStr, "g");
-
-	const matches = [...eqn.matchAll(symbolRegex)];
-
-	const concealments:Concealment[] = [];
-
-	for (const match of matches) {
-		const loc = match.index + match[0].length;
-		const j = findMatchingBracket(eqn, loc-1, "{", "}", false);
-
-		if (j === -1) continue;
-
-		const start = match.index;
-		const end = start + match[0].length;
-
-		if (!mousedown) {
-			if (selectionAndRangeOverlap(selection, eqnStartBound + start, eqnStartBound + end)) continue;
-			if (selectionAndRangeOverlap(selection, eqnStartBound + j, eqnStartBound + j + 1)) continue;
-		}
-
-
-		const type = match[1];
-		const left = type === "ket" ? vert : langle;
-		const right = type === "bra" ? vert : rangle;
-
-
-		concealments.push({start: start, end: end - 1, replacement: ""});
-		concealments.push({start: end - 1, end: end, replacement: left, class: "cm-bracket"});
-		concealments.push({start: j, end: j + 1, replacement: right, class: "cm-bracket"});
-	}
-
-	return concealments;
-}
-
-function concealSet(eqn: string, selection: EditorSelection, eqnStartBound: number, mousedown: boolean): Concealment[] {
-
-	const setRegex = /\\set\{/g;
-
-	const matches = [...eqn.matchAll(setRegex)];
-
-	const concealments: Concealment[] = [];
-
-	for (const match of matches) {
-		const start = match.index;
-		const end = start + match[0].length;
-
-		const loc = match.index + match[0].length;
-		const j = findMatchingBracket(eqn, loc-1, "{", "}", false);
-		if (j === -1) { continue; }
-
-		if (!mousedown) {
-			if (selectionAndRangeOverlap(selection, eqnStartBound + start, eqnStartBound + end)) { continue; }
-			if (selectionAndRangeOverlap(selection, eqnStartBound + j, eqnStartBound + j + 1)) { continue; }
-		}
-
-		concealments.push({start: start, end: end - 1, replacement: ""});
-		concealments.push({start: end - 1, end: end, replacement: "{", class: "cm-bracket"});
-		concealments.push({start: j, end: j + 1, replacement: "}", class: "cm-bracket"});
-	}
-
-	return concealments;
-}
-
-function concealFraction(eqn: string, selection: EditorSelection, eqnStartBound: number, mousedown: boolean):Concealment[] {
-
-	const regexStr = "\\\\(frac){";
-	const symbolRegex = new RegExp(regexStr, "g");
-
-	const matches = [...eqn.matchAll(symbolRegex)];
-
-	const concealments:Concealment[] = [];
-
-	for (const match of matches) {
-		const loc = match.index + match[0].length;
-		const j = findMatchingBracket(eqn, loc-1, "{", "}", false);
-		if (j === -1) continue;
-
-		const charAfterFirstBracket = eqn.charAt(j+1);
-		if (charAfterFirstBracket != "{") continue;
-		const k = findMatchingBracket(eqn, j+1, "{", "}", false);
-		if (k === -1) continue;
-
-		const start = match.index;
-		const end = start + match[0].length;
-
-		if (!mousedown) {
-			if (selectionAndRangeOverlap(selection, eqnStartBound + start, eqnStartBound + end)) continue;
-			if (selectionAndRangeOverlap(selection, eqnStartBound + j, eqnStartBound + j + 2)) continue;
-			if (selectionAndRangeOverlap(selection, eqnStartBound + k, eqnStartBound + k + 1)) continue;
-		}
-
-
-		concealments.push({start: start, end: end - 1, replacement: ""});
-		concealments.push({start: end - 1, end: end, replacement: "(", class: "cm-bracket"});
-		concealments.push({start: j, end: j + 1, replacement: ")", class: "cm-bracket"});
-		concealments.push({start: j + 1, end: j + 1, replacement: "/", class: "cm-bracket"});
-		concealments.push({start: j + 1, end: j + 2, replacement: "(", class: "cm-bracket"});
-		concealments.push({start: k, end: k + 1, replacement: ")", class: "cm-bracket"});
-	}
-
-	return concealments;
-}
-
-function conceal(view: EditorView) {
-
-	const widgets: Range<Decoration>[] = [];
-	const selection = view.state.selection;
-
-	// Make selecting LaTeX source easier
-	// By always applying conceal when the mouse is down (the user is making a selection)
-	// And not revealing source until the mouse is up
-	const mousedown = view.plugin(livePreviewState)?.mousedown;
-
-
-	for (const { from, to } of view.visibleRanges) {
-
-		syntaxTree(view.state).iterate({ from, to, enter: (node) => {
-			const type = node.type;
-			const to = node.to;
-
-			if (!(type.name.contains("begin") && type.name.contains("math"))) {
-				return;
-			}
-
-			const bounds = getEquationBounds(view.state, to);
-			if (!bounds) return;
-
-
-			const eqn = view.state.doc.sliceString(bounds.start, bounds.end);
-
-
-			const ALL_SYMBOLS = {...greek, ...cmd_symbols};
-
-			const concealments = [
-				...concealSymbols(eqn, "\\^", "", map_super),
-				...concealSymbols(eqn, "_", "", map_sub),
-				...concealSymbols(eqn, "\\\\frac", "", fractions),
-				...concealSymbols(eqn, "\\\\", "", ALL_SYMBOLS, undefined, false),
-				...concealSupSub(eqn, true, ALL_SYMBOLS),
-				...concealSupSub(eqn, false, ALL_SYMBOLS),
-				...concealModifier(eqn, "hat", "\u0302"),
-				...concealModifier(eqn, "dot", "\u0307"),
-				...concealModifier(eqn, "ddot", "\u0308"),
-				...concealModifier(eqn, "overline", "\u0304"),
-				...concealModifier(eqn, "bar", "\u0304"),
-				...concealModifier(eqn, "tilde", "\u0303"),
-				...concealModifier(eqn, "vec", "\u20D7"),
-				...concealSymbols(eqn, "\\\\", "", brackets, "cm-bracket"),
-				...concealAtoZ(eqn, "\\\\mathcal{", "}", mathscrcal),
-				...concealModifiedGreekLetters(eqn, greek),
-				...concealModified_A_to_Z_0_to_9(eqn, mathbb),
-				...concealText(eqn),
-				...concealBraKet(eqn, selection, bounds.start, mousedown),
-				...concealSet(eqn, selection, bounds.start, mousedown),
-				...concealFraction(eqn, selection, bounds.start, mousedown),
-				...concealOperators(eqn, operators)
-			];
-
-
-			for (const concealment of concealments) {
-				const start = bounds.start + concealment.start;
-				const end = bounds.start + concealment.end;
-				const symbol = concealment.replacement;
-
+			else {
 				// Improve selecting empty replacements such as "\frac" -> ""
-				let inclusiveStart = false;
-				let inclusiveEnd = false;
-				if (symbol === "") {
-					inclusiveStart = true;
-				}
+				// NOTE: This might not be necessary
+				const inclusiveStart = replace.text === "";
+				const inclusiveEnd = false;
 
-				if (!mousedown && selectionAndRangeOverlap(selection, start, end)) continue;
-
-				if (start === end) {
-					// Add an additional "/" symbol, as part of concealing \\frac{}{} -> ()/()
-					widgets.push(
-						Decoration.widget({
-							widget: new TextWidget(symbol),
-							block: false
-						}).range(start, end)
-					);
-				}
-				else {
-					widgets.push(
-						Decoration.replace({
-							widget: new ConcealWidget(symbol, concealment.class, concealment.elementType),
-							inclusiveStart: inclusiveStart,
-							inclusiveEnd: inclusiveEnd,
-							block: false,
-						}).range(start, end)
-					);
-				}
+				decos.push(
+					Decoration.replace({
+						widget: new ConcealWidget(
+							replace.text,
+							replace.class,
+							replace.elementType
+						),
+						inclusiveStart,
+						inclusiveEnd,
+						block: false,
+					}).range(replace.start, replace.end)
+				);
 			}
 		}
-
-		});
 	}
 
-	return Decoration.set(widgets, true);
+	return Decoration.set(decos, true);
 }
 
-export const concealPlugin = ViewPlugin.fromClass(class {
-	decorations: DecorationSet
-	constructor(view: EditorView) {
-		this.decorations = conceal(view)
+// Build atomic ranges from the given concealments.
+// The resulting ranges are basically the same as the original replacements, but empty replacements
+// are merged with the "next character," which can be either plain text or another replacement.
+// This adjustment makes cursor movement around empty replacements more intuitive.
+function buildAtomicRanges(concealments: Concealment[]) {
+	const repls: Replacement[] = concealments
+		.filter(c => c.enable)
+		.flatMap(c => c.spec)
+		.sort((a, b) => a.start - b.start);
+
+	// RangeSet requires RangeValue but we do not need one
+	const fakeval = new (class extends RangeValue {});
+	const builder = new RangeSetBuilder();
+	for (let i = 0; i < repls.length; i++) {
+		if (repls[i].text === "") {
+			if (i+1 != repls.length && repls[i].end == repls[i+1].start) {
+				builder.add(repls[i].start, repls[i+1].end, fakeval);
+				i++;
+			} else {
+				builder.add(repls[i].start, repls[i].end + 1, fakeval);
+			}
+		} else {
+			builder.add(repls[i].start, repls[i].end, fakeval);
+		}
 	}
+	return builder.finish();
+}
+
+export const mkConcealPlugin = (revealTimeout: number) => ViewPlugin.fromClass(class {
+	// Stateful ViewPlugin: you should avoid one in general, but here
+	// the approach based on StateField and updateListener conflicts with
+	// obsidian's internal logic and causes weird rendering.
+	concealments: Concealment[];
+	decorations: DecorationSet;
+	atomicRanges: RangeSet<RangeValue>;
+	delayEnabled: boolean;
+
+
+	constructor() {
+		this.concealments = [];
+		this.decorations = Decoration.none;
+		this.atomicRanges = RangeSet.empty;
+		this.delayEnabled = revealTimeout > 0;
+	}
+
+	delayedReveal = debounce((delayedConcealments: Concealment[], view: EditorView) => {
+		// Implicitly change the state
+		for (const concealment of delayedConcealments) {
+			concealment.enable = false;
+		}
+		this.decorations = buildDecoSet(this.concealments);
+		this.atomicRanges = buildAtomicRanges(this.concealments);
+
+		// Invoke the update method to reflect the changes of this.decoration
+		view.dispatch();
+	}, revealTimeout, true);
+
 	update(update: ViewUpdate) {
-		if (update.docChanged || update.viewportChanged || update.selectionSet)
-			this.decorations = conceal(update.view)
+		if (!(update.docChanged || update.viewportChanged || update.selectionSet))
+			return;
+
+		// Cancel the delayed revealment whenever we update the concealments
+		this.delayedReveal.cancel();
+
+		const selection = update.state.selection;
+		const mousedown = update.view.plugin(livePreviewState)?.mousedown;
+
+		const concealSpecs = conceal(update.view);
+
+		// Collect concealments from the new conceal specs
+		const concealments: Concealment[] = [];
+		// concealments that should be revealed after a delay (i.e. 'delay' action)
+		const delayedConcealments: Concealment[] = [];
+
+		for (const spec of concealSpecs) {
+			const cursorPosType = determineCursorPosType(selection, spec);
+			const oldConcealment = this.concealments.find(
+				(old) => atSamePosAfter(update, old.spec, spec)
+			);
+
+			const concealAction = determineAction(
+				oldConcealment?.cursorPosType, cursorPosType, mousedown, this.delayEnabled
+			);
+
+			const concealment: Concealment = {
+				spec,
+				cursorPosType,
+				enable: concealAction !== "reveal",
+			};
+
+			if (concealAction === "delay") {
+				delayedConcealments.push(concealment);
+			}
+
+			concealments.push(concealment);
+		}
+
+		if (delayedConcealments.length > 0) {
+			this.delayedReveal(delayedConcealments, update.view);
+		}
+
+		this.concealments = concealments;
+		this.decorations = buildDecoSet(this.concealments);
+		this.atomicRanges = buildAtomicRanges(this.concealments);
 	}
-}, { decorations: v => v.decorations, });
+}, {
+	decorations: v => v.decorations,
+	provide: plugin => EditorView.atomicRanges.of(view => view.plugin(plugin).atomicRanges),
+});

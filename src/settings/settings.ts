@@ -15,6 +15,7 @@ interface LatexSuiteBasicSettings {
 	snippetVariablesFileLocation: string;
 	autofractionEnabled: boolean;
 	concealEnabled: boolean;
+	concealRevealTimeout: number;
 	colorPairedBracketsEnabled: boolean;
 	highlightCursorBracketsEnabled: boolean;
 	mathPreviewEnabled: boolean;
@@ -62,6 +63,7 @@ export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
 	snippetsFileLocation: "",
 	snippetVariablesFileLocation: "",
 	concealEnabled: false,
+	concealRevealTimeout: 0,
 	colorPairedBracketsEnabled: true,
 	highlightCursorBracketsEnabled: true,
 	mathPreviewEnabled: true,
