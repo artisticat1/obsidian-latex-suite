@@ -20,7 +20,7 @@ export const runMatrixShortcuts = (view: EditorView, ctx: Context, key: string, 
 	if (!isInsideAnEnv) return false;
 
 
-	if (key === "Tab") {
+	if (key === "Tab" && !shiftKey) {
 		view.dispatch(view.state.replaceSelection(" & "));
 
 		return true;
@@ -34,6 +34,9 @@ export const runMatrixShortcuts = (view: EditorView, ctx: Context, key: string, 
 			const nextLine = d.line(nextLineNo);
 
 			setCursor(view, nextLine.to);
+		}
+		else if (ctx.mode.inlineMath) {
+			view.dispatch(view.state.replaceSelection(" \\\\ "));
 		}
 		else {
 			view.dispatch(view.state.replaceSelection(" \\\\\n"));
