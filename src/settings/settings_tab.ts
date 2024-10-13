@@ -143,27 +143,49 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		const containerEl = this.containerEl;
 		this.addHeading(containerEl, "Conceal", "math-integral-x");
 
-		{
-			const fragment = new DocumentFragment();
-			fragment.createDiv({}, div => div.setText("Make equations more readable by hiding LaTeX markup and instead displaying it in a pretty format."));
-			fragment.createDiv({}, div => div.innerHTML = `
-				e.g. <code>\\dot{x}^{2} + \\dot{y}^{2}</code> will display as ẋ² + ẏ², and <code>\\sqrt{ 1-\\beta^{2} }</code> will display as √{ 1-β² }.
-			`);
-			fragment.createDiv({}, div => div.setText("LaTeX beneath the cursor will be revealed."));
-			fragment.createEl("br");
-			fragment.createDiv({}, div => div.setText("Disabled by default to not confuse new users. However, I recommend turning this on once you are comfortable with the plugin!"));
+		const fragment = new DocumentFragment();
+		fragment.createDiv({}, div => div.setText("Make equations more readable by hiding LaTeX syntax and instead displaying it in a pretty format."));
+		fragment.createDiv({}, div => div.innerHTML = `
+			e.g. <code>\\dot{x}^{2} + \\dot{y}^{2}</code> will display as ẋ² + ẏ², and <code>\\sqrt{ 1-\\beta^{2} }</code> will display as √{ 1-β² }.
+		`);
+		fragment.createDiv({}, div => div.setText("LaTeX beneath the cursor will be revealed."));
+		fragment.createEl("br");
+		fragment.createDiv({}, div => div.setText("Disabled by default to not confuse new users. However, I recommend turning this on once you are comfortable with the plugin!"));
 
-			new Setting(containerEl)
-				.setName("Enabled")
-				.setDesc(fragment)
-				.addToggle(toggle => toggle
-					.setValue(this.plugin.settings.concealEnabled)
-					.onChange(async (value) => {
-						this.plugin.settings.concealEnabled = value;
-						await this.plugin.saveSettings();
-					})
-				);
-		}
+		new Setting(containerEl)
+			.setName("Enabled")
+			.setDesc(fragment)
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.concealEnabled)
+				.onChange(async (value) => {
+					this.plugin.settings.concealEnabled = value;
+					await this.plugin.saveSettings();
+				})
+			);
+
+		const fragment2 = new DocumentFragment();
+		fragment2.createDiv({}, div => div.setText("How long to delay the reveal of LaTeX for, in milliseconds, when the cursor moves over LaTeX. Defaults to 0 (LaTeX under the cursor is revealed immediately)."));
+		fragment2.createEl("br");
+		fragment2.createDiv({}, div => div.setText("Can be set to a positive number, e.g. 300, to delay the reveal of LaTeX, making it much easier to navigate equations using arrow keys."));
+		fragment2.createEl("br");
+		fragment2.createDiv({}, div => div.setText("Must be an integer ≥ 0."));
+
+		new Setting(containerEl)
+			.setName("Reveal delay (ms)")
+			.setDesc(fragment2)
+			.addText(text => text
+				.setPlaceholder(String(DEFAULT_SETTINGS.concealRevealTimeout))
+				.setValue(String(this.plugin.settings.concealRevealTimeout))
+				.onChange(value => {
+					// Make sure the value is a non-negative integer
+					const ok = /^\d+$/.test(value);
+					if (ok) {
+						this.plugin.settings.concealRevealTimeout = Number(value);
+						this.plugin.saveSettings();
+					}
+				})
+			);
+
 	}
 
 	private displayColorHighlightBracketsSettings() {
