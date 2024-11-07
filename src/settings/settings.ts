@@ -82,7 +82,7 @@ export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
 		["^{", "}"],
 		["\\\\pu{", "}"]
 	]`,
-	matrixShortcutsEnvNames: "pmatrix, cases, align, bmatrix, Bmatrix, vmatrix, Vmatrix, array, matrix",
+	matrixShortcutsEnvNames: "pmatrix, cases, align, gather, bmatrix, Bmatrix, vmatrix, Vmatrix, array, matrix",
 	autoEnlargeBracketsTriggers: "sum, int, frac, prod, bigcup, bigcap",
 	forceMathLanguages: "math",
 }
