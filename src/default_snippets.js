@@ -50,6 +50,7 @@
 	{trigger: "ee", replacement: "e^{ $0 }$1", options: "mA"},
     {trigger: "invs", replacement: "^{-1}", options: "mA"},
     {trigger: /([A-Za-z])(\d)/, replacement: "[[0]]_{[[1]]}", options: "rmA", description: "Auto letter subscript", priority: -1},
+	{trigger: "\\\\(${MORE_SYMBOLS}|${SYMBOL})(.)", replacement: "\\[[0]] [[1]]", options: "rmA", description: "Manage symbols exceptions"}
 
     {trigger: /([^\\])(exp|log|ln)/, replacement: "[[0]]\\[[1]]", options: "rmA"},
     {trigger: "conj", replacement: "^{*}", options: "mA"},
