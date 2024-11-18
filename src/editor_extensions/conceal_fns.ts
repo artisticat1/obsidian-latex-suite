@@ -410,22 +410,22 @@ function concealFraction(eqn: string): ConcealSpec[] {
 }
 
 function concealOperatorname(eqn) {
-  const regexStr = "\\\\operatorname{([A-Za-z]+)}";
-  const regex = new RegExp(regexStr, "g");
-  const matches = [...eqn.matchAll(regex)];
-  const specs = [];
-  for (const match of matches) {
-    const value = match[1];
-    const start2 = match.index;
-    const end2 = start2 + match[0].length;
-    specs.push(mkConcealSpec({
-      start: start2,
-      end: end2,
-      text: value,
-      class: "cm-concealed-mathrm cm-variable-2"
-    }));
-  }
-  return specs;
+	const regexStr = "\\\\operatorname{([A-Za-z]+)}";
+	const regex = new RegExp(regexStr, "g");
+	const matches = [...eqn.matchAll(regex)];
+	const specs = [];
+	for (const match of matches) {
+		const value = match[1];
+		const start2 = match.index;
+		const end2 = start2 + match[0].length;
+		specs.push(mkConcealSpec({
+			start: start2,
+			end: end2,
+			text: value,
+			class: "cm-concealed-mathrm cm-variable-2"
+		}));
+	}
+	return specs;
 }
 
 export function conceal(view: EditorView): ConcealSpec[] {
