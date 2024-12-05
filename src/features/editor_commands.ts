@@ -1,8 +1,10 @@
-import { Editor } from "obsidian";
+import { Editor, EditorSelection } from "obsidian";
 import { EditorView } from "@codemirror/view";
 import { replaceRange, setCursor, setSelection } from "../utils/editor_utils";
 import LatexSuitePlugin from "src/main";
 import { Context } from "src/utils/context";
+import { CodeMirrorEditor, Vim } from "src/utils/vim_types";
+import { LatexSuitePluginSettings } from "src/settings/settings";
 
 
 function boxCurrentEquation(view: EditorView) {
@@ -125,3 +127,55 @@ export const getEditorCommands = (plugin: LatexSuitePlugin) => {
 		getDisableAllFeaturesCommand(plugin)
 	];
 };
+
+export interface vimCommand {
+	id: string;
+	defineType: "defineMotion"| "defineOperator" | "defineAction";
+	type: "action" | "operator" | "motion";
+	action: (cm: CodeMirrorEditor) => void;
+	key: string;
+	context?: "normal" | "visual" | "replace" | "insert";
+}
+export function getVimSelectModeCommand(settings: LatexSuitePluginSettings): vimCommand {
+	return {
+		id: "latex-suite-vim-select-mode",
+		defineType: "defineAction",
+		type: "action",
+		// copies current selection and selects it again since changing vim modes deletes the selection
+		action: (cm: CodeMirrorEditor) =>  {
+			//@ts-ignore undocumented object
+			const vimObject: Vim | null = window?.CodeMirrorAdapter?.Vim;
+			if (!vimObject) return;
+			const selection: EditorSelection[] = cm.listSelections();
+			vimObject.enterInsertMode(cm);
+			cm.setSelections(selection);
+		},
+		key: settings.vimSelectMode,
+		context: "visual",
+	}
+}
+export function getVimVisualModeCommand(settings: LatexSuitePluginSettings): vimCommand {
+	return {
+		id: "latex-suite-vim-visual-mode",
+		defineType: "defineAction",
+		type: "action",
+		// copies current selection and selects it again since changing vim modes deletes the selection
+		action: (cm: CodeMirrorEditor) => {
+			if (!cm.somethingSelected()) return;
+			const selection: EditorSelection[] = cm.listSelections();
+			//@ts-ignore undocumented object
+			const vimObject: Vim | null = window?.CodeMirrorAdapter?.Vim;
+			if (!vimObject) return;
+			vimObject.exitInsertMode(cm);
+			cm.setSelections(selection);
+		},
+		key: settings.vimVisualMode,
+		context: "insert",
+	}
+}
+export function getVimEditorCommands(settings: LatexSuitePluginSettings): vimCommand[] {
+	return [
+		getVimSelectModeCommand(settings),
+		getVimVisualModeCommand(settings),
+	]
+}
