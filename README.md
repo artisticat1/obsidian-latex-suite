@@ -70,7 +70,7 @@ While inside a matrix, array, align, or cases environment,
 
 
 ### Conceal
-**This feature must be enabled in the plugin settings!**
+**This feature must be enabled in the plugin settings.**
 
 Make your equations more readable by hiding LaTeX markup and instead displaying it in a pretty format.
 
