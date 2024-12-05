@@ -5,7 +5,7 @@ import { LatexSuitePluginSettings, DEFAULT_SETTINGS, LatexSuiteCMSettings, proce
 import { LatexSuiteSettingTab } from "./settings/settings_tab";
 import { ICONS } from "./settings/ui/icons";
 
-import { getEditorCommands } from "./features/editor_commands";
+import { getEditorCommands, getVimEditorCommands } from "./features/editor_commands";
 import { getLatexSuiteConfigExtension } from "./snippets/codemirror/config";
 import { SnippetVariables, parseSnippetVariables, parseSnippets } from "./snippets/parse";
 import { handleUpdate, onKeydown } from "./latex_suite";
@@ -14,6 +14,7 @@ import { snippetExtensions } from "./snippets/codemirror/extensions";
 import { mkConcealPlugin } from "./editor_extensions/conceal";
 import { colorPairedBracketsPluginLowestPrec, highlightCursorBracketsPlugin } from "./editor_extensions/highlight_brackets";
 import { cursorTooltipBaseTheme, cursorTooltipField } from "./editor_extensions/math_tooltip";
+import { Vim } from "./utils/vim_types";
 
 export default class LatexSuitePlugin extends Plugin {
 	settings: LatexSuitePluginSettings;
@@ -204,6 +205,20 @@ export default class LatexSuitePlugin extends Plugin {
 		for (const command of getEditorCommands(this)) {
 			this.addCommand(command);
 		}
+		vimcommand:  {
+			//check if vim is enabled and accessible
+			//@ts-ignore
+			if (!app?.isVimEnabled()) break vimcommand;
+			if (!this.settings.vimEnabled) break vimcommand;
+			//@ts-ignore undocumented object
+			const vimObject: Vim | null = window?.CodeMirrorAdapter?.Vim;
+			if (!vimObject) break vimcommand;
+			for (const command of getVimEditorCommands(this.settings)) {
+				vimObject[command.defineType](command.id, command.action);
+				vimObject.mapCommand(command.key, command.type, command.id, {}, { context: command.context });
+			}
+		}
+		
 	}
 
 	watchFiles() {

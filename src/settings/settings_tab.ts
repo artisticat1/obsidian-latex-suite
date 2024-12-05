@@ -7,6 +7,8 @@ import LatexSuitePlugin from "../main";
 import { DEFAULT_SETTINGS } from "./settings";
 import { FileSuggest } from "./ui/file_suggest";
 import { basicSetup } from "./ui/snippets_editor/extensions";
+import { getVimSelectModeCommand, vimCommand, getVimVisualModeCommand, getVimEditorCommands } from "src/features/editor_commands";
+import { Vim } from "src/utils/vim_types";
 
 
 export class LatexSuiteSettingTab extends PluginSettingTab {
@@ -492,6 +494,79 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 					await this.plugin.saveSettings();
 				}));
+		//The toggle both hides the settings and makes the plugin not load the vim commands on startup.
+		// the vim toggle is loaded before the rest since expanding down looks better.
+		const vimEnabled: Setting = new Setting(containerEl)
+			.setName("Vim key bindings")
+			.setDesc("turn on/off vim keybindings. Note vim needs to be enabled in obsidian itself.")
+		const vimSettings: Setting[] = [];
+		const selectMode: Setting = new Setting(containerEl)
+			.setName("Vim: Switch from visual mode to select mode")
+			.setDesc(`maps the key to switch from visual mode to select mode.
+				 Keymap must be a vim keymap and can't contain any spaces.
+				  (select mode=insert keybindings)`)
+			.addText((text) =>
+				text.setPlaceholder(DEFAULT_SETTINGS.vimSelectMode)
+				.setValue(this.plugin.settings.vimSelectMode)
+				.onChange(async (value) => {
+					const oldValue: string = this.plugin.settings.vimSelectMode;
+				this.plugin.settings.vimSelectMode = value;
+				await this.plugin.saveSettings();	
+				//@ts-ignore undocumented object
+				const vimObject: Vim | null = window?.CodeMirrorAdapter?.Vim;
+				if (!vimObject) return;
+				const command: vimCommand = getVimSelectModeCommand(this.plugin.settings);
+				vimObject[command.defineType](command.id, command.action);
+				vimObject.mapCommand(command.key, command.type, command.id, {}, { context: command.context });
+					// this unmaps the current keybinding and reverts to the previous keyMap. For example if oldValue = "<C-c>", then "<C-c>" goes back to "enter normal mode" in default settings.
+				vimObject.unmap(oldValue, command.context);
+				})
+			);
+		vimSettings.push(selectMode);
+		const visualMode = new Setting(containerEl)
+			.setName("Vim: Switch from select mode to visual mode")
+			.setDesc(`maps the key to switch from select mode to visual mode. 
+				 must be a vim keymap and can't contain any spaces. Example <C-g><C-A-i> = Ctrl-g + Ctrl-Alt-i.
+				 Please check the vim keybinding first on another command like w before reporting it. Some keybindings like shift don't work due to the original vim plugin.
+				  (select mode=insert keybindings)`)
+			.addText((text) =>{
+				text.setPlaceholder(DEFAULT_SETTINGS.vimVisualMode)
+				.setValue(this.plugin.settings.vimVisualMode)
+				.onChange(async (value) => {
+					const oldvalue: string = this.plugin.settings.vimVisualMode;
+					this.plugin.settings.vimVisualMode = value;
+					await this.plugin.saveSettings();	
+					const command: vimCommand = getVimVisualModeCommand(this.plugin.settings);
+					//@ts-ignore undocumented object
+					const vimObject: Vim | null = window?.CodeMirrorAdapter?.Vim;
+					if (!vimObject) return;
+					vimObject[command.defineType](command.id, command.action);
+					vimObject.mapCommand(command.key, command.type, command.id, {}, { context: command.context });
+					// this unmaps the current keybinding and reverts to the previous keyMap. For example if oldValue = "<C-c>", then "<C-c>" goes back to "enter normal mode" in default settings.
+					vimObject.unmap(oldvalue, command.context);
+				})
+			});
+		vimSettings.push(visualMode);
+		// shows/hides the vim settings, since these settings are not needed if vim is not enabled.
+		vimEnabled.addToggle((toggle) => {
+			//@ts-ignore
+			const  vimOn: boolean = this.plugin.settings.vimEnabled && app?.isVimEnabled();
+			vimSettings.forEach(setting => setting.settingEl.toggleClass("hidden", !vimOn));
+			toggle
+			//@ts-ignore app.isVimEnabled() is not documented
+				.setValue(this.plugin.settings.vimEnabled && app?.isVimEnabled())
+				.onChange(async (value) => {
+					this.plugin.settings.vimEnabled = value;
+					await this.plugin.saveSettings();
+					vimSettings.forEach(setting => setting.settingEl.toggleClass("hidden", !value));
+					//@ts-ignore undocumented object
+					const vimObject: Vim | null = window?.CodeMirrorAdapter?.Vim;
+					if (!vimObject) return;
+					for (const command of getVimEditorCommands(this.plugin.settings)) {
+						vimObject.unmap(command.key, command.context);
+				}
+				});
+		});
 	}
 
 	createSnippetsEditor(snippetsSetting: Setting) {
