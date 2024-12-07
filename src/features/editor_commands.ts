@@ -5,6 +5,9 @@ import LatexSuitePlugin from "src/main";
 import { Context } from "src/utils/context";
 import { CodeMirrorEditor, Vim } from "src/utils/vim_types";
 import { LatexSuitePluginSettings } from "src/settings/settings";
+import { runMatrixShortcuts } from "./matrix_shortcuts";
+import { insertNewlineAndIndent } from "@codemirror/commands";
+import { Transaction, Annotation, TransactionSpec } from "@codemirror/state";
 
 
 function boxCurrentEquation(view: EditorView) {
@@ -130,19 +133,20 @@ export const getEditorCommands = (plugin: LatexSuitePlugin) => {
 
 export interface vimCommand {
 	id: string;
-	defineType: "defineMotion"| "defineOperator" | "defineAction";
+	defineType: "defineMotion" | "defineOperator" | "defineAction";
 	type: "action" | "operator" | "motion";
 	action: (cm: CodeMirrorEditor) => void;
 	key: string;
 	context?: "normal" | "visual" | "replace" | "insert";
 }
+
 export function getVimSelectModeCommand(settings: LatexSuitePluginSettings): vimCommand {
 	return {
 		id: "latex-suite-vim-select-mode",
 		defineType: "defineAction",
 		type: "action",
 		// copies current selection and selects it again since changing vim modes deletes the selection
-		action: (cm: CodeMirrorEditor) =>  {
+		action: (cm: CodeMirrorEditor) => {
 			//@ts-ignore undocumented object
 			const vimObject: Vim | null = window?.CodeMirrorAdapter?.Vim;
 			if (!vimObject) return;
@@ -154,6 +158,7 @@ export function getVimSelectModeCommand(settings: LatexSuitePluginSettings): vim
 		context: "visual",
 	}
 }
+
 export function getVimVisualModeCommand(settings: LatexSuitePluginSettings): vimCommand {
 	return {
 		id: "latex-suite-vim-visual-mode",
@@ -173,9 +178,62 @@ export function getVimVisualModeCommand(settings: LatexSuitePluginSettings): vim
 		context: "insert",
 	}
 }
+
+export function getVimRunMatrixEnterCommand(settings: LatexSuitePluginSettings): vimCommand {
+	return {
+		id: "latex-suite-vim-special-enter",
+		defineType: "defineAction",
+		type: "action",
+		action: (cm: CodeMirrorEditor) => {
+			//@ts-ignore
+			const vimObj: Vim | null = window?.CodeMirrorAdapter?.Vim;
+			if (!vimObj) return;
+			const cursorLine: number = cm.getCursor().line;
+			const line: string = cm.getLine(cursorLine);
+			cm.setCursor({line: cursorLine, ch: line.length + 1})
+			const view = EditorView.findFromDOM(cm.getWrapperElement());
+			const ctx = Context.fromView(view);
+			if (runMatrixShortcuts(view, ctx, "Enter", false)) {
+				vimObj.enterInsertMode(cm);
+				return;
+			}
+			// code taken from vim plugin, documentation is not clear on what this does
+			const succes: boolean = insertNewlineAndIndent({
+				state: cm.cm6.state,
+				dispatch: (transaction: Transaction & TransactionSpec) => {
+					const view: EditorView = cm.cm6;
+					// should not fire by the design of insertNewlineAndIndent but its in the vim plugin so it is included
+					if (view.state.readOnly) return;
+					let type: string = "input.type.compose";
+					if (cm.curOp && !cm.curOp.lastChange) type = "input.type.compose.start";
+					if (Array.isArray(transaction.annotations)) {
+					try {
+						transaction.annotations.forEach((note: Annotation<string|number|boolean>) => {
+							//@ts-ignore its "supposed" to be readonly but it is not
+							if (note.value === "input") note.value = type;
+						});
+					} catch (e) {
+						console.error(e);
+					}
+					} else {
+						transaction.userEvent =  type;
+					}
+					view.dispatch(transaction);
+				}
+			});
+			if (!succes) console.error(`Failed to insert newline and indent latex-suite-insert-newline-and-indent`);
+			// go into insert mode after the newline is inserted, otherwise macros rerun for some reason
+			vimObj.enterInsertMode(cm);
+		},
+		key: settings.vimMatrixEnter,
+		context: "normal",
+	}
+}
+
 export function getVimEditorCommands(settings: LatexSuitePluginSettings): vimCommand[] {
 	return [
 		getVimSelectModeCommand(settings),
 		getVimVisualModeCommand(settings),
+		getVimRunMatrixEnterCommand(settings),
 	]
 }
