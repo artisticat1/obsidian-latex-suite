@@ -7,7 +7,7 @@ import LatexSuitePlugin from "../main";
 import { DEFAULT_SETTINGS } from "./settings";
 import { FileSuggest } from "./ui/file_suggest";
 import { basicSetup } from "./ui/snippets_editor/extensions";
-import { getVimSelectModeCommand, vimCommand, getVimVisualModeCommand, getVimEditorCommands } from "src/features/editor_commands";
+import { getVimSelectModeCommand, vimCommand, getVimVisualModeCommand, getVimEditorCommands, getVimRunMatrixEnterCommand } from "src/features/editor_commands";
 import { Vim } from "src/utils/vim_types";
 
 
@@ -503,7 +503,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		const selectMode: Setting = new Setting(containerEl)
 			.setName("Vim: Switch from visual mode to select mode")
 			.setDesc(`maps the key to switch from visual mode to select mode.
-				 Keymap must be a vim keymap and can't contain any spaces.
+				 Keymap must be a vim keymap and can't contain any spaces. Use empty string to disable this feature.
 				  (select mode=insert keybindings)`)
 			.addText((text) =>
 				text.setPlaceholder(DEFAULT_SETTINGS.vimSelectMode)
@@ -527,7 +527,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			.setName("Vim: Switch from select mode to visual mode")
 			.setDesc(`maps the key to switch from select mode to visual mode. 
 				 must be a vim keymap and can't contain any spaces. Example <C-g><C-A-i> = Ctrl-g + Ctrl-Alt-i.
-				 Please check the vim keybinding first on another command like w before reporting it. Some keybindings like shift don't work due to the original vim plugin.
+				 Please check the vim keybinding first on another command like w before reporting it. Some keybindings like shift don't work due to the original vim plugin. Use empty string to disable this feature.
 				  (select mode=insert keybindings)`)
 			.addText((text) =>{
 				text.setPlaceholder(DEFAULT_SETTINGS.vimVisualMode)
@@ -547,6 +547,28 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				})
 			});
 		vimSettings.push(visualMode);
+		const matrixEnter: Setting = new Setting(containerEl)
+			.setName("Vim: run matrix enter")
+			.setDesc(`maps the key to the action of inserting a new line below while appending \\\\ to the current line in a matrix environment.
+				 Use empty string to disable this feature.`)
+			.addText((text) => {
+				text.setPlaceholder(DEFAULT_SETTINGS.vimMatrixEnter)
+				.setValue(this.plugin.settings.vimMatrixEnter)
+				.onChange(async (value) => {
+					const oldValue: string = this.plugin.settings.vimMatrixEnter;
+					this.plugin.settings.vimMatrixEnter = value;
+					await this.plugin.saveSettings();
+					//@ts-ignore
+					const vimObj: Vim | null = window?.CodeMirrorAdapter?.Vim;
+					if (!vimObj) return;
+					vimObj.unmap(oldValue, "normal");
+					const command: vimCommand = getVimRunMatrixEnterCommand(this.plugin.settings);
+					vimObj[command.defineType](command.id, command.action);
+					vimObj.mapCommand(command.key, command.type, command.id, {}, { context: command.context });
+					vimObj.unmap(oldValue, command.context)
+				})
+			});
+		vimSettings.push(matrixEnter);
 		// shows/hides the vim settings, since these settings are not needed if vim is not enabled.
 		vimEnabled.addToggle((toggle) => {
 			//@ts-ignore
