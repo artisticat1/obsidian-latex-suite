@@ -5,6 +5,7 @@ import LatexSuitePlugin from "src/main";
 import { Context } from "src/utils/context";
 import { CodeMirrorEditor, Vim } from "src/utils/vim_types";
 import { LatexSuitePluginSettings } from "src/settings/settings";
+import { runMatrixShortcuts } from "./matrix_shortcuts";
 
 
 function boxCurrentEquation(view: EditorView) {
@@ -173,9 +174,32 @@ export function getVimVisualModeCommand(settings: LatexSuitePluginSettings): vim
 		context: "insert",
 	}
 }
+
+export function getVimRunMatrixEnterCommand(settings: LatexSuitePluginSettings): vimCommand {
+	return {
+		id: "latex-suite-vim-special-enter",
+		defineType: "defineAction",
+		type: "action",
+		action: (cm: CodeMirrorEditor) => {
+			//@ts-ignore
+			const vimObj: Vim | null = window?.CodeMirrorAdapter?.Vim;
+			if (!vimObj) return;
+			vimObj.enterInsertMode(cm);
+			const cursorLine: number = cm.getCursor().line;
+			const line: string = cm.getLine(cursorLine);
+			cm.setCursor(cursorLine, line.length + 1)
+			const view = EditorView.findFromDOM(cm.getWrapperElement());
+			const ctx = Context.fromView(view);
+			runMatrixShortcuts(view, ctx, "Enter", false);
+		},
+		key: settings.vimMatrixEnter,
+		context: "normal",
+	}
+}
 export function getVimEditorCommands(settings: LatexSuitePluginSettings): vimCommand[] {
 	return [
 		getVimSelectModeCommand(settings),
 		getVimVisualModeCommand(settings),
+		getVimRunMatrixEnterCommand(settings),
 	]
 }
