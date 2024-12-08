@@ -26,6 +26,11 @@ interface LatexSuiteBasicSettings {
 	taboutEnabled: boolean;
 	autoEnlargeBrackets: boolean;
 	wordDelimiters: string;
+	vimEnabled: boolean;
+	vimSelectMode: string;
+	vimVisualMode: string;
+	vimMatrixEnter: string;
+
 }
 
 /**
@@ -85,6 +90,10 @@ export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
 	matrixShortcutsEnvNames: "pmatrix, cases, align, gather, bmatrix, Bmatrix, vmatrix, Vmatrix, array, matrix",
 	autoEnlargeBracketsTriggers: "sum, int, frac, prod, bigcup, bigcap",
 	forceMathLanguages: "math",
+	vimEnabled: false,
+	vimSelectMode: "<C-g>",
+	vimVisualMode: "<C-g>",
+	vimMatrixEnter: "o",
 }
 
 export function processLatexSuiteSettings(snippets: Snippet[], settings: LatexSuitePluginSettings):LatexSuiteCMSettings {
