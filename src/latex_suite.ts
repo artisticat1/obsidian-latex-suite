@@ -36,6 +36,7 @@ export const onInput = (view: EditorView, from: number, to: number, text: string
 		return true;
 	}
 	if (text.length == 1 && useNextTextInput) {
+		if (text === "\t") text = "Tab";
 		const success = handleKeydown(
 			text,
 			lastKeyboardEvent.shiftKey,
