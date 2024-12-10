@@ -409,6 +409,28 @@ function concealFraction(eqn: string): ConcealSpec[] {
 	return concealSpecs;
 }
 
+function concealOperatorname(eqn: string): ConcealSpec[] {
+	const regexStr = "\\\\operatorname{([A-Za-z]+)}";
+	const regex = new RegExp(regexStr, "g");
+	const matches = [...eqn.matchAll(regex)];
+	const specs: ConcealSpec[] = [];
+
+	for (const match of matches) {
+		const value = match[1];
+		const start2 = match.index!;
+		const end2 = start2 + match[0].length;
+
+		specs.push(mkConcealSpec({
+			start: start2,
+			end: end2,
+			text: value,
+			class: "cm-concealed-mathrm cm-variable-2"
+		}));
+	}
+
+	return specs;
+}
+
 export function conceal(view: EditorView): ConcealSpec[] {
 	const specs: ConcealSpec[] = [];
 
@@ -456,7 +478,8 @@ export function conceal(view: EditorView): ConcealSpec[] {
 					...concealBraKet(eqn),
 					...concealSet(eqn),
 					...concealFraction(eqn),
-					...concealOperators(eqn, operators)
+					...concealOperators(eqn, operators),
+					...concealOperatorname(eqn)
 				];
 
 				// Make the 'start' and 'end' fields represent positions in the entire
