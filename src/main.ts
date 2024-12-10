@@ -8,7 +8,7 @@ import { ICONS } from "./settings/ui/icons";
 import { getEditorCommands } from "./features/editor_commands";
 import { getLatexSuiteConfigExtension } from "./snippets/codemirror/config";
 import { SnippetVariables, parseSnippetVariables, parseSnippets } from "./snippets/parse";
-import { handleUpdate, onKeydown } from "./latex_suite";
+import { handleUpdate, onKeydown, onInput } from "./latex_suite";
 import { EditorView, tooltips } from "@codemirror/view";
 import { snippetExtensions } from "./snippets/codemirror/extensions";
 import { mkConcealPlugin } from "./editor_extensions/conceal";
@@ -163,6 +163,7 @@ export default class LatexSuitePlugin extends Plugin {
 		this.editorExtensions.push([
 			getLatexSuiteConfigExtension(this.CMSettings),
 			Prec.highest(EditorView.domEventHandlers({ "keydown": onKeydown })),
+			Prec.highest(EditorView.inputHandler.of(onInput)),
 			EditorView.updateListener.of(handleUpdate),
 			snippetExtensions,
 		]);

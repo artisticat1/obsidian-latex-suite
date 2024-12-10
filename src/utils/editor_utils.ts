@@ -139,3 +139,38 @@ export function isComposing(view: EditorView, event: KeyboardEvent): boolean {
 	// Note that keyCode is deprecated - it is used here because it is apparently the only way to detect the first keydown event of an IME composition.
 	return view.composing || event.keyCode === 229;
 }
+
+/**
+ * Force end an IME composition.
+ * 
+ * MIT License
+ * Copyright (C) 2018-2021 by Marijn Haverbeke <marijnh@gmail.com> and others
+ */
+export function forceEndComposition(view: EditorView) {
+	let parent = view.scrollDOM.parentElement;
+	if (!parent) return;
+
+	let sibling = view.scrollDOM.nextSibling;
+	let selection = window.getSelection();
+	let savedSelection = selection && {
+		anchorNode: selection.anchorNode,
+		anchorOffset: selection.anchorOffset,
+		focusNode: selection.focusNode,
+		focusOffset: selection.focusOffset
+	};
+
+	view.scrollDOM.remove();
+	parent.insertBefore(view.scrollDOM, sibling);
+	try {
+		if (savedSelection && selection) {
+		selection.setPosition(savedSelection.anchorNode, savedSelection.anchorOffset);
+		if (savedSelection.focusNode) {
+			selection.extend(savedSelection.focusNode, savedSelection.focusOffset);
+		}
+		}
+	} catch(e) {
+		console.error(e);
+	}
+	view.focus();
+	view.contentDOM.dispatchEvent(new CustomEvent("compositionend"));
+}
