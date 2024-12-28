@@ -2,7 +2,7 @@ import { EditorView } from "@codemirror/view";
 import { setCursor } from "src/utils/editor_utils";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
 import { Context } from "src/utils/context";
-
+import { tabout } from "src/features/tabout";
 
 export const runMatrixShortcuts = (view: EditorView, ctx: Context, key: string, shiftKey: boolean):boolean => {
 	const settings = getLatexSuiteConfig(view);
@@ -26,7 +26,7 @@ export const runMatrixShortcuts = (view: EditorView, ctx: Context, key: string, 
 		return true;
 	}
 	else if (key === "Enter") {
-		if (shiftKey) {
+		if (shiftKey && ctx.mode.blockMath) {
 			// Move cursor to end of next line
 			const d = view.state.doc;
 
@@ -35,8 +35,12 @@ export const runMatrixShortcuts = (view: EditorView, ctx: Context, key: string, 
 
 			setCursor(view, nextLine.to);
 		}
+		else if (shiftKey && ctx.mode.inlineMath) { 
+			tabout(view, ctx);
+		}
 		else {
-			view.dispatch(view.state.replaceSelection(" \\\\\n"));
+			let lineBreakStr = (ctx.mode.inlineMath) ? " \\\\ " : " \\\\\n";
+			view.dispatch(view.state.replaceSelection(lineBreakStr));
 		}
 
 		return true;
