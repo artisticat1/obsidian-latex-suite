@@ -19,8 +19,8 @@ export const runMatrixShortcuts = (view: EditorView, ctx: Context, key: string, 
 
 	if (!isInsideAnEnv) return false;
 
-
-	if (key === "Tab") {
+	// Take main cursor since ctx.mode takes the main cursor, weird behaviour is expected with multicursor because of this.
+	if (key === "Tab" && view.state.selection.main.empty) {
 		view.dispatch(view.state.replaceSelection(" & "));
 
 		return true;
