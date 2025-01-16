@@ -3,8 +3,82 @@ import { replaceRange, setCursor, getCharacterAtPos } from "src/utils/editor_uti
 import { Context } from "src/utils/context";
 
 
+const LEFT_TOKEN = "\\left";
+const RIGHT_TOKEN = "\\right";
+const LEFT_BRACKETS = [
+	"(",
+	"[", "\\lbrack",
+	"{",
+	"\\{", "\\lbrace",
+	"\\langle",
+	"\\lceil", "\\lfloor",
+	"\\vert",
+	"\\|", "\\Vert",
+	"$"
+].sort((a, b) => b.length - a.length);
+const RIGHT_BRACKETS = [
+	")",
+	"]", "\\rbrack",
+	"}",
+	"\\}", "\\rbrace",
+	"\\rangle",
+	"\\rceil", "\\rfloor",
+	"\\vert",
+	"\\|", "\\Vert",
+	"$"
+].sort((a, b) => b.length - a.length);
+const DELIMITERS = [
+	"(", ")",
+	"[", "]", "\\lbrack", "\\rbrack",
+	"\\{", "\\}", "\\lbrace", "\\rbrace",
+	"<", ">", "\\langle", "\\rangle", "\\lt", "\\gt",
+	"\\lfloor", "\\rfloor", "\\lceil", "\\rceil",
+	"/", "\\\\", "\\backslash",
+	"|", "\\vert",
+	"\\|", "\\Vert",
+	"."
+].sort((a, b) => b.length - a.length);
+
+
+const matchRightBracket = (text: string, startIndex: number): number => {
+	for (const delimiter of RIGHT_BRACKETS) {
+		if (text.slice(startIndex, startIndex + delimiter.length) === delimiter) {
+			return delimiter.length;
+		}
+	}
+
+	return 0;
+}
+
+
+const matchRightCommand = (text: string, startIndex: number): number => {
+	if (!text.startsWith(RIGHT_TOKEN, startIndex)) {
+		return 0;
+	}
+
+	const afterTokenIndex = startIndex + RIGHT_TOKEN.length;
+
+	let whitespaceCount = 0;
+	while (afterTokenIndex + whitespaceCount < text.length && /\s/.test(text.charAt(afterTokenIndex + whitespaceCount))) {
+		whitespaceCount++;
+	}
+
+	const delimiterStartIndex = afterTokenIndex + whitespaceCount;
+
+	for (const delimiter of DELIMITERS) {
+		if (text.slice(delimiterStartIndex, delimiterStartIndex + delimiter.length) === delimiter) {
+			return RIGHT_TOKEN.length + whitespaceCount + delimiter.length;
+		}
+	}
+
+	// If no matching delimiter is found, return the length of \right
+	// This helps users to easily identify and correct missing delimiter
+	return RIGHT_TOKEN.length;
+}
+
+
 export const tabout = (view: EditorView, ctx: Context):boolean => {
-    if (!ctx.mode.inMath()) return false;
+	if (!ctx.mode.inMath()) return false;
 
 	const result = ctx.getBounds();
 	if (!result) return false;
@@ -14,18 +88,17 @@ export const tabout = (view: EditorView, ctx: Context):boolean => {
 	const d = view.state.doc;
 	const text = d.toString();
 
-	// Move to the next closing bracket: }, ), ], >, |, or \\rangle
-	const rangle = "\\rangle";
 
 	for (let i = pos; i < end; i++) {
-		if (["}", ")", "]", ">", "|", "$"].contains(text.charAt(i))) {
-			setCursor(view, i+1);
-
-			return true;
+		const rightCommandLength = matchRightCommand(text, i);
+		if (rightCommandLength > 0) {
+			setCursor(view, i + rightCommandLength);
+			 return true;
 		}
-		else if (text.slice(i, i + rangle.length) === rangle) {
-			setCursor(view, i + rangle.length);
 
+		const rightBracketLength = matchRightBracket(text, i);
+		if (rightBracketLength > 0) {
+			setCursor(view, i + rightBracketLength);
 			return true;
 		}
 	}
