@@ -3,31 +3,88 @@ import { replaceRange, setCursor, getCharacterAtPos } from "src/utils/editor_uti
 import { Context } from "src/utils/context";
 
 
-export const tabout = (view: EditorView, ctx: Context):boolean => {
-    if (!ctx.mode.inMath()) return false;
+const SORTED_CLOSING_SYMBOLS = [
+	")",
+	"]", "\\rbrack",
+	"\\}", "\\rbrace",
+	"\\rangle",
+	"\\rvert",
+	"\\rVert",
+	"\\rfloor",
+	"\\rceil",
+	"\\urcorner",
+	"}"
+].sort((a, b) => b.length - a.length);
+
+
+const isCommandEnd = (str: string): boolean => {
+	return /\\[a-zA-Z]+\\*?$/.test(str);
+}
+
+
+const isMatchingCommand = (text: string, command: string, startIndex: number): boolean => {
+	if (!text.startsWith(command, startIndex)) {
+		return false;
+	}
+
+	const nextChar = text.charAt(startIndex + command.length);
+	const isEndOfCommand = !/[a-zA-Z]/.test(nextChar);
+
+	return isEndOfCommand;
+}
+
+
+const isMatchingToken = (text: string, token: string, startIndex: number): boolean => {
+	if (isCommandEnd(token)) {
+		return isMatchingCommand(text, token, startIndex);
+	}
+	else {
+		return text.startsWith(token, startIndex);
+	}
+}
+
+
+const findClosingSymbolLength = (text: string, startIndex: number): number => {
+	const matchedSymbol = SORTED_CLOSING_SYMBOLS.find((symbol) => isMatchingToken(text, symbol, startIndex));
+
+	if (matchedSymbol) {
+		return matchedSymbol.length;
+	}
+
+	return 0;
+}
+
+
+export const tabout = (view: EditorView, ctx: Context): boolean => {
+	if (!ctx.mode.inMath()) return false;
 
 	const result = ctx.getBounds();
 	if (!result) return false;
+
+	const start = result.start;
 	const end = result.end;
 
 	const pos = view.state.selection.main.to;
+
 	const d = view.state.doc;
 	const text = d.toString();
 
-	// Move to the next closing bracket: }, ), ], >, |, or \\rangle
-	const rangle = "\\rangle";
+	// Move to the next closing bracket
+	let i = start;
+	while (i < end) {
+		const closingSymbolLength = findClosingSymbolLength(text, i);
+		if (closingSymbolLength > 0) {
+			i += closingSymbolLength;
 
-	for (let i = pos; i < end; i++) {
-		if (["}", ")", "]", ">", "|", "$"].contains(text.charAt(i))) {
-			setCursor(view, i+1);
+			if (i > pos) {
+				setCursor(view, i);
+				return true;
+			}
 
-			return true;
+			continue;
 		}
-		else if (text.slice(i, i + rangle.length) === rangle) {
-			setCursor(view, i + rangle.length);
 
-			return true;
-		}
+		i++;
 	}
 
 
@@ -47,7 +104,7 @@ export const tabout = (view: EditorView, ctx: Context):boolean => {
 	}
 	else {
 		// First, locate the $$ symbol
-		const dollarLine = d.lineAt(end+2);
+		const dollarLine = d.lineAt(end + 2);
 
 		// If there's no line after the equation, create one
 
