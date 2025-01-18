@@ -39,7 +39,7 @@ export const runMatrixShortcuts = (view: EditorView, ctx: Context, key: string, 
 			tabout(view, ctx);
 		}
 		else {
-			let lineBreakStr = (ctx.mode.inlineMath) ? " \\\\ " : " \\\\\n";
+			const lineBreakStr = (ctx.mode.inlineMath) ? " \\\\ " : " \\\\\n";
 			view.dispatch(view.state.replaceSelection(lineBreakStr));
 		}
 
