@@ -38,9 +38,16 @@ export const runMatrixShortcuts = (view: EditorView, ctx: Context, key: string, 
 		else if (shiftKey && ctx.mode.inlineMath) { 
 			tabout(view, ctx);
 		}
+		else if(ctx.mode.blockMath) {
+			const d = view.state.doc;
+			const lineText = d.lineAt(ctx.pos).text;
+			const matchIndents = lineText.match(/^\s*/);
+			const leadingIndents = matchIndents ? matchIndents[0] : "";
+
+			view.dispatch(view.state.replaceSelection(` \\\\\n${leadingIndents}`));
+		}
 		else {
-			const lineBreakStr = (ctx.mode.inlineMath) ? " \\\\ " : " \\\\\n";
-			view.dispatch(view.state.replaceSelection(lineBreakStr));
+			view.dispatch(view.state.replaceSelection(" \\\\ "));
 		}
 
 		return true;
