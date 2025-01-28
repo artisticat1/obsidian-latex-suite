@@ -3,6 +3,10 @@ import { replaceRange, setCursor, getCharacterAtPos } from "src/utils/editor_uti
 import { Context } from "src/utils/context";
 
 
+const SORTED_LEFT_COMMANDS = [
+	"\\left",
+	"\\bigl", "\\Bigl", "\\biggl", "\\Biggl"
+].sort((a, b) => b.length - a.length);
 const SORTED_RIGHT_COMMANDS = [
 	"\\right",
 	"\\bigr", "\\Bigr", "\\biggr", "\\Biggr"
@@ -74,8 +78,8 @@ const findClosingSymbolLength = (text: string, startIndex: number): number => {
 }
 
 
-const findRightCommandWithDelimiterLength = (text: string, startIndex: number): number => {
-	const matchedCommand = SORTED_RIGHT_COMMANDS.find((command) => isMatchingCommand(text, command, startIndex));
+const findCommandWithDelimiterLength = (sortedCommands: string[], text: string, startIndex: number): number => {
+	const matchedCommand = sortedCommands.find((command) => isMatchingCommand(text, command, startIndex));
 
 	if (!matchedCommand) {
 		return 0;
@@ -100,7 +104,7 @@ const findRightCommandWithDelimiterLength = (text: string, startIndex: number): 
 
 
 const findRightDelimiterLength = (text: string, startIndex: number): number => {
-	const rightDelimiterLength = findRightCommandWithDelimiterLength(text, startIndex);
+	const rightDelimiterLength = findCommandWithDelimiterLength(SORTED_RIGHT_COMMANDS, text, startIndex);
 	if (rightDelimiterLength) return rightDelimiterLength;
 
 	const closingSymbolLength = findClosingSymbolLength(text, startIndex);
@@ -135,6 +139,14 @@ export const tabout = (view: EditorView, ctx: Context): boolean => {
 				setCursor(view, i);
 				return true;
 			}
+
+			continue;
+		}
+
+		// Skip left command + delimiter
+		const leftDelimiterLength = findCommandWithDelimiterLength(SORTED_LEFT_COMMANDS, text, i);
+		if (leftDelimiterLength > 0) {
+			i += leftDelimiterLength;
 
 			continue;
 		}
