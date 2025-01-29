@@ -1,6 +1,7 @@
 import { EditorView } from "@codemirror/view";
 import { replaceRange, setCursor, getCharacterAtPos } from "src/utils/editor_utils";
 import { Context } from "src/utils/context";
+import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
 
 
 const SORTED_LEFT_COMMANDS = [
@@ -10,18 +11,6 @@ const SORTED_LEFT_COMMANDS = [
 const SORTED_RIGHT_COMMANDS = [
 	"\\right",
 	"\\bigr", "\\Bigr", "\\biggr", "\\Biggr"
-].sort((a, b) => b.length - a.length);
-const SORTED_CLOSING_SYMBOLS = [
-	")",
-	"]", "\\rbrack",
-	"\\}", "\\rbrace",
-	"\\rangle",
-	"\\rvert",
-	"\\rVert",
-	"\\rfloor",
-	"\\rceil",
-	"\\urcorner",
-	"}"
 ].sort((a, b) => b.length - a.length);
 const SORTED_DELIMITERS = [
 	"(", ")",
@@ -38,6 +27,7 @@ const SORTED_DELIMITERS = [
 	"\\Uparrow", "\\Downarrow",
 	"."
 ].sort((a, b) => b.length - a.length);
+let sortedClosingSymbols: string[] = [];
 
 
 const isCommandEnd = (str: string): boolean => {
@@ -107,7 +97,7 @@ const findRightDelimiterLength = (text: string, startIndex: number): number => {
 	const rightDelimiterLength = findCommandWithDelimiterLength(SORTED_RIGHT_COMMANDS, text, startIndex);
 	if (rightDelimiterLength) return rightDelimiterLength;
 
-	const closingSymbolLength = findTokenLength(SORTED_CLOSING_SYMBOLS, text, startIndex);
+	const closingSymbolLength = findTokenLength(sortedClosingSymbols, text, startIndex);
 	if (closingSymbolLength) return closingSymbolLength;
 
 	return 0;
@@ -127,6 +117,8 @@ export const tabout = (view: EditorView, ctx: Context): boolean => {
 
 	const d = view.state.doc;
 	const text = d.toString();
+
+	sortedClosingSymbols = getLatexSuiteConfig(view).sortedTaboutClosingSymbols;
 
 	// Move to the next closing bracket
 	let i = start;
