@@ -39,7 +39,8 @@ export const runMatrixShortcuts = (view: EditorView, ctx: Context, key: string, 
 			tabout(view, ctx);
 		}
 		else {
-			const lineBreakStr = (ctx.mode.inlineMath) ? " \\\\ " : " \\\\\n";
+			const lineBreakStr = (ctx.mode.inlineMath) ? ` \\\\${settings.matrixShortcutsSpacing} `
+				: ` \\\\${settings.matrixShortcutsSpacing}\n`;
 			view.dispatch(view.state.replaceSelection(lineBreakStr));
 		}
 

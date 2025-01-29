@@ -305,13 +305,26 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		const containerEl = this.containerEl;
 		this.addHeading(containerEl, "Matrix shortcuts", "brackets-contain");
 
-		new Setting(containerEl)
+		const matrixShortcut: Setting = new Setting(containerEl)
 			.setName("Enabled")
 			.setDesc("Whether matrix shortcuts are enabled.")
-			.addToggle(toggle => toggle
+
+		const matrixSpacing: Setting = new Setting(containerEl)
+			.setName("Matrix line spacing")
+			.setDesc("The spacing between lines in a matrix environment. For example \\\\[1em] will add 1em of space between lines.")
+			.addText(text => text
+				.setValue(this.plugin.settings.matrixShortcutsSpacing)
+				.onChange(async (value) => {
+					this.plugin.settings.matrixShortcutsSpacing = value;
+					await this.plugin.saveSettings();
+				})
+			);
+
+		matrixShortcut.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.matrixShortcutsEnabled)
 				.onChange(async (value) => {
 					this.plugin.settings.matrixShortcutsEnabled = value;
+					matrixSpacing.settingEl.toggleClass("hidden", !value);
 					await this.plugin.saveSettings();
 				}));
 
