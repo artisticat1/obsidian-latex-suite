@@ -4,14 +4,14 @@ import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
 import { Context } from "src/utils/context";
 import { tabout } from "src/features/tabout";
 
-export const runMatrixShortcuts = (view: EditorView, ctx: Context, key: string, shiftKey: boolean):boolean => {
+export const runMatrixShortcuts = (view: EditorView, ctx: Context, key: string, shiftKey: boolean): boolean => {
 	const settings = getLatexSuiteConfig(view);
 
 	// Check whether we are inside a matrix / align / case environment
 	let isInsideAnEnv = false;
 
 	for (const envName of settings.matrixShortcutsEnvNames) {
-		const env = {openSymbol: "\\begin{" + envName + "}", closeSymbol: "\\end{" + envName + "}"};
+		const env = { openSymbol: "\\begin{" + envName + "}", closeSymbol: "\\end{" + envName + "}" };
 
 		isInsideAnEnv = ctx.isWithinEnvironment(ctx.pos, env);
 		if (isInsideAnEnv) break;
@@ -35,10 +35,10 @@ export const runMatrixShortcuts = (view: EditorView, ctx: Context, key: string, 
 
 			setCursor(view, nextLine.to);
 		}
-		else if (shiftKey && ctx.mode.inlineMath) { 
+		else if (shiftKey && ctx.mode.inlineMath) {
 			tabout(view, ctx);
 		}
-		else if(ctx.mode.blockMath) {
+		else if (ctx.mode.blockMath) {
 			const d = view.state.doc;
 			const lineText = d.lineAt(ctx.pos).text;
 			const matchIndents = lineText.match(/^\s*/);
