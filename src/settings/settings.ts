@@ -2,6 +2,7 @@ import { Snippet } from "../snippets/snippets";
 import { Environment } from "../snippets/environment";
 import { DEFAULT_SNIPPETS } from "src/utils/default_snippets";
 import { DEFAULT_SNIPPET_VARIABLES } from "src/utils/default_snippet_variables";
+import { mathFontsEnvsRaw } from "src/utils/default_text_areas";
 
 interface LatexSuiteBasicSettings {
 	snippetsEnabled: boolean;
@@ -36,6 +37,7 @@ interface LatexSuiteRawSettings {
 	matrixShortcutsEnvNames: string;
 	autoEnlargeBracketsTriggers: string;
 	forceMathLanguages: string;
+	textAreas: string;
 }
 
 interface LatexSuiteParsedSettings {
@@ -43,6 +45,7 @@ interface LatexSuiteParsedSettings {
 	matrixShortcutsEnvNames: string[];
 	autoEnlargeBracketsTriggers: string[];
 	forceMathLanguages: string[];
+	textAreas: Environment[]
 }
 
 export type LatexSuitePluginSettings = {snippets: string, snippetVariables: string} & LatexSuiteBasicSettings & LatexSuiteRawSettings;
@@ -85,6 +88,7 @@ export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
 	matrixShortcutsEnvNames: "pmatrix, cases, align, gather, bmatrix, Bmatrix, vmatrix, Vmatrix, array, matrix",
 	autoEnlargeBracketsTriggers: "sum, int, frac, prod, bigcup, bigcap",
 	forceMathLanguages: "math",
+	textAreas: mathFontsEnvsRaw
 }
 
 export function processLatexSuiteSettings(snippets: Snippet[], settings: LatexSuitePluginSettings):LatexSuiteCMSettings {
@@ -93,7 +97,7 @@ export function processLatexSuiteSettings(snippets: Snippet[], settings: LatexSu
 		return str.replace(/\s/g,"").split(",");
 	}
 
-	function getAutofractionExcludedEnvs(envsStr: string) {
+	function getEnvironments(envsStr: string) {
 		let envs = [];
 
 		try {
@@ -114,9 +118,10 @@ export function processLatexSuiteSettings(snippets: Snippet[], settings: LatexSu
 
 		// Override raw settings with parsed settings
 		snippets: snippets,
-		autofractionExcludedEnvs: getAutofractionExcludedEnvs(settings.autofractionExcludedEnvs),
+		autofractionExcludedEnvs: getEnvironments(settings.autofractionExcludedEnvs),
 		matrixShortcutsEnvNames: strToArray(settings.matrixShortcutsEnvNames),
 		autoEnlargeBracketsTriggers: strToArray(settings.autoEnlargeBracketsTriggers),
 		forceMathLanguages: strToArray(settings.forceMathLanguages),
+		textAreas: getEnvironments(settings.textAreas),
 	}
 }

@@ -5,6 +5,7 @@ import { Mode } from "../snippets/options";
 import { Environment } from "../snippets/environment";
 import { getLatexSuiteConfig } from "../snippets/codemirror/config";
 import { syntaxTree } from "@codemirror/language";
+import { textAreaEnvs } from "./default_text_areas";
 
 export interface Bounds {
 	start: number;
@@ -48,7 +49,7 @@ export class Context {
 		}
 
 		if (inMath) {
-			ctx.mode.textEnv = ctx.inTextEnvironment();
+			ctx.mode.textEnv = ctx.inTextEnvironment(settings.textAreas);
 		}
 
 		ctx.mode.text = !inCode && !inMath;
@@ -109,15 +110,14 @@ export class Context {
 		return false;
 	}
 
-	inTextEnvironment(): boolean {
-		return (
-			this.isWithinEnvironment(this.pos, {openSymbol: "\\text{", closeSymbol: "}"}) ||
-			this.isWithinEnvironment(this.pos, {openSymbol: "\\tag{", closeSymbol: "}"}) ||
-			this.isWithinEnvironment(this.pos, {openSymbol: "\\begin{", closeSymbol: "}"}) ||
-			this.isWithinEnvironment(this.pos, {openSymbol: "\\end{", closeSymbol: "}"}) ||
-			this.isWithinEnvironment(this.pos, {openSymbol: "\\mathrm{", closeSymbol: "}"}) ||
-			this.isWithinEnvironment(this.pos, {openSymbol: "\\color{", closeSymbol: "}"})
-		);
+	inTextEnvironment(user_textAreas: Environment[]): boolean {
+		for (const env of combineIterators(user_textAreas, textAreaEnvs)) {
+			if (this.isWithinEnvironment(this.pos, env)) return true;
+		}
+		
+		
+		return false;
+		
 	}
 
 	getBounds(pos: number = this.pos): Bounds {
@@ -298,4 +298,10 @@ const langIfWithinCodeblock = (state: EditorState): string | null => {
 	const language = state.sliceDoc(codeblockBegin.from, codeblockBegin.to).replace(/`+/, "");
 
 	return language;
+}
+
+function* combineIterators<T>(...iterators: Iterable<T>[]): Iterable<T> {
+	for (const iterator of iterators) {
+		yield* iterator;
+	}
 }
