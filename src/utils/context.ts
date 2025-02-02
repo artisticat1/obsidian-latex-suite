@@ -5,6 +5,7 @@ import { Mode } from "../snippets/options";
 import { Environment } from "../snippets/environment";
 import { getLatexSuiteConfig } from "../snippets/codemirror/config";
 import { syntaxTree } from "@codemirror/language";
+import { textArea } from "./default_text_areas";
 
 export interface Bounds {
 	start: number;
@@ -110,14 +111,11 @@ export class Context {
 	}
 
 	inTextEnvironment(): boolean {
-		return (
-			this.isWithinEnvironment(this.pos, {openSymbol: "\\text{", closeSymbol: "}"}) ||
-			this.isWithinEnvironment(this.pos, {openSymbol: "\\tag{", closeSymbol: "}"}) ||
-			this.isWithinEnvironment(this.pos, {openSymbol: "\\begin{", closeSymbol: "}"}) ||
-			this.isWithinEnvironment(this.pos, {openSymbol: "\\end{", closeSymbol: "}"}) ||
-			this.isWithinEnvironment(this.pos, {openSymbol: "\\mathrm{", closeSymbol: "}"}) ||
-			this.isWithinEnvironment(this.pos, {openSymbol: "\\color{", closeSymbol: "}"})
-		);
+		for (const env of textArea) {
+			if (this.isWithinEnvironment(this.pos, {openSymbol: `${env}{`, closeSymbol: "}"})) return true;
+		}
+		return false;
+		
 	}
 
 	getBounds(pos: number = this.pos): Bounds {
