@@ -342,6 +342,17 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					this.plugin.settings.taboutEnabled = value;
 					await this.plugin.saveSettings();
 				}));
+		new Setting(containerEl)
+			.setName("Closing brackets")
+			.setDesc("A list of closing brackets for tabout, separated by commas.")
+			.addText(text => text
+				.setPlaceholder(DEFAULT_SETTINGS.taboutClosingSymbols)
+				.setValue(this.plugin.settings.taboutClosingSymbols)
+				.onChange(async (value) => {
+					this.plugin.settings.taboutClosingSymbols = value;
+
+					await this.plugin.saveSettings();
+				}));
 	}
 
 	private displayAutoEnlargeBracketsSettings() {

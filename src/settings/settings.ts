@@ -34,6 +34,7 @@ interface LatexSuiteBasicSettings {
 interface LatexSuiteRawSettings {
 	autofractionExcludedEnvs: string;
 	matrixShortcutsEnvNames: string;
+	taboutClosingSymbols: string;
 	autoEnlargeBracketsTriggers: string;
 	forceMathLanguages: string;
 }
@@ -41,6 +42,7 @@ interface LatexSuiteRawSettings {
 interface LatexSuiteParsedSettings {
 	autofractionExcludedEnvs: Environment[];
 	matrixShortcutsEnvNames: string[];
+	taboutClosingSymbols: string[];
 	autoEnlargeBracketsTriggers: string[];
 	forceMathLanguages: string[];
 }
@@ -83,6 +85,7 @@ export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
 		["\\\\pu{", "}"]
 	]`,
 	matrixShortcutsEnvNames: "pmatrix, cases, align, gather, bmatrix, Bmatrix, vmatrix, Vmatrix, array, matrix",
+	taboutClosingSymbols: "), ], \\rbrack, \\}, \\rbrace, \\rangle, \\rvert, \\rVert, \\rfloor, \\rceil, \\urcorner, }",
 	autoEnlargeBracketsTriggers: "sum, int, frac, prod, bigcup, bigcap",
 	forceMathLanguages: "math",
 }
@@ -116,6 +119,7 @@ export function processLatexSuiteSettings(snippets: Snippet[], settings: LatexSu
 		snippets: snippets,
 		autofractionExcludedEnvs: getAutofractionExcludedEnvs(settings.autofractionExcludedEnvs),
 		matrixShortcutsEnvNames: strToArray(settings.matrixShortcutsEnvNames),
+		taboutClosingSymbols: strToArray(settings.taboutClosingSymbols),
 		autoEnlargeBracketsTriggers: strToArray(settings.autoEnlargeBracketsTriggers),
 		forceMathLanguages: strToArray(settings.forceMathLanguages),
 	}
