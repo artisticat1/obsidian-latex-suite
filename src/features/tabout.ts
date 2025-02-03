@@ -67,11 +67,11 @@ const isMatchingToken = (text: string, token: string, startIndex: number): boole
 }
 
 
-const findClosingSymbolLength = (text: string, startIndex: number): number => {
-	const matchedSymbol = SORTED_CLOSING_SYMBOLS.find((symbol) => isMatchingToken(text, symbol, startIndex));
+const findTokenLength = (sortedTokens: string[], text: string, startIndex: number): number => {
+	const matchedToken = sortedTokens.find((token) => isMatchingToken(text, token, startIndex));
 
-	if (matchedSymbol) {
-		return matchedSymbol.length;
+	if (matchedToken) {
+		return matchedToken.length;
 	}
 
 	return 0;
@@ -107,7 +107,7 @@ const findRightDelimiterLength = (text: string, startIndex: number): number => {
 	const rightDelimiterLength = findCommandWithDelimiterLength(SORTED_RIGHT_COMMANDS, text, startIndex);
 	if (rightDelimiterLength) return rightDelimiterLength;
 
-	const closingSymbolLength = findClosingSymbolLength(text, startIndex);
+	const closingSymbolLength = findTokenLength(SORTED_CLOSING_SYMBOLS, text, startIndex);
 	if (closingSymbolLength) return closingSymbolLength;
 
 	return 0;
@@ -134,6 +134,19 @@ export const tabout = (view: EditorView, ctx: Context): boolean => {
 		const rightDelimiterLength = findRightDelimiterLength(text, i);
 		if (rightDelimiterLength > 0) {
 			i += rightDelimiterLength;
+
+			if (i > pos) {
+				setCursor(view, i);
+				return true;
+			}
+
+			continue;
+		}
+
+		// Attempt to match only the right command if matching right command + delimiter fails
+		const rightCommandLength = findTokenLength(SORTED_RIGHT_COMMANDS, text, i);
+		if (rightCommandLength > 0) {
+			i += rightCommandLength;
 
 			if (i > pos) {
 				setCursor(view, i);
