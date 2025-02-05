@@ -129,7 +129,18 @@ export function handleMathTooltip(update: ViewUpdate) {
 		const dom = document.createElement("div");
 		dom.addClass("cm-tooltip-cursor");
 		dom.addClass(above ? "cm-tooltip-above" : "cm-tooltip-below");
-
+		// there is a plugin that can hide > in block math mode in the output.
+		if (ctx.mode.blockMath) {
+			// check if every newline is followed by the same amount of > as the line of the opening delimiters
+			// if so hide them. A maximum  of 3 spaces can be at the beginning of the line before its not a block-quote.
+			const blockQuoteCount = update.state.doc.lineAt(eqnBounds.inner_start).text.match(/^ {0,3}(>+)/)?.[1].length;
+			if (blockQuoteCount) {
+				const regex = new RegExp(`^ {0,3}>{${blockQuoteCount}}`, "gm");
+				if (regex.test(eqn)) {
+					eqnWithDecorations = eqnWithDecorations.replaceAll(regex, "");
+				}
+			}
+		}
 		try {
 			const renderedEqn = renderMath(eqnWithDecorations, ctx.mode.blockMath || ctx.mode.codeMath);
 			const highlight = renderedEqn.querySelector(
