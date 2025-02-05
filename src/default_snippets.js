@@ -83,6 +83,12 @@
 	{trigger: "tilde", replacement: "\\tilde{$0}$1", options: "mA"},
 	{trigger: "und", replacement: "\\underline{$0}$1", options: "mA"},
 	{trigger: "vec", replacement: "\\vec{$0}$1", options: "mA"},
+    {
+        trigger: "pmod",
+        replacement: "\\pmod{${0:n}}$1",
+        options: "mA",
+        description: "Parenthesized modulo (\\pmod{n})",
+    },
 
     // More auto letter subscript
     {trigger: /([A-Za-z])_(\d\d)/, replacement: "[[0]]_{[[1]]}", options: "rmA"},
@@ -164,12 +170,12 @@
 	{trigger: "\\\\(${GREEK}|${SYMBOL}) sr", replacement: "\\[[0]]^{2}", options: "rmA"},
 	{trigger: "\\\\(${GREEK}|${SYMBOL}) cb", replacement: "\\[[0]]^{3}", options: "rmA"},
 	{trigger: "\\\\(${GREEK}|${SYMBOL}) rd", replacement: "\\[[0]]^{$0}$1", options: "rmA"},
-	{trigger: "\\\\(${GREEK}|${SYMBOL}) hat", replacement: "\\hat{\\[[0]]}", options: "rmA"},
-	{trigger: "\\\\(${GREEK}|${SYMBOL}) dot", replacement: "\\dot{\\[[0]]}", options: "rmA"},
-	{trigger: "\\\\(${GREEK}|${SYMBOL}) bar", replacement: "\\bar{\\[[0]]}", options: "rmA"},
-	{trigger: "\\\\(${GREEK}|${SYMBOL}) vec", replacement: "\\vec{\\[[0]]}", options: "rmA"},
-	{trigger: "\\\\(${GREEK}|${SYMBOL}) tilde", replacement: "\\tilde{\\[[0]]}", options: "rmA"},
-	{trigger: "\\\\(${GREEK}|${SYMBOL}) und", replacement: "\\underline{\\[[0]]}", options: "rmA"},
+	{trigger: "\\\\(${GREEK}) hat", replacement: "\\hat{\\[[0]]}", options: "rmA"},
+	{trigger: "\\\\(${GREEK}) dot", replacement: "\\dot{\\[[0]]}", options: "rmA"},
+	{trigger: "\\\\(${GREEK}) bar", replacement: "\\bar{\\[[0]]}", options: "rmA"},
+	{trigger: "\\\\(${GREEK}) vec", replacement: "\\vec{\\[[0]]}", options: "rmA"},
+	{trigger: "\\\\(${GREEK}) tilde", replacement: "\\tilde{\\[[0]]}", options: "rmA"},
+	{trigger: "\\\\(${GREEK}) und", replacement: "\\underline{\\[[0]]}", options: "rmA"},
 
 
     // Derivatives and integrals
@@ -198,6 +204,12 @@
      replacement: "\\[[0]] [[1]]", options: "rmA",
      description: "Add space after hyperbolic trig funcs"},
 
+    {
+        trigger: /(arcsin|arccos|arctan|arccsc|arcsec|arccot)/,
+        replacement: "\\operatorname{[[0]]}$0",
+        options: "mA",
+        description: "Inverse trig functions, Are not built-in MathJax functions",
+    },
 
     // Visual operations
 	{trigger: "U", replacement: "\\underbrace{ ${VISUAL} }_{ $0 }", options: "mA"},
@@ -230,24 +242,29 @@
 
 
     // Environments
-	{trigger: "pmat", replacement: "\\begin{pmatrix}\n$0\n\\end{pmatrix}", options: "MA"},
-	{trigger: "bmat", replacement: "\\begin{bmatrix}\n$0\n\\end{bmatrix}", options: "MA"},
-	{trigger: "Bmat", replacement: "\\begin{Bmatrix}\n$0\n\\end{Bmatrix}", options: "MA"},
-	{trigger: "vmat", replacement: "\\begin{vmatrix}\n$0\n\\end{vmatrix}", options: "MA"},
-	{trigger: "Vmat", replacement: "\\begin{Vmatrix}\n$0\n\\end{Vmatrix}", options: "MA"},
-	{trigger: "matrix", replacement: "\\begin{matrix}\n$0\n\\end{matrix}", options: "MA"},
-
-	{trigger: "pmat", replacement: "\\begin{pmatrix}$0\\end{pmatrix}", options: "nA"},
-	{trigger: "bmat", replacement: "\\begin{bmatrix}$0\\end{bmatrix}", options: "nA"},
-	{trigger: "Bmat", replacement: "\\begin{Bmatrix}$0\\end{Bmatrix}", options: "nA"},
-	{trigger: "vmat", replacement: "\\begin{vmatrix}$0\\end{vmatrix}", options: "nA"},
-	{trigger: "Vmat", replacement: "\\begin{Vmatrix}$0\\end{Vmatrix}", options: "nA"},
-	{trigger: "matrix", replacement: "\\begin{matrix}$0\\end{matrix}", options: "nA"},
-
-	{trigger: "cases", replacement: "\\begin{cases}\n$0\n\\end{cases}", options: "mA"},
-	{trigger: "align", replacement: "\\begin{align}\n$0\n\\end{align}", options: "mA"},
-	{trigger: "array", replacement: "\\begin{array}\n$0\n\\end{array}", options: "mA"},
-
+    // Here the regex syntax [pbBvV]mat is used to match pmat, bmat, Bmat, vmat, Vmat
+    {
+        trigger: /([pbBvV]mat)/,
+        replacement: "\\begin{[[0]]rix}\n$0\n\\end{[[0]]rix}",
+        options: "rMA",
+        description: "Matrix environments with new lines",
+    },
+    {
+        trigger: /(matrix|cases|align|array)/,
+        replacement: "\\begin{[[0]]}\n$0\n\\end{[[0]]}",
+        options: "rMA",
+        description: "Miscellaneous environments with new lines",
+    },
+    {
+        trigger: /([pbBvV]mat)/,
+        replacement: "\\begin{[[0]]rix}$0\\end{[[0]]rix}",
+        options: "rnA",
+    },
+    {
+        trigger: /(matrix|cases|align|array)/,
+        replacement: "\\begin{[[0]]}$0\\end{[[0]]}",
+        options: "rnA",
+    },
 
     // Brackets
 	{trigger: "avg", replacement: "\\langle $0 \\rangle $1", options: "mA"},
@@ -255,6 +272,7 @@
 	{trigger: "Norm", replacement: "\\lVert $0 \\rVert $1", options: "mA", priority: 1},
 	{trigger: "ceil", replacement: "\\lceil $0 \\rceil $1", options: "mA"},
 	{trigger: "floor", replacement: "\\lfloor $0 \\rfloor $1", options: "mA"},
+    // For the modulo operator, see the section "More operations" above
 	{trigger: "mod", replacement: "|$0|$1", options: "mA"},
 	{trigger: "(", replacement: "(${VISUAL})", options: "mA"},
 	{trigger: "[", replacement: "[${VISUAL}]", options: "mA"},
