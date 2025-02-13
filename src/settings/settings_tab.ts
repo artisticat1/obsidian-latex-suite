@@ -312,6 +312,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.matrixShortcutsEnabled)
 				.onChange(async (value) => {
 					this.plugin.settings.matrixShortcutsEnabled = value;
+
 					await this.plugin.saveSettings();
 				}));
 
@@ -323,6 +324,17 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.matrixShortcutsEnvNames)
 				.onChange(async (value) => {
 					this.plugin.settings.matrixShortcutsEnvNames = value;
+
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName("Auto-trim Excess Whitespace")
+			.setDesc("When enabled, Tab and Enter will automatically remove surrounding whitespace to prevent excessive spaces.")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.matrixShortcutsTrimWhitespace)
+				.onChange(async (value) => {
+					this.plugin.settings.matrixShortcutsTrimWhitespace = value;
 
 					await this.plugin.saveSettings();
 				}));

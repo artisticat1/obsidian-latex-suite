@@ -9,28 +9,38 @@ import { tabout } from "src/features/tabout";
 const ALIGNMENT = " & ";
 const LINE_BREAK = " \\\\\n"
 const LINE_BREAK_INLINE = " \\\\ "
+let trimWhitespace = false;
 
 
 const generateSeparatorChange = (separator: string, view: EditorView, range: SelectionRange): { from: number, to: number, insert: string } => {
-	const [, separatorHeadSpace, separatorRemaining] = separator.match(/^([ \t]*)([\s\S]*?)$/);
-
 	const d = view.state.doc;
 
 	const fromLine = d.lineAt(range.from);
-	const textBeforeFrom = d.sliceString(fromLine.from, range.from).trimStart();  // Preserve indents
-
 	const toLine = d.lineAt(range.from);
-	const textAfterTo = d.sliceString(range.to, toLine.to);
 
 	let fixed_separator = "";
-	// If not at the beginning of the line
-	if (textBeforeFrom !== "") {
-		fixed_separator += separatorHeadSpace;
-	}
-	fixed_separator += separatorRemaining;
 
-	const from = range.from - textBeforeFrom.match(/\s*$/)[0].length;  // Extend selection to include trailing whitespace before `from`
-	const to = range.to + textAfterTo.match(/^\s*/)[0].length;  // Extend selection to include leading whitespace after `to`
+	let from = range.from;
+	let to = range.to;
+
+	if (trimWhitespace) {
+		const [, separatorHeadSpace, separatorRemaining] = separator.match(/^([ \t]*)([\s\S]*?)$/);
+
+		const textBeforeFrom = d.sliceString(fromLine.from, range.from).trimStart();  // Preserve indents
+		const textAfterTo = d.sliceString(range.to, toLine.to);
+
+		// If not at the beginning of the line
+		if (textBeforeFrom !== "") {
+			fixed_separator += separatorHeadSpace;
+		}
+		fixed_separator += separatorRemaining;
+
+		from -= textBeforeFrom.match(/\s*$/)[0].length;  // Extend selection to include trailing whitespace before `from`
+		to += textAfterTo.match(/^\s*/)[0].length;  // Extend selection to include leading whitespace after `to`
+	}
+	else {
+		fixed_separator = separator;
+	}
 
 	// Insert indents
 	const leadingIndents = fromLine.text.match(/^\s*/)[0];
@@ -71,6 +81,8 @@ export const runMatrixShortcuts = (view: EditorView, ctx: Context, key: string, 
 	}
 
 	if (!isInsideAnEnv) return false;
+
+	trimWhitespace = settings.matrixShortcutsTrimWhitespace;
 
 	if (key === "Tab") {
 		applySeparator(ALIGNMENT, view);
