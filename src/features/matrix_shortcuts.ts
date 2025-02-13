@@ -14,12 +14,25 @@ const LINE_BREAK_INLINE = " \\\\ "
 const generateSeparatorChange = (separator: string, view: EditorView, range: SelectionRange): { from: number, to: number, insert: string } => {
 	const d = view.state.doc;
 
+	const fromLine = d.lineAt(range.from);
+	const textBeforeFrom = d.sliceString(fromLine.from, range.from).trimStart();  // Preserve indents
+
+	const toLine = d.lineAt(range.from);
+	const textAfterTo = d.sliceString(range.to, toLine.to);
+
+	// If at the beginning of the line
+	if (textBeforeFrom === "") {
+		separator = separator.match(/^[ \t]*([\s\S]*)$/)[1];
+	}
+
+	const from = range.from - textBeforeFrom.match(/\s*$/)[0].length;  // Extend selection to include trailing whitespace before `from`
+	const to = range.to + textAfterTo.match(/^\s*/)[0].length;  // Extend selection to include leading whitespace after `to`
+
 	// Insert indents
-	const fromLineText = d.lineAt(range.from).text;
-	const leadingIndents = fromLineText.match(/^\s*/)[0];
+	const leadingIndents = fromLine.text.match(/^\s*/)[0];
 	separator = separator.replaceAll("\n", `\n${leadingIndents}`);
 
-	return { from: range.from, to: range.to, insert: separator };
+	return { from: from, to: to, insert: separator };
 }
 
 
