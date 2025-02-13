@@ -12,14 +12,31 @@ const LINE_BREAK_INLINE = " \\\\ "
 
 
 const generateSeparatorChange = (separator: string, view: EditorView, range: SelectionRange): { from: number, to: number, insert: string } => {
+	const [, separatorHeadSpace, separatorRemaining] = separator.match(/^([ \t]*)([\s\S]*?)$/);
+
 	const d = view.state.doc;
 
-	// Insert indents
-	const fromLineText = d.lineAt(range.from).text;
-	const leadingIndents = fromLineText.match(/^\s*/)[0];
-	const fixed_separator = separator.replaceAll("\n", `\n${leadingIndents}`);
+	const fromLine = d.lineAt(range.from);
+	const textBeforeFrom = d.sliceString(fromLine.from, range.from).trimStart();  // Preserve indents
 
-	return { from: range.from, to: range.to, insert: fixed_separator };
+	const toLine = d.lineAt(range.from);
+	const textAfterTo = d.sliceString(range.to, toLine.to);
+
+	let fixed_separator = "";
+	// If not at the beginning of the line
+	if (textBeforeFrom !== "") {
+		fixed_separator += separatorHeadSpace;
+	}
+	fixed_separator += separatorRemaining;
+
+	const from = range.from - textBeforeFrom.match(/\s*$/)[0].length;  // Extend selection to include trailing whitespace before `from`
+	const to = range.to + textAfterTo.match(/^\s*/)[0].length;  // Extend selection to include leading whitespace after `to`
+
+	// Insert indents
+	const leadingIndents = fromLine.text.match(/^\s*/)[0];
+	fixed_separator = fixed_separator.replaceAll("\n", `\n${leadingIndents}`);
+
+	return { from: from, to: to, insert: fixed_separator };
 }
 
 
