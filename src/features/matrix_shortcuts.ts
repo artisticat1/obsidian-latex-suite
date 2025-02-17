@@ -1,7 +1,7 @@
 import { EditorView } from "@codemirror/view";
 import { EditorSelection, SelectionRange } from "@codemirror/state";
 import { Context } from "src/utils/context";
-import { setCursor } from "src/utils/editor_utils";
+import { setCursor, replaceRange } from "src/utils/editor_utils";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
 import { tabout } from "src/features/tabout";
 
@@ -45,9 +45,9 @@ export const runMatrixShortcuts = (view: EditorView, ctx: Context, key: string, 
 
 	// Check whether we are inside a matrix / align / case environment
 	let isInsideAnEnv = false;
-
+	let env;
 	for (const envName of settings.matrixShortcutsEnvNames) {
-		const env = { openSymbol: "\\begin{" + envName + "}", closeSymbol: "\\end{" + envName + "}" };
+		env = { openSymbol: "\\begin{" + envName + "}", closeSymbol: "\\end{" + envName + "}" };
 
 		isInsideAnEnv = ctx.isWithinEnvironment(ctx.pos, env);
 		if (isInsideAnEnv) break;
@@ -68,12 +68,23 @@ export const runMatrixShortcuts = (view: EditorView, ctx: Context, key: string, 
 			}
 			else {
 				// Move cursor to end of next line
-				const d = view.state.doc;
+				let d = view.state.doc;
+				const envBound = ctx.getEnvironmentBound(ctx.pos, env);
 
-				const nextLineNo = d.lineAt(ctx.pos).number + 1;
-				const nextLine = d.line(nextLineNo);
+				const line = d.lineAt(ctx.pos);
+				const lineNo = line.number;
+				let nextLine = d.line(lineNo + 1);
+				let newPos = nextLine.to;
 
-				setCursor(view, nextLine.to);
+				if (newPos > envBound.end && line.text.trim() === "") {
+					replaceRange(view, line.from, nextLine.from, "");
+
+					d = view.state.doc;
+					nextLine = d.line(lineNo);
+					newPos = nextLine.to;
+				}
+
+				setCursor(view, newPos);
 			}
 		}
 		else {
