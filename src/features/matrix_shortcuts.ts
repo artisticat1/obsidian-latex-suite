@@ -9,6 +9,7 @@ import { tabout } from "src/features/tabout";
 const ALIGNMENT = " & ";
 const LINE_BREAK = " \\\\\n"
 const LINE_BREAK_INLINE = " \\\\ "
+let trimEmptyLineAfterEnv = false;
 
 
 const generateSeparatorChange = (separator: string, view: EditorView, range: SelectionRange): { from: number, to: number, insert: string } => {
@@ -71,12 +72,14 @@ export const runMatrixShortcuts = (view: EditorView, ctx: Context, key: string, 
 				let d = view.state.doc;
 				const envBound = ctx.getEnvironmentBound(ctx.pos, env);
 
+				trimEmptyLineAfterEnv = settings.matrixShortcutsTrimEmptyLineAfterEnv;
+
 				const line = d.lineAt(ctx.pos);
 				const lineNo = line.number;
 				let nextLine = d.line(lineNo + 1);
 				let newPos = nextLine.to;
 
-				if (newPos > envBound.end && line.text.trim() === "") {
+				if (trimEmptyLineAfterEnv && newPos > envBound.end && line.text.trim() === "") {
 					replaceRange(view, line.from, nextLine.from, "");
 
 					d = view.state.doc;
