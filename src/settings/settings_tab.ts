@@ -329,8 +329,8 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName("Auto-trim Excess Whitespace")
-			.setDesc("When enabled, Tab and Enter will automatically remove surrounding whitespace to prevent excessive spaces.")
+			.setName("Trim Excess Whitespace")
+			.setDesc("When enabled, Tab and Enter will trim surrounding whitespace to prevent excessive spaces.")
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.matrixShortcutsTrimWhitespace)
 				.onChange(async (value) => {
