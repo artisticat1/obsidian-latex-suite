@@ -312,6 +312,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.matrixShortcutsEnabled)
 				.onChange(async (value) => {
 					this.plugin.settings.matrixShortcutsEnabled = value;
+
 					await this.plugin.saveSettings();
 				}));
 
@@ -327,6 +328,16 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
+		new Setting(containerEl)
+			.setName("Add Line Break After Environment")
+			.setDesc("When enabled, Shift + Enter will add a line break when exiting an environment to ensure proper formatting.")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.matrixShortcutsAddLineBreakAfterEnv)
+				.onChange(async (value) => {
+					this.plugin.settings.matrixShortcutsAddLineBreakAfterEnv = value;
+
+					await this.plugin.saveSettings();
+				}));
 	}
 
 	private displayTaboutSettings() {

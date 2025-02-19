@@ -10,6 +10,7 @@ const ALIGNMENT = " & ";
 const LINE_BREAK = " \\\\\n"
 const LINE_BREAK_INLINE = " \\\\ "
 const END_LINE_BREAK = LINE_BREAK.trimEnd();
+let addLineBreakAfterEnv = false;
 
 
 const generateSeparatorChange = (separator: string, view: EditorView, range: SelectionRange): { from: number, to: number, insert: string } => {
@@ -73,12 +74,14 @@ export const runMatrixShortcuts = (view: EditorView, ctx: Context, key: string, 
 				const envBound = ctx.getEnvironmentBound(ctx.pos, env);
 				const envText = d.sliceString(envBound.start, envBound.end);
 
+				addLineBreakAfterEnv = settings.matrixShortcutsAddLineBreakAfterEnv;
+
 				const line = d.lineAt(ctx.pos);
 				const lineNo = line.number;
 				let nextLine = d.line(lineNo + 1);
 				let newPos = nextLine.to;
 
-				if (newPos > envBound.end && !envText.trimEnd().endsWith("\\\\")) {
+				if (addLineBreakAfterEnv && newPos > envBound.end && !envText.trimEnd().endsWith("\\\\")) {
 					setCursor(view, line.to);
 
 					applySeparator(END_LINE_BREAK, view);
