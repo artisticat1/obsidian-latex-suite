@@ -17,9 +17,9 @@ const generateSeparatorChange = (separator: string, view: EditorView, range: Sel
 	// Insert indents
 	const fromLineText = d.lineAt(range.from).text;
 	const leadingIndents = fromLineText.match(/^\s*/)[0];
-	const fixed_separator = separator.replaceAll("\n", `\n${leadingIndents}`);
+	separator = separator.replaceAll("\n", `\n${leadingIndents}`);
 
-	return { from: range.from, to: range.to, insert: fixed_separator };
+	return { from: range.from, to: range.to, insert: separator };
 }
 
 
