@@ -11,12 +11,28 @@ const LINE_BREAK = " \\\\\n"
 const LINE_BREAK_INLINE = " \\\\ "
 
 
+const isMultiLineBreak = (separator: string): boolean => {
+	return separator.contains("\\\\") && separator.contains("\n");
+}
+
+
+const isHline = (line: string): boolean => {
+	return line.trimEnd().endsWith("\\hline");
+}
+
+
 const generateSeparatorChange = (separator: string, view: EditorView, range: SelectionRange): { from: number, to: number, insert: string } => {
 	const d = view.state.doc;
 
+	const fromLine = d.lineAt(range.from);
+	const textBeforeFrom = d.sliceString(fromLine.from, range.from).trimStart();  // Preserve indents
+
+	if (isMultiLineBreak(separator) && isHline(textBeforeFrom)) {
+		separator = "\n";
+	}
+
 	// Insert indents
-	const fromLineText = d.lineAt(range.from).text;
-	const leadingIndents = fromLineText.match(/^\s*/)[0];
+	const leadingIndents = fromLine.text.match(/^\s*/)[0];
 	separator = separator.replaceAll("\n", `\n${leadingIndents}`);
 
 	return { from: range.from, to: range.to, insert: separator };
