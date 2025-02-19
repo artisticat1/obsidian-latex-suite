@@ -9,6 +9,7 @@ import { tabout } from "src/features/tabout";
 const ALIGNMENT = " & ";
 const LINE_BREAK = " \\\\\n"
 const LINE_BREAK_INLINE = " \\\\ "
+const END_LINE_BREAK = LINE_BREAK.trimEnd();
 
 
 const generateSeparatorChange = (separator: string, view: EditorView, range: SelectionRange): { from: number, to: number, insert: string } => {
@@ -45,9 +46,9 @@ export const runMatrixShortcuts = (view: EditorView, ctx: Context, key: string, 
 
 	// Check whether we are inside a matrix / align / case environment
 	let isInsideAnEnv = false;
-
+	let env;
 	for (const envName of settings.matrixShortcutsEnvNames) {
-		const env = { openSymbol: "\\begin{" + envName + "}", closeSymbol: "\\end{" + envName + "}" };
+		env = { openSymbol: "\\begin{" + envName + "}", closeSymbol: "\\end{" + envName + "}" };
 
 		isInsideAnEnv = ctx.isWithinEnvironment(ctx.pos, env);
 		if (isInsideAnEnv) break;
@@ -68,12 +69,26 @@ export const runMatrixShortcuts = (view: EditorView, ctx: Context, key: string, 
 			}
 			else {
 				// Move cursor to end of next line
-				const d = view.state.doc;
+				let d = view.state.doc;
+				const envBound = ctx.getEnvironmentBound(ctx.pos, env);
+				const envText = d.sliceString(envBound.start, envBound.end);
 
-				const nextLineNo = d.lineAt(ctx.pos).number + 1;
-				const nextLine = d.line(nextLineNo);
+				const line = d.lineAt(ctx.pos);
+				const lineNo = line.number;
+				let nextLine = d.line(lineNo + 1);
+				let newPos = nextLine.to;
 
-				setCursor(view, nextLine.to);
+				if (newPos > envBound.end && !envText.trimEnd().endsWith("\\\\")) {
+					setCursor(view, line.to);
+
+					applySeparator(END_LINE_BREAK, view);
+
+					d = view.state.doc;
+					nextLine = d.line(lineNo + 1);
+					newPos = nextLine.to;
+				}
+
+				setCursor(view, newPos);
 			}
 		}
 		else {
