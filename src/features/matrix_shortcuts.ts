@@ -18,8 +18,6 @@ const generateSeparatorChange = (separator: string, view: EditorView, range: Sel
 	const fromLine = d.lineAt(range.from);
 	const toLine = d.lineAt(range.from);
 
-	let fixed_separator = separator;
-
 	let from = range.from;
 	let to = range.to;
 
@@ -29,21 +27,18 @@ const generateSeparatorChange = (separator: string, view: EditorView, range: Sel
 
 		// If at the beginning of the line
 		if (textBeforeFrom === "") {
-			fixed_separator = fixed_separator.match(/^[ \t]*([\s\S]*)$/)[1];
+			separator = separator.match(/^[ \t]*([\s\S]*)$/)[1];
 		}
 
 		from -= textBeforeFrom.match(/\s*$/)[0].length;  // Extend selection to include trailing whitespace before `from`
 		to += textAfterTo.match(/^\s*/)[0].length;  // Extend selection to include leading whitespace after `to`
 	}
-	else {
-		fixed_separator = separator;
-	}
 
 	// Insert indents
 	const leadingIndents = fromLine.text.match(/^\s*/)[0];
-	fixed_separator = fixed_separator.replaceAll("\n", `\n${leadingIndents}`);
+	separator = separator.replaceAll("\n", `\n${leadingIndents}`);
 
-	return { from: from, to: to, insert: fixed_separator };
+	return { from: from, to: to, insert: separator };
 }
 
 
