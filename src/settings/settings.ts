@@ -23,6 +23,7 @@ interface LatexSuiteBasicSettings {
 	autofractionSymbol: string;
 	autofractionBreakingChars: string;
 	matrixShortcutsEnabled: boolean;
+	matrixShortcutsHlineLineBreakEnabled: boolean;
 	taboutEnabled: boolean;
 	autoEnlargeBrackets: boolean;
 	wordDelimiters: string;
@@ -72,6 +73,7 @@ export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
 	autofractionSymbol: "\\frac",
 	autofractionBreakingChars: "+-=\t",
 	matrixShortcutsEnabled: true,
+	matrixShortcutsHlineLineBreakEnabled: false,
 	taboutEnabled: true,
 	autoEnlargeBrackets: true,
 	wordDelimiters: "., +-\\n\t:;!?\\/{}[]()=~$",

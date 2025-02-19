@@ -9,6 +9,7 @@ import { tabout } from "src/features/tabout";
 const ALIGNMENT = " & ";
 const LINE_BREAK = " \\\\\n"
 const LINE_BREAK_INLINE = " \\\\ "
+let hlineLineBreakEnabled = false;
 
 
 const isMultiLineBreak = (separator: string): boolean => {
@@ -27,7 +28,7 @@ const generateSeparatorChange = (separator: string, view: EditorView, range: Sel
 	const fromLine = d.lineAt(range.from);
 	const textBeforeFrom = d.sliceString(fromLine.from, range.from).trimStart();  // Preserve indents
 
-	if (isMultiLineBreak(separator) && isHline(textBeforeFrom)) {
+	if (!hlineLineBreakEnabled && isMultiLineBreak(separator) && isHline(textBeforeFrom)) {
 		separator = "\n";
 	}
 
@@ -70,6 +71,8 @@ export const runMatrixShortcuts = (view: EditorView, ctx: Context, key: string, 
 	}
 
 	if (!isInsideAnEnv) return false;
+
+	hlineLineBreakEnabled = settings.matrixShortcutsHlineLineBreakEnabled;
 
 	if (key === "Tab" && view.state.selection.main.empty) {
 		applySeparator(ALIGNMENT, view);

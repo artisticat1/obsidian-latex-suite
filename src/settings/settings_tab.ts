@@ -312,6 +312,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.matrixShortcutsEnabled)
 				.onChange(async (value) => {
 					this.plugin.settings.matrixShortcutsEnabled = value;
+
 					await this.plugin.saveSettings();
 				}));
 
@@ -327,6 +328,16 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
+		new Setting(containerEl)
+			.setName("Enable '\\\\' After '\\hline'")
+			.setDesc("When enabled, '\\\\' will be inserted after '\\hline'.")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.matrixShortcutsHlineLineBreakEnabled)
+				.onChange(async (value) => {
+					this.plugin.settings.matrixShortcutsHlineLineBreakEnabled = value;
+
+					await this.plugin.saveSettings();
+				}));
 	}
 
 	private displayTaboutSettings() {
