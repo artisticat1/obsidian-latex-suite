@@ -9,7 +9,9 @@ import { tabout } from "src/features/tabout";
 const ALIGNMENT = " & ";
 const LINE_BREAK = " \\\\\n"
 const LINE_BREAK_INLINE = " \\\\ "
+const END_LINE_BREAK = LINE_BREAK.trimEnd();
 let trimEmptyLineAfterEnv = false;
+let addLineBreakAfterEnv = false;
 
 
 const generateSeparatorChange = (separator: string, view: EditorView, range: SelectionRange): { from: number, to: number, insert: string } => {
@@ -71,20 +73,36 @@ export const runMatrixShortcuts = (view: EditorView, ctx: Context, key: string, 
 				// Move cursor to end of next line
 				let d = view.state.doc;
 				const envBound = ctx.getEnvironmentBound(ctx.pos, env);
+				const envText = d.sliceString(envBound.start, envBound.end);
 
 				trimEmptyLineAfterEnv = settings.matrixShortcutsTrimEmptyLineAfterEnv;
+				addLineBreakAfterEnv = settings.matrixShortcutsAddLineBreakAfterEnv;
 
-				const line = d.lineAt(ctx.pos);
-				const lineNo = line.number;
+				let line = d.lineAt(ctx.pos);
+				let lineNo = line.number;
 				let nextLine = d.line(lineNo + 1);
 				let newPos = nextLine.to;
 
-				if (trimEmptyLineAfterEnv && newPos > envBound.end && line.text.trim() === "") {
-					replaceRange(view, line.from, nextLine.from, "");
+				if (newPos > envBound.end) {
+					if (trimEmptyLineAfterEnv && line.text.trim() === "") {
+						replaceRange(view, line.from, nextLine.from, "");
 
-					d = view.state.doc;
-					nextLine = d.line(lineNo);
-					newPos = nextLine.to;
+						d = view.state.doc;
+						lineNo--;
+						line = d.line(lineNo);
+						nextLine = d.line(lineNo + 1);
+						newPos = nextLine.to;
+					}
+
+					if (addLineBreakAfterEnv && !envText.trimEnd().endsWith("\\\\")) {
+						setCursor(view, line.to);
+
+						applySeparator(END_LINE_BREAK, view);
+
+						d = view.state.doc;
+						nextLine = d.line(lineNo + 1);
+						newPos = nextLine.to;
+					}
 				}
 
 				setCursor(view, newPos);
