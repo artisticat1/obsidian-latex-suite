@@ -312,6 +312,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.matrixShortcutsEnabled)
 				.onChange(async (value) => {
 					this.plugin.settings.matrixShortcutsEnabled = value;
+
 					await this.plugin.saveSettings();
 				}));
 
@@ -327,6 +328,33 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
+		new Setting(containerEl)
+			.setName("Trim Excess Whitespace")
+			.setDesc("When enabled, Tab and Enter will trim surrounding whitespace to prevent excessive spaces.")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.matrixShortcutsTrimWhitespace)
+				.onChange(async (value) => {
+					this.plugin.settings.matrixShortcutsTrimWhitespace = value;
+
+					trimAlignmentSetting.settingEl.toggleClass("hidden", !value);
+
+					await this.plugin.saveSettings();
+				}));
+
+		const trimAlignmentSetting = new Setting(containerEl)
+			.setName("Trim Excess Alignment")
+			.setDesc("When enabled, Enter will trim the extra '&' to prevent excessive spacing.")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.matrixShortcutsTrimAlignment)
+				.onChange(async (value) => {
+					this.plugin.settings.matrixShortcutsTrimAlignment = value;
+
+					await this.plugin.saveSettings();
+				}));
+
+		// Hide settings that are not relevant when "matrixShortcutsTrimWhitespace" is set to true/false
+		const matrixShortcutsTrimWhitespace = this.plugin.settings.matrixShortcutsTrimWhitespace;
+		trimAlignmentSetting.settingEl.toggleClass("hidden", !matrixShortcutsTrimWhitespace);
 	}
 
 	private displayTaboutSettings() {
