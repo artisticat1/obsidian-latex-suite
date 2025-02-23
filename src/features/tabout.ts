@@ -212,6 +212,30 @@ export const reverseTabout = (view: EditorView, ctx: Context): boolean => {
 	sortedDelimiters = getLatexSuiteConfig(view).sortedTaboutDelimiters;
 	sortedOpeningSymbols = getLatexSuiteConfig(view).sortedTaboutOpeningSymbols;
 
+	const textBtwnStartAndCursor = d.sliceString(start, pos);
+	const isAtStart = textBtwnStartAndCursor.trim().length === 0;
+
+	// Move out of the equation.
+	if (isAtStart) {
+		if (ctx.mode.inlineMath || ctx.mode.codeMath) {
+			setCursor(view, start - 1);
+		}
+		else {
+			let whitespaceCount = 0;
+			while (/[ 	]/.test(text.charAt(start - 2 - whitespaceCount - 1))) {
+				whitespaceCount++;
+			}
+			if (text.charAt(start - 2 - whitespaceCount - 1) == "\n") {
+				setCursor(view, start - 2 - whitespaceCount - 1);
+			}
+			else {
+				setCursor(view, start - 2);
+			}
+		}
+
+		return true;
+	}
+
 	// Move to the previous openinging bracket
 	let previous_i = start;
 	let i = start;
