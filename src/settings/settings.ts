@@ -26,6 +26,8 @@ interface LatexSuiteBasicSettings {
 	matrixShortcutsTrimWhitespace: boolean;
 	matrixShortcutsTrimAlignment: boolean;
 	matrixShortcutsHlineLineBreakEnabled: boolean;
+	matrixShortcutsTrimEmptyLineAfterEnv: boolean;
+	matrixShortcutsAddLineBreakAfterEnv: boolean;
 	taboutEnabled: boolean;
 	autoEnlargeBrackets: boolean;
 	wordDelimiters: string;
@@ -78,6 +80,8 @@ export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
 	matrixShortcutsTrimWhitespace: true,
 	matrixShortcutsTrimAlignment: true,
 	matrixShortcutsHlineLineBreakEnabled: false,
+	matrixShortcutsTrimEmptyLineAfterEnv: true,
+	matrixShortcutsAddLineBreakAfterEnv: false,
 	taboutEnabled: true,
 	autoEnlargeBrackets: true,
 	wordDelimiters: "., +-\\n\t:;!?\\/{}[]()=~$",

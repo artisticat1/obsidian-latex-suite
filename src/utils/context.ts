@@ -60,13 +60,13 @@ export class Context {
 		return Context.fromState(view.state);
 	}
 
-	isWithinEnvironment(pos: number, env: Environment): boolean {
-		if (!this.mode.inMath()) return false;
+	getEnvironmentBound(pos: number, env: Environment): Bounds {
+		if (!this.mode.inMath()) return null;
 
 		const bounds = this.getInnerBounds();
 		if (!bounds) return;
 
-		const {start, end} = bounds;
+		const { start, end } = bounds;
 		const text = this.state.sliceDoc(start, end);
 		// pos referred to the absolute position in the whole document, but we just sliced the text
 		// so now pos must be relative to the start in order to be any useful
@@ -93,20 +93,24 @@ export class Context {
 		while (left != -1) {
 			const right = findMatchingBracket(text, left + offset, openSearchSymbol, env.closeSymbol, false);
 
-			if (right === -1) return false;
+			if (right === -1) return null;
 
 			// Check whether the cursor lies inside the environment symbols
 			if ((right >= pos) && (pos >= left + env.openSymbol.length)) {
-				return true;
+				return { start: start + left + env.openSymbol.length, end: start + right };
 			}
 
-			if (left <= 0) return false;
+			if (left <= 0) return null;
 
 			// Find the next open symbol
 			left = text.lastIndexOf(env.openSymbol, left - 1);
 		}
 
-		return false;
+		return null;
+	}
+
+	isWithinEnvironment(pos: number, env: Environment): boolean {
+		return this.getEnvironmentBound(pos, env) !== null;
 	}
 
 	inTextEnvironment(): boolean {

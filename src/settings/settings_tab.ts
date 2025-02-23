@@ -366,6 +366,28 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 					await this.plugin.saveSettings();
 				}));
+
+		new Setting(containerEl)
+			.setName("Trim Empty Line After Environment")
+			.setDesc("When enabled, Shift + Enter will remove an empty line when exiting an environment to prevent excessive spaces.")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.matrixShortcutsTrimEmptyLineAfterEnv)
+				.onChange(async (value) => {
+					this.plugin.settings.matrixShortcutsTrimEmptyLineAfterEnv = value;
+
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName("Add Line Break After Environment")
+			.setDesc("When enabled, Shift + Enter will add a line break when exiting an environment to ensure proper formatting.")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.matrixShortcutsAddLineBreakAfterEnv)
+				.onChange(async (value) => {
+					this.plugin.settings.matrixShortcutsAddLineBreakAfterEnv = value;
+
+					await this.plugin.saveSettings();
+				}));
 	}
 
 	private displayTaboutSettings() {
