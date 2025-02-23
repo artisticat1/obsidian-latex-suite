@@ -260,6 +260,31 @@ export const reverseTabout = (view: EditorView, ctx: Context): boolean => {
 			continue;
 		}
 
+		// Attempt to match only the left command if matching left command + delimiter fails
+		const leftCommandLength = findTokenLength(sortedLeftCommands, text, i);
+		if (leftCommandLength > 0) {
+			if (i >= pos) {
+				setCursor(view, previous_i);
+
+				return true;
+			}
+
+			previous_i = i;
+			i += leftCommandLength;
+
+			if (i >= pos) {
+				setCursor(view, previous_i);
+
+				return true;
+			}
+			
+			// This helps users easily identify and correct missing delimiters.
+			// Set cursor to the next to the left coomand
+			previous_i = i;
+			
+			continue;
+		}
+
 		// Skip right command + delimiter
 		const rightDelimiterLength = findCommandWithDelimiterLength(sortedRightCommands, text, i);
 		if (rightDelimiterLength > 0) {
