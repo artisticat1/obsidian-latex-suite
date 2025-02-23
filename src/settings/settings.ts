@@ -25,6 +25,7 @@ interface LatexSuiteBasicSettings {
 	matrixShortcutsEnabled: boolean;
 	matrixShortcutsTrimWhitespace: boolean;
 	matrixShortcutsTrimAlignment: boolean;
+	matrixShortcutsHlineLineBreakEnabled: boolean;
 	taboutEnabled: boolean;
 	autoEnlargeBrackets: boolean;
 	wordDelimiters: string;
@@ -76,6 +77,7 @@ export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
 	matrixShortcutsEnabled: true,
 	matrixShortcutsTrimWhitespace: true,
 	matrixShortcutsTrimAlignment: true,
+	matrixShortcutsHlineLineBreakEnabled: false,
 	taboutEnabled: true,
 	autoEnlargeBrackets: true,
 	wordDelimiters: "., +-\\n\t:;!?\\/{}[]()=~$",

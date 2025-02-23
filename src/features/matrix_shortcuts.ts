@@ -11,6 +11,7 @@ const LINE_BREAK = " \\\\\n"
 const LINE_BREAK_INLINE = " \\\\ "
 let trimWhitespace = false;
 let trimAlignment = false;
+let hlineLineBreakEnabled = false;
 
 
 const isLineBreak = (separator: string) => {
@@ -18,19 +19,33 @@ const isLineBreak = (separator: string) => {
 }
 
 
+const isMultiLineBreak = (separator: string): boolean => {
+	return separator.contains("\\\\") && separator.contains("\n");
+}
+
+
+const isHline = (line: string): boolean => {
+	return line.trimEnd().endsWith("\\hline");
+}
+
+
 const generateSeparatorChange = (separator: string, view: EditorView, range: SelectionRange): { from: number, to: number, insert: string } => {
 	const d = view.state.doc;
 
 	const fromLine = d.lineAt(range.from);
+	const textBeforeFrom = d.sliceString(fromLine.from, range.from).trimStart();  // Preserve indents
+
 	const toLine = d.lineAt(range.from);
+	const textAfterTo = d.sliceString(range.to, toLine.to);
 
 	let from = range.from;
 	let to = range.to;
 
-	if (trimWhitespace) {
-		const textBeforeFrom = d.sliceString(fromLine.from, range.from).trimStart();  // Preserve indents
-		const textAfterTo = d.sliceString(range.to, toLine.to);
+	if (!hlineLineBreakEnabled && isMultiLineBreak(separator) && isHline(textBeforeFrom)) {
+		separator = "\n";
+	}
 
+	if (trimWhitespace) {
 		// If at the beginning of the line
 		if (textBeforeFrom === "") {
 			separator = separator.match(/^[ \t]*([\s\S]*)$/)[1];
@@ -88,6 +103,7 @@ export const runMatrixShortcuts = (view: EditorView, ctx: Context, key: string, 
 
 	trimWhitespace = settings.matrixShortcutsTrimWhitespace;
 	trimAlignment = settings.matrixShortcutsTrimAlignment;
+	hlineLineBreakEnabled = settings.matrixShortcutsHlineLineBreakEnabled;
 
 	if (key === "Tab" && view.state.selection.main.empty) {
 		applySeparator(ALIGNMENT, view);

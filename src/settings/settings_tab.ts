@@ -355,6 +355,17 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		// Hide settings that are not relevant when "matrixShortcutsTrimWhitespace" is set to true/false
 		const matrixShortcutsTrimWhitespace = this.plugin.settings.matrixShortcutsTrimWhitespace;
 		trimAlignmentSetting.settingEl.toggleClass("hidden", !matrixShortcutsTrimWhitespace);
+
+		new Setting(containerEl)
+			.setName("Enable '\\\\' After '\\hline'")
+			.setDesc("When enabled, '\\\\' will be inserted after '\\hline'.")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.matrixShortcutsHlineLineBreakEnabled)
+				.onChange(async (value) => {
+					this.plugin.settings.matrixShortcutsHlineLineBreakEnabled = value;
+
+					await this.plugin.saveSettings();
+				}));
 	}
 
 	private displayTaboutSettings() {
