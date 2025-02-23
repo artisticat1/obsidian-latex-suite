@@ -2,7 +2,7 @@ import { EditorView, ViewUpdate } from "@codemirror/view";
 
 import { runSnippets } from "./features/run_snippets";
 import { runAutoFraction } from "./features/autofraction";
-import { tabout, shouldTaboutByCloseBracket } from "./features/tabout";
+import { tabout, reverseTabout, shouldTaboutByCloseBracket } from "./features/tabout";
 import { runMatrixShortcuts } from "./features/matrix_shortcuts";
 
 import { Context } from "./utils/context";
@@ -98,9 +98,17 @@ export const handleKeydown = (key: string, shiftKey: boolean, ctrlKey: boolean, 
 	}
 
 	if (settings.taboutEnabled) {
-		if (key === "Tab" || shouldTaboutByCloseBracket(view, key)) {
-			success = tabout(view, ctx);
+		if (key === "Tab") {
+			if (shiftKey) {
+				success = reverseTabout(view, ctx);
+			}
+			else {
+				success = tabout(view, ctx);
+			}
+			if (success) return true;
+		}
 
+		if (shouldTaboutByCloseBracket(view, key)) {
 			if (success) return true;
 		}
 	}

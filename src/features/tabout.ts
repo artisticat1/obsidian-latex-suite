@@ -27,6 +27,7 @@ const SORTED_DELIMITERS = [
 	"\\Uparrow", "\\Downarrow",
 	"."
 ].sort((a, b) => b.length - a.length);
+let sortedOpeningSymbols: string[] = [];
 let sortedClosingSymbols: string[] = [];
 
 
@@ -90,6 +91,17 @@ const findCommandWithDelimiterLength = (sortedCommands: string[], text: string, 
 	}
 
 	return matchedCommand.length + whitespaceCount + matchedDelimiter.length;
+}
+
+
+const findLeftDelimiterLength = (text: string, startIndex: number): number => {
+	const leftDelimiterLength = findCommandWithDelimiterLength(SORTED_LEFT_COMMANDS, text, startIndex);
+	if (leftDelimiterLength) return leftDelimiterLength;
+
+	const openingSymbolLength = findTokenLength(sortedOpeningSymbols, text, startIndex);
+	if (openingSymbolLength) return openingSymbolLength;
+
+	return 0;
 }
 
 
@@ -193,6 +205,63 @@ export const tabout = (view: EditorView, ctx: Context): boolean => {
 		replaceRange(view, line.from, line.to, line.text.trim());
 
 	}
+
+	return true;
+}
+
+
+export const reverseTabout = (view: EditorView, ctx: Context): boolean => {
+	if (!ctx.mode.inMath()) return false;
+
+	const result = ctx.getBounds();
+	if (!result) return false;
+
+	const start = result.start;
+	const end = result.end;
+
+	const pos = view.state.selection.main.to;
+
+	const d = view.state.doc;
+	const text = d.toString();
+
+	sortedOpeningSymbols = getLatexSuiteConfig(view).sortedTaboutOpeningSymbols;
+
+	// Move to the previous openinging bracket
+	let previous_i = start;
+	let i = start;
+	while (i < end) {
+		const leftDelimiterLength = findLeftDelimiterLength(text, i);
+		if (leftDelimiterLength > 0) {
+			if (i >= pos) {
+				setCursor(view, previous_i);
+
+				return true;
+			}
+
+			previous_i = i;
+			i += leftDelimiterLength;
+
+			if (i >= pos) {
+				setCursor(view, previous_i);
+
+				return true;
+			}
+
+			continue;
+		}
+
+		// Skip right command + delimiter
+		const rightDelimiterLength = findCommandWithDelimiterLength(SORTED_RIGHT_COMMANDS, text, i);
+		if (rightDelimiterLength > 0) {
+			i += rightDelimiterLength;
+
+			continue;
+		}
+
+		i++;
+	}
+
+	setCursor(view, previous_i);
 
 	return true;
 }

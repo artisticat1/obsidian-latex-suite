@@ -345,6 +345,18 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
+			.setName("Opening brackets")
+			.setDesc("A list of opening brackets for reverse tabout, separated by commas.")
+			.addText(text => text
+				.setPlaceholder(DEFAULT_SETTINGS.taboutOpeningSymbols)
+				.setValue(this.plugin.settings.taboutOpeningSymbols)
+				.onChange(async (value) => {
+					this.plugin.settings.taboutOpeningSymbols = value;
+
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
 			.setName("Closing brackets")
 			.setDesc("A list of closing brackets for tabout, separated by commas.")
 			.addText(text => text

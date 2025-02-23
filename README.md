@@ -83,13 +83,20 @@ To reveal the LaTeX syntax, move your cursor over it. You can also choose to del
 ![conceal demo](https://raw.githubusercontent.com/artisticat1/obsidian-latex-suite/main/gifs/conceal.png)
 
 
-### Tabout
+### Tabout & Reverse Tabout
+#### Tabout 
 To make it easier to navigate and exit equations,
 
 - Pressing <kbd>Tab</kbd> while the cursor is at the end of an equation will move the cursor outside the `$` symbols.
 - If the cursor is inside a `\left ... \right` pair, pressing <kbd>Tab</kbd> will jump to after the `\right` command and its corresponding delimiter.
 - Otherwise, pressing <kbd>Tab</kbd> will advance the cursor to the next closing bracket: `)`, `]`, `}`, `\rangle`, or `\rvert`.
 
+#### Reverse Tabout
+To navigate equations in the opposite direction:
+
+- Pressing <kbd>Shift + Tab</kbd> while the cursor is at the beginning of an equation will move the cursor before the opening `$` symbol.
+- If the cursor is inside a `\left ... \right` pair, pressing <kbd>Shift + Tab</kbd> will jump to before the `\left` command.
+- Otherwise, pressing <kbd>Shift + Tab</kbd> will move the cursor to the previous opening bracket: `(`, `[`, `{`, `\langle`, or `\lvert`.
 
 ### Preview inline math
 When your cursor is inside inline math, a popup window showing the rendered math will be displayed.
