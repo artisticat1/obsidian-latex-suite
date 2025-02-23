@@ -381,6 +381,42 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
+		new Setting(containerEl)
+			.setName("Left Commands")
+			.setDesc("A list of left-side LaTeX delimiter commands, separated by commas.")
+			.addText(text => text
+				.setPlaceholder(DEFAULT_SETTINGS.taboutLeftCommands)
+				.setValue(this.plugin.settings.taboutLeftCommands)
+				.onChange(async (value) => {
+					this.plugin.settings.taboutLeftCommands = value;
+
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName("Right Commands")
+			.setDesc("A list of right-side LaTeX delimiter commands, separated by commas.")
+			.addText(text => text
+				.setPlaceholder(DEFAULT_SETTINGS.taboutRightCommands)
+				.setValue(this.plugin.settings.taboutRightCommands)
+				.onChange(async (value) => {
+					this.plugin.settings.taboutRightCommands = value;
+
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName("Delimiters")
+			.setDesc("A list of valid delimiters that can follow left-side or right-side LaTeX commands, separated by commas.")
+			.addText(text => text
+				.setPlaceholder(DEFAULT_SETTINGS.taboutDelimiters)
+				.setValue(this.plugin.settings.taboutDelimiters)
+				.onChange(async (value) => {
+					this.plugin.settings.taboutDelimiters = value;
+
+					await this.plugin.saveSettings();
+				}));
+
 		const taboutEnabled = this.plugin.settings.taboutEnabled;
 		reverseTaboutSetting.settingEl.toggleClass("hidden", !taboutEnabled);
 	}
