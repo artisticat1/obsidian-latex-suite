@@ -24,6 +24,7 @@ interface LatexSuiteBasicSettings {
 	autofractionBreakingChars: string;
 	matrixShortcutsEnabled: boolean;
 	taboutEnabled: boolean;
+	reverseTaboutEnabled: boolean;
 	autoEnlargeBrackets: boolean;
 	wordDelimiters: string;
 }
@@ -77,6 +78,7 @@ export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
 	autofractionBreakingChars: "+-=\t",
 	matrixShortcutsEnabled: true,
 	taboutEnabled: true,
+	reverseTaboutEnabled: true,
 	autoEnlargeBrackets: true,
 	wordDelimiters: "., +-\\n\t:;!?\\/{}[]()=~$",
 

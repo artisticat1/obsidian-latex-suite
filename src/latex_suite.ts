@@ -99,7 +99,7 @@ export const handleKeydown = (key: string, shiftKey: boolean, ctrlKey: boolean, 
 
 	if (settings.taboutEnabled) {
 		if (key === "Tab") {
-			if (shiftKey) {
+			if (settings.reverseTaboutEnabled && shiftKey) {
 				success = reverseTabout(view, ctx);
 			}
 			else {

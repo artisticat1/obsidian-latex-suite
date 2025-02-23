@@ -341,6 +341,19 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				.onChange(async (value) => {
 					this.plugin.settings.taboutEnabled = value;
 
+					reverseTaboutSetting.settingEl.toggleClass("hidden", !value);
+
+					await this.plugin.saveSettings();
+				}));
+
+		const reverseTaboutSetting = new Setting(containerEl)
+			.setName("Reverse Tabout")
+			.setDesc("Whether reverse tabout is enabled.")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.reverseTaboutEnabled)
+				.onChange(async (value) => {
+					this.plugin.settings.reverseTaboutEnabled = value;
+
 					await this.plugin.saveSettings();
 				}));
 
@@ -367,6 +380,9 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 					await this.plugin.saveSettings();
 				}));
+
+		const taboutEnabled = this.plugin.settings.taboutEnabled;
+		reverseTaboutSetting.settingEl.toggleClass("hidden", !taboutEnabled);
 	}
 
 	private displayAutoEnlargeBracketsSettings() {
