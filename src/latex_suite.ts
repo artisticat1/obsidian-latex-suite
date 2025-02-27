@@ -29,82 +29,83 @@ export const handleUpdate = (update: ViewUpdate) => {
 }
 
 export const onKeydown = (event: KeyboardEvent, view: EditorView) => {
+	// Skip full update since the keymove can't trigger anything but can spamm the function a lot.
+	if (event.key == "ArrowUp" || event.key == "ArrowDown" || event.key == "ArrowLeft" || event.key == "ArrowRight") {
+		return;
+	}
+
 	const success = handleKeydown(event.key, event.shiftKey, event.ctrlKey || event.metaKey, isComposing(view, event), view);
 
 	if (success) event.preventDefault();
 }
 
 export const handleKeydown = (key: string, shiftKey: boolean, ctrlKey: boolean, isIME: boolean, view: EditorView) => {
-
 	const settings = getLatexSuiteConfig(view);
-	const ctx = Context.fromView(view);
-
-	let success = false;
-
-	/*
-	* When backspace is pressed, if the cursor is inside an empty inline math,
-	* delete both $ symbols, not just the first one.
-	*/
-	if (settings.autoDelete$ && key === "Backspace" && ctx.mode.inMath()) {
-		const charAtPos = getCharacterAtPos(view, ctx.pos);
-		const charAtPrevPos = getCharacterAtPos(view, ctx.pos - 1);
-
-		if (charAtPos === "$" && charAtPrevPos === "$") {
-			replaceRange(view, ctx.pos - 1, ctx.pos + 1, "");
-			// Note: not sure if removeAllTabstops is necessary
+	
+	// Early exit for IME and control key combinations
+	if ((settings.suppressSnippetTriggerOnIME && isIME) || (ctrlKey && key !== "Tab")) {
+		return false;
+	}
+	
+	// Defer context creation until actually needed
+	let ctx: Context;
+	const getContext = () => ctx || (ctx = Context.fromView(view));
+	
+	// Handle Tab key early as it's a common operation
+	if (key === "Tab") {
+		if (setSelectionToNextTabstop(view)) return true;
+		
+		// Only check tabout if nothing is selected in the main cursor
+		if (settings.taboutEnabled && view.state.selection.main.empty) {
+			return tabout(view, getContext());
+		}
+		return false;
+	}
+	
+	// Handle backspace efficiently for autoDelete$
+	if (settings.autoDelete$ && key === "Backspace") {
+		const pos = view.state.selection.main.head;
+		const transaction = view.state.update({
+			changes: { from: pos - 1, to: pos + 1, insert: "" },
+			filter: false
+		});
+		
+		const docText = view.state.sliceDoc(pos - 1, pos + 1);
+		if (docText === "$$") {
+			view.dispatch(transaction);
 			removeAllTabstops(view);
 			return true;
 		}
 	}
-
-	if (settings.snippetsEnabled) {
-
-		// Prevent IME from triggering keydown events.
-		if (settings.suppressSnippetTriggerOnIME && isIME) return;
-
-		// Allows Ctrl + z for undo, instead of triggering a snippet ending with z
-		if (!ctrlKey) {
-			try {
-				success = runSnippets(view, ctx, key);
-				if (success) return true;
-			}
-			catch (e) {
-				clearSnippetQueue(view);
-				console.error(e);
-			}
+	
+	// Handle bracket tabout (check without needing context if possible)
+	if (settings.taboutEnabled && shouldTaboutByCloseBracket(view, key)) {
+		return tabout(view, getContext());
+	}
+	
+	// Now we need the context
+	ctx = getContext();
+	
+	// Check if in math mode for math-specific features
+	if (ctx.mode.strictlyInMath()) {
+		// Fraction handling
+		if (settings.autofractionEnabled && key === "/") {
+			if (runAutoFraction(view, ctx)) return true;
+		}
+		
+		// Matrix shortcuts
+		if (settings.matrixShortcutsEnabled && ["Tab", "Enter"].contains(key)) {
+			if (runMatrixShortcuts(view, ctx, key, shiftKey)) return true;
 		}
 	}
-
-	if (key === "Tab") {
-		success = setSelectionToNextTabstop(view);
-
-		if (success) return true;
-	}
-
-	if (settings.autofractionEnabled && ctx.mode.strictlyInMath()) {
-		if (key === "/") {
-			success = runAutoFraction(view, ctx);
-
-			if (success) return true;
-		}
-	}
-
-	if (settings.matrixShortcutsEnabled && ctx.mode.strictlyInMath()) {
-		if (["Tab", "Enter"].contains(key)) {
-			success = runMatrixShortcuts(view, ctx, key, shiftKey);
-
-			if (success) return true;
-		}
-	}
-
-	if (settings.taboutEnabled) {
-		// check if the main cursor has something selected since ctx.mode only checks the main cursor.
-		//  This does give weird behaviour with multicursor.
-		if ((key === "Tab" && view.state.selection.main.empty) 
-			|| shouldTaboutByCloseBracket(view, key)) {
-			success = tabout(view, ctx);
-
-			if (success) return true;
+	
+	// Handle snippets last as they're potentially expensive
+	if (settings.snippetsEnabled && !ctrlKey) {
+		try {
+			if (runSnippets(view, ctx, key)) return true;
+		} catch (e) {
+			clearSnippetQueue(view);
+			console.error(e);
 		}
 	}
 

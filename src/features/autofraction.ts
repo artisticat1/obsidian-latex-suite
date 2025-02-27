@@ -8,15 +8,15 @@ import { Context } from "src/utils/context";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
 
 
-export const runAutoFraction = (view: EditorView, ctx: Context):boolean => {
+export const runAutoFraction = (view: EditorView, ctx: Context): boolean => {
 
 	for (const range of ctx.ranges) {
 		runAutoFractionCursor(view, ctx, range);
 	}
 
 	const success = expandSnippets(view);
-
-	if (success) {
+	
+		if (success) {
 		autoEnlargeBrackets(view);
 	}
 

@@ -196,7 +196,10 @@ export const colorPairedBracketsPlugin = ViewPlugin.fromClass(class {
 
 	update(update: ViewUpdate) {
 		if (update.docChanged || update.viewportChanged) {
-			this.decorations = colorPairedBrackets(update.view);
+			// request animation frame to reduce load. Minimal inpact
+			requestAnimationFrame(() => {
+				this.decorations = colorPairedBrackets(update.view);
+			});
 		}
 	}
 
