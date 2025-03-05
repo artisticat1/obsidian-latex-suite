@@ -142,7 +142,7 @@ export function isComposing(view: EditorView, event: KeyboardEvent): boolean {
 
 /**
  * Force end an IME composition.
- * 
+ *
  * MIT License
  * Copyright (C) 2018-2021 by Marijn Haverbeke <marijnh@gmail.com> and others
  */
@@ -163,10 +163,10 @@ export function forceEndComposition(view: EditorView) {
 	parent.insertBefore(view.scrollDOM, sibling);
 	try {
 		if (savedSelection && selection) {
-		selection.setPosition(savedSelection.anchorNode, savedSelection.anchorOffset);
-		if (savedSelection.focusNode) {
-			selection.extend(savedSelection.focusNode, savedSelection.focusOffset);
-		}
+			selection.setPosition(savedSelection.anchorNode, savedSelection.anchorOffset);
+			if (savedSelection.focusNode) {
+				selection.extend(savedSelection.focusNode, savedSelection.focusOffset);
+			}
 		}
 	} catch(e) {
 		console.error(e);
