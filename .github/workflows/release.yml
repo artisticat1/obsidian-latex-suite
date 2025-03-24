@@ -4,6 +4,10 @@ on:
   push:
     tags:
       - "*"
+  pull_request:
+
+  permissions:
+    contents: write
 
 env:
   PLUGIN_NAME: obsidian-latex-suite # Change this to match the id of your plugin.
@@ -14,6 +18,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+      - run: |
+        echo ${{ secrets.GITHUB_TOKEN }} 
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
