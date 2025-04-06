@@ -1,7 +1,7 @@
 import LatexSuitePlugin from "../main";
 import { Vault, TFile, TFolder, TAbstractFile, Notice, debounce } from "obsidian";
 import { Snippet } from "../snippets/snippets";
-import { parseSnippets, parseSnippetVariables, type SnippetVariables } from "../snippets/parse";
+import { parseSnippets, parseSnippetVariables, SymbolGroups, type SnippetVariables } from "../snippets/parse";
 // @ts-ignore
 import differenceImplementation from "set.prototype.difference";
 // @ts-ignore
@@ -117,13 +117,13 @@ export function getFileSets(plugin: LatexSuitePlugin): FileSets {
 	return {definitelyVariableFiles, definitelySnippetFiles, snippetOrVariableFiles};
 }
 
-export async function getVariablesFromFiles(plugin: LatexSuitePlugin, files: FileSets) {
+export async function getVariablesFromFiles(plugin: LatexSuitePlugin, files: FileSets, symbolGroups: SymbolGroups) {
 	const snippetVariables: SnippetVariables = {};
 
 	for (const file of files.definitelyVariableFiles) {
 		const content = await plugin.app.vault.cachedRead(file);
 		try {
-			Object.assign(snippetVariables, await parseSnippetVariables(content));
+			Object.assign(snippetVariables, await parseSnippetVariables(content, symbolGroups));
 		} catch (e) {
 			new Notice(`Failed to parse variable file ${file.name}: ${e}`);
 			console.log(`Failed to parse variable file ${file.name}: ${e}`);
@@ -134,13 +134,13 @@ export async function getVariablesFromFiles(plugin: LatexSuitePlugin, files: Fil
 	return snippetVariables;
 }
 
-export async function tryGetVariablesFromUnknownFiles(plugin: LatexSuitePlugin, files: FileSets) {
+export async function tryGetVariablesFromUnknownFiles(plugin: LatexSuitePlugin, files: FileSets, symbolGroups: SymbolGroups) {
 	const snippetVariables: SnippetVariables = {};
 
 	for (const file of files.snippetOrVariableFiles) {
 		const content = await plugin.app.vault.cachedRead(file);
 		try {
-			Object.assign(snippetVariables, await parseSnippetVariables(content));
+			Object.assign(snippetVariables, await parseSnippetVariables(content, symbolGroups));
 			files.definitelyVariableFiles.add(file);
 		} catch (e) {
 			// No error here, we just assume this is a snippets file.

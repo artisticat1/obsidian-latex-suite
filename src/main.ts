@@ -7,7 +7,7 @@ import { ICONS } from "./settings/ui/icons";
 
 import { getEditorCommands } from "./features/editor_commands";
 import { getLatexSuiteConfigExtension } from "./snippets/codemirror/config";
-import { SnippetVariables, parseSnippetVariables, parseSnippets } from "./snippets/parse";
+import { SnippetVariables, parseSnippetVariables, parseSnippets, SymbolGroups, parseSymbolGroups } from "./snippets/parse";
 import { handleUpdate, onKeydown } from "./latex_suite";
 import { EditorView, tooltips } from "@codemirror/view";
 import { snippetExtensions } from "./snippets/codemirror/extensions";
@@ -77,8 +77,9 @@ export default class LatexSuitePlugin extends Plugin {
 			this.saveSettings();
 		}
 
-		if (this.settings.loadSnippetsFromFile || this.settings.loadSnippetVariablesFromFile) {
-			const tempSnippetVariables = await this.getSettingsSnippetVariables();
+		if (this.settings.loadSnippetsFromFile || this.settings.loadSnippetVariablesFromFile || this.settings.loadSymbolGroupsFromFile) {
+			const tempSymbolGroups = await this.getSettingsSymbolGroups();
+			const tempSnippetVariables = await this.getSettingsSnippetVariables(tempSymbolGroups);
 			const tempSnippets = await this.getSettingsSnippets(tempSnippetVariables);
 
 			this.CMSettings = processLatexSuiteSettings(tempSnippets, this.settings);
@@ -98,9 +99,27 @@ export default class LatexSuitePlugin extends Plugin {
 		this.processSettings(didFileLocationChange);
 	}
 
-	async getSettingsSnippetVariables() {
+	async getSettingsSymbolGroups() {
 		try {
-			return await parseSnippetVariables(this.settings.snippetVariables);
+			let parsedSymbolGroups = await parseSymbolGroups(this.settings.symbolGroups);
+			if (parsedSymbolGroups == null) {
+				parsedSymbolGroups = await parseSymbolGroups(DEFAULT_SETTINGS.symbolGroups);
+			}
+			return parsedSymbolGroups;
+		} catch (e) {
+			new Notice(`Failed to load symbol groups from settings: ${e}`);
+			console.log(`Failed to load symbol groups from settings: ${e}`);
+			return {};
+		}
+	}
+
+	async getSettingsSnippetVariables(symbolGroups: SymbolGroups) {
+		try {
+			let parsedSnippetVariables = await parseSnippetVariables(this.settings.snippetVariables, symbolGroups);
+			if (parsedSnippetVariables == null) {
+				parsedSnippetVariables = await parseSnippetVariables(DEFAULT_SETTINGS.snippetVariables, symbolGroups);
+			}
+			return parsedSnippetVariables;
 		} catch (e) {
 			new Notice(`Failed to load snippet variables from settings: ${e}`);
 			console.log(`Failed to load snippet variables from settings: ${e}`);
@@ -123,13 +142,18 @@ export default class LatexSuitePlugin extends Plugin {
 		// If either is set to be loaded from settings the set will just be empty.
 		const files = getFileSets(this);
 
+		const symbolGroups = await this.getSettingsSymbolGroups();
+
+
 		const snippetVariables =
 			this.settings.loadSnippetVariablesFromFile
-				? await getVariablesFromFiles(this, files)
-				: await this.getSettingsSnippetVariables();
+				? await getVariablesFromFiles(this, files, symbolGroups)
+				: await this.getSettingsSnippetVariables(symbolGroups);
+
+		
 
 		// This must be done in either case, because it also updates the set of snippet files
-		const unknownFileVariables = await tryGetVariablesFromUnknownFiles(this, files);
+		const unknownFileVariables = await tryGetVariablesFromUnknownFiles(this, files, symbolGroups);
 		if (this.settings.loadSnippetVariablesFromFile) {
 			// But we only use the values if the user wants them
 			Object.assign(snippetVariables, unknownFileVariables);

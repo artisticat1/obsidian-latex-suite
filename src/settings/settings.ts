@@ -2,6 +2,7 @@ import { Snippet } from "../snippets/snippets";
 import { Environment } from "../snippets/environment";
 import { DEFAULT_SNIPPETS } from "src/utils/default_snippets";
 import { DEFAULT_SNIPPET_VARIABLES } from "src/utils/default_snippet_variables";
+import { DEFAULT_SYMBOL_GROUPS } from "src/utils/default_symbol_groups";
 
 interface LatexSuiteBasicSettings {
 	snippetsEnabled: boolean;
@@ -11,8 +12,10 @@ interface LatexSuiteBasicSettings {
 	autoDelete$: boolean;
 	loadSnippetsFromFile: boolean;
 	loadSnippetVariablesFromFile: boolean;
+	loadSymbolGroupsFromFile: boolean;
 	snippetsFileLocation: string;
 	snippetVariablesFileLocation: string;
+	symbolGroupsFileLocation: string;
 	autofractionEnabled: boolean;
 	concealEnabled: boolean;
 	concealRevealTimeout: number;
@@ -45,12 +48,13 @@ interface LatexSuiteParsedSettings {
 	forceMathLanguages: string[];
 }
 
-export type LatexSuitePluginSettings = {snippets: string, snippetVariables: string} & LatexSuiteBasicSettings & LatexSuiteRawSettings;
+export type LatexSuitePluginSettings = {snippets: string, snippetVariables: string, symbolGroups: string} & LatexSuiteBasicSettings & LatexSuiteRawSettings;
 export type LatexSuiteCMSettings = {snippets: Snippet[]} & LatexSuiteBasicSettings & LatexSuiteParsedSettings;
 
 export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
 	snippets: DEFAULT_SNIPPETS,
 	snippetVariables: DEFAULT_SNIPPET_VARIABLES,
+	symbolGroups: DEFAULT_SYMBOL_GROUPS,
 
 	// Basic settings
 	snippetsEnabled: true,
@@ -60,8 +64,10 @@ export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
 	autoDelete$: true,
 	loadSnippetsFromFile: false,
 	loadSnippetVariablesFromFile: false,
+	loadSymbolGroupsFromFile: false,
 	snippetsFileLocation: "",
 	snippetVariablesFileLocation: "",
+	symbolGroupsFileLocation: "",
 	concealEnabled: false,
 	concealRevealTimeout: 0,
 	colorPairedBracketsEnabled: true,
@@ -103,7 +109,7 @@ export function processLatexSuiteSettings(snippets: Snippet[], settings: LatexSu
 			});
 		}
 		catch (e) {
-			console.log(e);
+			console.log("Log error:\n", e);
 		}
 
 		return envs;

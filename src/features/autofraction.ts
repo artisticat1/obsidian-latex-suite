@@ -58,7 +58,7 @@ export const runAutoFractionCursor = (view: EditorView, ctx: Context, range: Sel
 		// Also, allow spaces after greek letters
 		// By replacing spaces after greek letters with a dummy character (#)
 
-		const greek = "alpha|beta|gamma|Gamma|delta|Delta|epsilon|varepsilon|zeta|eta|theta|Theta|iota|kappa|lambda|Lambda|mu|nu|omicron|xi|Xi|pi|Pi|rho|sigma|Sigma|tau|upsilon|Upsilon|varphi|phi|Phi|chi|psi|Psi|omega|Omega";
+		const greek = "alpha|beta|gamma|Gamma|delta|Delta|epsilon|varepsilon|zeta|eta|theta|Theta|iota|kappa|lambda|Lambda|mu|nu|omicron|xi|Xi|pi|Pi|rho|sigma|Sigma|tau|upsilon|Upsilon|varphi|phi|Phi|chi|psi|Psi|omega|Omega|partial";
 		const regex = new RegExp("(" + greek + ") ([^ ])", "g");
 		curLine = curLine.replace(regex, "$1#$2");
 
@@ -83,7 +83,7 @@ export const runAutoFractionCursor = (view: EditorView, ctx: Context, range: Sel
 				}
 
 			}
-
+			
 
 			if (" $([{\n".concat(settings.autofractionBreakingChars).contains(curChar)) {
 				start = i+1;

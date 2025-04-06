@@ -1,4 +1,4 @@
-import { optional, object, string as string_, union, instance, parse, number, Output, special } from "valibot";
+import { optional, object, string as string_, union, instance, parse, number, Output, special, record, unknown, string } from "valibot";
 import { encode } from "js-base64";
 import { RegexSnippet, serializeSnippetLike, Snippet, StringSnippet, VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER, VisualSnippet } from "./snippets";
 import { Options } from "./options";
@@ -6,6 +6,7 @@ import { sortSnippets } from "./sort";
 import { EXCLUSIONS, Environment } from "./environment";
 
 export type SnippetVariables = Record<string, string>;
+export type SymbolGroups = Record<string, string>;
 
 async function importRaw(maybeJavaScriptCode: string) {
 	let raw;
@@ -24,14 +25,19 @@ async function importRaw(maybeJavaScriptCode: string) {
 	return raw;
 }
 
-export async function parseSnippetVariables(snippetVariablesStr: string) {
+export async function parseSnippetVariables(snippetVariablesStr: string, symbolGroups: SymbolGroups) {
+	if (snippetVariablesStr == "") {
+		// Uses default snippet variables
+		return null;
+	}
 	const rawSnippetVariables = await importRaw(snippetVariablesStr) as SnippetVariables;
 
 	if (Array.isArray(rawSnippetVariables))
 		throw "Cannot parse an array as a variables object";
 
 	const snippetVariables: SnippetVariables = {};
-	for (const [variable, value] of Object.entries(rawSnippetVariables)) {
+	for (let [variable, value] of Object.entries(rawSnippetVariables)) {
+		value = insertSymbolGroups(value, symbolGroups);
 		if (variable.startsWith("${")) {
 			if (!variable.endsWith("}")) {
 				throw `Invalid snippet variable name '${variable}': Starts with '\${' but does not end with '}'. You need to have both or neither.`;
@@ -45,6 +51,34 @@ export async function parseSnippetVariables(snippetVariablesStr: string) {
 		}
 	}
 	return snippetVariables;
+}
+
+export async function parseSymbolGroups(symbolGroupsStr: string) {
+	if (symbolGroupsStr == "") {
+		// Uses default symbol groups
+		return null;
+	}
+
+	const rawSymbolGroups = await importRaw(symbolGroupsStr) as SymbolGroups;
+
+	if (Array.isArray(rawSymbolGroups))
+		throw "Cannot parse an array as a variables object";
+
+	const symbolGroups: SymbolGroups = {};
+	for (const [variable, value] of Object.entries(rawSymbolGroups)) {
+		if (variable.startsWith("{")) {
+			if (!variable.endsWith("}")) {
+				throw `Invalid snippet variable name '{variable}': Starts with '{' but does not end with '}'. You need to have both or neither.`;
+			}
+			symbolGroups[variable] = value;
+		} else {
+			if (variable.endsWith("}")) {
+				throw `Invalid snippet variable name '{variable}': Ends with '}' but does not start with '{'. You need to have both or neither.`;
+			}
+			symbolGroups["{" + variable + "}"] = value;
+		}
+	}
+	return symbolGroups;
 }
 
 export async function parseSnippets(snippetsStr: string, snippetVariables: SnippetVariables) {
@@ -135,12 +169,33 @@ function validateRawSnippets(snippets: unknown): RawSnippet[] {
  * - if it is a regex snippet, the trigger is represented as a RegExp instance with flags set
  */
 function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snippet {
-	const { replacement, priority, description } = raw;
+	const { priority, description } = raw;
 	const options = Options.fromSource(raw.options);
 	let trigger;
+	let replacement: string | AnyFunction;
 	let excludedEnvironments;
 
 	// we have a regex snippet
+    if (typeof raw.replacement === "function") {
+        let replacementStr = raw.replacement.toString();
+		
+        // Convert the function to a string
+
+        // Replace snippet variables in the function body
+        replacementStr = insertSnippetVariables(replacementStr, snippetVariables);
+
+        // Convert the processed string back to a function
+        replacement = new Function(
+            `return (${replacementStr});`
+        )();
+
+
+    } else {
+        replacement = raw.replacement;
+    }
+
+
+
 	if (options.regex || raw.trigger instanceof RegExp) {
 		let triggerStr: string;
 		// normalize flags to a string
@@ -219,6 +274,15 @@ function filterFlags(flags: string): string {
 			.filter(flag => validFlags.includes(flag))
 			.join("");
 }
+
+
+function insertSymbolGroups(trigger: string, symbolGroups: SymbolGroups) {
+	for (const [variable, replacement] of Object.entries(symbolGroups)) {
+		trigger = trigger.replace(variable, replacement);
+	}
+
+	return trigger;
+}	
 
 function insertSnippetVariables(trigger: string, variables: SnippetVariables) {
 	for (const [variable, replacement] of Object.entries(variables)) {

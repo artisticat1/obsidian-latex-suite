@@ -1,7 +1,7 @@
 import { EditorState, Extension } from "@codemirror/state";
 import { EditorView, ViewUpdate } from "@codemirror/view";
 import { App, ButtonComponent, ExtraButtonComponent, Modal, PluginSettingTab, Setting, debounce, setIcon } from "obsidian";
-import { parseSnippetVariables, parseSnippets } from "src/snippets/parse";
+import { parseSnippetVariables, parseSnippets, parseSymbolGroups } from "src/snippets/parse";
 import { DEFAULT_SNIPPETS } from "src/utils/default_snippets";
 import LatexSuitePlugin from "../main";
 import { DEFAULT_SETTINGS } from "./settings";
@@ -14,6 +14,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 	snippetsEditor: EditorView;
 	snippetsFileLocEl: HTMLElement;
 	snippetVariablesFileLocEl: HTMLElement;
+	symbolGroupsFileLocEl: HTMLElement;
 
 	constructor(app: App, plugin: LatexSuitePlugin) {
 		super(app, plugin);
@@ -39,6 +40,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		const { containerEl } = this;
 		containerEl.empty();
 
+		this.displaySymbolsSettings();
 		this.displaySnippetSettings();
 		this.displayConcealSettings();
 		this.displayColorHighlightBracketsSettings();
@@ -49,6 +51,77 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		this.displayAutoEnlargeBracketsSettings();
 		this.displayAdvancedSnippetSettings();
 	}
+
+	private displaySymbolsSettings() {
+		const containerEl = this.containerEl;
+		this.addHeading(containerEl, "Symbol Groups", "alpha");
+
+		const symbolGroupsSetting = new Setting(containerEl)
+			.setName("Symbol groups")
+			.setDesc("Does nothing on its own, used in other settings to get a group of symbols e.g \"${GREEK}\" ")
+			.addTextArea(text => text
+				.setValue(this.plugin.settings.symbolGroups)
+				.onChange(async (value) => {
+					this.plugin.settings.symbolGroups = value;
+					await this.plugin.saveSettings();
+				})
+				.setPlaceholder(DEFAULT_SETTINGS.symbolGroups))
+			.setClass("latex-suite-full-text-area");
+
+
+
+
+		new Setting(containerEl)
+			.setName("Load symbol groups from file or folder")
+			.setDesc("Whether to symbol groups variables from a specified file, or from all files within a folder (instead of from the plugin settings).")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.loadSymbolGroupsFromFile)
+				.onChange(async (value) => {
+					this.plugin.settings.loadSymbolGroupsFromFile = value;
+
+					symbolGroupsSetting.settingEl.toggleClass("hidden", value);
+					if (this.symbolGroupsFileLocEl != undefined)
+						this.symbolGroupsFileLocEl.toggleClass("hidden", !value);
+
+					await this.plugin.saveSettings();
+				}));
+
+		const symbolGroupsFileLocDesc = new DocumentFragment();
+		symbolGroupsFileLocDesc.createDiv({}, (div) => {
+			div.innerHTML = `
+			The file or folder to load symbol groups from. The file or folder must be within your vault, and not within a hidden folder (such as <code>.obsidian/</code>).`;
+		});
+
+		const symbolGroupsFileLoc = new Setting(containerEl)
+			.setName("Symbol groups file or folder location")
+			.setDesc(symbolGroupsFileLocDesc);
+
+
+		let inputVariablesEl;
+		symbolGroupsFileLoc.addSearch(component => {
+			component
+				.setPlaceholder(DEFAULT_SETTINGS.symbolGroupsFileLocation)
+				.setValue(this.plugin.settings.symbolGroupsFileLocation)
+				.onChange(debounce(async (value) => {
+					this.plugin.settings.symbolGroupsFileLocation = value;
+					await this.plugin.saveSettings(true);
+				}, 500, true));
+
+			inputVariablesEl = component.inputEl;
+			inputVariablesEl.addClass("latex-suite-location-input-el");
+		}
+		);
+
+		this.symbolGroupsFileLocEl = symbolGroupsFileLoc.settingEl;
+		new FileSuggest(this.app, inputVariablesEl);
+
+
+		// Hide settings that are not relevant when "loadSymbolGroupsFromFile" is set to true/false
+		const loadSymbolGroupsFromFile = this.plugin.settings.loadSymbolGroupsFromFile;
+		symbolGroupsSetting.settingEl.toggleClass("hidden", loadSymbolGroupsFromFile);
+		this.symbolGroupsFileLocEl.toggleClass("hidden", !loadSymbolGroupsFromFile);
+	}
+
 
 	private displaySnippetSettings() {
 		const containerEl = this.containerEl;
@@ -523,15 +596,24 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				const snippets = v.state.doc.toString();
 				let success = true;
 
+				let symbolGroups;
 				let snippetVariables;
+				
 				try {
-					snippetVariables = await parseSnippetVariables(this.plugin.settings.snippetVariables)
+					symbolGroups = await parseSymbolGroups(this.plugin.settings.symbolGroups);
+					if (symbolGroups == null) {
+						symbolGroups = await parseSymbolGroups(DEFAULT_SETTINGS.symbolGroups);
+					}
+					snippetVariables = await parseSnippetVariables(this.plugin.settings.snippetVariables, symbolGroups)
+					if (snippetVariables == null) {
+						snippetVariables = await parseSymbolGroups(DEFAULT_SETTINGS.symbolGroups);
+					}
 					await parseSnippets(snippets, snippetVariables);
 				}
 				catch (e) {
+					console.error("Catched error:\n", e);
 					success = false;
 				}
-
 				updateValidityIndicator(success);
 
 				if (!success) return;

@@ -49,9 +49,41 @@
 	{trigger: "//", replacement: "\\frac{$0}{$1}$2", options: "mA"},
 	{trigger: "ee", replacement: "e^{ $0 }$1", options: "mA"},
     {trigger: "invs", replacement: "^{-1}", options: "mA"},
-    {trigger: /([A-Za-z])(\d)/, replacement: "[[0]]_{[[1]]}", options: "rmA", description: "Auto letter subscript", priority: -1},
 
-    {trigger: /([^\\])(exp|log|ln)/, replacement: "[[0]]\\[[1]]", options: "rmA"},
+	// Auto letter subscript
+	// Snippet replacements can also be JavaScript functions.
+    // See the documentation for more information.
+	{trigger: /(\\{0,1}[A-Za-z]+)(\d)/, replacement: (match) => {
+        const fullMatch = match[0]
+		const word = match[1]
+		const digit = match[2]
+		// Snippet variables can be inserted into the replacement, but only if replacement is a function.
+		// For example, ${AUTO_LETTER_SUBSCRIPT} below is (by default) shorthand for "{ALPHABET}|{GREEK}|...", which in turn is shorthand for "[a-zA-Z]|alpha|beta|gamma|...".
+		const matcher = "${AUTO_LETTER_SUBSCRIPT}"
+
+		function exactTest(pattern, string) {
+			const alternatives = pattern.split('|');
+			const anchoredAlternatives = alternatives.map(alt => `^${alt}$`);
+			const newPattern = new RegExp(anchoredAlternatives.join('|'));
+			return newPattern.test(string);
+		}
+
+		let performAutoLetterSubscript;
+		if (word[0] == "\\") {
+			// Matches entire symbol
+			performAutoLetterSubscript = exactTest(matcher, word.substring(1));
+		}
+		else{
+			// Matches last letter
+			performAutoLetterSubscript = exactTest(matcher, word[word.length - 1]);			
+		}
+		if (performAutoLetterSubscript) {
+			return word + "_{" + digit + "}";
+		}
+		return fullMatch;
+	}, options: "rmA", description: "Auto letter subscript"},
+
+	
     {trigger: "conj", replacement: "^{*}", options: "mA"},
     {trigger: "Re", replacement: "\\mathrm{Re}", options: "mA"},
 	{trigger: "Im", replacement: "\\mathrm{Im}", options: "mA"},
@@ -59,7 +91,6 @@
 	{trigger: "rm", replacement: "\\mathrm{$0}$1", options: "mA"},
 
     // Linear algebra
-    {trigger: /([^\\])(det)/, replacement: "[[0]]\\[[1]]", options: "rmA"},
     {trigger: "trace", replacement: "\\mathrm{Tr}", options: "mA"},
 
     // More operations
@@ -72,8 +103,8 @@
 	{trigger: "([a-zA-Z])vec", replacement: "\\vec{[[0]]}", options: "rmA"},
     {trigger: "([a-zA-Z]),\\.", replacement: "\\mathbf{[[0]]}", options: "rmA"},
 	{trigger: "([a-zA-Z])\\.,", replacement: "\\mathbf{[[0]]}", options: "rmA"},
+	
 	{trigger: "\\\\(${GREEK}),\\.", replacement: "\\boldsymbol{\\[[0]]}", options: "rmA"},
-	{trigger: "\\\\(${GREEK})\\.,", replacement: "\\boldsymbol{\\[[0]]}", options: "rmA"},
 
 	{trigger: "hat", replacement: "\\hat{$0}$1", options: "mA"},
     {trigger: "bar", replacement: "\\bar{$0}$1", options: "mA"},
@@ -84,11 +115,6 @@
 	{trigger: "und", replacement: "\\underline{$0}$1", options: "mA"},
 	{trigger: "vec", replacement: "\\vec{$0}$1", options: "mA"},
 
-    // More auto letter subscript
-    {trigger: /([A-Za-z])_(\d\d)/, replacement: "[[0]]_{[[1]]}", options: "rmA"},
-	{trigger: /\\hat{([A-Za-z])}(\d)/, replacement: "\\hat{[[0]]}_{[[1]]}", options: "rmA"},
-	{trigger: /\\vec{([A-Za-z])}(\d)/, replacement: "\\vec{[[0]]}_{[[1]]}", options: "rmA"},
-	{trigger: /\\mathbf{([A-Za-z])}(\d)/, replacement: "\\mathbf{[[0]]}_{[[1]]}", options: "rmA"},
 
     {trigger: "xnn", replacement: "x_{n}", options: "mA"},
 	{trigger: "\\xii", replacement: "x_{i}", options: "mA", priority: 1},
@@ -150,33 +176,38 @@
 	{trigger: "NN", replacement: "\\mathbb{N}", options: "mA"},
 
     // Handle spaces and backslashes
-
-    // Snippet variables can be used as shortcuts when writing snippets.
-    // For example, ${GREEK} below is shorthand for "alpha|beta|gamma|Gamma|delta|..."
+    
+	// Snippet variables can be used as shortcuts when writing snippets.
+    // For example, ${AUTO_BACKSLASH} below is (by default) shorthand for "{GREEK}|{SYMBOLS}..." which in turn is shorthand for "alpha|beta|gamma|...|parallel|perp|partial|...".
     // You can edit snippet variables under the Advanced snippet settings section.
 
-	{trigger: "([^\\\\])(${GREEK})", replacement: "[[0]]\\[[1]]", options: "rmA", description: "Add backslash before Greek letters"},
-	{trigger: "([^\\\\])(${SYMBOL})", replacement: "[[0]]\\[[1]]", options: "rmA", description: "Add backslash before symbols"},
+
+	{trigger: "([^\\\\])(${AUTO_BACKSLASH})", replacement: "[[0]]\\[[1]]", options: "rmA", description: "Add backslash before symbols"},
+
+
 
     // Insert space after Greek letters and symbols
-	{trigger: "\\\\(${GREEK}|${SYMBOL}|${MORE_SYMBOLS})([A-Za-z])", replacement: "\\[[0]] [[1]]", options: "rmA"},
-	{trigger: "\\\\(${GREEK}|${SYMBOL}) sr", replacement: "\\[[0]]^{2}", options: "rmA"},
-	{trigger: "\\\\(${GREEK}|${SYMBOL}) cb", replacement: "\\[[0]]^{3}", options: "rmA"},
-	{trigger: "\\\\(${GREEK}|${SYMBOL}) rd", replacement: "\\[[0]]^{$0}$1", options: "rmA"},
-	{trigger: "\\\\(${GREEK}|${SYMBOL}) hat", replacement: "\\hat{\\[[0]]}", options: "rmA"},
-	{trigger: "\\\\(${GREEK}|${SYMBOL}) dot", replacement: "\\dot{\\[[0]]}", options: "rmA"},
-	{trigger: "\\\\(${GREEK}|${SYMBOL}) bar", replacement: "\\bar{\\[[0]]}", options: "rmA"},
-	{trigger: "\\\\(${GREEK}|${SYMBOL}) vec", replacement: "\\vec{\\[[0]]}", options: "rmA"},
-	{trigger: "\\\\(${GREEK}|${SYMBOL}) tilde", replacement: "\\tilde{\\[[0]]}", options: "rmA"},
-	{trigger: "\\\\(${GREEK}|${SYMBOL}) und", replacement: "\\underline{\\[[0]]}", options: "rmA"},
+	{trigger: /\\(${AUTO_SPACE})([A-Za-z])/, replacement: "\\[[0]] [[1]]", options: "rmA", priority: 1},
+	{trigger: "\\\\(${AUTO_SPACE}) sr", replacement: "\\[[0]]^{2}", options: "rmA"},
+	{trigger: "\\\\(${AUTO_SPACE}) cb", replacement: "\\[[0]]^{3}", options: "rmA"},
+	{trigger: "\\\\(${AUTO_SPACE}) rd", replacement: "\\[[0]]^{$0}$1", options: "rmA"},
+	{trigger: "\\\\(${AUTO_SPACE}) hat", replacement: "\\hat{\\[[0]]}", options: "rmA"},
+	{trigger: "\\\\(${AUTO_SPACE}) dot", replacement: "\\dot{\\[[0]]}", options: "rmA"},
+	{trigger: "\\\\(${AUTO_SPACE}) bar", replacement: "\\bar{\\[[0]]}", options: "rmA"},
+	{trigger: "\\\\(${AUTO_SPACE}) vec", replacement: "\\vec{\\[[0]]}", options: "rmA"},
+	{trigger: "\\\\(${AUTO_SPACE}) tilde", replacement: "\\tilde{\\[[0]]}", options: "rmA"},
+	{trigger: "\\\\(${AUTO_SPACE}) und", replacement: "\\underline{\\[[0]]}", options: "rmA"},
 
+    {trigger: /\\(${OVERWRITE_AUTO_SPACE})/,
+	 replacement: "\\[[0]]", options: "rmA", priority: 2,
+     description: "Overwrites adding of space after specified, e.g. trig functions incase of letter h to allow sinh, cosh, etc."},
+    
 
     // Derivatives and integrals
     {trigger: "par", replacement: "\\frac{ \\partial ${0:y} }{ \\partial ${1:x} } $2", options: "m"},
     {trigger: /pa([A-Za-z])([A-Za-z])/, replacement: "\\frac{ \\partial [[0]] }{ \\partial [[1]] } ", options: "rm"},
     {trigger: "ddt", replacement: "\\frac{d}{dt} ", options: "mA"},
 
-    {trigger: /([^\\])int/, replacement: "[[0]]\\int", options: "mA", priority: -1},
     {trigger: "\\int", replacement: "\\int $0 \\, d${1:x} $2", options: "m"},
     {trigger: "dint", replacement: "\\int_{${0:0}}^{${1:1}} $2 \\, d${3:x} $4", options: "mA"},
     {trigger: "oint", replacement: "\\oint", options: "mA"},
@@ -186,16 +217,7 @@
 	{trigger: "infi", replacement: "\\int_{-\\infty}^{\\infty} $0 \\, d${1:x} $2", options: "mA"},
 
 
-    // Trigonometry
-    {trigger: /([^\\])(arcsin|sin|arccos|cos|arctan|tan|csc|sec|cot)/, replacement: "[[0]]\\[[1]]", options: "rmA", description: "Add backslash before trig funcs"},
 
-    {trigger: /\\(arcsin|sin|arccos|cos|arctan|tan|csc|sec|cot)([A-Za-gi-z])/,
-     replacement: "\\[[0]] [[1]]", options: "rmA",
-     description: "Add space after trig funcs. Skips letter h to allow sinh, cosh, etc."},
-
-    {trigger: /\\(sinh|cosh|tanh|coth)([A-Za-z])/,
-     replacement: "\\[[0]] [[1]]", options: "rmA",
-     description: "Add space after hyperbolic trig funcs"},
 
 
     // Visual operations
@@ -285,7 +307,7 @@
     // Snippet replacements can have placeholders.
 	{trigger: "tayl", replacement: "${0:f}(${1:x} + ${2:h}) = ${0:f}(${1:x}) + ${0:f}'(${1:x})${2:h} + ${0:f}''(${1:x}) \\frac{${2:h}^{2}}{2!} + \\dots$3", options: "mA", description: "Taylor expansion"},
 
-    // Snippet replacements can also be JavaScript functions.
+	// Snippet replacements can also be JavaScript functions.
     // See the documentation for more information.
 	{trigger: /iden(\d)/, replacement: (match) => {
 		const n = match[1];
