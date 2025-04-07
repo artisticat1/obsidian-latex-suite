@@ -26,10 +26,6 @@ async function importRaw(maybeJavaScriptCode: string) {
 }
 
 export async function parseSnippetVariables(snippetVariablesStr: string, symbolGroups: SymbolGroups) {
-	if (snippetVariablesStr == "") {
-		// Uses default snippet variables
-		return null;
-	}
 	const rawSnippetVariables = await importRaw(snippetVariablesStr) as SnippetVariables;
 
 	if (Array.isArray(rawSnippetVariables))
@@ -54,11 +50,6 @@ export async function parseSnippetVariables(snippetVariablesStr: string, symbolG
 }
 
 export async function parseSymbolGroups(symbolGroupsStr: string) {
-	if (symbolGroupsStr == "") {
-		// Uses default symbol groups
-		return null;
-	}
-
 	const rawSymbolGroups = await importRaw(symbolGroupsStr) as SymbolGroups;
 
 	if (Array.isArray(rawSymbolGroups))
@@ -175,27 +166,20 @@ function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snip
 	let replacement: string | AnyFunction;
 	let excludedEnvironments;
 
-	// we have a regex snippet
+	// Insert snippet variables into replacement.
     if (typeof raw.replacement === "function") {
         let replacementStr = raw.replacement.toString();
-		
-        // Convert the function to a string
-
-        // Replace snippet variables in the function body
         replacementStr = insertSnippetVariables(replacementStr, snippetVariables);
-
-        // Convert the processed string back to a function
-        replacement = new Function(
+		replacement = new Function(
             `return (${replacementStr});`
         )();
-
-
     } else {
         replacement = raw.replacement;
     }
 
 
 
+	// we have a regex snippet
 	if (options.regex || raw.trigger instanceof RegExp) {
 		let triggerStr: string;
 		// normalize flags to a string
@@ -276,20 +260,30 @@ function filterFlags(flags: string): string {
 }
 
 
-function insertSymbolGroups(trigger: string, symbolGroups: SymbolGroups) {
-	for (const [variable, replacement] of Object.entries(symbolGroups)) {
-		trigger = trigger.replace(variable, replacement);
+function insertSymbolGroups(settingStr: string, symbolGroups: SymbolGroups) {
+	for (const [group, replacement] of Object.entries(symbolGroups)) {
+		// Creates a regex with the "g" flag, this makes it so it will replace all instances
+			// Mainly usefull to allow comments without them accidentally stealing the replacement
+		// Escapes special regex characters
+		const escapedGroup = group.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+		const regex = new RegExp(escapedGroup, "g");
+		settingStr = settingStr.replace(regex, replacement);
 	}
 
-	return trigger;
-}	
+	return settingStr;
+}
 
-function insertSnippetVariables(trigger: string, variables: SnippetVariables) {
+function insertSnippetVariables(snippetPart: string, variables: SnippetVariables) {
 	for (const [variable, replacement] of Object.entries(variables)) {
-		trigger = trigger.replace(variable, replacement);
+		// Creates a regex with the "g" flag, this makes it so it will replace all instances
+			// Mainly usefull to allow comments without them accidentally stealing the replacement
+		// Escapes special regex characters
+		const escapedVariable = variable.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+		const regex = new RegExp(escapedVariable, "g");
+		snippetPart = snippetPart.replace(regex, replacement);
 	}
 
-	return trigger;
+	return snippetPart;
 }
 
 function getExcludedEnvironments(trigger: string): Environment[] {

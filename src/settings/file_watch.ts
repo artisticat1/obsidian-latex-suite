@@ -1,7 +1,7 @@
 import LatexSuitePlugin from "../main";
 import { Vault, TFile, TFolder, TAbstractFile, Notice, debounce } from "obsidian";
 import { Snippet } from "../snippets/snippets";
-import { parseSnippets, parseSnippetVariables, SymbolGroups, type SnippetVariables } from "../snippets/parse";
+import { parseSnippets, parseSnippetVariables, parseSymbolGroups, type SymbolGroups, type SnippetVariables } from "../snippets/parse";
 // @ts-ignore
 import differenceImplementation from "set.prototype.difference";
 // @ts-ignore
@@ -35,7 +35,7 @@ function fileIsInFolder(plugin: LatexSuitePlugin, folderPath: string, file: TFil
 }
 
 const refreshFromFiles = debounce(async (plugin: LatexSuitePlugin) => {
-	if (!(plugin.settings.loadSnippetVariablesFromFile || plugin.settings.loadSnippetsFromFile)) {
+	if (!(plugin.settings.loadSnippetVariablesFromFile || plugin.settings.loadSnippetsFromFile || plugin.settings.loadSymbolGroupsFromFile)) {
 		return;
 	}
 
@@ -48,8 +48,10 @@ export const onFileChange = async (plugin: LatexSuitePlugin, file: TAbstractFile
 
 	if (plugin.settings.loadSnippetVariablesFromFile && file.path === plugin.settings.snippetVariablesFileLocation
 		|| plugin.settings.loadSnippetsFromFile && file.path === plugin.settings.snippetsFileLocation
+		|| plugin.settings.loadSymbolGroupsFromFile && file.path === plugin.settings.symbolGroupsFileLocation
 		|| fileIsInFolder(plugin, plugin.settings.snippetVariablesFileLocation, file)
 		|| fileIsInFolder(plugin, plugin.settings.snippetsFileLocation, file)
+		|| fileIsInFolder(plugin, plugin.settings.symbolGroupsFileLocation, file)
 	) {
 		refreshFromFiles(plugin);
 	}
@@ -60,6 +62,7 @@ export const onFileCreate = (plugin: LatexSuitePlugin, file: TAbstractFile) => {
 
 	if (plugin.settings.loadSnippetVariablesFromFile && fileIsInFolder(plugin,plugin.settings.snippetVariablesFileLocation, file)
 		|| plugin.settings.loadSnippetsFromFile && fileIsInFolder(plugin,plugin.settings.snippetsFileLocation, file)
+		|| plugin.settings.loadSymbolGroupsFromFile && fileIsInFolder(plugin,plugin.settings.symbolGroupsFileLocation, file)
 	) {
 		refreshFromFiles(plugin);
 	}
@@ -70,9 +73,11 @@ export const onFileDelete = (plugin: LatexSuitePlugin, file: TAbstractFile) => {
 
 	const snippetVariablesDir = plugin.app.vault.getAbstractFileByPath(plugin.settings.snippetVariablesFileLocation);
 	const snippetDir = plugin.app.vault.getAbstractFileByPath(plugin.settings.snippetsFileLocation);
+	const symbolGroupsDir = plugin.app.vault.getAbstractFileByPath(plugin.settings.symbolGroupsFileLocation);
 
 	if (plugin.settings.loadSnippetVariablesFromFile && snippetVariablesDir instanceof TFolder && file.path.contains(snippetVariablesDir.path)
 		|| plugin.settings.loadSnippetsFromFile && snippetDir instanceof TFolder && file.path.contains(snippetDir.path)
+		|| plugin.settings.loadSymbolGroupsFromFile && symbolGroupsDir instanceof TFolder && file.path.contains(symbolGroupsDir.path)
 	) {
 		refreshFromFiles(plugin);
 	}
@@ -96,6 +101,7 @@ function getFilesWithin(vault: Vault, path: string): Set<TFile> {
 interface FileSets {
 	definitelyVariableFiles: Set<TFile>;
 	definitelySnippetFiles: Set<TFile>;
+	definitelySymbolGroupsFiles: Set<TFile>;
 	snippetOrVariableFiles: Set<TFile>;
 }
 
@@ -110,18 +116,48 @@ export function getFileSets(plugin: LatexSuitePlugin): FileSets {
 		? getFilesWithin(plugin.app.vault, plugin.settings.snippetsFileLocation)
 			: new Set<TFile>();
 
+	const symbolGroupsFolder =
+		plugin.settings.loadSymbolGroupsFromFile
+		? getFilesWithin(plugin.app.vault, plugin.settings.symbolGroupsFileLocation)
+			: new Set<TFile>();
+
 	const definitelyVariableFiles = difference(variablesFolder, snippetsFolder);
 	const definitelySnippetFiles = difference(snippetsFolder, variablesFolder);
+	const definitelySymbolGroupsFiles = difference(symbolGroupsFolder, snippetsFolder);
 	const snippetOrVariableFiles = intersection(variablesFolder, snippetsFolder);
 
-	return {definitelyVariableFiles, definitelySnippetFiles, snippetOrVariableFiles};
+	return {definitelyVariableFiles, definitelySnippetFiles, definitelySymbolGroupsFiles, snippetOrVariableFiles};
 }
+
+
+export async function getSymbolGroupsFromFiles(plugin: LatexSuitePlugin, files: FileSets) {
+	const symbolGroups: SymbolGroups = {};
+
+	console.log("SG fileset", files, files.definitelySymbolGroupsFiles)
+	for (const file of files.definitelySymbolGroupsFiles) {
+		const content = await plugin.app.vault.cachedRead(file);
+		console.log("SG content", content);
+		try {
+			Object.assign(symbolGroups, await parseSymbolGroups(content));
+		} catch (e) {
+			new Notice(`Failed to symbol groups file ${file.name}: ${e}`);
+			console.log(`Failed to symbol groups file ${file.name}: ${e}`);
+			files.definitelySymbolGroupsFiles.delete(file);
+		}
+	}
+
+	return symbolGroups;
+}
+
 
 export async function getVariablesFromFiles(plugin: LatexSuitePlugin, files: FileSets, symbolGroups: SymbolGroups) {
 	const snippetVariables: SnippetVariables = {};
 
+
+	console.log("VAR fileset", files, files.definitelyVariableFiles)
 	for (const file of files.definitelyVariableFiles) {
 		const content = await plugin.app.vault.cachedRead(file);
+		console.log("VAR content", content);
 		try {
 			Object.assign(snippetVariables, await parseSnippetVariables(content, symbolGroups));
 		} catch (e) {

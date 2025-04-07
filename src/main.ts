@@ -1,6 +1,6 @@
 import { Extension, Prec } from "@codemirror/state";
 import { Plugin, Notice, loadMathJax, addIcon } from "obsidian";
-import { onFileCreate, onFileChange, onFileDelete, getSnippetsFromFiles, getFileSets, getVariablesFromFiles, tryGetVariablesFromUnknownFiles } from "./settings/file_watch";
+import { onFileCreate, onFileChange, onFileDelete, getSnippetsFromFiles, getFileSets, getVariablesFromFiles, tryGetVariablesFromUnknownFiles, getSymbolGroupsFromFiles } from "./settings/file_watch";
 import { LatexSuitePluginSettings, DEFAULT_SETTINGS, LatexSuiteCMSettings, processLatexSuiteSettings } from "./settings/settings";
 import { LatexSuiteSettingTab } from "./settings/settings_tab";
 import { ICONS } from "./settings/ui/icons";
@@ -82,7 +82,7 @@ export default class LatexSuitePlugin extends Plugin {
 			const tempSnippetVariables = await this.getSettingsSnippetVariables(tempSymbolGroups);
 			const tempSnippets = await this.getSettingsSnippets(tempSnippetVariables);
 
-			this.CMSettings = processLatexSuiteSettings(tempSnippets, this.settings);
+			this.CMSettings = processLatexSuiteSettings(tempSnippets, this.settings, await this.getSettingsSymbolGroups());
 
 			// Use onLayoutReady so that we don't try to read the snippets file too early
 			this.app.workspace.onLayoutReady(() => {
@@ -102,9 +102,6 @@ export default class LatexSuitePlugin extends Plugin {
 	async getSettingsSymbolGroups() {
 		try {
 			let parsedSymbolGroups = await parseSymbolGroups(this.settings.symbolGroups);
-			if (parsedSymbolGroups == null) {
-				parsedSymbolGroups = await parseSymbolGroups(DEFAULT_SETTINGS.symbolGroups);
-			}
 			return parsedSymbolGroups;
 		} catch (e) {
 			new Notice(`Failed to load symbol groups from settings: ${e}`);
@@ -116,9 +113,6 @@ export default class LatexSuitePlugin extends Plugin {
 	async getSettingsSnippetVariables(symbolGroups: SymbolGroups) {
 		try {
 			let parsedSnippetVariables = await parseSnippetVariables(this.settings.snippetVariables, symbolGroups);
-			if (parsedSnippetVariables == null) {
-				parsedSnippetVariables = await parseSnippetVariables(DEFAULT_SETTINGS.snippetVariables, symbolGroups);
-			}
 			return parsedSnippetVariables;
 		} catch (e) {
 			new Notice(`Failed to load snippet variables from settings: ${e}`);
@@ -142,7 +136,10 @@ export default class LatexSuitePlugin extends Plugin {
 		// If either is set to be loaded from settings the set will just be empty.
 		const files = getFileSets(this);
 
-		const symbolGroups = await this.getSettingsSymbolGroups();
+		const symbolGroups = 
+			this.settings.loadSymbolGroupsFromFile
+				? await getSymbolGroupsFromFiles(this, files)
+				: await this.getSettingsSymbolGroups();
 
 
 		const snippetVariables =
@@ -170,7 +167,7 @@ export default class LatexSuitePlugin extends Plugin {
 	}
 
 	async processSettings(becauseFileLocationUpdated = false, becauseFileUpdated = false) {
-		this.CMSettings = processLatexSuiteSettings(await this.getSnippets(becauseFileLocationUpdated, becauseFileUpdated), this.settings);
+		this.CMSettings = processLatexSuiteSettings(await this.getSnippets(becauseFileLocationUpdated, becauseFileUpdated), this.settings, await this.getSettingsSymbolGroups());
 		this.setEditorExtensions();
 		// Request Obsidian to reconfigure CM extensions
 		this.app.workspace.updateOptions();

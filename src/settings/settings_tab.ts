@@ -40,8 +40,8 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		const { containerEl } = this;
 		containerEl.empty();
 
-		this.displaySymbolsSettings();
 		this.displaySnippetSettings();
+		this.displaySymbolGroupsSettings();
 		this.displayConcealSettings();
 		this.displayColorHighlightBracketsSettings();
 		this.displayPopupPreviewSettings();
@@ -50,76 +50,6 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		this.displayTaboutSettings();
 		this.displayAutoEnlargeBracketsSettings();
 		this.displayAdvancedSnippetSettings();
-	}
-
-	private displaySymbolsSettings() {
-		const containerEl = this.containerEl;
-		this.addHeading(containerEl, "Symbol Groups", "alpha");
-
-		const symbolGroupsSetting = new Setting(containerEl)
-			.setName("Symbol groups")
-			.setDesc("Does nothing on its own, used in other settings to get a group of symbols e.g \"${GREEK}\" ")
-			.addTextArea(text => text
-				.setValue(this.plugin.settings.symbolGroups)
-				.onChange(async (value) => {
-					this.plugin.settings.symbolGroups = value;
-					await this.plugin.saveSettings();
-				})
-				.setPlaceholder(DEFAULT_SETTINGS.symbolGroups))
-			.setClass("latex-suite-full-text-area");
-
-
-
-
-		new Setting(containerEl)
-			.setName("Load symbol groups from file or folder")
-			.setDesc("Whether to symbol groups variables from a specified file, or from all files within a folder (instead of from the plugin settings).")
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.loadSymbolGroupsFromFile)
-				.onChange(async (value) => {
-					this.plugin.settings.loadSymbolGroupsFromFile = value;
-
-					symbolGroupsSetting.settingEl.toggleClass("hidden", value);
-					if (this.symbolGroupsFileLocEl != undefined)
-						this.symbolGroupsFileLocEl.toggleClass("hidden", !value);
-
-					await this.plugin.saveSettings();
-				}));
-
-		const symbolGroupsFileLocDesc = new DocumentFragment();
-		symbolGroupsFileLocDesc.createDiv({}, (div) => {
-			div.innerHTML = `
-			The file or folder to load symbol groups from. The file or folder must be within your vault, and not within a hidden folder (such as <code>.obsidian/</code>).`;
-		});
-
-		const symbolGroupsFileLoc = new Setting(containerEl)
-			.setName("Symbol groups file or folder location")
-			.setDesc(symbolGroupsFileLocDesc);
-
-
-		let inputVariablesEl;
-		symbolGroupsFileLoc.addSearch(component => {
-			component
-				.setPlaceholder(DEFAULT_SETTINGS.symbolGroupsFileLocation)
-				.setValue(this.plugin.settings.symbolGroupsFileLocation)
-				.onChange(debounce(async (value) => {
-					this.plugin.settings.symbolGroupsFileLocation = value;
-					await this.plugin.saveSettings(true);
-				}, 500, true));
-
-			inputVariablesEl = component.inputEl;
-			inputVariablesEl.addClass("latex-suite-location-input-el");
-		}
-		);
-
-		this.symbolGroupsFileLocEl = symbolGroupsFileLoc.settingEl;
-		new FileSuggest(this.app, inputVariablesEl);
-
-
-		// Hide settings that are not relevant when "loadSymbolGroupsFromFile" is set to true/false
-		const loadSymbolGroupsFromFile = this.plugin.settings.loadSymbolGroupsFromFile;
-		symbolGroupsSetting.settingEl.toggleClass("hidden", loadSymbolGroupsFromFile);
-		this.symbolGroupsFileLocEl.toggleClass("hidden", !loadSymbolGroupsFromFile);
 	}
 
 
@@ -210,6 +140,76 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				})
 			);
+	}
+
+	private displaySymbolGroupsSettings() {
+		const containerEl = this.containerEl;
+		this.addHeading(containerEl, "Symbol Groups", "alpha");
+
+		const symbolGroupsSetting = new Setting(containerEl)
+			.setName("Symbol groups")
+			.setDesc("Does nothing on its own, used in some other settings to get a group of symbols e.g \"{GREEK}\" in certain settings is the same as \"alpha|beta|gamma|...\"")
+			.addTextArea(text => text
+				.setValue(this.plugin.settings.symbolGroups)
+				.onChange(async (value) => {
+					this.plugin.settings.symbolGroups = value;
+					await this.plugin.saveSettings();
+				})
+				.setPlaceholder(DEFAULT_SETTINGS.symbolGroups))
+			.setClass("latex-suite-full-text-area");
+
+
+
+
+		new Setting(containerEl)
+			.setName("Load symbol groups from file or folder")
+			.setDesc("Whether to load symbol groups from a specified file, or from all files within a folder (instead of from the plugin settings).")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.loadSymbolGroupsFromFile)
+				.onChange(async (value) => {
+					this.plugin.settings.loadSymbolGroupsFromFile = value;
+
+					symbolGroupsSetting.settingEl.toggleClass("hidden", value);
+					if (this.symbolGroupsFileLocEl != undefined)
+						this.symbolGroupsFileLocEl.toggleClass("hidden", !value);
+
+					await this.plugin.saveSettings();
+				}));
+
+		const symbolGroupsFileLocDesc = new DocumentFragment();
+		symbolGroupsFileLocDesc.createDiv({}, (div) => {
+			div.innerHTML = `
+			The file or folder to load symbol groups from. The file or folder must be within your vault, and not within a hidden folder (such as <code>.obsidian/</code>).`;
+		});
+
+		const symbolGroupsFileLoc = new Setting(containerEl)
+			.setName("Symbol groups file or folder location")
+			.setDesc(symbolGroupsFileLocDesc);
+
+
+		let inputSymbolGroupsEl;
+		symbolGroupsFileLoc.addSearch(component => {
+			component
+				.setPlaceholder(DEFAULT_SETTINGS.symbolGroupsFileLocation)
+				.setValue(this.plugin.settings.symbolGroupsFileLocation)
+				.onChange(debounce(async (value) => {
+					this.plugin.settings.symbolGroupsFileLocation = value;
+					await this.plugin.saveSettings(true);
+				}, 500, true));
+
+			inputSymbolGroupsEl = component.inputEl;
+			inputSymbolGroupsEl.addClass("latex-suite-location-input-el");
+		}
+		);
+
+		this.symbolGroupsFileLocEl = symbolGroupsFileLoc.settingEl;
+		new FileSuggest(this.app, inputSymbolGroupsEl);
+
+
+		// Hide settings that are not relevant when "loadSymbolGroupsFromFile" is set to true/false
+		const loadSymbolGroupsFromFile = this.plugin.settings.loadSymbolGroupsFromFile;
+		symbolGroupsSetting.settingEl.toggleClass("hidden", loadSymbolGroupsFromFile);
+		this.symbolGroupsFileLocEl.toggleClass("hidden", !loadSymbolGroupsFromFile);
 	}
 
 	private displayConcealSettings() {
@@ -372,6 +372,18 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 					await this.plugin.saveSettings();
 				}));
+
+		new Setting(containerEl)
+			.setName("Unbreaking symbols")
+			.setDesc("Normally a space is a breaking character, but a single space after these latex symbols will be ignored. e.g. if \\alpha is included in the list, \"\\alpha a/b\" will expand to \"\\frac{\\alpha a}{b}\". If \\alpha is not in the list, it will expand to \"\\alpha \\frac{a}{b}\". \"\\alpha  a/b\" (2 or more spaces) will always expand to \"\\alpha \\frac{a}{b}\". Elements in the list is seperated by |\nUses symbol groups.")
+			.addText(text => text
+				.setPlaceholder(DEFAULT_SETTINGS.autofractionIncludedSymbols)
+				.setValue(this.plugin.settings.autofractionIncludedSymbols)
+				.onChange(async (value) => {
+					this.plugin.settings.autofractionIncludedSymbols = value;
+
+					await this.plugin.saveSettings();
+				}));
 	}
 
 	private displayMatrixShortcutsSettings() {
@@ -448,10 +460,10 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 	private displayAdvancedSnippetSettings() {
 		const containerEl = this.containerEl;
 		this.addHeading(containerEl, "Advanced snippet settings");
-
+		
 		const snippetVariablesSetting = new Setting(containerEl)
 			.setName("Snippet variables")
-			.setDesc("Assign snippet variables that can be used as shortcuts when writing snippets.")
+			.setDesc("Assign snippet variables that can be used as shortcuts when writing snippets.\nUses symbol groups.")
 			.addTextArea(text => text
 				.setValue(this.plugin.settings.snippetVariables)
 				.onChange(async (value) => {
@@ -562,8 +574,8 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.forceMathLanguages)
 				.onChange(async (value) => {
 					this.plugin.settings.forceMathLanguages = value;
-
 					await this.plugin.saveSettings();
+
 				}));
 	}
 

@@ -3,6 +3,7 @@ import { Environment } from "../snippets/environment";
 import { DEFAULT_SNIPPETS } from "src/utils/default_snippets";
 import { DEFAULT_SNIPPET_VARIABLES } from "src/utils/default_snippet_variables";
 import { DEFAULT_SYMBOL_GROUPS } from "src/utils/default_symbol_groups";
+import { type SymbolGroups } from "src/snippets/parse";
 
 interface LatexSuiteBasicSettings {
 	snippetsEnabled: boolean;
@@ -39,6 +40,7 @@ interface LatexSuiteRawSettings {
 	matrixShortcutsEnvNames: string;
 	autoEnlargeBracketsTriggers: string;
 	forceMathLanguages: string;
+	autofractionIncludedSymbols: string;
 }
 
 interface LatexSuiteParsedSettings {
@@ -46,6 +48,7 @@ interface LatexSuiteParsedSettings {
 	matrixShortcutsEnvNames: string[];
 	autoEnlargeBracketsTriggers: string[];
 	forceMathLanguages: string[];
+	autofractionIncludedSymbols: string;
 }
 
 export type LatexSuitePluginSettings = {snippets: string, snippetVariables: string, symbolGroups: string} & LatexSuiteBasicSettings & LatexSuiteRawSettings;
@@ -91,12 +94,28 @@ export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
 	matrixShortcutsEnvNames: "pmatrix, cases, align, gather, bmatrix, Bmatrix, vmatrix, Vmatrix, array, matrix",
 	autoEnlargeBracketsTriggers: "sum, int, frac, prod, bigcup, bigcap",
 	forceMathLanguages: "math",
+	autofractionIncludedSymbols: "{GREEK}|{SYMBOLS}",
 }
 
-export function processLatexSuiteSettings(snippets: Snippet[], settings: LatexSuitePluginSettings):LatexSuiteCMSettings {
 
+export function processLatexSuiteSettings(snippets: Snippet[], settings: LatexSuitePluginSettings, symbolGroups: SymbolGroups):LatexSuiteCMSettings {
+	
+	
 	function strToArray(str: string) {
 		return str.replace(/\s/g,"").split(",");
+	}
+
+	function insertSymbolGroups(setting: string) {
+		for (const [group, replacement] of Object.entries(symbolGroups)) {
+			// Creates a regex with the "g" flag, this makes it so it will replace all instances
+				// Mainly usefull to allow comments without them accidentally stealing the replacement
+			// Escapes special regex characters
+			const escapedGroup = group.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+			const regex = new RegExp(escapedGroup, "g");
+			setting = setting.replace(regex, replacement);
+		}
+
+		return setting;
 	}
 
 	function getAutofractionExcludedEnvs(envsStr: string) {
@@ -109,7 +128,7 @@ export function processLatexSuiteSettings(snippets: Snippet[], settings: LatexSu
 			});
 		}
 		catch (e) {
-			console.log("Log error:\n", e);
+			console.log("Catched error:\n", e);
 		}
 
 		return envs;
@@ -124,5 +143,6 @@ export function processLatexSuiteSettings(snippets: Snippet[], settings: LatexSu
 		matrixShortcutsEnvNames: strToArray(settings.matrixShortcutsEnvNames),
 		autoEnlargeBracketsTriggers: strToArray(settings.autoEnlargeBracketsTriggers),
 		forceMathLanguages: strToArray(settings.forceMathLanguages),
+		autofractionIncludedSymbols: insertSymbolGroups(settings.autofractionIncludedSymbols),
 	}
 }

@@ -7,7 +7,6 @@ import { autoEnlargeBrackets } from "./auto_enlarge_brackets";
 import { Context } from "src/utils/context";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
 
-
 export const runAutoFraction = (view: EditorView, ctx: Context):boolean => {
 
 	for (const range of ctx.ranges) {
@@ -25,7 +24,6 @@ export const runAutoFraction = (view: EditorView, ctx: Context):boolean => {
 
 
 export const runAutoFractionCursor = (view: EditorView, ctx: Context, range: SelectionRange):boolean => {
-
 	const settings = getLatexSuiteConfig(view);
 	const {from, to} = range;
 
@@ -55,11 +53,12 @@ export const runAutoFractionCursor = (view: EditorView, ctx: Context, range: Sel
 		// Find the contents of the fraction
 		// Match everything except spaces and +-, but allow these characters in brackets
 
-		// Also, allow spaces after greek letters
-		// By replacing spaces after greek letters with a dummy character (#)
+		// Also, allow spaces after certain symbols (e.g. greek letters)
+		// By replacing spaces after the symbols with a dummy character (#)
 
-		const greek = "alpha|beta|gamma|Gamma|delta|Delta|epsilon|varepsilon|zeta|eta|theta|Theta|iota|kappa|lambda|Lambda|mu|nu|omicron|xi|Xi|pi|Pi|rho|sigma|Sigma|tau|upsilon|Upsilon|varphi|phi|Phi|chi|psi|Psi|omega|Omega|partial";
-		const regex = new RegExp("(" + greek + ") ([^ ])", "g");
+		const includedSymbols = settings.autofractionIncludedSymbols;
+		const regex = new RegExp("(" + includedSymbols + ") ([^ ])", "g");
+
 		curLine = curLine.replace(regex, "$1#$2");
 
 
@@ -84,7 +83,6 @@ export const runAutoFractionCursor = (view: EditorView, ctx: Context, range: Sel
 
 			}
 			
-
 			if (" $([{\n".concat(settings.autofractionBreakingChars).contains(curChar)) {
 				start = i+1;
 				break;
