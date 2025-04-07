@@ -1,4 +1,4 @@
-import { optional, object, string as string_, union, instance, parse, number, Output, special } from "valibot";
+import { optional, object, string as string_, union, instance, parse, number, Output, special, record, unknown, string } from "valibot";
 import { encode } from "js-base64";
 import { RegexSnippet, serializeSnippetLike, Snippet, StringSnippet, VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER, VisualSnippet } from "./snippets";
 import { Options } from "./options";
@@ -6,6 +6,7 @@ import { sortSnippets } from "./sort";
 import { EXCLUSIONS, Environment } from "./environment";
 
 export type SnippetVariables = Record<string, string>;
+export type SymbolGroups = Record<string, string>;
 
 async function importRaw(maybeJavaScriptCode: string) {
 	let raw;
@@ -24,14 +25,15 @@ async function importRaw(maybeJavaScriptCode: string) {
 	return raw;
 }
 
-export async function parseSnippetVariables(snippetVariablesStr: string) {
+export async function parseSnippetVariables(snippetVariablesStr: string, symbolGroups: SymbolGroups) {
 	const rawSnippetVariables = await importRaw(snippetVariablesStr) as SnippetVariables;
 
 	if (Array.isArray(rawSnippetVariables))
 		throw "Cannot parse an array as a variables object";
 
 	const snippetVariables: SnippetVariables = {};
-	for (const [variable, value] of Object.entries(rawSnippetVariables)) {
+	for (let [variable, value] of Object.entries(rawSnippetVariables)) {
+		value = insertSymbolGroups(value, symbolGroups);
 		if (variable.startsWith("${")) {
 			if (!variable.endsWith("}")) {
 				throw `Invalid snippet variable name '${variable}': Starts with '\${' but does not end with '}'. You need to have both or neither.`;
@@ -45,6 +47,29 @@ export async function parseSnippetVariables(snippetVariablesStr: string) {
 		}
 	}
 	return snippetVariables;
+}
+
+export async function parseSymbolGroups(symbolGroupsStr: string) {
+	const rawSymbolGroups = await importRaw(symbolGroupsStr) as SymbolGroups;
+
+	if (Array.isArray(rawSymbolGroups))
+		throw "Cannot parse an array as a variables object";
+
+	const symbolGroups: SymbolGroups = {};
+	for (const [variable, value] of Object.entries(rawSymbolGroups)) {
+		if (variable.startsWith("{")) {
+			if (!variable.endsWith("}")) {
+				throw `Invalid snippet variable name '{variable}': Starts with '{' but does not end with '}'. You need to have both or neither.`;
+			}
+			symbolGroups[variable] = value;
+		} else {
+			if (variable.endsWith("}")) {
+				throw `Invalid snippet variable name '{variable}': Ends with '}' but does not start with '{'. You need to have both or neither.`;
+			}
+			symbolGroups["{" + variable + "}"] = value;
+		}
+	}
+	return symbolGroups;
 }
 
 export async function parseSnippets(snippetsStr: string, snippetVariables: SnippetVariables) {
@@ -135,10 +160,24 @@ function validateRawSnippets(snippets: unknown): RawSnippet[] {
  * - if it is a regex snippet, the trigger is represented as a RegExp instance with flags set
  */
 function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snippet {
-	const { replacement, priority, description } = raw;
+	const { priority, description } = raw;
 	const options = Options.fromSource(raw.options);
 	let trigger;
+	let replacement: string | AnyFunction;
 	let excludedEnvironments;
+
+	// Insert snippet variables into replacement.
+    if (typeof raw.replacement === "function") {
+        let replacementStr = raw.replacement.toString();
+        replacementStr = insertSnippetVariables(replacementStr, snippetVariables);
+		replacement = new Function(
+            `return (${replacementStr});`
+        )();
+    } else {
+        replacement = raw.replacement;
+    }
+
+
 
 	// we have a regex snippet
 	if (options.regex || raw.trigger instanceof RegExp) {
@@ -220,12 +259,31 @@ function filterFlags(flags: string): string {
 			.join("");
 }
 
-function insertSnippetVariables(trigger: string, variables: SnippetVariables) {
-	for (const [variable, replacement] of Object.entries(variables)) {
-		trigger = trigger.replace(variable, replacement);
+
+function insertSymbolGroups(settingStr: string, symbolGroups: SymbolGroups) {
+	for (const [group, replacement] of Object.entries(symbolGroups)) {
+		// Creates a regex with the "g" flag, this makes it so it will replace all instances
+			// Mainly usefull to allow comments without them accidentally stealing the replacement
+		// Escapes special regex characters
+		const escapedGroup = group.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+		const regex = new RegExp(escapedGroup, "g");
+		settingStr = settingStr.replace(regex, replacement);
 	}
 
-	return trigger;
+	return settingStr;
+}
+
+function insertSnippetVariables(snippetPart: string, variables: SnippetVariables) {
+	for (const [variable, replacement] of Object.entries(variables)) {
+		// Creates a regex with the "g" flag, this makes it so it will replace all instances
+			// Mainly usefull to allow comments without them accidentally stealing the replacement
+		// Escapes special regex characters
+		const escapedVariable = variable.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+		const regex = new RegExp(escapedVariable, "g");
+		snippetPart = snippetPart.replace(regex, replacement);
+	}
+
+	return snippetPart;
 }
 
 function getExcludedEnvironments(trigger: string): Environment[] {

@@ -70,7 +70,7 @@ export const handleKeydown = (key: string, shiftKey: boolean, ctrlKey: boolean, 
 			}
 			catch (e) {
 				clearSnippetQueue(view);
-				console.error(e);
+				console.error("Catched error:\n", e);
 			}
 		}
 	}

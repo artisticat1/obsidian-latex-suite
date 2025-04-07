@@ -39,6 +39,24 @@
     margin-bottom: 0.75rem;
 }
 
+
+.latex-suite-full-text-area .setting-item-control {
+    height: 150px;
+}
+
+.latex-suite-full-text-area .setting-item-control textarea {
+    width: 100%;
+    height: 100%;
+}
+
+.latex-suite-full-text-area {
+    display: inline-block;
+}
+
+.latex-suite-full-text-area .setting-item-info {
+    margin-bottom: 0.75rem;
+}
+
 .snippets-text-area .setting-item-control {
     flex-direction: column;
     align-items: flex-end;
