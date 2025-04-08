@@ -222,7 +222,7 @@ function filterFlags(flags: string): string {
 
 function insertSnippetVariables(trigger: string, variables: SnippetVariables) {
 	for (const [variable, replacement] of Object.entries(variables)) {
-		trigger = trigger.replace(variable, replacement);
+		trigger = trigger.replaceAll(variable, replacement);
 	}
 
 	return trigger;
