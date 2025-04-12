@@ -231,7 +231,7 @@ function insertSnippetVariables(trigger: string, variables: SnippetVariables) {
 function getExcludedEnvironments(trigger: string): Environment[] {
 	const result = [];
 	if (EXCLUSIONS.hasOwnProperty(trigger)) {
-		result.push(EXCLUSIONS[trigger]);
+		result.push(...EXCLUSIONS[trigger]);
 	}
 	return result;
 }

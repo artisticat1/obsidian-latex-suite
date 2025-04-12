@@ -9,8 +9,10 @@ export interface Environment {
 /**
  * a mapping of triggers to environments where they should not run
  */
-export const EXCLUSIONS:{[trigger: string]: Environment} = {
-	"([A-Za-z])(\\d)": {openSymbol: "\\pu{", closeSymbol: "}"},
-	"->": {openSymbol: "\\ce{", closeSymbol: "}"}
-}
-
+export const EXCLUSIONS: { [trigger: string]: Environment[] } = {
+	"([A-Za-z])(\\d)": [
+		{ openSymbol: "\\pu{", closeSymbol: "}" },
+		{ openSymbol: "\\ce{", closeSymbol: "}" },
+	],
+	"->": [{ openSymbol: "\\ce{", closeSymbol: "}" }],
+};
