@@ -29,6 +29,11 @@ export const handleUpdate = (update: ViewUpdate) => {
 }
 
 export const onKeydown = (event: KeyboardEvent, view: EditorView) => {
+	// Skip full update since the keymove can't trigger anything but can spamm the function a lot.
+	if (event.key == "ArrowUp" || event.key == "ArrowDown" || event.key == "ArrowLeft" || event.key == "ArrowRight") {
+		return;
+	}
+
 	const success = handleKeydown(event.key, event.shiftKey, event.ctrlKey || event.metaKey, isComposing(view, event), view);
 
 	if (success) event.preventDefault();
