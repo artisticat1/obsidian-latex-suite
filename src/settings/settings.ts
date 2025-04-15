@@ -107,12 +107,7 @@ export function processLatexSuiteSettings(snippets: Snippet[], settings: LatexSu
 
 	function insertSymbolGroups(setting: string) {
 		for (const [group, replacement] of Object.entries(symbolGroups)) {
-			// Creates a regex with the "g" flag, this makes it so it will replace all instances
-				// Mainly usefull to allow comments without them accidentally stealing the replacement
-			// Escapes special regex characters
-			const escapedGroup = group.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-			const regex = new RegExp(escapedGroup, "g");
-			setting = setting.replace(regex, replacement);
+			setting = setting.replaceAll(group, replacement);
 		}
 
 		return setting;

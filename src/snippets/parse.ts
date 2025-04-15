@@ -59,12 +59,12 @@ export async function parseSymbolGroups(symbolGroupsStr: string) {
 	for (const [variable, value] of Object.entries(rawSymbolGroups)) {
 		if (variable.startsWith("{")) {
 			if (!variable.endsWith("}")) {
-				throw `Invalid snippet variable name '{variable}': Starts with '{' but does not end with '}'. You need to have both or neither.`;
+				throw `Invalid snippet variable name '${variable}': Starts with '{' but does not end with '}'. You need to have both or neither.`;
 			}
 			symbolGroups[variable] = value;
 		} else {
 			if (variable.endsWith("}")) {
-				throw `Invalid snippet variable name '{variable}': Ends with '}' but does not start with '{'. You need to have both or neither.`;
+				throw `Invalid snippet variable name '${variable}': Ends with '}' but does not start with '{'. You need to have both or neither.`;
 			}
 			symbolGroups["{" + variable + "}"] = value;
 		}
@@ -74,7 +74,6 @@ export async function parseSymbolGroups(symbolGroupsStr: string) {
 
 export async function parseSnippets(snippetsStr: string, snippetVariables: SnippetVariables) {
 	let rawSnippets = await importRaw(snippetsStr) as RawSnippet[];
-
 	let parsedSnippets;
 	try {
 		// validate the shape of the raw snippets
@@ -261,13 +260,21 @@ function filterFlags(flags: string): string {
 
 
 function insertSymbolGroups(settingStr: string, symbolGroups: SymbolGroups) {
-	for (const [group, replacement] of Object.entries(symbolGroups)) {
-		// Creates a regex with the "g" flag, this makes it so it will replace all instances
-			// Mainly usefull to allow comments without them accidentally stealing the replacement
-		// Escapes special regex characters
-		const escapedGroup = group.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-		const regex = new RegExp(escapedGroup, "g");
-		settingStr = settingStr.replace(regex, replacement);
+	//// Inserts symbol groups
+	for (let [group, replacement] of Object.entries(symbolGroups)) {
+		settingStr = settingStr.replaceAll(group, replacement);
+	}
+
+	//// Removing alpha if !alpha is present.
+	const regex = new RegExp(/!([^|]+)/g);
+	const matches = settingStr.match(regex);
+	settingStr = "|" + settingStr;
+	for (const match in matches) {
+		settingStr = settingStr.replaceAll("|" + matches[match], "")
+		settingStr = settingStr.replaceAll("|" + matches[match].substring(1), "")
+	}
+	if (settingStr.startsWith("|")){
+		settingStr = settingStr.substring(1)
 	}
 
 	return settingStr;
@@ -275,12 +282,7 @@ function insertSymbolGroups(settingStr: string, symbolGroups: SymbolGroups) {
 
 function insertSnippetVariables(snippetPart: string, variables: SnippetVariables) {
 	for (const [variable, replacement] of Object.entries(variables)) {
-		// Creates a regex with the "g" flag, this makes it so it will replace all instances
-			// Mainly usefull to allow comments without them accidentally stealing the replacement
-		// Escapes special regex characters
-		const escapedVariable = variable.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-		const regex = new RegExp(escapedVariable, "g");
-		snippetPart = snippetPart.replace(regex, replacement);
+		snippetPart = snippetPart.replaceAll(variable, replacement);
 	}
 
 	return snippetPart;

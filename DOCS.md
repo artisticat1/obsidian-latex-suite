@@ -88,38 +88,110 @@ Using a RegExp literal, the same snippet can be written as
 >   - (One backslash to escape the special character, and another to escape that backslash)
 > - [Lookbehind regex is not supported on iOS.](https://github.com/bicarlsen/obsidian_image_caption/issues/4#issuecomment-982982629) Using lookbehind regex will cause snippets to break on iOS.
 
+### Symbol Groups
+Symbol groups are modifiable variables used in certain settings. It can be usefull if a group of symbols, eg. all the greek letters are used multiple times. In the relavent settings, strings or sections of the string with the format `{VARIABLE}` will be replaced with the contents of the matching symbol group if it's defined, and left unchanged otherwise.
 
-### Snippet variables
-Snippet variables are used as shortcuts when writing snippets. In the `trigger` of a snippet, strings with the format `"${VARIABLE}"` will be replaced with the contents of the matching variable if it's defined, and left unchanged otherwise.
+By default, the following symbol groups are set:
 
- By default, the following variables are available for use in a `trigger`:
-
-- `${GREEK}` : Shorthand for the following by default:
+- `{GREEK}` : Shorthand for the following by default:
 
   ```
   alpha|beta|gamma|Gamma|delta|Delta|epsilon|varepsilon|zeta|eta|theta|vartheta|Theta|iota|kappa|lambda|Lambda|mu|nu|xi|omicron|pi|rho|varrho|sigma|Sigma|tau|upsilon|Upsilon|phi|varphi|Phi|chi|psi|omega|Omega
   ```
 
+- `{SYMBOLS}` : Shorthand for the following by default:
+
+  ```
+  parallel|perp|partial|nabla|hbar|ell|infty|oplus|ominus|otimes|oslash|square|star|dagger|vee|wedge|emptyset|setminus|cdot|times|exp|ln|log|det
+  ```
+
+- `{SEPERATORS}` : Shorthand for the following by default:
+
+  ```
+  leq|geq|neq|gg|ll|equiv|sim|propto|rightarrow|leftarrow|Rightarrow|Leftarrow|leftrightarrow|to|mapsto|cap|cup|in|dots|vdots|ddots|pm|mp|supseteq|supset|implies|impliedby|iff|neg|lor|land|bigcup|bigcap|simeq|approx
+  ```
+
+- `{FUNCTIONS}` : Shorthand for the following by default:
+
+  ```
+  sum|prod|int|iiint|oint|exists|nexists|forall
+  ```
+
+- `{TRIGONOMETRIC}` : Shorthand for the following by default:
+
+  ```
+  sin|cos|tan|csc|sec|cot|arcsin|arccos|arctan|arccsc|arcsec|arccot
+  ```
+
+- `{HYPOBOLIC_TRIG}` : Shorthand for the following by default:
+
+  ```
+  sinh|cosh|tanh|csch|sech|coth|arcsinh|arccosh|arctanh|arccsch|arcsech|arccoth
+  ```
+
+The settings where these can be used are [Snippet Variables](#Snippet-Variables) and **Auto-fraction > Included symbols**. See those for examples.
+
+Symbol Groups can be changed in the settings. You can also choose to load your symbol groups from files, in the same way as [loading snippet variables from files](#snippet-variables-files).
+
+### Snippet variables
+Snippet variables are used as shortcuts when writing snippets. In the `trigger` of a snippet, strings with the format `${VARIABLE}` will be replaced with the contents of the matching variable if it's defined, and left unchanged otherwise. It can also replace contents in the `replacement` of a trigger, but only if it's a function. See [function snippets](#function-snippets).
+
+This setting uses [Symbol Groups](#symbol-groups).
+
+By default, the following variables are set:
+
+	"${AUTO_BACKSLASH}": "{GREEK}|{SYMBOLS}|{SEPERATORS}|{FUNCTIONS}|{TRIGONOMETRIC}|{HYPOBOLIC_TRIG}",
+	"${AUTO_SPACE}": "{SEPERATORS}|{GREEK}|{SYMBOLS}|{TRIGONOMETRIC}|{HYPOBOLIC_TRIG}",
+	"${OVERWRITE_AUTO_SPACE}": "({TRIGONOMETRIC})h|(in)t",
+	"${AUTO_LETTER_SUBSCRIPT}": "[a-zA-Z]|{GREEK}|{FUNCTIONS}",
+	"${GREEK}": "{GREEK}",
+
+
+- `${AUTO_BACKSLASH}` : Shorthand for the following by default:
+
+  ```
+  {GREEK}|{SYMBOLS}|{SEPERATORS}|{FUNCTIONS}|{TRIGONOMETRIC}|{HYPOBOLIC_TRIG}
+  ```
+
   Recommended for use with the regex option "r".
 
-- `${SYMBOL}` : Shorthand for the following by default:
+- `${AUTO_SPACE}` : Shorthand for the following by default:
 
   ```
-  parallel|perp|partial|nabla|hbar|ell|infty|oplus|ominus|otimes|oslash|square|star|dagger|vee|wedge|subseteq|subset|supseteq|supset|emptyset|exists|nexists|forall|implies|impliedby|iff|setminus|neg|lor|land|bigcup|bigcap|cdot|times|simeq|approx
-  ```
-
-  Recommended for use with the regex option "r".
-
-- `${MORE_SYMBOLS}` : Shorthand for the following by default:
-
-  ```
-  leq|geq|neq|gg|ll|equiv|sim|propto|rightarrow|leftarrow|Rightarrow|Leftarrow|leftrightarrow|to|mapsto|cap|cup|in|sum|prod|exp|ln|log|det|dots|vdots|ddots|pm|mp|int|iint|iiint|oint
+  {SEPERATORS}|{GREEK}|{SYMBOLS}|{TRIGONOMETRIC}|{HYPOBOLIC_TRIG}
   ```
 
   Recommended for use with the regex option "r".
 
-Snippet variables can be changed in the settings, under **Advanced editor settings > Snippet variables**. You can also choose to [load your snippet variables from files](#snippet-variables-files).
+- `${OVERWRITE_AUTO_SPACE}` : Shorthand for the following by default:
 
+  ```
+  ({TRIGONOMETRIC})h|(in)t
+  ```
+
+  Recommended for use with the regex option "r".
+
+- `${AUTO_LETTER_SUBSCRIPT}` : Shorthand for the following by default:
+
+  ```
+  [a-zA-Z]|{GREEK}|{FUNCTIONS}
+  ```
+
+  Recommended for use with the regex option "r".
+
+  - `${GREEK}` : Shorthand for the following by default:
+
+  ```
+  {GREEK}
+  ```
+
+  Recommended for use with the regex option "r".
+
+
+
+Snippet variables can be changed in the settings, under **Advanced snippet settings > Snippet variables**. You can also choose to [load your snippet variables from files](#snippet-variables-files).
+
+There is also a preview button which allows you to see how they look after symbol groups have been inserted.
 
 ### Visual snippets
 Sometimes you want to annotate math, or cancel or cross out terms. **Visual snippets** can be used to surround your current selection with other text.

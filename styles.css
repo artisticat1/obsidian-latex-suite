@@ -80,6 +80,25 @@
     font-family: var(--font-monospace);
 }
 
+
+.json-editor-wrapper {
+    width: 100%;
+    margin-bottom: 0.75rem;
+}
+
+.json-editor-wrapper .cm-editor{
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    font-size: 16px;
+    height: 13em;
+    outline: none !important;
+    text-align: left;
+}
+
+.json-editor-wrapper .cm-line{
+    font-family: var(--font-interface);
+}
+
 .snippets-footer {
     width: 100%;
     display: flex;

@@ -7,14 +7,16 @@ import {
 		lineNumbers,
 		rectangularSelection
 	} from "@codemirror/view";
+	import {  } from "@codemirror/view/dist";
 	import { Extension, EditorState } from "@codemirror/state";
 	import { javascript } from "@codemirror/lang-javascript";
-	import { indentOnInput, indentUnit, bracketMatching, syntaxHighlighting, defaultHighlightStyle } from "@codemirror/language";
+	import { indentOnInput, indentUnit, bracketMatching, syntaxHighlighting, defaultHighlightStyle, HighlightStyle, continuedIndent } from "@codemirror/language";
 	import { defaultKeymap, indentWithTab, history, historyKeymap } from "@codemirror/commands";
 	import { closeBrackets, closeBracketsKeymap } from "@codemirror/autocomplete";
 	import { searchKeymap, highlightSelectionMatches } from "@codemirror/search";
 	import { lintKeymap } from "@codemirror/lint";
 	import { obsidian } from "./obsidian_theme";
+	
 
 
 	export const basicSetup: Extension[] = [
@@ -32,6 +34,30 @@ import {
 		bracketMatching(),
 		closeBrackets(),
 		rectangularSelection(),
+		highlightSelectionMatches(),
+		obsidian,
+		keymap.of([
+			...closeBracketsKeymap,
+			...defaultKeymap,
+			...searchKeymap,
+			...historyKeymap,
+			indentWithTab,
+			...lintKeymap,
+		]),
+	].filter(ext => ext);
+
+
+
+	export const jsonSetup: Extension[] = [
+		lineNumbers(),
+		drawSelection(),
+		dropCursor(),
+		EditorState.allowMultipleSelections.of(true),
+		indentOnInput(),
+		indentUnit.of("    "),
+		EditorView.lineWrapping,
+		bracketMatching(),
+		closeBrackets(),
 		highlightSelectionMatches(),
 		obsidian,
 		keymap.of([

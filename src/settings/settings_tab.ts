@@ -6,12 +6,16 @@ import { DEFAULT_SNIPPETS } from "src/utils/default_snippets";
 import LatexSuitePlugin from "../main";
 import { DEFAULT_SETTINGS } from "./settings";
 import { FileSuggest } from "./ui/file_suggest";
-import { basicSetup } from "./ui/snippets_editor/extensions";
+import { basicSetup, jsonSetup } from "./ui/snippets_editor/extensions";
+import { DEFAULT_SNIPPET_VARIABLES } from "src/utils/default_snippet_variables";
+import { DEFAULT_SYMBOL_GROUPS } from "src/utils/default_symbol_groups";
 
 
 export class LatexSuiteSettingTab extends PluginSettingTab {
 	plugin: LatexSuitePlugin;
 	snippetsEditor: EditorView;
+	snippetVariablesEditor: EditorView;
+	symbolGroupsEditor: EditorView;
 	snippetsFileLocEl: HTMLElement;
 	snippetVariablesFileLocEl: HTMLElement;
 	symbolGroupsFileLocEl: HTMLElement;
@@ -74,7 +78,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			.setClass("snippets-text-area");
 
 
-		this.createSnippetsEditor(snippetsSetting);
+		this.createEditor(snippetsSetting, "snippets");
 
 
 		new Setting(containerEl)
@@ -149,16 +153,9 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		const symbolGroupsSetting = new Setting(containerEl)
 			.setName("Symbol groups")
 			.setDesc("Does nothing on its own, used in some other settings to get a group of symbols e.g \"{GREEK}\" in certain settings is the same as \"alpha|beta|gamma|...\"")
-			.addTextArea(text => text
-				.setValue(this.plugin.settings.symbolGroups)
-				.onChange(async (value) => {
-					this.plugin.settings.symbolGroups = value;
-					await this.plugin.saveSettings();
-				})
-				.setPlaceholder(DEFAULT_SETTINGS.symbolGroups))
-			.setClass("latex-suite-full-text-area");
-
-
+			.setClass("snippets-text-area");
+		
+		this.createEditor(symbolGroupsSetting, "symbolGroups");
 
 
 		new Setting(containerEl)
@@ -374,7 +371,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName("Unbreaking symbols")
+			.setName("Included symbols")
 			.setDesc("Normally a space is a breaking character, but a single space after these latex symbols will be ignored. e.g. if \\alpha is included in the list, \"\\alpha a/b\" will expand to \"\\frac{\\alpha a}{b}\". If \\alpha is not in the list, it will expand to \"\\alpha \\frac{a}{b}\". \"\\alpha  a/b\" (2 or more spaces) will always expand to \"\\alpha \\frac{a}{b}\". Elements in the list is seperated by |\nUses symbol groups.")
 			.addText(text => text
 				.setPlaceholder(DEFAULT_SETTINGS.autofractionIncludedSymbols)
@@ -460,18 +457,12 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 	private displayAdvancedSnippetSettings() {
 		const containerEl = this.containerEl;
 		this.addHeading(containerEl, "Advanced snippet settings");
-		
+
 		const snippetVariablesSetting = new Setting(containerEl)
 			.setName("Snippet variables")
 			.setDesc("Assign snippet variables that can be used as shortcuts when writing snippets.\nUses symbol groups.")
-			.addTextArea(text => text
-				.setValue(this.plugin.settings.snippetVariables)
-				.onChange(async (value) => {
-					this.plugin.settings.snippetVariables = value;
-					await this.plugin.saveSettings();
-				})
-				.setPlaceholder(DEFAULT_SETTINGS.snippetVariables))
-			.setClass("latex-suite-snippet-variables-setting");
+			.setClass("snippets-text-area");
+		this.createEditor(snippetVariablesSetting, "snippetVariables");
 
 		new Setting(containerEl)
 			.setName("Load snippet variables from file or folder")
@@ -579,9 +570,26 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				}));
 	}
 
-	createSnippetsEditor(snippetsSetting: Setting) {
-		const customCSSWrapper = snippetsSetting.controlEl.createDiv("snippets-editor-wrapper");
-		const snippetsFooter = snippetsSetting.controlEl.createDiv("snippets-footer");
+
+	createEditor(setting: Setting, editorType : String) {
+
+		let cssWrapper : string;
+		switch (editorType){
+			case "symbolGroups":
+			case "snippetVariables":
+				cssWrapper = "json-editor-wrapper"
+				break;
+			case "snippets":
+				cssWrapper = "snippets-editor-wrapper"
+				break;
+			default:
+				console.error("Editor type not descriped")
+				return;
+		}
+
+		const customCSSWrapper = setting.controlEl.createDiv(cssWrapper);
+		const snippetsFooter = setting.controlEl.createDiv("snippets-footer");
+
 		const validity = snippetsFooter.createDiv("snippets-editor-validity");
 
 		const validityIndicator = new ExtraButtonComponent(validity);
@@ -591,36 +599,51 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		const validityText = validity.createDiv("snippets-editor-validity-text");
 		validityText.addClass("setting-item-description");
 		validityText.style.padding = "0";
-
-
 		function updateValidityIndicator(success: boolean) {
 			validityIndicator.setIcon(success ? "checkmark" : "cross");
 			validityIndicator.extraSettingsEl.removeClass(success ? "invalid" : "valid");
 			validityIndicator.extraSettingsEl.addClass(success ? "valid" : "invalid");
 			validityText.setText(success ? "Saved" : "Invalid syntax. Changes not saved");
 		}
+		
+		let extensions;
+		if (editorType === "snippets"){
+			extensions = basicSetup.slice();
+		}
+		else if (editorType === "symbolGroups"){
+			extensions = jsonSetup.slice();
+		}
+		else{
+			extensions = jsonSetup.slice()
+		}
 
-
-		const extensions = basicSetup;
 
 		const change = EditorView.updateListener.of(async (v: ViewUpdate) => {
 			if (v.docChanged) {
-				const snippets = v.state.doc.toString();
+				const rawSettingInput = v.state.doc.toString();
 				let success = true;
 
 				let symbolGroups;
 				let snippetVariables;
 				
 				try {
-					symbolGroups = await parseSymbolGroups(this.plugin.settings.symbolGroups);
-					if (symbolGroups == null) {
-						symbolGroups = await parseSymbolGroups(DEFAULT_SETTINGS.symbolGroups);
+					switch (editorType) {
+						case "symbolGroups":
+							await parseSymbolGroups(rawSettingInput);
+							break;
+						case "snippetVariables":
+							symbolGroups = await parseSymbolGroups(this.plugin.settings.symbolGroups);
+							await parseSnippetVariables(rawSettingInput, symbolGroups)
+							break;
+						case "snippets":
+							symbolGroups = await parseSymbolGroups(this.plugin.settings.symbolGroups);
+							snippetVariables = await parseSnippetVariables(this.plugin.settings.snippetVariables, symbolGroups);
+							await parseSnippets(rawSettingInput, snippetVariables);
+							break;
+						default:
+							console.error("Editor type not descriped")
+							return;
 					}
-					snippetVariables = await parseSnippetVariables(this.plugin.settings.snippetVariables, symbolGroups)
-					if (snippetVariables == null) {
-						snippetVariables = await parseSymbolGroups(DEFAULT_SETTINGS.symbolGroups);
-					}
-					await parseSnippets(snippets, snippetVariables);
 				}
 				catch (e) {
 					console.error("Catched error:\n", e);
@@ -629,33 +652,77 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				updateValidityIndicator(success);
 
 				if (!success) return;
-
-				this.plugin.settings.snippets = snippets;
+				switch (editorType) {
+					case "symbolGroups":
+						this.plugin.settings.symbolGroups = rawSettingInput;
+						break;	
+					case "snippetVariables":
+						this.plugin.settings.snippetVariables = rawSettingInput;
+						break;
+					case "snippets":
+						this.plugin.settings.snippets = rawSettingInput;
+						break;
+					default:
+						console.error("Editor type not descriped")
+						return;
+				}
 				await this.plugin.saveSettings();
 			}
 		});
-
+		
 		extensions.push(change);
 
-		this.snippetsEditor = createCMEditor(this.plugin.settings.snippets, extensions);
-		customCSSWrapper.appendChild(this.snippetsEditor.dom);
+
+		let currentEditor : EditorView;
+		let currentDefaultValues;
+		switch (editorType){
+			case "symbolGroups":
+				currentEditor = this.symbolGroupsEditor = createCMEditor(this.plugin.settings.symbolGroups, extensions);
+				currentDefaultValues = DEFAULT_SYMBOL_GROUPS;
+				break;
+			case "snippetVariables":
+				currentEditor = this.snippetVariablesEditor = createCMEditor(this.plugin.settings.snippetVariables, extensions);
+				currentDefaultValues = DEFAULT_SNIPPET_VARIABLES;
+				break;
+			case "snippets":
+				currentEditor = this.snippetsEditor = createCMEditor(this.plugin.settings.snippets, extensions);
+				currentDefaultValues = DEFAULT_SNIPPETS;
+				break;
+			default:
+				console.error("Editor type not descriped")
+				return;
+		}
+
+		customCSSWrapper.appendChild(currentEditor.dom);
 
 
 		const buttonsDiv = snippetsFooter.createDiv("snippets-editor-buttons");
 		const reset = new ButtonComponent(buttonsDiv);
 		reset.setIcon("switch")
-			.setTooltip("Reset to default snippets")
+			.setTooltip("Reset to default")
 			.onClick(async () => {
 				new ConfirmationModal(this.plugin.app,
-					"Are you sure? This will delete any custom snippets you have written.",
+					"Are you sure? This will delete any custom changes you have made.",
 					button => button
-						.setButtonText("Reset to default snippets")
+						.setButtonText("Reset to default")
 						.setWarning(),
 					async () => {
-						this.snippetsEditor.setState(EditorState.create({ doc: DEFAULT_SNIPPETS, extensions: extensions }));
-						updateValidityIndicator(true);
-
-						this.plugin.settings.snippets = DEFAULT_SNIPPETS;
+						currentEditor.setState(EditorState.create({ doc: currentDefaultValues, extensions: extensions }));
+						
+						switch (editorType){
+							case "symbolGroups":
+								this.plugin.settings.symbolGroups = currentDefaultValues;
+								break;
+							case "snippetVariables":
+								this.plugin.settings.snippetVariables = currentDefaultValues;
+								break;
+							case "snippets":
+								this.plugin.settings.snippets = currentDefaultValues;
+								break;
+							default:
+								console.error("Editor type not descriped")
+								return;
+						}
 
 						await this.plugin.saveSettings();
 					}
@@ -664,25 +731,92 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 		const remove = new ButtonComponent(buttonsDiv);
 		remove.setIcon("trash")
-			.setTooltip("Remove all snippets")
+			.setTooltip("Remove everything")
 			.onClick(async () => {
 				new ConfirmationModal(this.plugin.app,
-					"Are you sure? This will delete any custom snippets you have written.",
+					"Are you sure? This will delete everything, only leaving a blank template",
 					button => button
-						.setButtonText("Remove all snippets")
+						.setButtonText("Remove everything")
 						.setWarning(),
 					async () => {
-						const value = `[
+						let value;
+						if (editorType === "snippets"){
+							value = `[\n\n]`;
+						}
+						else{
+							value = `{\n\n}`;
+						}
 
-]`;
-						this.snippetsEditor.setState(EditorState.create({ doc: value, extensions: extensions }));
+						currentEditor.setState(EditorState.create({ doc: value, extensions: extensions }));
 						updateValidityIndicator(true);
-
-						this.plugin.settings.snippets = value;
+						switch (editorType){
+							case "symbolGroups":
+								this.plugin.settings.symbolGroups = value;
+								break;
+							case "snippetVariables":
+								this.plugin.settings.snippetVariables = value;
+								break;
+							case "snippets":
+								this.plugin.settings.snippets = value;
+								break;
+						}
 						await this.plugin.saveSettings();
 					}
 				).open();
 			});
+
+
+		if (editorType === "symbolGroups"){
+			return;
+		}
+		if (editorType === "snippetVariables"){
+			const preview = new ButtonComponent(buttonsDiv);
+			preview.setIcon("lightbulb")
+				.setTooltip("Preview snippet variables")
+				.onClick(async () => {
+					let result : string;
+					try {
+						let symbolGroups = await parseSymbolGroups(this.plugin.settings.symbolGroups);
+						let snippetVariables = await parseSnippetVariables(this.plugin.settings.snippetVariables, symbolGroups);
+						result = JSON.stringify(snippetVariables, null, "");
+						result = "{\n" + result.substring(1, result.length-1) + "\n}"
+						result = result.replaceAll(":", ":\n").replaceAll(",", ",\n")
+						result = result.replaceAll('\n"', '\n\t\t"')
+						result = result.replaceAll('\t\t"$', '\t"$')
+					}
+					catch (e) {
+						console.error("Catched error:\n", e);
+						result = "Error parsing snippet variables";
+					}
+					
+					new PreviewModal(this.plugin.app,
+						result,
+					).open();
+				});
+			return;
+		}
+		if (editorType === "snippets"){
+			return;
+		}
+
+		
+	}
+}
+
+class PreviewModal extends Modal {
+	constructor(app: App, body: string) {
+		super(app);
+
+		this.contentEl.addClass("latex-suite-confirmation-modal");
+		const paragraph = this.contentEl.createEl("p", { text: body });
+		paragraph.innerHTML = paragraph.innerHTML.replaceAll("\n", "<br />");
+		paragraph.innerHTML = paragraph.innerHTML.replaceAll("\t", "&emsp;");
+		paragraph.style.whiteSpace = "nowrap";
+		
+		new Setting(this.contentEl)
+			.addButton(button => button
+				.setButtonText("Cancel")
+				.onClick(() => this.close()));
 	}
 }
 
@@ -693,7 +827,6 @@ class ConfirmationModal extends Modal {
 
 		this.contentEl.addClass("latex-suite-confirmation-modal");
 		this.contentEl.createEl("p", { text: body });
-
 
 		new Setting(this.contentEl)
 			.addButton(button => {
