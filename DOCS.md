@@ -147,6 +147,7 @@ To create a visual snippet, you can alternatively use the `v` option and make th
 .
 
 Visual snippets will not expand unless text is selected.
+You can also trigger visual snippets with vim, see [select-mode](#select-mode)
 
 
 ### Function snippets
@@ -280,3 +281,23 @@ You can [view snippets written by others and share your own snippets here](https
 > [!WARNING]
 > Snippet files are interpreted as JavaScript and can execute arbitrary code.
 > Always be careful with snippets shared from others to avoid running malicious code.
+
+
+## Vim
+
+[Vim](https://vimhelp.org/intro.txt.html#intro.txt) is a powerful and highly configurable text editor, that is known for its unique editing style. It allows you to perform complex editing tasks with minimal keystrokes. It is heavily centered around moving with the keys `hjkl` instead of using the mouse. This can make the tedious parts of editing a bit less tedious.
+
+But this intro can't do it justice, so for those unfamiliar that are interested, it's recommended to read [Vims](https://vimhelp.org/usr_02.txt.html#usr_02.txt) for a proper explanation.
+
+Obsidian uses a subset of vim's keybindings maintained by [this repo](https://github.com/replit/codemirror-vim). This subset does not cover everything like [select-mode](https://vimhelp.org/visual.txt.html#Select-mode) and has its own bugs. For any issues that may arise, please first check if the problem lies with [CodeMirror-Vim](https://github.com/replit/codemirror-vim) at [vim-playground](https://raw.githack.com/replit/codemirror-vim/master/dev/web-demo.html) or Obsidian before reporting it here.
+
+### Select mode
+You can trigger visual snippets in insert mode, but not in visual mode.
+Because of this, a shortcut in the vim extension is defined that allows you to switch between insert mode and visual mode while keeping the selection. This should also work with multicursor.
+
+You can define this shortcut in the settings by enabling vim mode in obsidian and in this plugin.
+The shortcut should be a vim keybinding with no spaces. Some keybindings are not supported by the original vim extension. Due to this, please first see if the shortcut works for other keys, such as `:imap <C-a> <Esc>` or `:vmap <A-h> 0`. It is known that the shift key (`:map <S-a> <Esc>`) does not work.
+
+Keep in mind that the shortcut from visual -> select mode only works in visual mode, and the shortcut from select -> visual mode only works when something is selected and you are in insert mode.
+
+Macros are not yet supported for visual snippets.
