@@ -301,3 +301,6 @@ The shortcut should be a vim keybinding with no spaces. Some keybindings are not
 Keep in mind that the shortcut from visual -> select mode only works in visual mode, and the shortcut from select -> visual mode only works when something is selected and you are in insert mode.
 
 Macros are not yet supported for visual snippets.
+
+### Vim matrix shortcut \\\\
+Same key mapping rules apply. You can define or redefine `open a new line below` action, which also inserts \\\\ at the end of the current line if it's in a matrix environment.

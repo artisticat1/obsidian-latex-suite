@@ -35,6 +35,7 @@ interface LatexSuiteBasicSettings {
 	vimEnabled: boolean;
 	vimSelectMode: string;
 	vimVisualMode: string;
+	vimMatrixEnter: string;
 
 }
 
@@ -105,6 +106,7 @@ export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
 	vimEnabled: false,
 	vimSelectMode: "<C-g>",
 	vimVisualMode: "<C-g>",
+	vimMatrixEnter: "o",
 }
 
 export function processLatexSuiteSettings(snippets: Snippet[], settings: LatexSuitePluginSettings):LatexSuiteCMSettings {
