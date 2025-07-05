@@ -174,7 +174,7 @@ const isWithinEquation = (state: EditorState):boolean => {
 		return (left.name.contains("math") && right.name.contains("math") && !(left.name.contains("math-end")));
 	}
 
-	return (syntaxNode.name.contains("math"));
+	return (syntaxNode.name.contains("math") && !syntaxNode.name.contains("hashtag_hashtag-end_meta_tag"));
 }
 
 const isWithinInlineEquation = (state: EditorState):boolean => {
