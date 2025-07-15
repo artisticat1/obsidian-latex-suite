@@ -537,7 +537,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			.setDesc("Whether to suppress snippets triggering when an IME is active.");
 		const suppressIMEWarning = new Setting(containerEl)
 			.setName("Suppress IME warning")
-			.setDesc("Whether a warning is shown on startup if `Don't trigger snippets when IME is active` is enabled. Disable that setting if you are aware of the IME limitations. Currently only ios and android have support for IME")
+			.setDesc("Whether a warning is shown on startup if `Don't trigger snippets when IME is active` is enabled. Disable that setting if you are aware of the IME limitations. Currently only ios and android touch/swipe keyboards like gboard have support for IME. See https://github.com/artisticat1/obsidian-latex-suite/blob/main/DOCS.md#IME-keyboards for more info.")
 			.addToggle((toggle) => toggle
 				.setValue(this.plugin.settings.suppressIMEWarning)
 				.onChange(async (value) => {
