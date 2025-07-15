@@ -82,6 +82,21 @@ To reveal the LaTeX syntax, move your cursor over it. You can also choose to del
 ![conceal demo 3](https://raw.githubusercontent.com/artisticat1/obsidian-latex-suite/main/gifs/conceal_delay.gif)
 ![conceal demo](https://raw.githubusercontent.com/artisticat1/obsidian-latex-suite/main/gifs/conceal.png)
 
+> [!NOTE]
+> One of your selected monospace fonts in obsidian needs to support these symbols.
+> [JuliaMono](https://juliamono.netlify.app/) has been known to work for all symbols.
+> Either install the font or add the following to your css file:
+> ```css
+> @font-face {
+>     font-family: JuliaMono;
+>     src: url(https://github.com/cormullion/juliamono/raw/refs/heads/master/webfonts/JuliaMono-Regular.woff2) format("woff2");
+>     text-rendering: optimizeLegibility;
+> }
+> 
+> body {
+>   --font-monospace-override: JuliaMono;
+> }
+> ```
 
 ### Tabout
 To make it easier to navigate and exit equations,
