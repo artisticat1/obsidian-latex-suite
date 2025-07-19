@@ -221,6 +221,14 @@ export const getEquationBounds = (state: EditorState, pos?: number):Bounds => {
 	const end = escalateToToken(cursor, Direction.Forward, "math-end");
 
 	if (begin && end) {
+		// Deals with the case of $|$\n text and stuff $$equations and stuff\n$$
+		// where text and stuff is seen as blockmath instead of text
+		if (begin.to > pos) {
+			const chars = state.sliceDoc(pos-1, pos+1);
+			if (chars === "$$") {
+				return {start: pos-1, end: pos-1};
+			}
+		}
 		return {start: begin.to, end: end.from};
 	}
 	else {
