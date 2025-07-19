@@ -86,7 +86,7 @@ Using a RegExp literal, the same snippet can be written as
 > [!IMPORTANT]
 > - Some characters, such as `\`, `+`, and `.`, are special characters in regex. If you want to use these literally, remember to escape them by inserting two backslashes (`\\`) before them!
 >   - (One backslash to escape the special character, and another to escape that backslash)
-> - [Lookbehind regex is not supported on iOS.](https://github.com/bicarlsen/obsidian_image_caption/issues/4#issuecomment-982982629) Using lookbehind regex will cause snippets to break on iOS.
+> - [Lookbehind regex is not supported on iOS versions prior to 16.4.](https://github.com/bicarlsen/obsidian_image_caption/issues/4#issuecomment-982982629) Using lookbehind regex will cause snippets to break on iOS versions prior to 16.4.
 
 
 ### Snippet variables
