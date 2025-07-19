@@ -492,6 +492,18 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 					await this.plugin.saveSettings();
 				}));
+
+		new Setting(containerEl)
+			.setName("Environments to interpret as text inside math mode")
+			.setDesc("A list of environments that should be interpreted as text inside math mode, separated by commas. e.g. `['\\tag', '}', `['\\ref', ']`")
+			.addTextArea(text => text
+				.setPlaceholder(DEFAULT_SETTINGS.textAreas)
+				.setValue(this.plugin.settings.textAreas)
+				.onChange(async (value) => {
+					this.plugin.settings.textAreas = value;
+					await this.plugin.saveSettings();
+				})
+			);
 	}
 
 	createSnippetsEditor(snippetsSetting: Setting) {
