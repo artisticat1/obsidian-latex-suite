@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-latex-suite",
-	"version": "1.9.8",
+	"version": "1.9.9",
 	"description": "Make typesetting LaTeX math as fast as handwriting through snippets, text expansion, and editor enhancements",
 	"main": "main.js",
 	"scripts": {
