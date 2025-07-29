@@ -273,6 +273,9 @@ export const mkConcealPlugin = (revealTimeout: number) => ViewPlugin.fromClass(c
 
 		// Invoke the update method to reflect the changes of this.decoration
 		view.dispatch();
+		//TODO: If replit or the future maintainers of vim ever decides to support CM6 (decorations) properly, remove this.
+		//@ts-ignore
+		view?.cm?.signal("vim-command-done");
 	}, revealTimeout, true);
 
 	update(update: ViewUpdate) {
