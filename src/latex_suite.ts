@@ -119,7 +119,7 @@ export const handleKeydown = (key: string, shiftKey: boolean, ctrlKey: boolean, 
 		}
 	}
 
-	if (settings.matrixShortcutsEnabled && ctx.mode.blockMath) {
+	if (settings.matrixShortcutsEnabled && ctx.mode.strictlyInMath()) {
 		if (["Tab", "Enter"].contains(key)) {
 			success = runMatrixShortcuts(view, ctx, key, shiftKey);
 
@@ -128,7 +128,10 @@ export const handleKeydown = (key: string, shiftKey: boolean, ctrlKey: boolean, 
 	}
 
 	if (settings.taboutEnabled) {
-		if (key === "Tab" || shouldTaboutByCloseBracket(view, key)) {
+		// check if the main cursor has something selected since ctx.mode only checks the main cursor.
+		//  This does give weird behaviour with multicursor.
+		if ((key === "Tab" && view.state.selection.main.empty) 
+			|| shouldTaboutByCloseBracket(view, key)) {
 			success = tabout(view, ctx);
 
 			if (success) return true;

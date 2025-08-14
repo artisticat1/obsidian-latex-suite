@@ -222,7 +222,7 @@ function filterFlags(flags: string): string {
 
 function insertSnippetVariables(trigger: string, variables: SnippetVariables) {
 	for (const [variable, replacement] of Object.entries(variables)) {
-		trigger = trigger.replace(variable, replacement);
+		trigger = trigger.replaceAll(variable, replacement);
 	}
 
 	return trigger;
@@ -231,7 +231,7 @@ function insertSnippetVariables(trigger: string, variables: SnippetVariables) {
 function getExcludedEnvironments(trigger: string): Environment[] {
 	const result = [];
 	if (EXCLUSIONS.hasOwnProperty(trigger)) {
-		result.push(EXCLUSIONS[trigger]);
+		result.push(...EXCLUSIONS[trigger]);
 	}
 	return result;
 }
