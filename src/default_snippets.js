@@ -50,6 +50,7 @@
 	{trigger: "ee", replacement: "e^{ $0 }$1", options: "mA"},
     {trigger: "invs", replacement: "^{-1}", options: "mA"},
     {trigger: /([A-Za-z])(\d)/, replacement: "[[0]]_{[[1]]}", options: "rmA", description: "Auto letter subscript", priority: -1},
+	{trigger: "$", replacement: "$$0$", options: "tAw"},
 
     {trigger: /([^\\])(exp|log|ln)/, replacement: "[[0]]\\[[1]]", options: "rmA"},
     {trigger: "conj", replacement: "^{*}", options: "mA"},
@@ -113,6 +114,8 @@
     {trigger: "xx", replacement: "\\times", options: "mA"},
     {trigger: "**", replacement: "\\cdot", options: "mA"},
     {trigger: "para", replacement: "\\parallel", options: "mA"},
+	{trigger: "geq", replacement: "\\geq", options: "mA"},
+    {trigger: "leq", replacement: "\\leq", options: "mA"},
 
 	{trigger: "===", replacement: "\\equiv", options: "mA"},
     {trigger: "!=", replacement: "\\neq", options: "mA"},
