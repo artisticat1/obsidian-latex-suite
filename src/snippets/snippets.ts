@@ -54,6 +54,7 @@ export abstract class Snippet<T extends SnippetType = SnippetType> {
 	options: Options;
 	priority?: number;
 	description?: string;
+	triggerKey: string | null;
 
 	excludedEnvironments: Environment[];
 
@@ -65,6 +66,7 @@ export abstract class Snippet<T extends SnippetType = SnippetType> {
 		priority?: number | undefined,
 		description?: string | undefined,
 		excludedEnvironments?: Environment[],
+		triggerKey?: string,
 	) {
 		this.type = type;
 		// @ts-ignore
@@ -73,6 +75,7 @@ export abstract class Snippet<T extends SnippetType = SnippetType> {
 		this.priority = priority;
 		this.description = description;
 		this.excludedEnvironments = excludedEnvironments ?? [];
+		this.triggerKey = triggerKey ?? null;
 	}
 
 	// we need to explicitly type the return value here so the derived classes,
@@ -96,8 +99,8 @@ export abstract class Snippet<T extends SnippetType = SnippetType> {
 }
 
 export class VisualSnippet extends Snippet<"visual"> {
-	constructor({ trigger, replacement, options, priority, description, excludedEnvironments }: CreateSnippet<"visual">) {
-		super("visual", trigger, replacement, options, priority, description, excludedEnvironments);
+	constructor({ trigger, replacement, options, priority, description, excludedEnvironments, triggerKey }: CreateSnippet<"visual">) {
+		super("visual", trigger, replacement, options, priority, description, excludedEnvironments, triggerKey);
 	}
 
 	process(effectiveLine: string, range: SelectionRange, sel: string): ProcessSnippetResult {
@@ -126,8 +129,8 @@ export class VisualSnippet extends Snippet<"visual"> {
 
 export class RegexSnippet extends Snippet<"regex"> {
 
-	constructor({ trigger, replacement, options, priority, description, excludedEnvironments }: CreateSnippet<"regex">) {
-		super("regex", trigger, replacement, options, priority, description, excludedEnvironments);
+	constructor({ trigger, replacement, options, priority, description, excludedEnvironments , triggerKey}: CreateSnippet<"regex">) {
+		super("regex", trigger, replacement, options, priority, description, excludedEnvironments, triggerKey);
 	}
 
 	process(effectiveLine: string, range: SelectionRange, sel: string): ProcessSnippetResult {
@@ -167,8 +170,8 @@ export class RegexSnippet extends Snippet<"regex"> {
 export class StringSnippet extends Snippet<"string"> {
 	data: SnippetData<"string">;
 
-	constructor({ trigger, replacement, options, priority, description, excludedEnvironments: excludeIn }: CreateSnippet<"string">) {
-		super("string", trigger, replacement, options, priority, description, excludeIn);
+	constructor({ trigger, replacement, options, priority, description, excludedEnvironments: excludeIn, triggerKey }: CreateSnippet<"string">) {
+		super("string", trigger, replacement, options, priority, description, excludeIn, triggerKey);
 	}
 
 	process(effectiveLine: string, range: SelectionRange, sel: string): ProcessSnippetResult {
@@ -209,6 +212,7 @@ type CreateSnippet<T extends SnippetType> = {
 	priority?: number;
 	description?: string;
 	excludedEnvironments?: Environment[];
+	triggerKey?: string;
 } & SnippetData<T>
 
 

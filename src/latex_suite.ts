@@ -90,9 +90,9 @@ export const handleKeydown = (key: string, shiftKey: boolean, ctrlKey: boolean, 
 	) {
 		return false;
 	}
-
+	const snippets = settings.snippets.filter( (s) => s.options.automatic);
 	try {
-		if (runSnippets(view, ctx, key, settings.snippetDebug)) return true;
+		if (runSnippets(view, ctx, {snippets, key}, settings.snippetDebug)) return true;
 	} catch (e) {
 		clearSnippetQueue(view);
 		console.error(e);
@@ -133,7 +133,37 @@ export function getKeymaps(settings: LatexSuiteCMSettings): LatexSuiteKeyBinding
 			return false;
 		},
 	});
+	
+	const snippet_triggers = new Set(
+		settings.snippets.map((s) => s.triggerKey).filter((s) => s !== null)
+	);
+	snippet_triggers.add(settings.snippetsTrigger);
+	const runMaker = (key: string) => {
+		const snippets = settings.snippets.filter(
+			(s) =>
+				s.triggerKey === key ||
+				(!s.triggerKey &&
+					!s.options.automatic &&
+					key === settings.snippetsTrigger),
+		);
+		return (view: EditorView) => {
+			const settings = getLatexSuiteConfig(view);
+			if (!settings.snippetsEnabled) return false;
+			// Prevent IME from triggering keydown events.
+			if (settings.suppressSnippetTriggerOnIME && view.composing)
+				return false;
+			try {
+				const ctx = getContextPlugin(view);
+				return runSnippets(view, ctx, {snippets}, settings.snippetDebug);
+			} catch (e) {
+				clearSnippetQueue(view);
+				console.error(e);
+				return false;
+			}
+		};
+	};
 
+	const snippetTriggerSnippets = settings.snippets.filter((s) => !s.options.automatic && !s.triggerKey);
 	keybindings.push({
 		key: settings.snippetsTrigger,
 		run: (view: EditorView) => {
@@ -141,7 +171,7 @@ export function getKeymaps(settings: LatexSuiteCMSettings): LatexSuiteKeyBinding
 			if (settings.suppressSnippetTriggerOnIME && view.composing) return false;
 			try {
 				const ctx = getContextPlugin(view);
-				return runSnippets(view, ctx, settings.snippetsTrigger, settings.snippetDebug);
+				return runSnippets(view, ctx, {snippets: snippetTriggerSnippets}, settings.snippetDebug);
 			} catch (e) {
 				clearSnippetQueue(view);
 				console.error(e);
@@ -149,6 +179,14 @@ export function getKeymaps(settings: LatexSuiteCMSettings): LatexSuiteKeyBinding
 			}
 		},
 	});
+	keybindings.push(
+		...Array.from(snippet_triggers, (key) => {
+			return {
+				key,
+				run: runMaker(key),
+			};
+		})
+	);
 
 	keybindings.push({
 		key: "Tab",
@@ -201,10 +239,11 @@ export function getKeymaps(settings: LatexSuiteCMSettings): LatexSuiteKeyBinding
 			},
 		},
 	];
-	matrixShortcuts.map((keybinding) => {
+	matrixShortcuts.forEach((keybinding) => {
+		const run = keybinding.run;
 		keybinding.run = (view: EditorView) => {
 			if (!getLatexSuiteConfig(view).matrixShortcutsEnabled) return false;
-			return keybinding.run(view);
+			return run(view);
 		};
 	});
 	keybindings.push(...matrixShortcuts);
@@ -227,10 +266,11 @@ export function getKeymaps(settings: LatexSuiteCMSettings): LatexSuiteKeyBinding
 			},
 		})),
 	];
-	taboutShortcuts.map((keybinding) => {
+	taboutShortcuts.forEach((keybinding) => {
+		const run = keybinding.run;
 		keybinding.run = (view: EditorView) => {
 			if (!getLatexSuiteConfig(view).taboutEnabled) return false;
-			return keybinding.run(view);
+			return run(view);
 		};
 	});
 	keybindings.push(...taboutShortcuts);
