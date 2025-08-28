@@ -1,5 +1,4 @@
-import { EditorView, ViewPlugin, ViewUpdate } from "@codemirror/view";
-
+import { EditorView, ViewPlugin, ViewUpdate, KeyBinding, runScopeHandlers } from "@codemirror/view";
 import { runSnippets } from "./features/run_snippets";
 import { runAutoFraction } from "./features/autofraction";
 import { tabout, shouldTaboutByCloseBracket } from "./features/tabout";
@@ -15,6 +14,7 @@ import { handleUndoRedo } from "./snippets/codemirror/history";
 
 import { handleMathTooltip } from "./editor_extensions/math_tooltip";
 import { isComposing, forceEndComposition } from "./utils/editor_utils";
+import { LatexSuiteCMSettings } from "./settings/settings";
 
 export const handleUpdate = (update: ViewUpdate) => {
 	const settings = getLatexSuiteConfig(update.state);
@@ -43,7 +43,7 @@ export const keyboardEventPlugin = ViewPlugin.fromClass(class {
 		// Skip full update since the keymove can't trigger anything but can spam the function a lot.
 		if (ignoreEvents.includes(event.key))
 			return;
-		const success = handleKeydown(event.key, event.shiftKey, event.ctrlKey || event.metaKey, isComposing(view, event), view);
+		const success = handleKeydown(event.key, event.shiftKey, event.ctrlKey || event.metaKey, isComposing(view, event), view) || runScopeHandlers(view, event, "latex-suite");
 
 		if (success) event.preventDefault();
 	}
@@ -81,74 +81,163 @@ export const handleKeydown = (key: string, shiftKey: boolean, ctrlKey: boolean, 
 	const settings = getLatexSuiteConfig(view);
 	const ctx = getContextPlugin(view);
 
-	let success = false;
+	if (
+		!settings.snippetsEnabled ||
+		// Prevent IME from triggering keydown events.
+		(settings.suppressSnippetTriggerOnIME && isIME) ||
+		// Allows Ctrl + z for undo, instead of triggering a snippet ending with z
+		ctrlKey
+	) {
+		return false;
+	}
+
+	try {
+		if (runSnippets(view, ctx, key, settings.snippetDebug)) return true;
+	} catch (e) {
+		clearSnippetQueue(view);
+		console.error(e);
+	}
+	return false;
+};
+
+type LatexSuiteKeyBinding = KeyBinding & {scope: "latex-suite"};
+
+/**
+ * Get the keymaps specific for Latex Suite. These keymaps only run in scope `latex-suite`.
+ * @param settings The settings with the keybindings to use
+ * @returns The keymaps for the LaTeX suite based on the provided settings
+ */
+export function getKeymaps(settings: LatexSuiteCMSettings): LatexSuiteKeyBinding[] {
+	// Order matters for keybindings, 
+	// as they are checked in order from the beginning of the array to the end
+	const keybindings: KeyBinding[] = [];
 
 	/*
-	* When backspace is pressed, if the cursor is inside an empty inline math,
-	* delete both $ symbols, not just the first one.
-	*/
-	if (settings.autoDelete$ && key === "Backspace" && ctx.mode.inMath()) {
-		const charAtPos = getCharacterAtPos(view, ctx.pos);
-		const charAtPrevPos = getCharacterAtPos(view, ctx.pos - 1);
-
-		if (charAtPos === "$" && charAtPrevPos === "$") {
-			replaceRange(view, ctx.pos - 1, ctx.pos + 1, "");
-			// Note: not sure if removeAllTabstops is necessary
-			removeAllTabstops(view);
-			return true;
-		}
-	}
-
-	if (settings.snippetsEnabled) {
-
-		// Prevent IME from triggering keydown events.
-		if (settings.suppressSnippetTriggerOnIME && isIME) return;
-
-		// Allows Ctrl + z for undo, instead of triggering a snippet ending with z
-		if (!ctrlKey) {
-			try {
-				success = runSnippets(view, ctx, key, settings.snippetDebug);
-				if (success) return true;
+	 * When backspace is pressed, if the cursor is inside an empty inline math,
+	 * delete both $ symbols, not just the first one.
+	 */
+	keybindings.push({
+		key: "Backspace",
+		run: (view: EditorView) => {
+			if (!getLatexSuiteConfig(view).autoDelete$) return false;
+			const ctx = getContextPlugin(view);
+			if (!ctx.mode.strictlyInMath()) return false;
+			const charAtPos = getCharacterAtPos(view, ctx.pos);
+			const charAtPrevPos = getCharacterAtPos(view, ctx.pos - 1);
+			if (charAtPos === "$" && charAtPrevPos === "$") {
+				replaceRange(view, ctx.pos - 1, ctx.pos + 1, "");
+				// Note: not sure if removeAllTabstops is necessary
+				removeAllTabstops(view);
+				return true;
 			}
-			catch (e) {
+			return false;
+		},
+	});
+
+	keybindings.push({
+		key: settings.snippetsTrigger,
+		run: (view: EditorView) => {
+			if (!getLatexSuiteConfig(view).snippetsEnabled) return false;
+			if (settings.suppressSnippetTriggerOnIME && view.composing) return false;
+			try {
+				const ctx = getContextPlugin(view);
+				return runSnippets(view, ctx, settings.snippetsTrigger, settings.snippetDebug);
+			} catch (e) {
 				clearSnippetQueue(view);
 				console.error(e);
+				return false;
 			}
-		}
-	}
+		},
+	});
 
-	if (key === "Tab") {
-		success = setSelectionToNextTabstop(view, shiftKey);
+	keybindings.push({
+		key: "Tab",
+		run: (view: EditorView) => {
+			return setSelectionToNextTabstop(view, false);
+		},
+	});
 
-		if (success) return true;
-	}
+	keybindings.push({
+		key: "Shift-Tab",
+		run: (view: EditorView) => {
+			return setSelectionToNextTabstop(view, true);
+		},
+	});
 
-	if (settings.autofractionEnabled && ctx.mode.strictlyInMath()) {
-		if (key === "/") {
-			success = runAutoFraction(view, ctx);
+	keybindings.push({
+		key: "/",
+		run: (view: EditorView) => {
+			if (!getLatexSuiteConfig(view).autofractionEnabled) return false;
+			const ctx = getContextPlugin(view);
+			if (!ctx.mode.strictlyInMath()) return false;
+			return runAutoFraction(view, ctx);
+		},
+	});
 
-			if (success) return true;
-		}
-	}
+	// Matrix shortcuts are intentionally put before tabout shortcuts,
+	const matrixShortcuts = [
+		{
+			key: "Enter",
+			run: (view: EditorView) => {
+				const ctx = getContextPlugin(view);
+				if (!ctx.mode.strictlyInMath()) return false;
+				return runMatrixShortcuts(view, ctx, "Enter", false);
+			},
+		},
+		{
+			key: "Tab",
+			run: (view: EditorView) => {
+				const ctx = getContextPlugin(view);
+				if (!ctx.mode.strictlyInMath()) return false;
+				return runMatrixShortcuts(view, ctx, "Tab", false);
+			},
+		},
+		{
+			key: "Shift-Enter",
+			run: (view: EditorView) => {
+				const ctx = getContextPlugin(view);
+				if (!ctx.mode.strictlyInMath()) return false;
+				return runMatrixShortcuts(view, ctx, "Enter", true);
+			},
+		},
+	];
+	matrixShortcuts.map((keybinding) => {
+		keybinding.run = (view: EditorView) => {
+			if (!getLatexSuiteConfig(view).matrixShortcutsEnabled) return false;
+			return keybinding.run(view);
+		};
+	});
+	keybindings.push(...matrixShortcuts);
 
-	if (settings.matrixShortcutsEnabled && ctx.mode.strictlyInMath()) {
-		if (["Tab", "Enter"].contains(key)) {
-			success = runMatrixShortcuts(view, ctx, key, shiftKey);
+	const taboutShortcuts = [
+		{
+			key: settings.taboutTrigger,
+			run: (view: EditorView) => {
+				if (!view.state.selection.main.empty) return false;
+				const ctx = getContextPlugin(view);
+				return tabout(view, ctx);
+			},
+		},
+		...[")", "}", "]"].map((key) => ({
+			key,
+			run: (view: EditorView) => {
+				if (!shouldTaboutByCloseBracket(view, key)) return false;
+				const ctx = getContextPlugin(view);
+				return tabout(view, ctx);
+			},
+		})),
+	];
+	taboutShortcuts.map((keybinding) => {
+		keybinding.run = (view: EditorView) => {
+			if (!getLatexSuiteConfig(view).taboutEnabled) return false;
+			return keybinding.run(view);
+		};
+	});
+	keybindings.push(...taboutShortcuts);
 
-			if (success) return true;
-		}
-	}
-
-	if (settings.taboutEnabled) {
-		// check if the main cursor has something selected since ctx.mode only checks the main cursor.
-		//  This does give weird behaviour with multicursor.
-		if ((key === "Tab" && view.state.selection.main.empty) 
-			|| shouldTaboutByCloseBracket(view, key)) {
-			success = tabout(view, ctx);
-
-			if (success) return true;
-		}
-	}
-
-	return false;
+	return keybindings.map((keybinding) => ({
+		...keybinding,
+		scope: "latex-suite",
+	}));
 }
+

@@ -8,8 +8,8 @@ import { ICONS } from "./settings/ui/icons";
 import { getEditorCommands, getVimEditorCommands } from "./features/editor_commands";
 import { getLatexSuiteConfigExtension } from "./snippets/codemirror/config";
 import { SnippetVariables, parseSnippetVariables, parseSnippets } from "./snippets/parse";
-import { handleUpdate, onInput, keyboardEventPlugin } from "./latex_suite";
-import { EditorView, tooltips } from "@codemirror/view";
+import { handleUpdate, onInput, keyboardEventPlugin, getKeymaps } from "./latex_suite";
+import { EditorView, keymap, tooltips } from "@codemirror/view";
 import { snippetExtensions } from "./snippets/codemirror/extensions";
 import { concealCompartment, concealPlugin } from "./editor_extensions/conceal";
 import { colorPairedBracketsPluginLowestPrec, highlightCursorBracketsPlugin } from "./editor_extensions/highlight_brackets";
@@ -185,6 +185,9 @@ export default class LatexSuitePlugin extends Plugin {
 			EditorView.updateListener.of(handleUpdate),
 			snippetExtensions,
 		]);
+		
+		const latexSuiteKeymaps = getKeymaps(this.CMSettings)
+		this.editorExtensions.push(keymap.of(latexSuiteKeymaps))
 
 		// Optional extensions
 		if (this.CMSettings.concealEnabled) {
