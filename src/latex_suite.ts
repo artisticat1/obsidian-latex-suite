@@ -111,22 +111,34 @@ export function getKeymaps(settings: LatexSuiteCMSettings): LatexSuiteKeyBinding
 			}
 		},
 	});
+	
+	const snippet_triggers = new Set(
+		settings.snippets.map((s) => s.triggerKey).filter((s) => s)
+	);
+	snippet_triggers.add(settings.snippetsTrigger);
+	const runMaker = (key: string) => (view: EditorView) => {
+		const settings = getLatexSuiteConfig(view);
+		if (!settings.snippetsEnabled) return;
+		// Prevent IME from triggering keydown events.
+		if (settings.suppressSnippetTriggerOnIME && view.composing) return;
+		try {
+			const ctx = latestContext ?? Context.fromView(view);
+			return runSnippets(view, ctx, key);
+		} catch (e) {
+			clearSnippetQueue(view);
+			console.error(e);
+			return false;
+		}
+	};
 
-	keybindings.push({
-		key: settings.snippetsTrigger,
-		run: (view: EditorView) => {
-			if (!getLatexSuiteConfig(view).snippetsEnabled) return;
-			if (settings.suppressSnippetTriggerOnIME && view.composing) return;
-			try {
-				const ctx = latestContext ?? Context.fromView(view);
-				return runSnippets(view, ctx, settings.snippetsTrigger);
-			} catch (e) {
-				clearSnippetQueue(view);
-				console.error(e);
-				return false;
-			}
-		},
-	});
+	keybindings.push(
+		...Array.from(snippet_triggers, (key) => {
+			return {
+				key,
+				run: runMaker(key),
+			};
+		})
+	);
 
 	keybindings.push({
 		key: "Tab",

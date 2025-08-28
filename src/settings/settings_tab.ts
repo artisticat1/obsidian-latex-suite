@@ -1,7 +1,7 @@
 import { EditorState, Extension } from "@codemirror/state";
 import { EditorView, ViewUpdate } from "@codemirror/view";
 import { App, ButtonComponent, ExtraButtonComponent, Modal, PluginSettingTab, Setting, debounce, setIcon } from "obsidian";
-import { parseSnippetVariables, parseSnippets } from "src/snippets/parse";
+import { parseKeyName, parseSnippetVariables, parseSnippets } from "src/snippets/parse";
 import { DEFAULT_SNIPPETS } from "src/utils/default_snippets";
 import LatexSuitePlugin from "../main";
 import { DEFAULT_SETTINGS } from "./settings";
@@ -130,6 +130,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			.addText((text) => text
 				.setValue(this.plugin.settings.snippetsTrigger)
 				.onChange(async (value) => {
+					parseKeyName(value);
 					this.plugin.settings.snippetsTrigger = value;
 					await this.plugin.saveSettings();
 				})
@@ -345,6 +346,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			.addText((text) => text
 				.setValue(this.plugin.settings.taboutTrigger)
 				.onChange(async (value) => {
+					parseKeyName(value);
 					this.plugin.settings.taboutTrigger = value;
 					await this.plugin.saveSettings();
 				})

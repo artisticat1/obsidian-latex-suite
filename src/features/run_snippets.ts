@@ -43,12 +43,17 @@ const runSnippetCursor = (view: EditorView, ctx: Context, key: string, range: Se
 			continue;
 		}
 
-		if (snippet.options.automatic || snippet.type === "visual") {
+		if (
+			snippet.options.automatic ||
+			(snippet.type === "visual" && !snippet.triggerKey)
+		) {
 			// If the key pressed wasn't a text character, continue
 			if (!(key.length === 1)) continue;
 			effectiveLine = updatedLine;
-		}
-		else if (!(key === settings.snippetsTrigger)) {
+		} else if (
+			!(key === settings.snippetsTrigger && !snippet.triggerKey) &&
+			snippet.triggerKey !== key
+		) {
 			// The snippet must be triggered by a key
 			continue;
 		}
@@ -82,7 +87,8 @@ const runSnippetCursor = (view: EditorView, ctx: Context, key: string, range: Se
 
 		// Expand the snippet
 		const start = triggerPos;
-		queueSnippet(view, start, to, replacement, key);
+		const triggerKey = (snippet.options.automatic && snippet.type !== "visual") ? key : undefined;
+		queueSnippet(view, start, to, replacement, triggerKey);
 
 		const containsTrigger = settings.autoEnlargeBracketsTriggers.some(word => replacement.contains("\\" + word));
 		return {success: true, shouldAutoEnlargeBrackets: containsTrigger};
