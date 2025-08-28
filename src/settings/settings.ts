@@ -5,7 +5,8 @@ import { DEFAULT_SNIPPET_VARIABLES } from "src/utils/default_snippet_variables";
 
 interface LatexSuiteBasicSettings {
 	snippetsEnabled: boolean;
-	snippetsTrigger: "Tab" | " "
+	/** trigger following the same format as https://codemirror.net/docs/ref/#view.KeyBinding */
+	snippetsTrigger: string;
 	suppressSnippetTriggerOnIME: boolean;
 	removeSnippetWhitespace: boolean;
 	autoDelete$: boolean;
@@ -24,6 +25,8 @@ interface LatexSuiteBasicSettings {
 	autofractionBreakingChars: string;
 	matrixShortcutsEnabled: boolean;
 	taboutEnabled: boolean;
+	/** trigger following the same format as https://codemirror.net/docs/ref/#view.KeyBinding */
+	taboutTrigger: string;
 	autoEnlargeBrackets: boolean;
 	wordDelimiters: string;
 }
@@ -73,6 +76,7 @@ export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
 	autofractionBreakingChars: "+-=\t",
 	matrixShortcutsEnabled: true,
 	taboutEnabled: true,
+	taboutTrigger: "Tab",
 	autoEnlargeBrackets: true,
 	wordDelimiters: "., +-\\n\t:;!?\\/{}[]()=~$",
 
