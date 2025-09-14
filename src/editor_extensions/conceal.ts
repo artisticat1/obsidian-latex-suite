@@ -253,6 +253,7 @@ export const mkConcealPlugin = (revealTimeout: number) => ViewPlugin.fromClass(c
 	atomicRanges: RangeSet<RangeValue>;
 	delayEnabled: boolean;
 	cached_equations: ConcealCachedEquations;
+	concealSpecs: ConcealSpec[];
 
 
 	constructor() {
@@ -261,6 +262,7 @@ export const mkConcealPlugin = (revealTimeout: number) => ViewPlugin.fromClass(c
 		this.atomicRanges = RangeSet.empty;
 		this.delayEnabled = revealTimeout > 0;
 		this.cached_equations = {};
+		this.concealSpecs = [];
 	}
 
 	delayedReveal = debounce((delayedConcealments: Concealment[], view: EditorView) => {
@@ -284,12 +286,22 @@ export const mkConcealPlugin = (revealTimeout: number) => ViewPlugin.fromClass(c
 
 		// Cancel the delayed revealment whenever we update the concealments
 		this.delayedReveal.cancel();
+		// If document/viewport is not changed, the conceal specs stay the same 
+		// and only the revealing needs to be updated.
+		if (!update.docChanged && !update.viewportChanged) {
+			this.updateFromConcealSpecs(this.concealSpecs, update);
+		} else {
+			const {specs: concealSpecs, cached_equations} = conceal(update.view, this.cached_equations);
+			this.cached_equations = cached_equations;
+			this.concealSpecs = concealSpecs;
+			this.updateFromConcealSpecs(concealSpecs, update);
+		}
+	}
+	
+	private updateFromConcealSpecs(concealSpecs: ConcealSpec[], update: ViewUpdate) {
 
 		const selection = update.state.selection;
 		const mousedown = update.view.plugin(livePreviewState)?.mousedown ?? false;
-
-		const {specs: concealSpecs, cached_equations} = conceal(update.view, this.cached_equations);
-		this.cached_equations = cached_equations;
 
 		// Collect concealments from the new conceal specs
 		const concealments: Concealment[] = [];
