@@ -9,7 +9,7 @@ import { SnippetChangeSpec } from "./codemirror/snippet_change_spec";
 import { resetCursorBlink } from "src/utils/editor_utils";
 
 export function expandSnippets(view: EditorView):boolean {
-	const snippetsToExpand = view.state.field(snippetQueueStateField);
+	const snippetsToExpand = snippetQueueStateField.snippetQueueValue;
 	if (snippetsToExpand.length === 0) return false;
 
 	const originalDocLength = view.state.doc.length;
@@ -20,14 +20,14 @@ export function expandSnippets(view: EditorView):boolean {
 
 	// Insert any tabstops
 	if (tabstopsToAdd.length === 0) {
-		clearSnippetQueue(view);
+		clearSnippetQueue();
 		return true;
 	}
 
 	markTabstops(view, tabstopsToAdd);
 	expandTabstops(view, tabstopsToAdd);
 
-	clearSnippetQueue(view);
+	clearSnippetQueue();
 	return true;
 }
 

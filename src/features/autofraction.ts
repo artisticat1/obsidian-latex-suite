@@ -108,7 +108,7 @@ export const runAutoFractionCursor = (view: EditorView, ctx: Context, range: Sel
 
 	const replacement = `${settings.autofractionSymbol}{${numerator}}{$0}$1`
 
-	queueSnippet(view, start, to, replacement, "/");
+	queueSnippet(start, to, replacement, "/");
 
 	return true;
 }
