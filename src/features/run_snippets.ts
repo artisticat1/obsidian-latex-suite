@@ -56,6 +56,9 @@ const runSnippetCursor = (view: EditorView, ctx: Context, key: string, range: Se
 			continue;
 		}
 
+		const result = snippet.process(effectiveLine, range, sel);
+		if (result === null) continue;
+
 		// Check that this snippet is not excluded in a certain environment
 		let isExcluded = false;
 		// in practice, a snippet should have very few excluded environments, if any,
@@ -67,8 +70,6 @@ const runSnippetCursor = (view: EditorView, ctx: Context, key: string, range: Se
 		// but labels are extremely rarely used, so we do this construction instead
 		if (isExcluded) { continue; }
 
-		const result = snippet.process(effectiveLine, range, sel);
-		if (result === null) continue;
 		const triggerPos = result.triggerPos;
 
 		if (snippet.options.onWordBoundary) {

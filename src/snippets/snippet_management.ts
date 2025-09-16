@@ -4,12 +4,12 @@ import { startSnippet } from "./codemirror/history";
 import { isolateHistory } from "@codemirror/commands";
 import { TabstopSpec, tabstopSpecsToTabstopGroups } from "./tabstop";
 import { addTabstops, getTabstopGroupsFromView, getNextTabstopColor, tabstopsStateField } from "./codemirror/tabstops_state_field";
-import { clearSnippetQueue, snippetQueueStateField } from "./codemirror/snippet_queue_state_field";
+import { clearSnippetQueue, getSnippetQueue } from "./codemirror/snippet_queue_state_field";
 import { SnippetChangeSpec } from "./codemirror/snippet_change_spec";
 import { resetCursorBlink } from "src/utils/editor_utils";
 
 export function expandSnippets(view: EditorView):boolean {
-	const snippetsToExpand = view.state.field(snippetQueueStateField);
+	const snippetsToExpand = getSnippetQueue(view).snippetQueueValue;
 	if (snippetsToExpand.length === 0) return false;
 
 	const originalDocLength = view.state.doc.length;
