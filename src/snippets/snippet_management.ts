@@ -24,7 +24,6 @@ export function expandSnippets(view: EditorView):boolean {
 		return true;
 	}
 
-	markTabstops(view, tabstopsToAdd);
 	expandTabstops(view, tabstopsToAdd);
 
 	clearSnippetQueue(view);
@@ -49,10 +48,12 @@ function handleUndoKeypresses(view: EditorView, snippets: SnippetChangeSpec[]) {
 	// Insert the keypresses
 	// Use isolateHistory to allow users to undo the triggering of a snippet,
 	// but keep the text inserted by the trigger key
-	view.dispatch({
-		changes: keyPresses,
-		annotations: isolateHistory.of("full")
-	});
+	if (keyPresses.length > 0) {
+		view.dispatch({
+			changes: keyPresses,
+			annotations: isolateHistory.of("full"),
+		});
+	}
 
 	// Undo the keypresses, and insert the replacements
 	const undoKeyPresses = ChangeSet.of(keyPresses, originalDocLength).invert(originalDoc);
@@ -80,20 +81,16 @@ function computeTabstops(view: EditorView, snippets: SnippetChangeSpec[], origin
 	return tabstopsToAdd;
 }
 
-function markTabstops(view: EditorView, tabstops: TabstopSpec[]) {
+function expandTabstops(view: EditorView, tabstops: TabstopSpec[]) {
 	const color = getNextTabstopColor(view);
 	const tabstopGroups = tabstopSpecsToTabstopGroups(tabstops, color);
-
-	addTabstops(view, tabstopGroups);
-}
-
-function expandTabstops(view: EditorView, tabstops: TabstopSpec[]) {
 	// Insert the replacements
 	const changes = tabstops.map((tabstop: TabstopSpec) => {
 		return {from: tabstop.from, to: tabstop.to, insert: tabstop.replacement}
 	});
 
 	view.dispatch({
+		effects: addTabstops(view, tabstopGroups).effects,
 		changes: changes
 	});
 

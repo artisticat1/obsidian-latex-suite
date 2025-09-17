@@ -13,7 +13,6 @@ export const tabstopsStateField = StateField.define<TabstopGroup[]>({
 
 	update(value, transaction) {
 		let tabstopGroups = value;
-		tabstopGroups.forEach(grp => grp.map(transaction.changes));
 
 		for (const effect of transaction.effects) {
 			if (effect.is(addTabstopsEffect)) {
@@ -23,6 +22,7 @@ export const tabstopsStateField = StateField.define<TabstopGroup[]>({
 				tabstopGroups = [];
 			}
 		}
+		tabstopGroups.forEach(grp => grp.map(transaction.changes));
 
 		// Remove the tabstop groups that the cursor has passed. This scenario
 		// happens when the user manually moves the cursor using arrow keys or mouse
@@ -78,7 +78,7 @@ export function getTabstopGroupsFromView(view: EditorView) {
 }
 
 export function addTabstops(view: EditorView, tabstopGroups: TabstopGroup[]) {
-	view.dispatch({
+	return ({
 		effects: [addTabstopsEffect.of(tabstopGroups)],
 	});
 }
