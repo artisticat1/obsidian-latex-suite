@@ -13,6 +13,9 @@ export const tabstopsStateField = StateField.define<TabstopGroup[]>({
 
 	update(value, transaction) {
 		let tabstopGroups = value;
+		// Optimization: tabstops that are added should already have their changes applied
+		// So changes are only applied to existing tabstops
+		tabstopGroups.forEach(grp => grp.map(transaction.changes));
 		for (const effect of transaction.effects) {
 			if (effect.is(addTabstopsEffect)) {
 				tabstopGroups.unshift(...effect.value);
@@ -21,7 +24,6 @@ export const tabstopsStateField = StateField.define<TabstopGroup[]>({
 				tabstopGroups = [];
 			}
 		}
-		tabstopGroups.forEach(grp => grp.map(transaction.changes));
 
 
 		// Remove the tabstop groups that the cursor has passed. This scenario
@@ -77,7 +79,7 @@ export function getTabstopGroupsFromView(view: EditorView) {
 	return currentTabstopGroups;
 }
 
-export function addTabstops(view: EditorView, tabstopGroups: TabstopGroup[]) {
+export function addTabstops(tabstopGroups: TabstopGroup[]) {
 	return ({
 		effects: [addTabstopsEffect.of(tabstopGroups)],
 	});
