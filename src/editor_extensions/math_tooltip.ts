@@ -37,7 +37,7 @@ export function handleMathTooltip(update: ViewUpdate) {
 		};
 		
 		const text = update.state.sliceDoc(checkRange.from, checkRange.to);
-		if (!text.includes('$')) {
+		if (!text.includes("$")) {
 			return;
 		}
 	}
