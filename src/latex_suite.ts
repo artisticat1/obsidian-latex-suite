@@ -28,7 +28,13 @@ export const handleUpdate = (update: ViewUpdate) => {
 	handleUndoRedo(update);
 }
 
+const ignoreEvents = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"] as const;
+
 export const onKeydown = (event: KeyboardEvent, view: EditorView) => {
+	// Skip full update since the keymove can't trigger anything but can spamm the function a lot.
+    if (ignoreEvents.contains(event.key))
+		return;
+	}
 	const success = handleKeydown(event.key, event.shiftKey, event.ctrlKey || event.metaKey, isComposing(view, event), view);
 
 	if (success) event.preventDefault();
