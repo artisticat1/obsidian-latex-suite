@@ -3,10 +3,17 @@ import { StateField, EditorState, EditorSelection, StateEffect } from "@codemirr
 import { renderMath, finishRenderMath, editorLivePreviewField } from "obsidian";
 import { Bounds, Context, getContextPlugin } from "src/utils/context";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
+import { syntaxTree } from "@codemirror/language";
 
-const updateTooltipEffect = StateEffect.define<Tooltip[]>();
+type MathTooltip = {
+	equation: string,
+	bounds: Bounds,
+	pos: number,
+	tooltip: Tooltip,
+}
+const updateTooltipEffect = StateEffect.define<MathTooltip[]>();
 
-export const cursorTooltipField = StateField.define<readonly Tooltip[]>({
+export const cursorTooltipField = StateField.define<readonly MathTooltip[]>({
 	create: () => [],
 
 	update(tooltips, tr) {
@@ -17,33 +24,38 @@ export const cursorTooltipField = StateField.define<readonly Tooltip[]>({
 		return tooltips;
 	},
 
-	provide: (f) => showTooltip.computeN([f], (state) => state.field(f)),
+	provide: (f) => showTooltip.computeN([f], (state) => state.field(f).map(t=> t.tooltip)),
 });
+	
+const findMatchingBrackets = (text: string, cursorPos: number, openBracket: string, closeBracket: string): {left: number, right: number} => {
+	const aux = (text: string, start: number, openBracket: string, closeBracket: string, direction: -1 | 1): number => {
+		let depth = 0;
+		for (let i = start; i >= 0 && i < text.length; i += direction) {
+			if (text[i] === openBracket) depth++;
+			if (text[i] === closeBracket) {
+				if (depth === 0) return i;
+				depth--;
+			}
+		}
+		return -1;
+	};
+
+	// If the cursor is right before a close bracket, that doesn't count to balancing the brackets.
+	const leftStart = text[cursorPos] === closeBracket ? cursorPos - 1 : cursorPos;
+	const left = aux(text, leftStart, closeBracket, openBracket, -1);
+	const right = aux(text, cursorPos, openBracket, closeBracket, 1);
+	return { left, right };
+}
 
 // update the tooltip by dispatching an updateTooltipEffect
 export function handleMathTooltip(update: ViewUpdate) {
 	const shouldUpdate = update.docChanged || update.selectionSet;
 	if (!shouldUpdate) return;
+	const settings = getLatexSuiteConfig(update.state);
 	
 	// We don't need to update the tooltip every time the cursor moves. 
 	// Only update when we leaf or enter a LaTeX block. High impact.
 	const ctx = getContextPlugin(update.view);
-	if (update.selectionSet && !update.docChanged && ctx.mode.inEquation()) {
-		const oldSel = update.startState.selection.main;
-		const newSel = update.state.selection.main;
-		
-		const checkRange = {
-			from: Math.min(oldSel.from, newSel.from),
-			to: Math.max(oldSel.to, newSel.to)
-		};
-		
-		const text = update.state.sliceDoc(checkRange.from, checkRange.to);
-		if (!text.includes("$")) {
-			return;
-		}
-	}
-
-	const settings = getLatexSuiteConfig(update.state);
 	const eqnBounds = shouldShowTooltip(update.state, ctx);
 
 	if (!eqnBounds) {
@@ -64,15 +76,72 @@ export function handleMathTooltip(update: ViewUpdate) {
 	*/
 
 	const eqn = update.state.sliceDoc(eqnBounds.inner_start, eqnBounds.inner_end);
+	const pos = ctx.pos;
+
+	const tree = syntaxTree(update.state);
+	const cursor = tree.cursor();
+	cursor.moveTo(pos, -1);
+	let normalizedPos: number;
+	if (cursor.name === "math_tag" && cursor.from < pos && cursor.to >= pos) {
+		normalizedPos = cursor.from;
+	} else {
+		normalizedPos = pos
+	}
+	const eqnPos = normalizedPos - eqnBounds.inner_start;
+
+	let eqnWithDecorations: string;
+	const { left, right } = settings.mathPreviewBracketHighlighting
+		? findMatchingBrackets(eqn, eqnPos, "{", "}")
+		: { left: -1, right: -1 };
+
+	if (right !== -1 && left !== -1) {
+		// If the cursor is next to a bracket, move it inside the bracket pair
+		// case when eqnPos === left
+		const maxPosOrLeft = Math.max(left + 1, eqnPos);
+		eqnWithDecorations =
+			eqn.slice(0, left + 1) +
+			// `\class` doesn't work, so using style and adding it back in as workaround.
+			"\\style{background-color: var(--latex-suite-math-preview-highlight);}{" +
+			eqn.slice(left + 1, maxPosOrLeft) +
+			settings.mathPreviewCursor +
+			eqn.slice(maxPosOrLeft, right) +
+			"}" +
+			eqn.slice(right);
+	} else {
+		eqnWithDecorations =
+			eqn.slice(0, eqnPos) +
+			settings.mathPreviewCursor +
+			eqn.slice(eqnPos);
+	}
+	const oldTooltips = update.state.field(cursorTooltipField);
+	// a little optimization: if the tooltip is currently shown and the equation with decorations is the same as the one in the tooltip, we don't need to update it.
+	if (
+		oldTooltips.length === 1 &&
+		oldTooltips[0].equation === eqnWithDecorations &&
+		oldTooltips[0].bounds.inner_start === eqnBounds.inner_start &&
+		oldTooltips[0].bounds.inner_end === eqnBounds.inner_end
+	) {
+		return;
+	}
 
 	const above = settings.mathPreviewPositionIsAbove;
 	const create = () => {
 		const dom = document.createElement("div");
 		dom.addClass("cm-tooltip-cursor");
 
-		const renderedEqn = renderMath(eqn, ctx.mode.blockMath || ctx.mode.codeMath);
-		dom.appendChild(renderedEqn);
-		finishRenderMath();
+		try {
+			const renderedEqn = renderMath(eqnWithDecorations, ctx.mode.blockMath || ctx.mode.codeMath);
+			const highlight = renderedEqn.querySelector(
+				'[style*="background-color: var(--latex-suite-math-preview-highlight)"]',
+			) as HTMLElement;
+			highlight?.addClass("latex-suite-math-preview-highlight");
+			highlight?.style.removeProperty("background-color");
+			dom.appendChild(renderedEqn);
+			finishRenderMath();
+		} catch (e) {
+			console.error("Error rendering math in tooltip:", e);
+			dom.textContent = eqn
+		}
 
 		return { dom };
 	};
@@ -113,7 +182,16 @@ export function handleMathTooltip(update: ViewUpdate) {
 	}
 
 	update.view.dispatch({
-		effects: [updateTooltipEffect.of(newTooltips)]
+		effects: [
+			updateTooltipEffect.of(
+				newTooltips.map((t) => ({
+					equation: eqnWithDecorations,
+					bounds: eqnBounds,
+					pos: t.pos,
+					tooltip: t,
+				})),
+			),
+		],
 	});
 }
 

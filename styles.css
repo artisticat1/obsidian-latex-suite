@@ -233,3 +233,7 @@ sup.cm-math, sub.cm-math {
 /* .latex-suite-color-bracket-3 {
     color: #8de15c;
 } */
+
+.latex-suite-math-preview-highlight {
+	background-color: var(--text-selection);
+}
