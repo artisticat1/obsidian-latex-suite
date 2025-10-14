@@ -74,7 +74,7 @@ export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
 	matrixShortcutsEnabled: true,
 	taboutEnabled: true,
 	autoEnlargeBrackets: true,
-	wordDelimiters: "., +-\\n\t:;!?\\/{}[]()=~$",
+	wordDelimiters: "., +-\\n\t:;!?\\/{}[]()=~$'\"|`<>*^%#@&",
 
 	// Raw settings
 	autofractionExcludedEnvs:
