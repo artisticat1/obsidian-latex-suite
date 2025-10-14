@@ -109,8 +109,9 @@
 	{trigger: "-+", replacement: "\\mp", options: "mA"},
     {trigger: "...", replacement: "\\dots", options: "mA"},
     {trigger: "nabl", replacement: "\\nabla", options: "mA"},
-	{trigger: "del", replacement: "\\nabla", options: "mA"},
-    {trigger: "xx", replacement: "\\times", options: "mA"},
+    // The operator nabla is also called del, but using "del" as a trigger conflicts with the greek letter delta.
+	// {trigger: "del", replacement: "\\nabla", options: "mA"},
+	{trigger: "xx", replacement: "\\times", options: "mA"},
     {trigger: "**", replacement: "\\cdot", options: "mA"},
     {trigger: "para", replacement: "\\parallel", options: "mA"},
 
