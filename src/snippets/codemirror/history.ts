@@ -48,12 +48,6 @@ export const handleUndoRedo = (update: ViewUpdate) => {
 					redo(update.view);
 				}
 			}
-			else if (effect.is(undidEndSnippet)) {
-				if (undoTr) {
-					// Undo the tabstop expansion and selection
-					undo(update.view);
-				}
-			}
 		}
 	}
 

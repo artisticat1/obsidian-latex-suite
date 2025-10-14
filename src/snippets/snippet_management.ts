@@ -1,9 +1,9 @@
 import { EditorView } from "@codemirror/view";
 import { ChangeSet, StateEffect } from "@codemirror/state";
-import { startSnippet } from "./codemirror/history";
+import { endSnippet, startSnippet } from "./codemirror/history";
 import { isolateHistory } from "@codemirror/commands";
-import { TabstopSpec, tabstopSpecsToTabstopGroups } from "./tabstop";
-import { addTabstops, getTabstopGroupsFromView, getNextTabstopColor, tabstopsStateField } from "./codemirror/tabstops_state_field";
+import { getEditorSelectionEndpoints, TabstopSpec, tabstopSpecsToTabstopGroups } from "./tabstop";
+import { addTabstops, getNextTabstopColor, tabstopsStateField } from "./codemirror/tabstops_state_field";
 import { clearSnippetQueue, getSnippetQueue } from "./codemirror/snippet_queue_state_field";
 import { SnippetChangeSpec } from "./codemirror/snippet_change_spec";
 import { resetCursorBlink } from "src/utils/editor_utils";
@@ -104,14 +104,17 @@ function expandTabstops(
 	tabstopGroups.forEach((grp) => grp.map(changes));
 	// Insert the replacements
 	const effects = addTabstops(tabstopGroups).effects;
+	const firstGrp = tabstopGroups[0];
+	const sel = firstGrp.toEditorSelection();
+	const spec = {
+		selection: sel,
+		effects: endSnippet.of(null),
+		sequential: true
+	}
 	view.dispatch({
 		effects: [undoChanges.effects, ...effects],
 		changes: undoChanges.changes.compose(changes),
-	});
-
-	// Select the first tabstop
-	const firstGrp = getTabstopGroupsFromView(view)[0];
-	firstGrp.select(view, false, true); // "true" here marks the transaction as the end of the snippet (for undo/history purposes)
+	}, spec);
 }
 
 // Returns true if the transaction was dispatched
