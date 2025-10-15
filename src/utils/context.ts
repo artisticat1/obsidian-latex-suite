@@ -5,6 +5,7 @@ import { Mode } from "../snippets/options";
 import { Environment } from "../snippets/environment";
 import { getLatexSuiteConfig } from "../snippets/codemirror/config";
 import { syntaxTree } from "@codemirror/language";
+import { SyntaxNode } from "@lezer/common";
 
 export interface Bounds {
 	start: number;
@@ -27,15 +28,18 @@ export class Context {
 		ctx.ranges = Array.from(sel.ranges).reverse(); // Last to first
 		ctx.mode = new Mode();
 		ctx.boundsCache = new Map();
-
-		const codeblockLanguage = langIfWithinCodeblock(state);
+			
+		const {begin: codeBegin, end: codeEnd, codeblockLanguage} = langIfWithinCodeblock(state) ?? {};
 		const inCode = codeblockLanguage !== null;
 
 		const settings = getLatexSuiteConfig(state);
 		const forceMath = settings.forceMathLanguages.contains(codeblockLanguage);
 		ctx.mode.codeMath = forceMath;
 		ctx.mode.code = inCode && !forceMath;
-		if (ctx.mode.code) ctx.codeblockLanguage = codeblockLanguage;
+		if (ctx.mode.code) {
+			ctx.codeblockLanguage = codeblockLanguage;
+			ctx.boundsCache.set(ctx.pos, {start: codeBegin, end: codeEnd});
+		}
 
 		// first, check if math mode should be "generally" on
 		const inMath = forceMath || isWithinEquation(state);
@@ -257,53 +261,94 @@ const getInnerEquationBounds = (state: EditorState, pos?: number):Bounds => {
  *
  * **Note:** If you intend to use this directly, check out Context.getBounds instead, which caches and also takes care of codeblock languages which should behave like math mode.
  */
-const getCodeblockBounds = (state: EditorState, pos: number = state.selection.main.from):Bounds => {
-	const tree = syntaxTree(state);
-
-	let cursor = tree.cursorAt(pos, -1);
-	const blockBegin = escalateToToken(cursor, Direction.Backward, "HyperMD-codeblock-begin");
-
-	cursor = tree.cursorAt(pos, -1);
-	const blockEnd = escalateToToken(cursor, Direction.Forward, "HyperMD-codeblock-end");
-
+const getCodeblockBounds = (state: EditorState, pos: number = state.selection.main.from):Bounds | null => {
+	const { begin: blockBegin, end: blockEnd } = getCodeblockBoundNodes(state, pos);
 	return { start: blockBegin.to + 1, end: blockEnd.from - 1 };
 }
 
-const langIfWithinCodeblock = (state: EditorState): string | null => {
+const getCodeblockBoundNodes = (
+	state: EditorState,
+	pos: number = state.selection.main.from
+): { begin: SyntaxNode; end: SyntaxNode } | null => {
 	const tree = syntaxTree(state);
-
-	const pos = state.selection.ranges[0].from;
-
 	/*
-	* get a tree cursor at the position
-	*
-	* A newline does not belong to any syntax nodes except for the Document,
-	* which corresponds to the whole document. So, we change the `mode` of the
-	* `cursorAt` depending on whether the character just before the cursor is a
-	* newline.
-	*/
-	const cursor =
-		pos === 0 || getCharacterAtPos(state, pos - 1) === "\n"
-		? tree.cursorAt(pos, 1)
-		: tree.cursorAt(pos, -1);
+	 * get a tree cursor at the position
+	 *
+	 * A newline does not belong to any syntax nodes except for the Document,
+	 * which corresponds to the whole document. So, we change the `mode` of the
+	 * `cursorAt` depending on whether the character just before the cursor is a
+	 * newline.
+	 */
+	const direction =
+		pos === 0 || getCharacterAtPos(state, pos - 1) === "\n" ? 1 : -1;
+	const beginCursor = tree.cursorAt(pos, direction);
 
 	// check if we're in a codeblock atm at all
-	const inCodeblock = cursor.name.contains("codeblock");
+	const inCodeblock = beginCursor.name.contains("codeblock");
 	if (!inCodeblock) {
 		return null;
 	}
-
+	const startNode = beginCursor.node;
 	// locate the start of the block
-	const codeblockBegin = escalateToToken(cursor, Direction.Backward, "HyperMD-codeblock_HyperMD-codeblock-begin");
+	let codeblockBegin = escalateToToken(
+		beginCursor,
+		Direction.Backward,
+		"HyperMD-codeblock_HyperMD-codeblock-begin"
+	);
 
-	if (codeblockBegin == null) {
-		console.warn("unable to locate start of the codeblock even though inside one");
-		return "";
+	if (
+		codeblockBegin == null &&
+		!startNode.parent?.name.contains(
+			"HyperMD-codeblock_HyperMD-codeblock-begin"
+		)
+	) {
+		console.warn(
+			"unable to locate start of the codeblock even though inside one",
+			startNode
+		);
+		return null;
+	} else if (codeblockBegin == null) {
+		codeblockBegin = startNode.parent;
 	}
 
+	const endCursor = tree.cursorAt(pos, direction);
+	const startNodeEnd = endCursor.node;
+	let blockEnd = escalateToToken(
+		endCursor,
+		Direction.Forward,
+		"HyperMD-codeblock-end"
+	);
+	if (
+		blockEnd === null &&
+		!startNodeEnd.parent?.name.contains("HyperMD-codeblock-end")
+	) {
+		console.warn(
+			"unable to locate end of the codeblock even though inside one",
+			startNodeEnd
+		);
+		return null;
+	} else if (blockEnd == null) {
+		blockEnd = startNodeEnd.parent;
+	}
+	return { begin: codeblockBegin, end: blockEnd };
+};
+
+const langIfWithinCodeblock = (
+	state: EditorState
+): { begin: number; end: number; codeblockLanguage: string } | null => {
+	const pos = state.selection.ranges[0].from;
+	const { begin: codeblockBegin } = getCodeblockBoundNodes(state, pos) ?? {};
+	if (!codeblockBegin) return null;
 	// extract the language
 	// codeblocks may start and end with an arbitrary number of backticks
-	const language = state.sliceDoc(codeblockBegin.from, codeblockBegin.to).replace(/`+/, "");
 
-	return language;
-}
+	const language = state
+		.sliceDoc(codeblockBegin.from, codeblockBegin.to)
+		.replace(/`+/, "");
+
+	return {
+		begin: codeblockBegin.to + 1,
+		end: codeblockBegin.from - 1,
+		codeblockLanguage: language,
+	};
+};
