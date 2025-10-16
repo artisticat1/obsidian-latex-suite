@@ -106,9 +106,15 @@ export const runAutoFractionCursor = (view: EditorView, ctx: Context, range: Sel
 		}
 	}
 
-	const replacement = `${settings.autofractionSymbol}{${numerator}}{$0}$1`
+	// If the content inside parentheses is empty, the numerator would be empty and that's rarely desired.
+	const replacement =
+		numerator === ""
+			? `${settings.autofractionSymbol}{$0}{$1}$2`
+			: `${settings.autofractionSymbol}{${numerator}}{$0}$1`;
+	// The keypressed shouldn't be inserted back in after an undo, if we have a selection.
+	const keyPressed = from != to ? undefined : "/";
 
-	queueSnippet(view, start, to, replacement, "/");
+	queueSnippet(view, start, to, replacement, keyPressed);
 
 	return true;
 }
