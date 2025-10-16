@@ -74,7 +74,7 @@ export const handleKeydown = (key: string, shiftKey: boolean, ctrlKey: boolean, 
 				if (success) return true;
 			}
 			catch (e) {
-				clearSnippetQueue(view);
+				clearSnippetQueue();
 				console.error(e);
 			}
 		}
