@@ -375,7 +375,7 @@ function concealSet(eqn: string): ConcealSpec[] {
 function concealFraction(eqn: string): ConcealSpec[] {
 	const concealSpecs: ConcealSpec[] = [];
 
-	for (const match of eqn.matchAll(/\\(frac|dfrac|tfrac|gfrac){/g)) {
+	for (const match of eqn.matchAll(/\n?\\(frac|dfrac|tfrac|gfrac){/g)) {
 		// index of the closing bracket of the numerator
 		const numeratorEnd = findMatchingBracket(eqn, match.index, "{", "}", false);
 		if (numeratorEnd === -1) continue;
@@ -388,13 +388,16 @@ function concealFraction(eqn: string): ConcealSpec[] {
 		const denominatorEnd = findMatchingBracket(eqn, numeratorEnd + 1, "{", "}", false);
 		if (denominatorEnd === -1) continue;
 
-		const commandStart = match.index;
-		const numeratorStart = commandStart + match[0].length - 1;
+		const commandStart = match.index + +(match[0][0] === "\n");
+		// The home key needs some **visually** to grab onto, so if the \frac is at the start of a line,
+		// it would go to \\frac| instead of |\\frac. Hence we replace \frac with a space in this case.
+		const hideFrac = match[0][0] === "\n" ? " " : "";
+		const numeratorStart = match.index + match[0].length - 1;
 		const denominatorStart = numeratorEnd + 1;
 
 		concealSpecs.push(mkConcealSpec(
 			// Hide "\frac"
-			{ start: commandStart, end: numeratorStart, text: "" },
+			{ start: commandStart, end: numeratorStart, text: hideFrac },
 			// Replace brackets of the numerator
 			{ start: numeratorStart, end: numeratorStart + 1, text: "(", class: "cm-bracket" },
 			{ start: numeratorEnd, end: numeratorEnd + 1, text: ")", class: "cm-bracket"},
