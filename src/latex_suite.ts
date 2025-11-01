@@ -14,7 +14,7 @@ import { clearSnippetQueue } from "./snippets/codemirror/snippet_queue_state_fie
 import { handleUndoRedo } from "./snippets/codemirror/history";
 
 import { handleMathTooltip } from "./editor_extensions/math_tooltip";
-import { isComposing } from "./utils/editor_utils";
+import { isComposing, forceEndComposition } from "./utils/editor_utils";
 
 export const handleUpdate = (update: ViewUpdate) => {
 	const settings = getLatexSuiteConfig(update.state);
@@ -28,9 +28,39 @@ export const handleUpdate = (update: ViewUpdate) => {
 	handleUndoRedo(update);
 }
 
+let lastKeyboardEvent: KeyboardEvent | null = null;
+let useNextTextInput = false;
+
+export const onInput = (view: EditorView, from: number, to: number, text: string) => {
+	if (text === "\0\0") return true;
+	if (text.length == 1 && useNextTextInput) {
+		if (text === "\t") text = "Tab";
+		const success = handleKeydown(
+			text,
+			lastKeyboardEvent.shiftKey,
+			lastKeyboardEvent.ctrlKey || lastKeyboardEvent.metaKey,
+			isComposing(view, lastKeyboardEvent),
+			view
+		);
+		if (success) {
+			forceEndComposition(view);
+			return true;
+		}
+	}
+}
+
 const ignoreEvents: readonly string[] = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"] as const;
 
 export const onKeydown = (event: KeyboardEvent, view: EditorView) => {
+	// the input event handler `onInput` will try to handle the unknown key.
+    if (event.key == "Unidentified" || event.key == "Process" || event.key == "Dead") {
+        useNextTextInput = true;
+		lastKeyboardEvent = event;
+		return;
+    } else {
+        useNextTextInput = false;
+    }
+
 	// Skip full update since the keymove can't trigger anything but can spam the function a lot.
     if (ignoreEvents.includes(event.key))
 		return;
