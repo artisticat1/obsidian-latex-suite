@@ -49,6 +49,8 @@ export const onInput = (view: EditorView, from: number, to: number, text: string
 	}
 }
 
+const ignoreEvents: readonly string[] = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"] as const;
+
 export const onKeydown = (event: KeyboardEvent, view: EditorView) => {
 	// the input event handler `onInput` will try to handle the unknown key.
     if (event.key == "Unidentified" || event.key == "Process" || event.key == "Dead") {
@@ -59,6 +61,9 @@ export const onKeydown = (event: KeyboardEvent, view: EditorView) => {
         useNextTextInput = false;
     }
 
+	// Skip full update since the keymove can't trigger anything but can spam the function a lot.
+    if (ignoreEvents.includes(event.key))
+		return;
 	const success = handleKeydown(event.key, event.shiftKey, event.ctrlKey || event.metaKey, isComposing(view, event), view);
 
 	if (success) event.preventDefault();

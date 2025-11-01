@@ -24,6 +24,23 @@ export const cursorTooltipField = StateField.define<readonly Tooltip[]>({
 export function handleMathTooltip(update: ViewUpdate) {
 	const shouldUpdate = update.docChanged || update.selectionSet;
 	if (!shouldUpdate) return;
+	
+	// We don't need to update the tooltip every time the cursor moves. 
+	// Only update when we leaf or enter a LaTeX block. High impact.
+	if (update.selectionSet && !update.docChanged) {
+		const oldSel = update.startState.selection.main;
+		const newSel = update.state.selection.main;
+		
+		const checkRange = {
+			from: Math.min(oldSel.from, newSel.from),
+			to: Math.max(oldSel.to, newSel.to)
+		};
+		
+		const text = update.state.sliceDoc(checkRange.from, checkRange.to);
+		if (!text.includes("$")) {
+			return;
+		}
+	}
 
 	const settings = getLatexSuiteConfig(update.state);
 	const ctx = Context.fromState(update.state);
