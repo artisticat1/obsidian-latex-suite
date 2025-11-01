@@ -147,12 +147,12 @@ export function isComposing(view: EditorView, event: KeyboardEvent): boolean {
  * Copyright (C) 2018-2021 by Marijn Haverbeke <marijnh@gmail.com> and others
  */
 export function forceEndComposition(view: EditorView) {
-	let parent = view.scrollDOM.parentElement;
+	const parent = view.scrollDOM.parentElement;
 	if (!parent) return;
 
-	let sibling = view.scrollDOM.nextSibling;
-	let selection = window.getSelection();
-	let savedSelection = selection && {
+	const sibling = view.scrollDOM.nextSibling;
+	const selection = window.getSelection();
+	const savedSelection = selection && {
 		anchorNode: selection.anchorNode,
 		anchorOffset: selection.anchorOffset,
 		focusNode: selection.focusNode,
