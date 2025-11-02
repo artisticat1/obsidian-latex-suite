@@ -469,10 +469,11 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				this.plugin.settings.autoDelete$ = value;
 				await this.plugin.saveSettings();
 			}));
-		const surpressIMESetting = new Setting(containerEl)
+
+		const suppressIMESetting = new Setting(containerEl)
 			.setName("Don't trigger snippets when IME is active")
 			.setDesc("Whether to suppress snippets triggering when an IME is active.");
-		const surpressIMEWarning = new Setting(containerEl)
+		const suppressIMEWarning = new Setting(containerEl)
 			.setName("Suppress IME warning")
 			.setDesc("Whether a warning is shown on startup if `Don't trigger snippets when IME is active` is enabled. Disable this if you are aware of the IME limitations. Currently only ios and android have support for IME")
 			.addToggle((toggle) => toggle
@@ -482,13 +483,13 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				})
 			);
-		surpressIMEWarning.settingEl.toggleClass("hidden", !(this.plugin.settings.suppressSnippetTriggerOnIME && isIMESupported()));
-		surpressIMESetting
+		suppressIMEWarning.settingEl.toggleClass("hidden", !(this.plugin.settings.suppressSnippetTriggerOnIME && isIMESupported()));
+		suppressIMESetting
 			.addToggle((toggle) => toggle
 				.setValue(this.plugin.settings.suppressSnippetTriggerOnIME)
 				.onChange(async (value) => {
 					this.plugin.settings.suppressSnippetTriggerOnIME = value;
-					surpressIMEWarning.settingEl.toggleClass("hidden", !(value && isIMESupported()));
+					suppressIMEWarning.settingEl.toggleClass("hidden", !(value && isIMESupported()));
 					await this.plugin.saveSettings();
 				})
 			);
@@ -637,7 +638,7 @@ function createCMEditor(content: string, extensions: Extension[]) {
 
 /**
  * IME support is tricky, currently only a fix for mobile platform is provided, update later if needed.
- * @returns Whehter IME keyboards are supported
+ * @returns Whether IME keyboards are supported
  */
 export function isIMESupported(): boolean {
 	return Platform.isMobileApp

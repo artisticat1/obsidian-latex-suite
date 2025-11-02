@@ -52,6 +52,7 @@ export default class LatexSuitePlugin extends Plugin {
 			return;
 		}
 	}
+
 	IMEEditorWarning() {
 		if (isIMESupported() && !this.settings.suppressIMEWarning) {
 			// const message = "Obsidian Latex Suite: this plugin supports your IME keyboard, but `Advanced settings > Don't trigger snippets when IME is active` is currently disabled. You may want to enable it in the plugin settings to avoid unexpected snippet triggers while using your IME. To turn this warning off, enable `Advanced settings > Suppress IME warning`.";
@@ -64,7 +65,6 @@ export default class LatexSuitePlugin extends Plugin {
 			new Notice(message, 10000);
 			console.log(message);
 		}
-		
 	}
 
 	async loadSettings() {
