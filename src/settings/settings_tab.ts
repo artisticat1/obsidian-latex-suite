@@ -1,6 +1,6 @@
 import { EditorState, Extension } from "@codemirror/state";
 import { EditorView, ViewUpdate } from "@codemirror/view";
-import { App, ButtonComponent, ExtraButtonComponent, Modal, PluginSettingTab, Setting, debounce, setIcon } from "obsidian";
+import { App, ButtonComponent, ExtraButtonComponent, Modal, Platform, PluginSettingTab, Setting, debounce, setIcon } from "obsidian";
 import { parseSnippetVariables, parseSnippets } from "src/snippets/parse";
 import { DEFAULT_SNIPPETS } from "src/utils/default_snippets";
 import LatexSuitePlugin from "../main";
@@ -470,13 +470,26 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				await this.plugin.saveSettings();
 			}));
 
-		new Setting(containerEl)
+		const suppressIMESetting = new Setting(containerEl)
 			.setName("Don't trigger snippets when IME is active")
-			.setDesc("Whether to suppress snippets triggering when an IME is active.")
+			.setDesc("Whether to suppress snippets triggering when an IME is active.");
+		const suppressIMEWarning = new Setting(containerEl)
+			.setName("Suppress IME warning")
+			.setDesc("Whether a warning is shown on startup if `Don't trigger snippets when IME is active` is enabled. Disable this if you are aware of the IME limitations. Currently only ios and android have support for IME")
+			.addToggle((toggle) => toggle
+				.setValue(this.plugin.settings.suppressIMEWarning)
+				.onChange(async (value) => {
+					this.plugin.settings.suppressIMEWarning = value;
+					await this.plugin.saveSettings();
+				})
+			);
+		suppressIMEWarning.settingEl.toggleClass("hidden", !(this.plugin.settings.suppressSnippetTriggerOnIME && isIMESupported()));
+		suppressIMESetting
 			.addToggle((toggle) => toggle
 				.setValue(this.plugin.settings.suppressSnippetTriggerOnIME)
 				.onChange(async (value) => {
 					this.plugin.settings.suppressSnippetTriggerOnIME = value;
+					suppressIMEWarning.settingEl.toggleClass("hidden", !(value && isIMESupported()));
 					await this.plugin.saveSettings();
 				})
 			);
@@ -621,4 +634,12 @@ function createCMEditor(content: string, extensions: Extension[]) {
 	});
 
 	return view;
+}
+
+/**
+ * IME support is tricky, currently only a fix for mobile platform is provided, update later if needed.
+ * @returns Whether IME keyboards are supported
+ */
+export function isIMESupported(): boolean {
+	return Platform.isMobileApp
 }
