@@ -3,6 +3,8 @@ import { setCursor } from "src/utils/editor_utils";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
 import { Context } from "src/utils/context";
 import { tabout } from "src/features/tabout";
+import { queueSnippet } from "src/snippets/codemirror/snippet_queue_state_field";
+import { expandSnippets } from "src/snippets/snippet_management";
 
 export const runMatrixShortcuts = (view: EditorView, ctx: Context, key: string, shiftKey: boolean): boolean => {
 	const settings = getLatexSuiteConfig(view);
@@ -39,12 +41,9 @@ export const runMatrixShortcuts = (view: EditorView, ctx: Context, key: string, 
 			tabout(view, ctx);
 		}
 		else if (ctx.mode.blockMath) {
-			const d = view.state.doc;
-			const lineText = d.lineAt(ctx.pos).text;
-			const matchIndents = lineText.match(/^\s*/);
-			const leadingIndents = matchIndents ? matchIndents[0] : "";
-
-			view.dispatch(view.state.replaceSelection(` \\\\\n${leadingIndents}`));
+			// Keep current indentation and callout characters
+			queueSnippet(view, ctx.pos, ctx.pos, " \\\\\n$0");
+			expandSnippets(view);
 		}
 		else {
 			view.dispatch(view.state.replaceSelection(" \\\\ "));
