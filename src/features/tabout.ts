@@ -27,7 +27,6 @@ const SORTED_DELIMITERS = [
 	"\\Uparrow", "\\Downarrow",
 	"."
 ].sort((a, b) => b.length - a.length);
-let sortedClosingSymbols: string[] = [];
 
 
 const isCommandEnd = (str: string): boolean => {
@@ -57,7 +56,7 @@ const isMatchingToken = (text: string, token: string, startIndex: number): boole
 }
 
 
-const findTokenLength = (sortedTokens: string[], text: string, startIndex: number): number => {
+const findTokenLength = (text: string, startIndex: number, sortedTokens: string[]): number => {
 	const matchedToken = sortedTokens.find((token) => isMatchingToken(text, token, startIndex));
 
 	if (matchedToken) {
@@ -68,7 +67,7 @@ const findTokenLength = (sortedTokens: string[], text: string, startIndex: numbe
 }
 
 
-const findCommandWithDelimiterLength = (sortedCommands: string[], text: string, startIndex: number): number => {
+const findCommandWithDelimiterLength = (text: string, startIndex: number, sortedCommands: string[]): number => {
 	const matchedCommand = sortedCommands.find((command) => isMatchingCommand(text, command, startIndex));
 
 	if (!matchedCommand) {
@@ -93,11 +92,11 @@ const findCommandWithDelimiterLength = (sortedCommands: string[], text: string, 
 }
 
 
-const findRightDelimiterLength = (text: string, startIndex: number): number => {
-	const rightDelimiterLength = findCommandWithDelimiterLength(SORTED_RIGHT_COMMANDS, text, startIndex);
+const findRightDelimiterLength = (text: string, startIndex: number, sortedClosingSymbols: string[]): number => {
+	const rightDelimiterLength = findCommandWithDelimiterLength(text, startIndex, SORTED_RIGHT_COMMANDS);
 	if (rightDelimiterLength) return rightDelimiterLength;
 
-	const closingSymbolLength = findTokenLength(sortedClosingSymbols, text, startIndex);
+	const closingSymbolLength = findTokenLength(text, startIndex, sortedClosingSymbols);
 	if (closingSymbolLength) return closingSymbolLength;
 
 	return 0;
@@ -118,12 +117,12 @@ export const tabout = (view: EditorView, ctx: Context): boolean => {
 	const d = view.state.doc;
 	const text = d.toString();
 
-	sortedClosingSymbols = getLatexSuiteConfig(view).sortedTaboutClosingSymbols;
+	const sortedClosingSymbols = getLatexSuiteConfig(view).sortedTaboutClosingSymbols;
 
 	// Move to the next closing bracket
 	let i = start;
 	while (i < end) {
-		const rightDelimiterLength = findRightDelimiterLength(text, i);
+		const rightDelimiterLength = findRightDelimiterLength(text, i, sortedClosingSymbols);
 		if (rightDelimiterLength > 0) {
 			i += rightDelimiterLength;
 
@@ -136,7 +135,7 @@ export const tabout = (view: EditorView, ctx: Context): boolean => {
 		}
 
 		// Attempt to match only the right command if matching right command + delimiter fails
-		const rightCommandLength = findTokenLength(SORTED_RIGHT_COMMANDS, text, i);
+		const rightCommandLength = findTokenLength(text, i, SORTED_RIGHT_COMMANDS);
 		if (rightCommandLength > 0) {
 			i += rightCommandLength;
 
@@ -149,7 +148,7 @@ export const tabout = (view: EditorView, ctx: Context): boolean => {
 		}
 
 		// Skip left command + delimiter
-		const leftDelimiterLength = findCommandWithDelimiterLength(SORTED_LEFT_COMMANDS, text, i);
+		const leftDelimiterLength = findCommandWithDelimiterLength(text, i, SORTED_LEFT_COMMANDS);
 		if (leftDelimiterLength > 0) {
 			i += leftDelimiterLength;
 
