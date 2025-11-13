@@ -305,7 +305,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		const containerEl = this.containerEl;
 		this.addHeading(containerEl, "Matrix shortcuts", "brackets-contain");
 
-		new Setting(containerEl)
+		const matrixShortcutsEnabledSetting = new Setting(containerEl)
 			.setName("Enabled")
 			.setDesc("Whether matrix shortcuts are enabled.")
 			.addToggle(toggle => toggle
@@ -313,10 +313,18 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				.onChange(async (value) => {
 					this.plugin.settings.matrixShortcutsEnabled = value;
 
+					// This approach isn’t very elegant, but let’s just make it work first.
+					environmentsSetting.settingEl.toggleClass("hidden", !value);
+					trimWhitespaceSetting.settingEl.toggleClass("hidden", !value);
+					trimAlignmentSetting.settingEl.toggleClass("hidden", !value || !this.plugin.settings.matrixShortcutsWhitespaceTrimEnabled);
+					LineBreakAfterHLineSettings.settingEl.toggleClass("hidden", !value);
+					TrimEmptyLineSetting.settingEl.toggleClass("hidden", !value);
+					AddLineBreakSetting.settingEl.toggleClass("hidden", !value);
+
 					await this.plugin.saveSettings();
 				}));
 
-		new Setting(containerEl)
+		const environmentsSetting = new Setting(containerEl)
 			.setName("Environments")
 			.setDesc("A list of environment names to run the matrix shortcuts in, separated by commas.")
 			.addText(text => text
@@ -328,13 +336,13 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
-		new Setting(containerEl)
+		const trimWhitespaceSetting = new Setting(containerEl)
 			.setName("Trim Excess Whitespace")
 			.setDesc("When enabled, Tab and Enter will trim surrounding whitespace to prevent excessive spaces.")
 			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.matrixShortcutsTrimWhitespace)
+				.setValue(this.plugin.settings.matrixShortcutsWhitespaceTrimEnabled)
 				.onChange(async (value) => {
-					this.plugin.settings.matrixShortcutsTrimWhitespace = value;
+					this.plugin.settings.matrixShortcutsWhitespaceTrimEnabled = value;
 
 					trimAlignmentSetting.settingEl.toggleClass("hidden", !value);
 
@@ -345,18 +353,14 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			.setName("Trim Excess Alignment")
 			.setDesc("When enabled, Enter will trim the extra '&' to prevent excessive spacing.")
 			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.matrixShortcutsTrimAlignment)
+				.setValue(this.plugin.settings.matrixShortcutsAlignmentTrimEnabled)
 				.onChange(async (value) => {
-					this.plugin.settings.matrixShortcutsTrimAlignment = value;
+					this.plugin.settings.matrixShortcutsAlignmentTrimEnabled = value;
 
 					await this.plugin.saveSettings();
 				}));
 
-		// Hide settings that are not relevant when "matrixShortcutsTrimWhitespace" is set to true/false
-		const matrixShortcutsTrimWhitespace = this.plugin.settings.matrixShortcutsTrimWhitespace;
-		trimAlignmentSetting.settingEl.toggleClass("hidden", !matrixShortcutsTrimWhitespace);
-
-		new Setting(containerEl)
+		const LineBreakAfterHLineSettings = new Setting(containerEl)
 			.setName("Enable '\\\\' After '\\hline'")
 			.setDesc("When enabled, '\\\\' will be inserted after '\\hline'.")
 			.addToggle(toggle => toggle
@@ -367,27 +371,36 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
-		new Setting(containerEl)
+		const TrimEmptyLineSetting = new Setting(containerEl)
 			.setName("Trim Empty Line After Environment")
 			.setDesc("When enabled, Shift + Enter will remove an empty line when exiting an environment to prevent excessive spaces.")
 			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.matrixShortcutsTrimEmptyLineAfterEnv)
+				.setValue(this.plugin.settings.matrixShortcutsEmptyLineTrimAfterEnvEnabled)
 				.onChange(async (value) => {
-					this.plugin.settings.matrixShortcutsTrimEmptyLineAfterEnv = value;
+					this.plugin.settings.matrixShortcutsEmptyLineTrimAfterEnvEnabled = value;
 
 					await this.plugin.saveSettings();
 				}));
 
-		new Setting(containerEl)
+		const AddLineBreakSetting = new Setting(containerEl)
 			.setName("Add Line Break After Environment")
 			.setDesc("When enabled, Shift + Enter will add a line break when exiting an environment to ensure proper formatting.")
 			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.matrixShortcutsAddLineBreakAfterEnv)
+				.setValue(this.plugin.settings.matrixShortcutsLineBreakAfterEnvEnabled)
 				.onChange(async (value) => {
-					this.plugin.settings.matrixShortcutsAddLineBreakAfterEnv = value;
+					this.plugin.settings.matrixShortcutsLineBreakAfterEnvEnabled = value;
 
 					await this.plugin.saveSettings();
 				}));
+
+		
+		// This approach isn’t very elegant, but let’s just make it work first.
+		environmentsSetting.settingEl.toggleClass("hidden", !this.plugin.settings.matrixShortcutsEnabled);
+		trimWhitespaceSetting.settingEl.toggleClass("hidden", !this.plugin.settings.matrixShortcutsEnabled);
+		trimAlignmentSetting.settingEl.toggleClass("hidden", !this.plugin.settings.matrixShortcutsEnabled || !this.plugin.settings.matrixShortcutsWhitespaceTrimEnabled);
+		LineBreakAfterHLineSettings.settingEl.toggleClass("hidden", !this.plugin.settings.matrixShortcutsEnabled);
+		TrimEmptyLineSetting.settingEl.toggleClass("hidden", !this.plugin.settings.matrixShortcutsEnabled);
+		AddLineBreakSetting.settingEl.toggleClass("hidden", !this.plugin.settings.matrixShortcutsEnabled);
 	}
 
 	private displayTaboutSettings() {

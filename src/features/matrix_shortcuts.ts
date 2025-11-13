@@ -10,11 +10,6 @@ const ALIGNMENT = " & ";
 const LINE_BREAK = " \\\\\n"
 const LINE_BREAK_INLINE = " \\\\ "
 const END_LINE_BREAK = LINE_BREAK.trimEnd();
-let trimWhitespace = false;
-let trimAlignment = false;
-let hlineLineBreakEnabled = false;
-let trimEmptyLineAfterEnv = false;
-let addLineBreakAfterEnv = false;
 
 
 const isLineBreak = (separator: string) => {
@@ -33,6 +28,11 @@ const isHline = (line: string): boolean => {
 
 
 const generateSeparatorChange = (separator: string, view: EditorView, range: SelectionRange): { from: number, to: number, insert: string } => {
+	const settings = getLatexSuiteConfig(view);
+	const isWhitespaceTrimEnabled  = settings.matrixShortcutsWhitespaceTrimEnabled;
+	const isHlineLineBreakEnabled = settings.matrixShortcutsHlineLineBreakEnabled;
+	const isAlignmentTrimEnabled  = settings.matrixShortcutsAlignmentTrimEnabled;
+
 	const d = view.state.doc;
 
 	const fromLine = d.lineAt(range.from);
@@ -41,21 +41,20 @@ const generateSeparatorChange = (separator: string, view: EditorView, range: Sel
 	const toLine = d.lineAt(range.from);
 	const textAfterTo = d.sliceString(range.to, toLine.to);
 
-	let from = range.from;
-	let to = range.to;
+	let { from, to } = range;
 
-	if (!hlineLineBreakEnabled && isMultiLineBreak(separator) && isHline(textBeforeFrom)) {
+	if (!isHlineLineBreakEnabled && isMultiLineBreak(separator) && isHline(textBeforeFrom)) {
 		separator = "\n";
 	}
 
-	if (trimWhitespace) {
+	if (isWhitespaceTrimEnabled ) {
 		// If at the beginning of the line
 		if (textBeforeFrom === "") {
 			separator = separator.match(/^[ \t]*([\s\S]*)$/)[1];
 		}
 
 		// Extend selection to include trailing whitespace before `from`
-		if (trimAlignment && isLineBreak(separator)) {
+		if (isAlignmentTrimEnabled  && isLineBreak(separator)) {
 			from -= textBeforeFrom.match(/\s*\&?\s*$/)[0].length;
 		}
 		else {
@@ -104,10 +103,6 @@ export const runMatrixShortcuts = (view: EditorView, ctx: Context, key: string, 
 
 	if (!isInsideAnEnv) return false;
 
-	trimWhitespace = settings.matrixShortcutsTrimWhitespace;
-	trimAlignment = settings.matrixShortcutsTrimAlignment;
-	hlineLineBreakEnabled = settings.matrixShortcutsHlineLineBreakEnabled;
-
 	if (key === "Tab" && view.state.selection.main.empty) {
 		applySeparator(ALIGNMENT, view);
 
@@ -120,13 +115,13 @@ export const runMatrixShortcuts = (view: EditorView, ctx: Context, key: string, 
 				tabout(view, ctx);
 			}
 			else {
+				const isEmptyLineTrimAfterEnvEnabled = settings.matrixShortcutsEmptyLineTrimAfterEnvEnabled;
+				const isLineBreakAfterEnvEnabled = settings.matrixShortcutsLineBreakAfterEnvEnabled;
+
 				// Move cursor to end of next line
 				let d = view.state.doc;
 				const envBound = ctx.getEnvironmentBound(ctx.pos, env);
 				const envText = d.sliceString(envBound.start, envBound.end);
-
-				trimEmptyLineAfterEnv = settings.matrixShortcutsTrimEmptyLineAfterEnv;
-				addLineBreakAfterEnv = settings.matrixShortcutsAddLineBreakAfterEnv;
 
 				let line = d.lineAt(ctx.pos);
 				let lineNo = line.number;
@@ -134,7 +129,7 @@ export const runMatrixShortcuts = (view: EditorView, ctx: Context, key: string, 
 				let newPos = nextLine.to;
 
 				if (newPos > envBound.end) {
-					if (trimEmptyLineAfterEnv && line.text.trim() === "") {
+					if (isEmptyLineTrimAfterEnvEnabled && line.text.trim() === "") {
 						replaceRange(view, line.from, nextLine.from, "");
 
 						d = view.state.doc;
@@ -144,7 +139,7 @@ export const runMatrixShortcuts = (view: EditorView, ctx: Context, key: string, 
 						newPos = nextLine.to;
 					}
 
-					if (addLineBreakAfterEnv && !envText.trimEnd().endsWith("\\\\")) {
+					if (isLineBreakAfterEnvEnabled && !envText.trimEnd().endsWith("\\\\")) {
 						setCursor(view, line.to);
 
 						applySeparator(END_LINE_BREAK, view);
