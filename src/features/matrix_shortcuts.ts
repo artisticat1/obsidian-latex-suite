@@ -1,15 +1,16 @@
+import { ChangeSet, EditorSelection, SelectionRange, Text } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
-import { EditorSelection, SelectionRange } from "@codemirror/state";
+import { tabout } from "src/features/tabout";
+import { LatexSuiteCMSettings } from "src/settings/settings"
+import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
 import { Context } from "src/utils/context";
 import { setCursor, replaceRange } from "src/utils/editor_utils";
-import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
-import { tabout } from "src/features/tabout";
 
 
 const ALIGNMENT = " & ";
 const LINE_BREAK = " \\\\\n"
 const LINE_BREAK_INLINE = " \\\\ "
-const END_LINE_BREAK = LINE_BREAK.trimEnd();
+const FINAL_LINE_BREAK = LINE_BREAK.trimEnd();
 
 
 const isLineBreak = (separator: string) => {
@@ -22,40 +23,37 @@ const isMultiLineBreak = (separator: string): boolean => {
 }
 
 
-const isHline = (line: string): boolean => {
+const endsWithHline = (line: string): boolean => {
 	return line.trimEnd().endsWith("\\hline");
 }
 
 
-const generateSeparatorChange = (separator: string, view: EditorView, range: SelectionRange): { from: number, to: number, insert: string } => {
-	const settings = getLatexSuiteConfig(view);
-	const isWhitespaceTrimEnabled  = settings.matrixShortcutsWhitespaceTrimEnabled;
+const generateSeparatorChange = (doc: Text, range: SelectionRange, separator: string, settings: LatexSuiteCMSettings): { from: number, to: number, insert: string } => {
+	const isWhitespaceTrimEnabled = settings.matrixShortcutsWhitespaceTrimEnabled;
 	const isHlineLineBreakEnabled = settings.matrixShortcutsHlineLineBreakEnabled;
-	const isAlignmentTrimEnabled  = settings.matrixShortcutsAlignmentTrimEnabled;
+	const isAlignmentTrimEnabled = settings.matrixShortcutsAlignmentTrimEnabled;
 
-	const d = view.state.doc;
+	const fromLine = doc.lineAt(range.from);
+	const textBeforeFrom = doc.sliceString(fromLine.from, range.from).trimStart();  // Preserve indents
 
-	const fromLine = d.lineAt(range.from);
-	const textBeforeFrom = d.sliceString(fromLine.from, range.from).trimStart();  // Preserve indents
-
-	const toLine = d.lineAt(range.to);
-	const textAfterTo = d.sliceString(range.to, toLine.to);
+	const toLine = doc.lineAt(range.to);
+	const textAfterTo = doc.sliceString(range.to, toLine.to);
 
 	let { from, to } = range;
 
-	if (!isHlineLineBreakEnabled && isMultiLineBreak(separator) && isHline(textBeforeFrom)) {
+	if (!isHlineLineBreakEnabled && isMultiLineBreak(separator) && endsWithHline(textBeforeFrom)) {
 		separator = "\n";
 	}
 
-	if (isWhitespaceTrimEnabled ) {
+	if (isWhitespaceTrimEnabled) {
 		// If at the beginning of the line
 		if (textBeforeFrom === "") {
 			separator = separator.match(/^[ \t]*([\s\S]*)$/)[1];
 		}
 
 		// Extend selection to include trailing whitespace before `from`
-		if (isAlignmentTrimEnabled  && isLineBreak(separator)) {
-			from -= textBeforeFrom.match(/\s*\&?\s*$/)[0].length;
+		if (isAlignmentTrimEnabled && isLineBreak(separator)) {
+			from -= textBeforeFrom.match(/\s*&?\s*$/)[0].length;
 		}
 		else {
 			from -= textBeforeFrom.match(/\s*$/)[0].length;
@@ -71,20 +69,21 @@ const generateSeparatorChange = (separator: string, view: EditorView, range: Sel
 }
 
 
-const applySeparator = (separator: string, view: EditorView) => {
-	const sel = view.state.selection;
-	const changes = sel.ranges.map(range => generateSeparatorChange(separator, view, range));
+const applySeparator = (view: EditorView, separator: string) => {
+	const doc = view.state.doc
+	const settings = getLatexSuiteConfig(view);
 
-	const tempTransaction = view.state.update({ changes });
+	const transaction = view.state.changeByRange(range => {
+		const change = generateSeparatorChange(doc, range, separator, settings);
+		const changeSet = ChangeSet.of([change], doc.length)
+		const newRangePos = changeSet.mapPos(change.from) + change.insert.length;
+		return {
+			changes: change,
+			range: EditorSelection.cursor(newRangePos)
+		};
+	})
 
-	const newSelection = EditorSelection.create(
-		changes.map(({ from, to, insert }) =>
-			EditorSelection.cursor(tempTransaction.changes.mapPos(from) + insert.length)
-		),
-		sel.mainIndex
-	);
-
-	view.dispatch(view.state.update({ changes, selection: newSelection }));
+	view.dispatch(transaction);
 }
 
 
@@ -93,18 +92,21 @@ export const runMatrixShortcuts = (view: EditorView, ctx: Context, key: string, 
 
 	// Check whether we are inside a matrix / align / case environment
 	let isInsideAnEnv = false;
-	let env;
+	let envBound;
 	for (const envName of settings.matrixShortcutsEnvNames) {
-		env = { openSymbol: "\\begin{" + envName + "}", closeSymbol: "\\end{" + envName + "}" };
+		const env = { openSymbol: "\\begin{" + envName + "}", closeSymbol: "\\end{" + envName + "}" };
 
-		isInsideAnEnv = ctx.isWithinEnvironment(ctx.pos, env);
+		envBound = ctx.getEnvironmentBound(ctx.pos, env);
+
+		isInsideAnEnv = (envBound !== null)
+
 		if (isInsideAnEnv) break;
 	}
 
 	if (!isInsideAnEnv) return false;
 
 	if (key === "Tab" && view.state.selection.main.empty) {
-		applySeparator(ALIGNMENT, view);
+		applySeparator(view, ALIGNMENT);
 
 		return true;
 	}
@@ -112,57 +114,61 @@ export const runMatrixShortcuts = (view: EditorView, ctx: Context, key: string, 
 	else if (key === "Enter") {
 		if (shiftKey) {
 			if (ctx.mode.inlineMath) {
-				tabout(view, ctx);
+				return tabout(view, ctx);
 			}
-			else {
-				const isEmptyLineTrimAfterEnvEnabled = settings.matrixShortcutsEmptyLineTrimAfterEnvEnabled;
-				const isLineBreakAfterEnvEnabled = settings.matrixShortcutsLineBreakAfterEnvEnabled;
 
-				// Move cursor to end of next line
-				let d = view.state.doc;
-				const envBound = ctx.getEnvironmentBound(ctx.pos, env);
-				const envText = d.sliceString(envBound.start, envBound.end);
+			const isEmptyLineTrimAfterEnvEnabled = settings.matrixShortcutsEmptyLineTrimAfterEnvEnabled;
+			const isLineBreakAfterEnvEnabled = settings.matrixShortcutsLineBreakAfterEnvEnabled;
 
-				let line = d.lineAt(ctx.pos);
-				let lineNo = line.number;
-				let nextLine = d.line(lineNo + 1);
-				let newPos = nextLine.to;
+			// Move cursor to end of next line
+			let d = view.state.doc;
+			const envText = d.sliceString(envBound.start, envBound.end);
 
-				if (newPos > envBound.end) {
-					if (isEmptyLineTrimAfterEnvEnabled && line.text.trim() === "") {
-						replaceRange(view, line.from, nextLine.from, "");
+			let line = d.lineAt(ctx.pos);
+			let lineNo = line.number;
+			let nextLine = d.line(lineNo + 1);
+			let newPos = nextLine.to;
 
-						d = view.state.doc;
-						lineNo--;
-						line = d.line(lineNo);
-						nextLine = d.line(lineNo + 1);
-						newPos = nextLine.to;
-					}
-
-					if (isLineBreakAfterEnvEnabled && !envText.trimEnd().endsWith("\\\\")) {
-						setCursor(view, line.to);
-
-						applySeparator(END_LINE_BREAK, view);
-
-						d = view.state.doc;
-						nextLine = d.line(lineNo + 1);
-						newPos = nextLine.to;
-					}
-				}
-
+			if (newPos <= envBound.end) {
 				setCursor(view, newPos);
+
+				return true;
 			}
+
+			if (isEmptyLineTrimAfterEnvEnabled && line.text.trim() === "") {
+				replaceRange(view, line.from, nextLine.from, "");
+
+				d = view.state.doc;
+				lineNo--;
+				line = d.line(lineNo);
+				nextLine = d.line(lineNo + 1);
+				newPos = nextLine.to;
+			}
+
+			if (isLineBreakAfterEnvEnabled && !envText.trimEnd().endsWith("\\\\")) {
+				setCursor(view, line.to);
+
+				applySeparator(view, FINAL_LINE_BREAK);
+
+				d = view.state.doc;
+				nextLine = d.line(lineNo + 1);
+				newPos = nextLine.to;
+			}
+
+			setCursor(view, newPos);
+
+			return true;
 		}
 		else {
 			if (ctx.mode.inlineMath) {
-				applySeparator(LINE_BREAK_INLINE, view);
+				applySeparator(view, LINE_BREAK_INLINE);
 			}
 			else {
-				applySeparator(LINE_BREAK, view);
+				applySeparator(view, LINE_BREAK);
 			}
-		}
 
-		return true;
+			return true;
+		}
 	}
 
 	return false;
