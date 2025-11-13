@@ -87,7 +87,8 @@ To reveal the LaTeX syntax, move your cursor over it. You can also choose to del
 To make it easier to navigate and exit equations,
 
 - Pressing <kbd>Tab</kbd> while the cursor is at the end of an equation will move the cursor outside the `$` symbols.
-- Otherwise, pressing <kbd>Tab</kbd> will advance the cursor to the next closing bracket: `)`, `]`, `}`, `>`, or `|`.
+- If the cursor is inside a `\left ... \right` pair, pressing <kbd>Tab</kbd> will jump to after the `\right` command and its corresponding delimiter.
+- Otherwise, pressing <kbd>Tab</kbd> will advance the cursor to the next closing bracket: `)`, `]`, `}`, `\rangle`, or `\rvert`.
 
 
 ### Preview inline math

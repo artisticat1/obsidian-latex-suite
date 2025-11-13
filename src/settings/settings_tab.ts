@@ -333,15 +333,32 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		const containerEl = this.containerEl;
 		this.addHeading(containerEl, "Tabout", "tabout");
 
-		new Setting(containerEl)
+		const taboutEnabledSetting = new Setting(containerEl)
 			.setName("Enabled")
 			.setDesc("Whether tabout is enabled.")
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.taboutEnabled)
 				.onChange(async (value) => {
 					this.plugin.settings.taboutEnabled = value;
+
+					taboutClosingBracketsSetting.settingEl.toggleClass("hidden", !value);
+
 					await this.plugin.saveSettings();
 				}));
+
+		const taboutClosingBracketsSetting =  new Setting(containerEl)
+			.setName("Closing brackets")
+			.setDesc("A list of closing brackets for tabout, separated by commas.")
+			.addText(text => text
+				.setPlaceholder(DEFAULT_SETTINGS.taboutClosingSymbols)
+				.setValue(this.plugin.settings.taboutClosingSymbols)
+				.onChange(async (value) => {
+					this.plugin.settings.taboutClosingSymbols = value;
+
+					await this.plugin.saveSettings();
+				}));
+
+		taboutClosingBracketsSetting.settingEl.toggleClass("hidden", !this.plugin.settings.taboutEnabled);
 	}
 
 	private displayAutoEnlargeBracketsSettings() {
