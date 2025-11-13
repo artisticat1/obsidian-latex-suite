@@ -38,7 +38,7 @@ const generateSeparatorChange = (separator: string, view: EditorView, range: Sel
 	const fromLine = d.lineAt(range.from);
 	const textBeforeFrom = d.sliceString(fromLine.from, range.from).trimStart();  // Preserve indents
 
-	const toLine = d.lineAt(range.from);
+	const toLine = d.lineAt(range.to);
 	const textAfterTo = d.sliceString(range.to, toLine.to);
 
 	let { from, to } = range;
