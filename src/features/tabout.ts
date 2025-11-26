@@ -1,18 +1,19 @@
 import { EditorView } from "@codemirror/view";
-import { replaceRange, setCursor, getCharacterAtPos } from "src/utils/editor_utils";
-import { Context } from "src/utils/context";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
+import { Context } from "src/utils/context";
+import { replaceRange, setCursor, getCharacterAtPos } from "src/utils/editor_utils";
+import { Token, tokenize } from "src/utils/tokenizer";
 
 
-const SORTED_LEFT_COMMANDS = [
+const LEFT_COMMANDS = new Set<string>([
 	"\\left",
 	"\\bigl", "\\Bigl", "\\biggl", "\\Biggl"
-].sort((a, b) => b.length - a.length);
-const SORTED_RIGHT_COMMANDS = [
+]);
+const RIGHT_COMMANDS = new Set<string>([
 	"\\right",
 	"\\bigr", "\\Bigr", "\\biggr", "\\Biggr"
-].sort((a, b) => b.length - a.length);
-const SORTED_DELIMITERS = [
+]);
+const DELIMITERS = new Set<string>([
 	"(", ")",
 	"[", "]", "\\lbrack", "\\rbrack",
 	"\\{", "\\}", "\\lbrace", "\\rbrace",
@@ -26,81 +27,45 @@ const SORTED_DELIMITERS = [
 	"\\uparrow", "\\downarrow",
 	"\\Uparrow", "\\Downarrow",
 	"."
-].sort((a, b) => b.length - a.length);
+]);
 
 
-const isCommandEnd = (str: string): boolean => {
-	return /\\[a-zA-Z]+\\*?$/.test(str);
-}
+const isLeftCommandToken = (token: Token): boolean =>
+	LEFT_COMMANDS.has(token.text);
 
 
-const isMatchingCommand = (text: string, command: string, startIndex: number): boolean => {
-	if (!text.startsWith(command, startIndex)) {
-		return false;
+const isRightCommandToken = (token: Token): boolean =>
+	RIGHT_COMMANDS.has(token.text);
+
+
+const isDelimiterToken = (token: Token): boolean =>
+	DELIMITERS.has(token.text);
+
+
+const isClosingSymbolToken = (token: Token, closingSymbols: Set<string>): boolean =>
+	closingSymbols.has(token.text);
+
+
+const isClosingDelimiterToken = (tokens: Token[], startIndex: number, closingSymbols: Set<string>): boolean => {
+	const currentToken = tokens[startIndex];
+	const previousToken = tokens[startIndex - 1];
+
+	if (previousToken && isDelimiterToken(currentToken)) {
+		if (isRightCommandToken(previousToken)) return true;
+		if (isLeftCommandToken(previousToken)) return false;
 	}
 
-	const nextChar = text.charAt(startIndex + command.length);
-	const isEndOfCommand = !/[a-zA-Z]/.test(nextChar);
-
-	return isEndOfCommand;
-}
+	return isClosingSymbolToken(currentToken, closingSymbols);
+};
 
 
-const isMatchingToken = (text: string, token: string, startIndex: number): boolean => {
-	if (isCommandEnd(token)) {
-		return isMatchingCommand(text, token, startIndex);
-	}
-	else {
-		return text.startsWith(token, startIndex);
-	}
-}
+const isErrorRightCommandToken = (tokens: Token[], startIndex: number): boolean => {
+	const currentToken = tokens[startIndex];
+	if (!isRightCommandToken(currentToken)) return false;
 
-
-const findTokenLength = (text: string, startIndex: number, sortedTokens: string[]): number => {
-	const matchedToken = sortedTokens.find((token) => isMatchingToken(text, token, startIndex));
-
-	if (matchedToken) {
-		return matchedToken.length;
-	}
-
-	return 0;
-}
-
-
-const findCommandWithDelimiterLength = (text: string, startIndex: number, sortedCommands: string[]): number => {
-	const matchedCommand = sortedCommands.find((command) => isMatchingCommand(text, command, startIndex));
-
-	if (!matchedCommand) {
-		return 0;
-	}
-
-	const afterCommandIndex = startIndex + matchedCommand.length;
-
-	let whitespaceCount = 0;
-	while (/\s/.test(text.charAt(afterCommandIndex + whitespaceCount))) {
-		whitespaceCount++;
-	}
-	const delimiterStartIndex = afterCommandIndex + whitespaceCount;
-
-	const matchedDelimiter = SORTED_DELIMITERS.find((delimiter) => isMatchingToken(text, delimiter, delimiterStartIndex));
-
-	if (!matchedDelimiter) {
-		return 0;
-	}
-
-	return matchedCommand.length + whitespaceCount + matchedDelimiter.length;
-}
-
-
-const findRightDelimiterLength = (text: string, startIndex: number, sortedClosingSymbols: string[]): number => {
-	const rightDelimiterLength = findCommandWithDelimiterLength(text, startIndex, SORTED_RIGHT_COMMANDS);
-	if (rightDelimiterLength) return rightDelimiterLength;
-
-	const closingSymbolLength = findTokenLength(text, startIndex, sortedClosingSymbols);
-	if (closingSymbolLength) return closingSymbolLength;
-
-	return 0;
-}
+	const nextToken = tokens[startIndex + 1];
+	return !nextToken || !isDelimiterToken(nextToken);
+};
 
 
 export const tabout = (view: EditorView, ctx: Context): boolean => {
@@ -109,65 +74,45 @@ export const tabout = (view: EditorView, ctx: Context): boolean => {
 	const result = ctx.getBounds();
 	if (!result) return false;
 
-	const start = result.start;
-	const end = result.end;
+	const { start, end } = result;
 
-	const pos = view.state.selection.main.to;
+	const currentPosition = view.state.selection.main.to;
+	const relativeCurrentPosition = currentPosition - start;
 
-	const d = view.state.doc;
-	const text = d.toString();
+	const doc = view.state.doc;
 
-	const sortedClosingSymbols = getLatexSuiteConfig(view).sortedTaboutClosingSymbols;
+	const latexText = doc.slice(start, end).toString();
+	const tokens = tokenize(latexText);
+
+	const closingSymbols = getLatexSuiteConfig(view).taboutClosingSymbols;
 
 	// Move to the next closing bracket
-	let i = start;
-	while (i < end) {
-		const rightDelimiterLength = findRightDelimiterLength(text, i, sortedClosingSymbols);
-		if (rightDelimiterLength > 0) {
-			i += rightDelimiterLength;
+	let i = tokens.findIndex((token) => token.end > relativeCurrentPosition);
+	if (i == -1) i = tokens.length;  // skip the loop body
+	for (; i < tokens.length; i++) {
+		if (isClosingDelimiterToken(tokens, i, closingSymbols)) {
+			setCursor(view, start + tokens[i].end);
 
-			if (i > pos) {
-				setCursor(view, i);
-				return true;
-			}
-
-			continue;
+			return true;
 		}
 
-		// Attempt to match only the right command if matching right command + delimiter fails
-		const rightCommandLength = findTokenLength(text, i, SORTED_RIGHT_COMMANDS);
-		if (rightCommandLength > 0) {
-			i += rightCommandLength;
+		if (isErrorRightCommandToken(tokens, i)) {
+			console.warn("[tabout] Found right command without following delimiter:", tokens[i].text, "at index", start + tokens[i].start);
 
-			if (i > pos) {
-				setCursor(view, i);
-				return true;
-			}
+			setCursor(view, start + tokens[i].end);
 
-			continue;
+			return true;
 		}
-
-		// Skip left command + delimiter
-		const leftDelimiterLength = findCommandWithDelimiterLength(text, i, SORTED_LEFT_COMMANDS);
-		if (leftDelimiterLength > 0) {
-			i += leftDelimiterLength;
-
-			continue;
-		}
-
-		i++;
 	}
-
 
 	// If cursor at end of line/equation, move to next line/outside $$ symbols
 
 	// Check whether we're at end of equation
 	// Accounting for whitespace, using trim
-	const textBtwnCursorAndEnd = d.sliceString(pos, end);
+	const textBtwnCursorAndEnd = doc.sliceString(currentPosition, end);
 	const atEnd = textBtwnCursorAndEnd.trim().length === 0;
 
 	if (!atEnd) return false;
-
 
 	// Check whether we're in inline math or a block eqn
 	if (ctx.mode.inlineMath || ctx.mode.codeMath) {
@@ -175,20 +120,19 @@ export const tabout = (view: EditorView, ctx: Context): boolean => {
 	}
 	else {
 		// First, locate the $$ symbol
-		const dollarLine = d.lineAt(end + 2);
+		const dollarLine = doc.lineAt(end + 2);
 
 		// If there's no line after the equation, create one
 
-		if (dollarLine.number === d.lines) {
+		if (dollarLine.number === doc.lines) {
 			replaceRange(view, dollarLine.to, dollarLine.to, "\n");
 		}
 
 		// Finally, move outside the $$ symbol
 		setCursor(view, dollarLine.to + 1);
 
-
 		// Trim whitespace at beginning / end of equation
-		const line = d.lineAt(pos);
+		const line = doc.lineAt(currentPosition);
 		replaceRange(view, line.from, line.to, line.text.trim());
 
 	}
