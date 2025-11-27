@@ -30,73 +30,72 @@ const DELIMITERS = new Set<string>([
 ]);
 
 
-const isLeftCommandToken = (token: Token): boolean =>
-	LEFT_COMMANDS.has(token.text);
+const isLeftCommandToken = (token: Token): boolean => LEFT_COMMANDS.has(token.text);
+const isRightCommandToken = (token: Token): boolean => RIGHT_COMMANDS.has(token.text);
+const isDelimiterToken = (token: Token): boolean => DELIMITERS.has(token.text);
+const isClosingSymbolToken = (token: Token, closingSymbols: Set<string>): boolean => closingSymbols.has(token.text);
 
 
-const isRightCommandToken = (token: Token): boolean =>
-	RIGHT_COMMANDS.has(token.text);
+const isClosingDelimiterToken = (tokens: Token[], index: number, closingSymbols: Set<string>): boolean => {
+	const current = tokens[index];
 
+	if (index > 0) {
+		const prev = tokens[index - 1];
 
-const isDelimiterToken = (token: Token): boolean =>
-	DELIMITERS.has(token.text);
-
-
-const isClosingSymbolToken = (token: Token, closingSymbols: Set<string>): boolean =>
-	closingSymbols.has(token.text);
-
-
-const isClosingDelimiterToken = (tokens: Token[], startIndex: number, closingSymbols: Set<string>): boolean => {
-	const currentToken = tokens[startIndex];
-	const previousToken = tokens[startIndex - 1];
-
-	if (previousToken && isDelimiterToken(currentToken)) {
-		if (isRightCommandToken(previousToken)) return true;
-		if (isLeftCommandToken(previousToken)) return false;
+		if (isRightCommandToken(prev) && isDelimiterToken(current)) return true;
+		if (isLeftCommandToken(prev) && isDelimiterToken(current)) return false;
 	}
 
-	return isClosingSymbolToken(currentToken, closingSymbols);
+	return isClosingSymbolToken(current, closingSymbols);
 };
 
 
-const isErrorRightCommandToken = (tokens: Token[], startIndex: number): boolean => {
-	const currentToken = tokens[startIndex];
-	if (!isRightCommandToken(currentToken)) return false;
+const isUnmatchedRightCommand = (tokens: Token[], index: number): boolean => {
+	const current = tokens[index];
+	if (!isRightCommandToken(current)) return false;
 
-	const nextToken = tokens[startIndex + 1];
-	return !nextToken || !isDelimiterToken(nextToken);
+	if (index + 1 >= tokens.length) {
+		return true;
+	}
+
+	const next = tokens[index + 1];
+	return !isDelimiterToken(next);
 };
 
 
 export const tabout = (view: EditorView, ctx: Context): boolean => {
 	if (!ctx.mode.inMath()) return false;
 
-	const result = ctx.getBounds();
-	if (!result) return false;
-
-	const { start, end } = result;
-
-	const currentPosition = view.state.selection.main.to;
-	const relativeCurrentPosition = currentPosition - start;
+	const bounds = ctx.getBounds();
+	if (!bounds) return false;
+    const { start, end } = bounds;
 
 	const doc = view.state.doc;
+	
+    const cursorPos = view.state.selection.main.to;
+    const cursorRelativePos = cursorPos - start;
 
-	const latexText = doc.slice(start, end).toString();
-	const tokens = tokenize(latexText);
+    const latexString = doc.slice(start, end).toString();
+    const tokens = tokenize(latexString);
 
-	const closingSymbols = getLatexSuiteConfig(view).taboutClosingSymbols;
+    const closingSymbols = getLatexSuiteConfig(view).taboutClosingSymbols;
 
-	// Move to the next closing bracket
-	let i = tokens.findIndex((token) => token.end > relativeCurrentPosition);
-	if (i == -1) i = tokens.length;  // skip the loop body
-	for (; i < tokens.length; i++) {
+	const foundIndex = tokens.findIndex((token) => token.end > cursorRelativePos);
+	// If no token exists after the cursor, set start index to length to skip the loop entirely.
+    const startIndex = foundIndex === -1 ? tokens.length : foundIndex;
+    for (let i = startIndex; i < tokens.length; i++) {
+		// Case 1: Normal Navigation
 		if (isClosingDelimiterToken(tokens, i, closingSymbols)) {
 			setCursor(view, start + tokens[i].end);
 
 			return true;
 		}
 
-		if (isErrorRightCommandToken(tokens, i)) {
+		// Case 2: Error Recovery
+		// While the action (setCursor) is the same as above, the intent here is different:
+		// we navigate the user directly to the location of the error (immediately after the unfinished "\right")
+        // so they can simply type the missing delimiter right there.
+		if (isUnmatchedRightCommand(tokens, i)) {
 			console.warn("[tabout] Found right command without following delimiter:", tokens[i].text, "at index", start + tokens[i].start);
 
 			setCursor(view, start + tokens[i].end);
@@ -109,10 +108,10 @@ export const tabout = (view: EditorView, ctx: Context): boolean => {
 
 	// Check whether we're at end of equation
 	// Accounting for whitespace, using trim
-	const textBtwnCursorAndEnd = doc.sliceString(currentPosition, end);
-	const atEnd = textBtwnCursorAndEnd.trim().length === 0;
+	const remainingText = doc.sliceString(cursorPos, end);
+	const isAtEnd = remainingText.trim().length === 0;
 
-	if (!atEnd) return false;
+	if (!isAtEnd) return false;
 
 	// Check whether we're in inline math or a block eqn
 	if (ctx.mode.inlineMath || ctx.mode.codeMath) {
@@ -120,39 +119,34 @@ export const tabout = (view: EditorView, ctx: Context): boolean => {
 	}
 	else {
 		// First, locate the $$ symbol
-		const dollarLine = doc.lineAt(end + 2);
+		const endLine = doc.lineAt(end + 2);
 
 		// If there's no line after the equation, create one
-
-		if (dollarLine.number === doc.lines) {
-			replaceRange(view, dollarLine.to, dollarLine.to, "\n");
+		if (endLine.number === doc.lines) {
+			replaceRange(view, endLine.to, endLine.to, "\n");
 		}
 
 		// Finally, move outside the $$ symbol
-		setCursor(view, dollarLine.to + 1);
+		setCursor(view, endLine.to + 1);
 
 		// Trim whitespace at beginning / end of equation
-		const line = doc.lineAt(currentPosition);
-		replaceRange(view, line.from, line.to, line.text.trim());
-
+		const currentLine = doc.lineAt(cursorPos);
+		if (currentLine.text.trim() !== currentLine.text) {
+			replaceRange(view, currentLine.from, currentLine.to, currentLine.text.trim());
+		}
 	}
 
 	return true;
-}
+};
 
 
 export const shouldTaboutByCloseBracket = (view: EditorView, keyPressed: string) => {
 	const sel = view.state.selection.main;
-	if (!sel.empty) return;
-	const pos = sel.from;
+	if (!sel.empty) return false;
 
-	const c = getCharacterAtPos(view, pos);
+	const pos = sel.from;
+	const char = getCharacterAtPos(view, pos);
 	const brackets = [")", "]", "}"];
 
-	if ((c === keyPressed) && brackets.contains(c)) {
-		return true;
-	}
-	else {
-		return false;
-	}
-}
+	return (char === keyPressed) && brackets.includes(char);
+};
