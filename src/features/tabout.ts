@@ -1,7 +1,8 @@
+import { TransactionSpec } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
 import { Context } from "src/utils/context";
-import { replaceRange, setCursor, getCharacterAtPos } from "src/utils/editor_utils";
+import { setCursor, getCharacterAtPos } from "src/utils/editor_utils";
 import { Token, tokenize } from "src/utils/tokenizer";
 
 
@@ -75,7 +76,7 @@ export const tabout = (view: EditorView, ctx: Context): boolean => {
     const cursorPos = view.state.selection.main.to;
     const cursorRelativePos = cursorPos - start;
 
-    const latexString = doc.slice(start, end).toString();
+    const latexString = doc.sliceString(start, end);
     const tokens = tokenize(latexString);
 
     const closingSymbols = getLatexSuiteConfig(view).taboutClosingSymbols;
@@ -120,20 +121,26 @@ export const tabout = (view: EditorView, ctx: Context): boolean => {
 	else {
 		// First, locate the $$ symbol
 		const endLine = doc.lineAt(end + 2);
+		const transactions: TransactionSpec[] = [];
 
 		// If there's no line after the equation, create one
 		if (endLine.number === doc.lines) {
-			replaceRange(view, endLine.to, endLine.to, "\n");
+			transactions.push({changes: {from: endLine.to, to: endLine.to, insert: "\n"}, selection: {anchor: endLine.to + 1}});
+		} else {
+			transactions.push({});
 		}
 
-		// Finally, move outside the $$ symbol
-		setCursor(view, endLine.to + 1);
+		// Finally, move outside the $$ symbol. Merged with previous transaction to avoid out of bounds error.
+		transactions[0].selection = {anchor: endLine.to+1};
 
 		// Trim whitespace at beginning / end of equation
 		const currentLine = doc.lineAt(cursorPos);
 		if (currentLine.text.trim() !== currentLine.text) {
-			replaceRange(view, currentLine.from, currentLine.to, currentLine.text.trim());
+			transactions.push({
+				changes: {from: currentLine.from, to: currentLine.to, insert: currentLine.text.trim()}
+			})
 		}
+		view.dispatch(...transactions);
 	}
 
 	return true;
