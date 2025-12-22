@@ -62,16 +62,6 @@ const readEscapeToken = (latexString: string, start: number): { token: Token; ne
 	const length = latexString.length;
 	let current = start + 1;
 
-	// Edge case: latexString ends with a single backslash
-	if (current >= length) {
-		const token: Token = {
-			start,
-			end: current,
-			text: latexString.slice(start, current),
-		};
-		return { token, nextIndex: current };
-	}
-
 	const nextChar = latexString[current];
 
 	// Case: Command token (e.g., \sin, \frac)
