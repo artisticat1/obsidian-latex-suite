@@ -54,13 +54,12 @@ export default class LatexSuitePlugin extends Plugin {
 	}
 
 	IMEEditorWarning() {
-		if (isIMESupported() && !this.settings.suppressIMEWarning) {
-			// const message = "Obsidian Latex Suite: this plugin supports your IME keyboard, but `Advanced settings > Don't trigger snippets when IME is active` is currently disabled. You may want to enable it in the plugin settings to avoid unexpected snippet triggers while using your IME. To turn this warning off, enable `Advanced settings > Suppress IME warning`.";
+		if (isIMESupported() && !this.settings.suppressIMEWarning && this.settings.suppressSnippetTriggerOnIME) {
 			const message = createFragment();
 			message.appendText("Obsidian Latex Suite: this plugin supports your IME keyboard, but ");
-			message.createEl("code", { text: "`Advanced settings > Don't trigger snippets when IME is active`" });
-			message.appendText(" is currently disabled. You may want to enable it in the plugin settings to avoid unexpected snippet triggers while using your IME. To turn this warning off, enable ");
-			message.createEl("code", { text: "`Advanced settings > Suppress IME warning`" });
+			message.createEl("code", { text: "Advanced settings > Don't trigger snippets when IME is active" });
+			message.appendText(" is currently enabled. You may want to disable it in the plugin settings to fully enable automatic snippets. Be aware that this may cause unexpected snippet triggers while using your IME. To turn this warning off, enable ");
+			message.createEl("code", { text: "Advanced settings > Suppress IME warning" });
 			message.appendText(".");
 			new Notice(message, 10000);
 			console.log(message);
