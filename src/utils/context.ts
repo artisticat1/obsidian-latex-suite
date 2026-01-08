@@ -5,6 +5,7 @@ import { Mode } from "../snippets/options";
 import { Environment } from "../snippets/environment";
 import { getLatexSuiteConfig } from "../snippets/codemirror/config";
 import { syntaxTree } from "@codemirror/language";
+import { Tree } from "@lezer/common";
 
 export interface Bounds {
 	start: number;

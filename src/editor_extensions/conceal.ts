@@ -252,13 +252,18 @@ export const mkConcealPlugin = (revealTimeout: number) => ViewPlugin.fromClass(c
 	decorations: DecorationSet;
 	atomicRanges: RangeSet<RangeValue>;
 	delayEnabled: boolean;
+	concealSpecs: ConcealSpec[];
+	lastVisibleRange: readonly { from: number, to: number }[] = [];
+	performance_log = {average: 0,weight: 0}
 
 
-	constructor() {
+	constructor(view: EditorView) {
 		this.concealments = [];
 		this.decorations = Decoration.none;
 		this.atomicRanges = RangeSet.empty;
 		this.delayEnabled = revealTimeout > 0;
+		this.concealSpecs = null;
+
 	}
 
 	delayedReveal = debounce((delayedConcealments: Concealment[], view: EditorView) => {
@@ -273,17 +278,55 @@ export const mkConcealPlugin = (revealTimeout: number) => ViewPlugin.fromClass(c
 		view.dispatch();
 	}, revealTimeout, true);
 
+	delayedConceal = debounce((update: ViewUpdate) => {
+		const concealSpecs = conceal(update.view);
+		if (concealSpecs !== null) {
+			this.concealSpecs = concealSpecs;
+			this.updateFromConcealSpecs(concealSpecs, update);
+			update.view.dispatch();
+		} else {
+			// If concealSpecs is null, the syntax tree is not ready.
+			// We try to get the concealSpecs again after a short delay.
+			console.log("syntax tree not ready, retrying...");
+			this.delayedConceal(update);
+		}
+	}, 100, true);
+
 	update(update: ViewUpdate) {
+		
 		if (!(update.docChanged || update.viewportChanged || update.selectionSet))
 			return;
 
 		// Cancel the delayed revealment whenever we update the concealments
+		const start = performance.now();
 		this.delayedReveal.cancel();
+		this.delayedConceal.cancel();
+		if (!update.docChanged && !update.viewportChanged) {
+			this.updateFromConcealSpecs(this.concealSpecs, update);
+		} else {
+			console.log("updating conceal specs");
+			const concealSpecs = conceal(update.view);
+			if (concealSpecs !== null) {
+				this.concealSpecs = concealSpecs;
+				this.updateFromConcealSpecs(concealSpecs, update);
+			} else {
+				// If concealSpecs is null, the syntax tree is not ready.
+				// We try to get the concealSpecs again after a short delay.
+				console.log("syntax tree not ready, retrying...");
+				this.delayedConceal(update);
+			}
+		}
+		this.lastVisibleRange = update.view.visibleRanges;
+		const end = performance.now();
+		const new_avg = (end - start + this.performance_log.average * this.performance_log.weight) / (this.performance_log.weight + 1);
+		this.performance_log = {average: new_avg, weight: this.performance_log.weight + 1};
+		console.log("conceal time:", (end - start).toFixed(2) + "ms", "average:", this.performance_log.average.toFixed(2) + "ms", "count:", this.performance_log.weight);
+	}
+	
+	private updateFromConcealSpecs(concealSpecs: ConcealSpec[], update: ViewUpdate) {
 
 		const selection = update.state.selection;
 		const mousedown = update.view.plugin(livePreviewState)?.mousedown;
-
-		const concealSpecs = conceal(update.view);
 
 		// Collect concealments from the new conceal specs
 		const concealments: Concealment[] = [];
@@ -325,3 +368,11 @@ export const mkConcealPlugin = (revealTimeout: number) => ViewPlugin.fromClass(c
 	decorations: v => v.decorations,
 	provide: plugin => EditorView.atomicRanges.of(view => view.plugin(plugin).atomicRanges),
 });
+
+const compareVisibleRanges = (a: readonly { from: number, to: number }[], b: readonly { from: number, to: number }[]) => {
+	if (a.length !== b.length) return false;
+	for (let i = 0; i < a.length; i++) {
+		if (a[i].from !== b[i].from || a[i].to !== b[i].to) return false;
+	}
+	return true;
+}

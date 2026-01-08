@@ -1,12 +1,13 @@
 // Conceal functions
 
-import { syntaxTree } from "@codemirror/language";
+import { ensureSyntaxTree, forceParsing, syntaxTree, syntaxTreeAvailable } from "@codemirror/language";
 import { EditorView } from "@codemirror/view";
 import { getEquationBounds } from "src/utils/context";
 import { findMatchingBracket } from "src/utils/editor_utils";
 import { ConcealSpec, mkConcealSpec } from "./conceal";
 import { greek, cmd_symbols, map_super, map_sub, fractions, brackets, mathscrcal, mathbb, operators } from "./conceal_maps";
 
+const ALL_SYMBOLS = {...greek, ...cmd_symbols};
 
 function escapeRegex(regex: string) {
 	const escapeChars = ["\\", "(", ")", "+", "-", "[", "]", "{", "}"];
@@ -431,12 +432,17 @@ function concealOperatorname(eqn: string): ConcealSpec[] {
 	return specs;
 }
 
-export function conceal(view: EditorView): ConcealSpec[] {
+export function conceal(view: EditorView): ConcealSpec[] | null {
 	const specs: ConcealSpec[] = [];
-
+	const maxTo = Math.max(...view.visibleRanges.map(r => r.to))
+	if (!syntaxTreeAvailable(view.state, maxTo)) {
+		console.log(" not ready");
+		return null;
+	}
 	for (const { from, to } of view.visibleRanges) {
-
-		syntaxTree(view.state).iterate({
+		const tree= syntaxTree(view.state)
+		// console.log(tree.length, "treelength")
+		tree.iterate({
 			from,
 			to,
 			enter: (node) => {
@@ -454,7 +460,6 @@ export function conceal(view: EditorView): ConcealSpec[] {
 				const eqn = view.state.doc.sliceString(bounds.start, bounds.end);
 
 
-				const ALL_SYMBOLS = {...greek, ...cmd_symbols};
 
 				const localSpecs = [
 					...concealSymbols(eqn, "\\^", "", map_super),
