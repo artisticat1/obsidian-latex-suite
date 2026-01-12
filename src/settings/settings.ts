@@ -27,6 +27,11 @@ interface LatexSuiteBasicSettings {
 	taboutEnabled: boolean;
 	autoEnlargeBrackets: boolean;
 	wordDelimiters: string;
+	vimEnabled: boolean;
+	vimSelectMode: string;
+	vimVisualMode: string;
+	vimMatrixEnter: string;
+
 }
 
 /**
@@ -90,6 +95,10 @@ export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
 	taboutClosingSymbols: "), ], \\rbrack, \\}, \\rbrace, \\rangle, \\rvert, \\rVert, \\rfloor, \\rceil, \\urcorner, }",
 	autoEnlargeBracketsTriggers: "sum, int, frac, prod, bigcup, bigcap",
 	forceMathLanguages: "math",
+	vimEnabled: false,
+	vimSelectMode: "<C-g>",
+	vimVisualMode: "<C-g>",
+	vimMatrixEnter: "o",
 }
 
 export function processLatexSuiteSettings(snippets: Snippet[], settings: LatexSuitePluginSettings):LatexSuiteCMSettings {
