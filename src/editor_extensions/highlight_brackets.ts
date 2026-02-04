@@ -1,8 +1,7 @@
 import { EditorView, ViewUpdate, Decoration, DecorationSet, ViewPlugin } from "@codemirror/view";
 import { Prec, Range } from "@codemirror/state";
 import { findMatchingBracket, getOpenBracket, getCloseBracket } from "../utils/editor_utils";
-import { syntaxTree } from "@codemirror/language";
-import { Context, getEquationBounds } from "src/utils/context";
+import { Context, contextPlugin, mathBoundsPlugin } from "src/utils/context";
 
 const Ncolors = 3;
 
@@ -14,71 +13,73 @@ function getHighlightBracketMark(pos: number, className: string):Range<Decoratio
 	}).range(pos, pos+1);
 }
 
-function colorPairedBrackets(view: EditorView) {
-	const widgets: Range<Decoration>[] = [];
+type BracketConcealment = {
+	pos: number,
+	className: string,
+};
 
-	for (const { from, to } of view.visibleRanges) {
-
-		syntaxTree(view.state).iterate({ from, to, enter: (node) => {
-			const type = node.type;
-			const to = node.to;
-
-			if (!(type.name.contains("begin") && type.name.contains("math"))) {
-				return;
-			}
-
-			const bounds = getEquationBounds(view.state, to);
-			if (!bounds) return;
-
-
-			const eqn = view.state.doc.sliceString(bounds.start, bounds.end);
-
-
-			const openBrackets = ["{", "[", "("];
-			const closeBrackets = ["}", "]", ")"];
-
-			const bracketsStack = [];
-			const bracketsPosStack = [];
-
-			for (let i = 0; i < eqn.length; i++) {
-				const char = eqn.charAt(i);
-
-				if (openBrackets.contains(char)) {
-					bracketsStack.push(char);
-					bracketsPosStack.push(i);
-				}
-				else if (closeBrackets.contains(char)) {
-					const lastBracket = bracketsStack.at(-1);
-
-					if (getCloseBracket(lastBracket) === char) {
-						bracketsStack.pop();
-						const lastBracketPos = bracketsPosStack.pop();
-						const depth = bracketsStack.length % Ncolors;
-
-						const className = "latex-suite-color-bracket-" + depth;
-
-						const j = lastBracketPos + bounds.start;
-						const k = i + bounds.start;
-
-						widgets.push(getHighlightBracketMark(j, className));
-						widgets.push(getHighlightBracketMark(k, className));
-					}
-				}
-			}
-
+type ColorBracketsCachedEquations = Record<string, BracketConcealment[]>;
+function colorPairedBrackets(view: EditorView, cached_equations: ColorBracketsCachedEquations) {
+	const equations = view.plugin(mathBoundsPlugin).getEquations(view.state);
+	const new_equations: typeof cached_equations = {};
+	for (const eqn of equations.values()) {
+		if (eqn in cached_equations) {
+			new_equations[eqn] = cached_equations[eqn];
+			continue
 		}
 
-		});
-	}
 
-	return Decoration.set(widgets, true)
+		const openBrackets = ["{", "[", "("];
+		const closeBrackets = ["}", "]", ")"];
+
+		const bracketsStack = [];
+		const bracketsPosStack = [];
+		const localSpecs: BracketConcealment[] = [];
+
+		for (let i = 0; i < eqn.length; i++) {
+			const char = eqn.charAt(i);
+
+			if (openBrackets.contains(char)) {
+				bracketsStack.push(char);
+				bracketsPosStack.push(i);
+			}
+			else if (closeBrackets.contains(char)) {
+				const lastBracket = bracketsStack.at(-1);
+
+				if (getCloseBracket(lastBracket) === char) {
+					bracketsStack.pop();
+					const lastBracketPos = bracketsPosStack.pop();
+					const depth = bracketsStack.length % Ncolors;
+
+					const className = "latex-suite-color-bracket-" + depth;
+
+					localSpecs.push({ pos: lastBracketPos, className });
+					localSpecs.push({ pos: i, className });
+				}
+			}
+		}
+		new_equations[eqn] = localSpecs;
+	}
+	cached_equations = new_equations;
+	
+	const widgets: Range<Decoration>[] = [];
+	for (const [start, eqn] of equations.entries()) {
+		const localSpecs = new_equations[eqn];
+		if (!localSpecs) continue;
+		for (const spec of localSpecs) {
+			widgets.push(getHighlightBracketMark(start + spec.pos, spec.className));
+		}
+	}
+	
+	const decorations = Decoration.set(widgets, true);
+	return { decorations, cached_equations  };
 }
 
-function getEnclosingBracketsPos(view: EditorView, pos: number) {
+function getEnclosingBracketsPos(view: EditorView, pos: number, ctx: Context) {
 
-	const result = getEquationBounds(view.state);
+	const result = ctx.getBounds(pos);
 	if (!result) return -1;
-	const {start, end} = result;
+	const {inner_start: start, inner_end: end} = result;
 	const text = view.state.doc.sliceString(start, end);
 
 
@@ -119,7 +120,7 @@ function highlightCursorBrackets(view: EditorView) {
 	const selection = view.state.selection;
 	const ranges = selection.ranges;
 	const text = view.state.doc.toString();
-	const ctx = Context.fromView(view);
+	const ctx = view.plugin(contextPlugin);
 
 	if (!ctx.mode.inMath()) {
 		return Decoration.none;
@@ -127,7 +128,7 @@ function highlightCursorBrackets(view: EditorView) {
 
 	const bounds = ctx.getBounds(selection.main.to);
 	if (!bounds) return Decoration.none;
-	const eqn = view.state.doc.sliceString(bounds.start, bounds.end);
+	const eqn = view.state.doc.sliceString(bounds.inner_start, bounds.inner_end);
 
 	const openBrackets = ["{", "[", "("];
 	const brackets = ["{", "[", "(", "}", "]", ")"];
@@ -153,10 +154,10 @@ function highlightCursorBrackets(view: EditorView) {
 				backwards = true;
 			}
 
-			let j = findMatchingBracket(eqn, i - bounds.start, openBracket, closeBracket, backwards);
+			let j = findMatchingBracket(eqn, i - bounds.inner_start, openBracket, closeBracket, backwards);
 
 			if (j === -1) continue;
-			j = j + bounds.start;
+			j = j + bounds.inner_start;
 
 
 			widgets.push(getHighlightBracketMark(i, "latex-suite-highlighted-bracket"));
@@ -171,7 +172,7 @@ function highlightCursorBrackets(view: EditorView) {
 		if (range.empty) {
 			const pos = range.from - 1;
 
-			const result = getEnclosingBracketsPos(view, pos);
+			const result = getEnclosingBracketsPos(view, pos, ctx);
 			if (result === -1) continue;
 
 			widgets.push(getHighlightBracketMark(result.left, "latex-suite-highlighted-bracket"));
@@ -189,14 +190,21 @@ function highlightCursorBrackets(view: EditorView) {
 
 export const colorPairedBracketsPlugin = ViewPlugin.fromClass(class {
 	decorations: DecorationSet;
+	cached_equations: ColorBracketsCachedEquations={};
 
 	constructor(view: EditorView) {
-		this.decorations = colorPairedBrackets(view);
+		({
+			decorations: this.decorations,
+			cached_equations: this.cached_equations,
+		} = colorPairedBrackets(view, this.cached_equations));
 	}
 
 	update(update: ViewUpdate) {
 		if (update.docChanged || update.viewportChanged) {
-			this.decorations = colorPairedBrackets(update.view);
+			({
+				decorations: this.decorations,
+				cached_equations: this.cached_equations,
+			} = colorPairedBrackets(update.view, this.cached_equations));
 		}
 	}
 

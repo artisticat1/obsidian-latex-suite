@@ -1,8 +1,7 @@
 // Conceal functions
 
-import { syntaxTree } from "@codemirror/language";
 import { EditorView } from "@codemirror/view";
-import { getEquationBounds } from "src/utils/context";
+import { mathBoundsPlugin } from "src/utils/context";
 import { findMatchingBracket } from "src/utils/editor_utils";
 import { ConcealSpec, mkConcealSpec } from "./conceal";
 import { greek, cmd_symbols, map_super, map_sub, fractions, brackets, mathscrcal, mathbb, operators } from "./conceal_maps";
@@ -431,70 +430,64 @@ function concealOperatorname(eqn: string): ConcealSpec[] {
 	return specs;
 }
 
-export function conceal(view: EditorView): ConcealSpec[] {
+const ALL_SYMBOLS = {...greek, ...cmd_symbols} as const;
+export type ConcealCachedEquations = Record<string, ConcealSpec[]>;
+export function conceal(
+	view: EditorView,
+	cached_equations: ConcealCachedEquations,
+): { specs: ConcealSpec[]; cached_equations: ConcealCachedEquations } {
+	const equations = view.plugin(mathBoundsPlugin).getEquations(view.state);
+	const new_equations: typeof cached_equations = {};
+
+	for (const eqn of equations.values()) {
+		if (eqn in cached_equations) {
+			new_equations[eqn] = cached_equations[eqn];
+			continue;
+		}
+
+		const localSpecs = [
+			...concealSymbols(eqn, "\\^", "", map_super),
+			...concealSymbols(eqn, "_", "", map_sub),
+			...concealSymbols(eqn, "\\\\frac", "", fractions),
+			...concealSymbols(eqn, "\\\\", "", ALL_SYMBOLS, undefined, false),
+			...concealSupSub(eqn, true, ALL_SYMBOLS),
+			...concealSupSub(eqn, false, ALL_SYMBOLS),
+			...concealModifier(eqn, "hat", "\u0302"),
+			...concealModifier(eqn, "dot", "\u0307"),
+			...concealModifier(eqn, "ddot", "\u0308"),
+			...concealModifier(eqn, "overline", "\u0304"),
+			...concealModifier(eqn, "bar", "\u0304"),
+			...concealModifier(eqn, "tilde", "\u0303"),
+			...concealModifier(eqn, "vec", "\u20D7"),
+			...concealSymbols(eqn, "\\\\", "", brackets, "cm-bracket"),
+			...concealAtoZ(eqn, "\\\\mathcal{", "}", mathscrcal),
+			...concealModifiedGreekLetters(eqn, greek),
+			...concealModified_A_to_Z_0_to_9(eqn, mathbb),
+			...concealText(eqn),
+			...concealBraKet(eqn),
+			...concealSet(eqn),
+			...concealFraction(eqn),
+			...concealOperators(eqn, operators),
+			...concealOperatorname(eqn),
+		];
+		new_equations[eqn] = localSpecs;
+	}
+	cached_equations = new_equations;
+
+	// Make the 'start' and 'end' fields represent positions in the entire
+	// document (not in a math expression)
 	const specs: ConcealSpec[] = [];
-
-	for (const { from, to } of view.visibleRanges) {
-
-		syntaxTree(view.state).iterate({
-			from,
-			to,
-			enter: (node) => {
-				const type = node.type;
-				const to = node.to;
-
-				if (!(type.name.contains("begin") && type.name.contains("math"))) {
-					return;
-				}
-
-				const bounds = getEquationBounds(view.state, to);
-				if (!bounds) return;
-
-
-				const eqn = view.state.doc.sliceString(bounds.start, bounds.end);
-
-
-				const ALL_SYMBOLS = {...greek, ...cmd_symbols};
-
-				const localSpecs = [
-					...concealSymbols(eqn, "\\^", "", map_super),
-					...concealSymbols(eqn, "_", "", map_sub),
-					...concealSymbols(eqn, "\\\\frac", "", fractions),
-					...concealSymbols(eqn, "\\\\", "", ALL_SYMBOLS, undefined, false),
-					...concealSupSub(eqn, true, ALL_SYMBOLS),
-					...concealSupSub(eqn, false, ALL_SYMBOLS),
-					...concealModifier(eqn, "hat", "\u0302"),
-					...concealModifier(eqn, "dot", "\u0307"),
-					...concealModifier(eqn, "ddot", "\u0308"),
-					...concealModifier(eqn, "overline", "\u0304"),
-					...concealModifier(eqn, "bar", "\u0304"),
-					...concealModifier(eqn, "tilde", "\u0303"),
-					...concealModifier(eqn, "vec", "\u20D7"),
-					...concealSymbols(eqn, "\\\\", "", brackets, "cm-bracket"),
-					...concealAtoZ(eqn, "\\\\mathcal{", "}", mathscrcal),
-					...concealModifiedGreekLetters(eqn, greek),
-					...concealModified_A_to_Z_0_to_9(eqn, mathbb),
-					...concealText(eqn),
-					...concealBraKet(eqn),
-					...concealSet(eqn),
-					...concealFraction(eqn),
-					...concealOperators(eqn, operators),
-					...concealOperatorname(eqn)
-				];
-
-				// Make the 'start' and 'end' fields represent positions in the entire
-				// document (not in a math expression)
-				for (const spec of localSpecs) {
-					for (const replace of spec) {
-						replace.start += bounds.start;
-						replace.end += bounds.start;
-					}
-				}
-
-				specs.push(...localSpecs);
-			},
-		});
+	for (const [start, eqn] of equations.entries()) {
+		for (const spec of new_equations[eqn]) {
+			specs.push(
+				spec.map((replace) => ({
+					...replace,
+					start: replace.start + start,
+					end: replace.end + start,
+				})),
+			);
+		}
 	}
 
-	return specs;
+	return { specs, cached_equations };
 }

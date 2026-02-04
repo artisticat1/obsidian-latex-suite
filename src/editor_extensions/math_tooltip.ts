@@ -1,7 +1,7 @@
 import { Tooltip, showTooltip, EditorView, ViewUpdate } from "@codemirror/view";
 import { StateField, EditorState, EditorSelection, StateEffect } from "@codemirror/state";
 import { renderMath, finishRenderMath, editorLivePreviewField } from "obsidian";
-import { Context } from "src/utils/context";
+import { Context, contextPlugin } from "src/utils/context";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
 
 const updateTooltipEffect = StateEffect.define<Tooltip[]>();
@@ -43,7 +43,7 @@ export function handleMathTooltip(update: ViewUpdate) {
 	}
 
 	const settings = getLatexSuiteConfig(update.state);
-	const ctx = Context.fromState(update.state);
+	const ctx = update.view.plugin(contextPlugin);
 
 	if (!shouldShowTooltip(update.state, ctx)) {
 		const currTooltips = update.state.field(cursorTooltipField);
@@ -64,7 +64,7 @@ export function handleMathTooltip(update: ViewUpdate) {
 
 	// HACK: eqnBounds is not null because shouldShowTooltip was true
 	const eqnBounds = ctx.getBounds();
-	const eqn = update.state.sliceDoc(eqnBounds.start, eqnBounds.end);
+	const eqn = update.state.sliceDoc(eqnBounds.inner_start, eqnBounds.inner_end);
 
 	const above = settings.mathPreviewPositionIsAbove;
 	const create = () => {
@@ -82,7 +82,7 @@ export function handleMathTooltip(update: ViewUpdate) {
 
 	if (ctx.mode.blockMath || ctx.mode.codeMath) {
 		newTooltips = [{
-			pos: above ? eqnBounds.start : eqnBounds.end,
+			pos: above ? eqnBounds.inner_start : eqnBounds.inner_end,
 			above: above,
 			strictSide: true,
 			arrow: true,
@@ -90,18 +90,18 @@ export function handleMathTooltip(update: ViewUpdate) {
 		}];
 	} else if (ctx.mode.inlineMath && above) {
 		newTooltips = [{
-			pos: eqnBounds.start,
+			pos: eqnBounds.inner_start,
 			above: true,
 			strictSide: true,
 			arrow: true,
 			create: create,
 		}];
 	} else if (ctx.mode.inlineMath && !above) {
-		const endRange = EditorSelection.range(eqnBounds.end, eqnBounds.end);
+		const endRange = EditorSelection.range(eqnBounds.inner_end, eqnBounds.inner_end);
 
 		newTooltips = [{
 			pos: Math.max(
-				eqnBounds.start,
+				eqnBounds.inner_start,
 				// the beginning position of the visual line where eqnBounds.end is
 				// located
 				update.view.moveToLineBoundary(endRange, false).anchor,
@@ -129,7 +129,7 @@ function shouldShowTooltip(state: EditorState, ctx: Context): boolean {
 	if (!eqnBounds) return false;
 
 	// Don't render an empty equation
-	const eqn = state.sliceDoc(eqnBounds.start, eqnBounds.end).trim();
+	const eqn = state.sliceDoc(eqnBounds.inner_start, eqnBounds.inner_end).trim();
 	if (eqn === "") return false;
 
 	return true;
