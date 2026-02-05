@@ -47,6 +47,7 @@ const args = {
 	target: "es2016",
 	logLevel: "info",
 	sourcemap: prod ? false : "inline",
+	minify: prod,
 	treeShaking: true,
 	outfile: "main.js",
 	plugins: [
