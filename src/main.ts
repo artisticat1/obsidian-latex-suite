@@ -14,6 +14,7 @@ import { snippetExtensions } from "./snippets/codemirror/extensions";
 import { mkConcealPlugin } from "./editor_extensions/conceal";
 import { colorPairedBracketsPluginLowestPrec, highlightCursorBracketsPlugin } from "./editor_extensions/highlight_brackets";
 import { cursorTooltipBaseTheme, cursorTooltipField } from "./editor_extensions/math_tooltip";
+import { Context, contextPlugin, mathBoundsPlugin } from "./utils/context";
 
 export default class LatexSuitePlugin extends Plugin {
 	settings: LatexSuitePluginSettings;
@@ -175,6 +176,8 @@ export default class LatexSuitePlugin extends Plugin {
 
 		// Compulsory extensions
 		this.editorExtensions.push([
+			Prec.highest(mathBoundsPlugin.extension),
+			Prec.highest(contextPlugin.extension),
 			getLatexSuiteConfigExtension(this.CMSettings),
 			Prec.highest(EditorView.domEventHandlers({ "keydown": onKeydown })),
 			Prec.highest(EditorView.inputHandler.of(onInput)),

@@ -2,7 +2,7 @@
 
 import { ViewUpdate, Decoration, DecorationSet, WidgetType, ViewPlugin, EditorView } from "@codemirror/view";
 import { EditorSelection, Range, RangeSet, RangeSetBuilder, RangeValue } from "@codemirror/state";
-import { conceal } from "./conceal_fns";
+import { conceal, ConcealCachedEquations } from "./conceal_fns";
 import { debounce, livePreviewState } from "obsidian";
 
 export type Replacement = {
@@ -252,6 +252,7 @@ export const mkConcealPlugin = (revealTimeout: number) => ViewPlugin.fromClass(c
 	decorations: DecorationSet;
 	atomicRanges: RangeSet<RangeValue>;
 	delayEnabled: boolean;
+	cached_equations: ConcealCachedEquations;
 
 
 	constructor() {
@@ -259,6 +260,7 @@ export const mkConcealPlugin = (revealTimeout: number) => ViewPlugin.fromClass(c
 		this.decorations = Decoration.none;
 		this.atomicRanges = RangeSet.empty;
 		this.delayEnabled = revealTimeout > 0;
+		this.cached_equations = {};
 	}
 
 	delayedReveal = debounce((delayedConcealments: Concealment[], view: EditorView) => {
@@ -283,7 +285,8 @@ export const mkConcealPlugin = (revealTimeout: number) => ViewPlugin.fromClass(c
 		const selection = update.state.selection;
 		const mousedown = update.view.plugin(livePreviewState)?.mousedown;
 
-		const concealSpecs = conceal(update.view);
+		const {specs: concealSpecs, cached_equations} = conceal(update.view, this.cached_equations);
+		this.cached_equations = cached_equations;
 
 		// Collect concealments from the new conceal specs
 		const concealments: Concealment[] = [];

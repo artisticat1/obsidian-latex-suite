@@ -69,14 +69,15 @@ export const tabout = (view: EditorView, ctx: Context): boolean => {
 
 	const bounds = ctx.getBounds();
 	if (!bounds) return false;
-    const { start, end } = bounds;
+    const { inner_start, inner_end, outer_end } = bounds;
+	if (outer_end <= ctx.pos) return false;
 
 	const doc = view.state.doc;
 	
     const cursorPos = view.state.selection.main.to;
-    const cursorRelativePos = cursorPos - start;
+    const cursorRelativePos = cursorPos - inner_start;
 
-    const latexString = doc.sliceString(start, end);
+    const latexString = doc.sliceString(inner_start, inner_end);
     const tokens = tokenize(latexString);
 
     const closingSymbols = getLatexSuiteConfig(view).taboutClosingSymbols;
@@ -87,7 +88,7 @@ export const tabout = (view: EditorView, ctx: Context): boolean => {
     for (let i = startIndex; i < tokens.length; i++) {
 		// Case 1: Normal Navigation
 		if (isClosingDelimiterToken(tokens, i, closingSymbols)) {
-			setCursor(view, start + tokens[i].end);
+			setCursor(view, inner_start + tokens[i].end);
 
 			return true;
 		}
@@ -97,9 +98,9 @@ export const tabout = (view: EditorView, ctx: Context): boolean => {
 		// we navigate the user directly to the location of the error (immediately after the unfinished "\right")
         // so they can simply type the missing delimiter right there.
 		if (isUnmatchedRightCommand(tokens, i)) {
-			console.warn("[tabout] Found right command without following delimiter:", tokens[i].text, "at index", start + tokens[i].start);
+			console.warn("[tabout] Found right command without following delimiter:", tokens[i].text, "at index", inner_start + tokens[i].start);
 
-			setCursor(view, start + tokens[i].end);
+			setCursor(view, inner_start + tokens[i].end);
 
 			return true;
 		}
@@ -109,18 +110,18 @@ export const tabout = (view: EditorView, ctx: Context): boolean => {
 
 	// Check whether we're at end of equation
 	// Accounting for whitespace, using trim
-	const remainingText = doc.sliceString(cursorPos, end);
+	const remainingText = doc.sliceString(cursorPos, inner_end);
 	const isAtEnd = remainingText.trim().length === 0;
 
 	if (!isAtEnd) return false;
 
 	// Check whether we're in inline math or a block eqn
 	if (ctx.mode.inlineMath || ctx.mode.codeMath) {
-		setCursor(view, end + 1);
+		setCursor(view, outer_end);
 	}
 	else {
 		// First, locate the $$ symbol
-		const endLine = doc.lineAt(end + 2);
+		const endLine = doc.lineAt(outer_end);
 		const transactions: TransactionSpec[] = [];
 
 		// If there's no line after the equation, create one

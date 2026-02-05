@@ -39,7 +39,7 @@ export const runAutoFractionCursor = (view: EditorView, ctx: Context, range: Sel
 	// Get the bounds of the equation
 	const result = ctx.getBounds();
 	if (!result) return false;
-	const eqnStart = result.start;
+	const eqnStart = result.inner_start;
 
 
 	let curLine = view.state.sliceDoc(0, to);

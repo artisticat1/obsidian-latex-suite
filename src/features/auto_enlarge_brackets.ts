@@ -2,7 +2,7 @@ import { EditorView } from "@codemirror/view";
 import { findMatchingBracket } from "src/utils/editor_utils";
 import { queueSnippet } from "src/snippets/codemirror/snippet_queue_state_field";
 import { expandSnippets } from "src/snippets/snippet_management";
-import { Context } from "src/utils/context";
+import { Context, contextPlugin } from "src/utils/context";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
 
 
@@ -11,10 +11,10 @@ export const autoEnlargeBrackets = (view: EditorView) => {
 	if (!settings.autoEnlargeBrackets) return;
 
 	// The Context needs to be regenerated since changes to the document may have happened before autoEnlargeBrackets was triggered
-	const ctx = Context.fromView(view);
+	const ctx = view.plugin(contextPlugin);
 	const result = ctx.getBounds();
 	if (!result) return false;
-	const {start, end} = result;
+	const {inner_start: start, inner_end: end} = result;
 
 	const text = view.state.doc.toString();
 	const left = "\\left";

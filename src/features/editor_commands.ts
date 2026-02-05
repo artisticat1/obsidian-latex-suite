@@ -2,14 +2,14 @@ import { Editor } from "obsidian";
 import { EditorView } from "@codemirror/view";
 import { replaceRange, setCursor, setSelection } from "../utils/editor_utils";
 import LatexSuitePlugin from "src/main";
-import { Context } from "src/utils/context";
+import { Context, contextPlugin } from "src/utils/context";
 
 
 function boxCurrentEquation(view: EditorView) {
-	const ctx = Context.fromView(view);
+	const ctx = view.plugin(contextPlugin);
 	const result = ctx.getBounds();
 	if (!result) return false;
-	const {start, end} = result;
+	const {inner_start: start, inner_end: end} = result;
 
 	let equation = "\\boxed{" + view.state.sliceDoc(start, end) + "}";
 
@@ -34,7 +34,7 @@ function getBoxEquationCommand() {
 
 			// @ts-ignore
 			const view = editor.cm;
-			const ctx = Context.fromView(view);
+			const ctx = view.plugin(contextPlugin);
 			const withinEquation = ctx.mode.inMath();
 
 			if (checking) return withinEquation;
@@ -57,7 +57,7 @@ function getSelectEquationCommand() {
 
 			// @ts-ignore
 			const view = editor.cm;
-			const ctx = Context.fromView(view);
+			const ctx = view.plugin(contextPlugin);
 			const withinEquation = ctx.mode.inMath();
 
 			if (checking) return withinEquation;
@@ -66,7 +66,7 @@ function getSelectEquationCommand() {
 
 			const result = ctx.getBounds();
 			if (!result) return false;
-			let {start, end} = result;
+			let {inner_start: start, inner_end: end} = result;
 
 			// Don't include newline characters in the selection
 			const doc = view.state.doc.toString();

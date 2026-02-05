@@ -1,63 +1,86 @@
 import { EditorState, SelectionRange } from "@codemirror/state";
-import { EditorView } from "@codemirror/view";
+import { EditorView, PluginValue, ViewPlugin, ViewUpdate } from "@codemirror/view";
 import { Direction, escalateToToken, findMatchingBracket, getCharacterAtPos, getCloseBracket } from "src/utils/editor_utils";
 import { Mode } from "../snippets/options";
 import { Environment } from "../snippets/environment";
 import { getLatexSuiteConfig } from "../snippets/codemirror/config";
 import { syntaxTree } from "@codemirror/language";
+import { SyntaxNode, SyntaxNodeRef } from "@lezer/common";
+
+const OPEN_INLINE_MATH_NODE = "formatting_formatting-math_formatting-math-begin_keyword_math";
+const CLOSE_INLINE_MATH_NODE = "formatting_formatting-math_formatting-math-end_keyword_math_math-";
+
+
+const OPEN_DISPLAY_MATH_NODE = "formatting_formatting-math_formatting-math-begin_keyword_math_math-block";
+const CLOSE_DISPLAY_MATH_NODE = "formatting_formatting-math_formatting-math-end_keyword_math_math-";
+export const open_math_nodes = new Set([OPEN_INLINE_MATH_NODE, OPEN_DISPLAY_MATH_NODE]);
+export const close_math_nodes = new Set([CLOSE_INLINE_MATH_NODE, CLOSE_DISPLAY_MATH_NODE]);
 
 export interface Bounds {
-	start: number;
-	end: number;
+	inner_start: number;
+	inner_end: number;
+	outer_start: number;
+	outer_end: number;
 }
 
-export class Context {
+type MathBounds = Bounds & {mode: MathMode};
+
+export const contextPlugin = ViewPlugin.fromClass(
+	class Context implements PluginValue {
+	view: EditorView;
 	state: EditorState;
 	mode!: Mode;
 	pos: number;
 	ranges: SelectionRange[];
 	codeblockLanguage: string;
 	boundsCache: Map<number, Bounds>;
+	innerBoundsCache: Map<number, Bounds>;
+	
+	constructor(view: EditorView) {
+		this.updateFromView(view);	
+	}
 
-	static fromState(state: EditorState):Context {
-		const ctx = new Context();
+	update(update: ViewUpdate) {
+		if (!(update.docChanged || update.selectionSet || update.viewportChanged)) return;
+		this.updateFromView(update.view);	
+	}
+	updateFromView(view: EditorView) {
+		const state = view.state;
 		const sel = state.selection;
-		ctx.state = state;
-		ctx.pos = sel.main.to;
-		ctx.ranges = Array.from(sel.ranges).reverse(); // Last to first
-		ctx.mode = new Mode();
-		ctx.boundsCache = new Map();
+		this.view = view;
+		this.state = state;
+		this.pos = sel.main.to;
+		this.ranges = Array.from(sel.ranges).reverse(); // Last to first
+		this.mode = new Mode();
+		this.boundsCache = new Map();
+		this.innerBoundsCache = new Map();
 
 		const codeblockLanguage = langIfWithinCodeblock(state);
 		const inCode = codeblockLanguage !== null;
 
 		const settings = getLatexSuiteConfig(state);
 		const forceMath = settings.forceMathLanguages.contains(codeblockLanguage);
-		ctx.mode.codeMath = forceMath;
-		ctx.mode.code = inCode && !forceMath;
-		if (ctx.mode.code) ctx.codeblockLanguage = codeblockLanguage;
+		this.mode.codeMath = forceMath;
+		this.mode.code = inCode && !forceMath;
+		if (this.mode.code) this.codeblockLanguage = codeblockLanguage;
 
 		// first, check if math mode should be "generally" on
-		const inMath = forceMath || isWithinEquation(state);
-
-		if (inMath && !forceMath) {
-			const inInlineEquation = isWithinInlineEquation(state);
-
-			ctx.mode.blockMath = !inInlineEquation;
-			ctx.mode.inlineMath = inInlineEquation;
+		const mathBoundsCache = view.plugin(mathBoundsPlugin);
+		const inMath = forceMath || mathBoundsCache.inMathBound(state, this.pos);
+		
+		if (inMath !== true && inMath !== null) {
+			const inInlineEquation = inMath.mode === MathMode.InlineMath;
+			this.mode.blockMath = !inInlineEquation;
+			this.mode.inlineMath = inInlineEquation;
+			this.boundsCache.set(this.pos, inMath);
 		}
 
 		if (inMath) {
-			ctx.mode.textEnv = ctx.inTextEnvironment();
+			this.mode.textEnv = this.inTextEnvironment();
 		}
 
-		ctx.mode.text = !inCode && !inMath;
+		this.mode.text = !inCode && !inMath;
 
-		return ctx;
-	}
-
-	static fromView(view: EditorView):Context {
-		return Context.fromState(view.state);
 	}
 
 	isWithinEnvironment(pos: number, env: Environment): boolean {
@@ -66,7 +89,7 @@ export class Context {
 		const bounds = this.getInnerBounds();
 		if (!bounds) return;
 
-		const {start, end} = bounds;
+		const {inner_start: start, inner_end: end} = bounds;
 		const text = this.state.sliceDoc(start, end);
 		// pos referred to the absolute position in the whole document, but we just sliced the text
 		// so now pos must be relative to the start in order to be any useful
@@ -132,7 +155,7 @@ export class Context {
 			// means a codeblock language triggered the math mode -> use the codeblock bounds instead
 			bounds = getCodeblockBounds(this.state, pos);
 		} else {
-			bounds = getEquationBounds(this.state);
+			bounds = this.view.plugin(mathBoundsPlugin).inMathBound(this.state, pos);
 		}
 
 		this.boundsCache.set(pos, bounds);
@@ -142,104 +165,36 @@ export class Context {
 	// Accounts for equations within text environments, e.g. $$\text{... $...$}$$
 	getInnerBounds(pos: number = this.pos): Bounds {
 		let bounds;
+		if (this.innerBoundsCache.has(pos)) {
+			return this.innerBoundsCache.get(pos);
+		}
 		if (this.mode.codeMath) {
 			// means a codeblock language triggered the math mode -> use the codeblock bounds instead
-			bounds = getCodeblockBounds(this.state, pos);
+			bounds = this.getBounds(pos);
 		} else {
-			bounds = getInnerEquationBounds(this.state);
+			bounds = getInnerEquationBounds(this.view);
 		}
+		this.innerBoundsCache.set(pos, bounds);
 
 		return bounds;
 	}
 
-}
+})
+type ContextPluginValue<T> = T extends ViewPlugin<infer V> ? V : never
+export type Context = ContextPluginValue<typeof contextPlugin>;
 
-const isWithinEquation = (state: EditorState):boolean => {
-	const pos = state.selection.main.to;
-	const tree = syntaxTree(state);
 
-	let syntaxNode = tree.resolveInner(pos, -1);
-	if (syntaxNode.name.contains("math-end")) return false;
-
-	if (!syntaxNode.parent) {
-		syntaxNode = tree.resolveInner(pos, 1);
-		if (syntaxNode.name.contains("math-begin")) return false;
-	}
-
-	// Account/allow for being on an empty line in a equation
-	if (!syntaxNode.parent) {
-		const left = tree.resolveInner(pos - 1, -1);
-		const right = tree.resolveInner(pos + 1, 1);
-
-		return (left.name.contains("math") && right.name.contains("math") && !(left.name.contains("math-end")));
-	}
-
-	return (syntaxNode.name.contains("math") && !syntaxNode.name.contains("hashtag_hashtag-end_meta_tag"));
-}
-
-const isWithinInlineEquation = (state: EditorState):boolean => {
-	const pos = state.selection.main.to;
-	const tree = syntaxTree(state);
-
-	let syntaxNode = tree.resolveInner(pos, -1);
-	if (syntaxNode.name.contains("math-end")) return false;
-
-	if (!syntaxNode.parent) {
-		syntaxNode = tree.resolveInner(pos, 1);
-		if (syntaxNode.name.contains("math-begin")) return false;
-	}
-
-	// Account/allow for being on an empty line in a equation
-	if (!syntaxNode.parent) syntaxNode = tree.resolveInner(pos - 1, -1);
-
-	const cursor = syntaxNode.cursor();
-	const res = escalateToToken(cursor, Direction.Backward, "math-begin");
-
-	return !res?.name.contains("math-block");
-}
-
-/**
- * Figures out where this equation starts and where it ends.
- *
- * **Note:** If you intend to use this directly, check out Context.getBounds instead, which caches and also takes care of codeblock languages which should behave like math mode.
- */
-export const getEquationBounds = (state: EditorState, pos?: number):Bounds => {
-	if (!pos) pos = state.selection.main.to;
-	const tree = syntaxTree(state);
-
-	let syntaxNode = tree.resolveInner(pos, -1);
-
-	if (!syntaxNode.parent) {
-		syntaxNode = tree.resolveInner(pos, 1);
-	}
-
-	// Account/allow for being on an empty line in a equation
-	if (!syntaxNode.parent) syntaxNode = tree.resolveInner(pos - 1, -1);
-
-	const cursor = syntaxNode.cursor();
-	const begin = escalateToToken(cursor, Direction.Backward, "math-begin");
-	const end = escalateToToken(cursor, Direction.Forward, "math-end");
-
-	if (begin && end) {
-		// Deals with the case of $|$\n text and stuff $$equations and stuff\n$$
-		// where text and stuff is seen as blockmath instead of text
-		if (begin.to > pos) {
-			const chars = state.sliceDoc(pos-1, pos+1);
-			if (chars === "$$") {
-				return {start: pos-1, end: pos-1};
-			}
-		}
-		return {start: begin.to, end: end.from};
-	}
-	else {
-		return null;
-	}
+enum MathMode {
+	InlineMath,
+	BlockMath,
 }
 
 // Accounts for equations within text environments, e.g. $$\text{... $...$}$$
-const getInnerEquationBounds = (state: EditorState, pos?: number):Bounds => {
-	if (!pos) pos = state.selection.main.to;
-	let text = state.doc.toString();
+const getInnerEquationBounds = (view: EditorView, pos?: number ):Bounds => {
+	if (!pos) pos = view.state.selection.main.to;
+	const bounds = view.plugin(mathBoundsPlugin).inMathBound(view.state, pos);
+	if (!bounds) return null;
+	let text = view.state.sliceDoc(bounds.inner_start, bounds.inner_end);
 
 	// ignore \$
 	text = text.replaceAll("\\$", "\\R");
@@ -247,9 +202,14 @@ const getInnerEquationBounds = (state: EditorState, pos?: number):Bounds => {
 	const left = text.lastIndexOf("$", pos-1);
 	const right = text.indexOf("$", pos);
 
-	if (left === -1 || right === -1) return null;
+	if (left === -1 || right === -1) return bounds;
 
-	return {start: left + 1, end: right};
+	return {
+		inner_start: left + 1,
+		inner_end: right,
+		outer_start: left,
+		outer_end: right + 1,
+	};
 }
 
 /**
@@ -266,7 +226,12 @@ const getCodeblockBounds = (state: EditorState, pos: number = state.selection.ma
 	cursor = tree.cursorAt(pos, -1);
 	const blockEnd = escalateToToken(cursor, Direction.Forward, "HyperMD-codeblock-end");
 
-	return { start: blockBegin.to + 1, end: blockEnd.from - 1 };
+	return {
+		inner_start: blockBegin.to + 1,
+		inner_end: blockEnd.from - 1,
+		outer_start: blockBegin.from,
+		outer_end: blockEnd.to,
+	};
 }
 
 const langIfWithinCodeblock = (state: EditorState): string | null => {
@@ -307,3 +272,214 @@ const langIfWithinCodeblock = (state: EditorState): string | null => {
 
 	return language;
 }
+
+export const mathBoundsPlugin = ViewPlugin.fromClass(
+	class {
+		protected mathBounds: MathBounds[] = [];
+		equations: Map<number, string> | null = null;
+
+		constructor(view: EditorView) {
+			this.updateMathBounds(view);
+		}
+
+		update(update: ViewUpdate) {
+			if (update.docChanged || update.viewportChanged) {
+				this.equations = null;
+				this.updateMathBounds(update.view);
+			}
+		}
+
+		updateMathBounds(view: EditorView) {
+			const tree = syntaxTree(view.state);
+			const temp_math_nodes: SyntaxNode[] = [];
+			for (const { from, to } of view.visibleRanges) {
+
+				tree.iterate({
+					from,
+					to,
+					enter: (node: SyntaxNodeRef) => {
+						if (
+							open_math_nodes.has(node.name) ||
+							close_math_nodes.has(node.name)
+						) {
+							temp_math_nodes.push(node.node);
+						}
+					},
+				});
+			}
+			const temp_math_bounds: MathBounds[] = [];
+			// nodes could be unbalanced or unbalanced in the viewport
+			// - e.g., starting with a closing math node or ending with a opening math node
+			if (close_math_nodes.has(temp_math_nodes[0]?.name)) {
+				temp_math_bounds.push(
+					this.computeEquationBounds(view.state, temp_math_nodes[0].from),
+				);
+			}
+			const start_i = open_math_nodes.has(temp_math_nodes[0]?.name)
+				? 0
+				: 1;
+			for (let i = start_i; i < temp_math_nodes.length - 1; i += 2) {
+				const open_node = temp_math_nodes[i];
+				const close_node = temp_math_nodes[i + 1];
+				temp_math_bounds.push({
+					inner_start: open_node.to,
+					inner_end: close_node.from,
+					outer_start: open_node.from,
+					outer_end: close_node.to,
+					mode:
+						open_node.name === OPEN_INLINE_MATH_NODE
+							? MathMode.InlineMath
+							: MathMode.BlockMath,
+				});
+			}
+			
+			if (
+				open_math_nodes.has(
+					temp_math_nodes[temp_math_nodes.length - 1]?.name,
+				)
+			) {
+				const last_node = temp_math_nodes[temp_math_nodes.length - 1];
+				const bounds = this.computeEquationBounds(view.state, last_node.to);
+				if (bounds) {
+					temp_math_bounds.push(bounds);
+				}
+			}
+			this.mathBounds = temp_math_bounds;
+		}
+
+		inMathBound = (state: EditorState, pos: number): MathBounds | null => {
+			const bounds = this.mathBounds;
+			if (
+				pos <= bounds[0]?.outer_start ||
+				pos >= bounds[bounds.length - 1]?.outer_end
+			) {
+				return this.getEquationBounds(state, pos);
+			}
+			// Use binary search to efficiently find if pos is within any math bound
+			let left = 0,
+				right = bounds.length - 1;
+			while (left <= right) {
+				const mid = (left + right) >> 1;
+				const bound = bounds[mid];
+				if (pos < bound.outer_start) {
+					right = mid - 1;
+				} else if (pos >= bound.outer_end) {
+					left = mid + 1;
+				} else {
+					return bound;
+				}
+			}
+			return this.getEquationBounds(state, pos);
+		};
+		
+		getEquationBounds(state: EditorState, pos?: number ):MathBounds | null {
+			if (!pos) pos = state.selection.main.to;
+			const bounds = this.computeEquationBounds(state, pos);
+			if (!bounds) return null;
+			this.addMathBound(bounds);
+			return bounds;
+		}
+
+		/**
+		 * Figures out where this equation starts and where it ends.
+		 *
+		 * **Note:** If you intend to use this directly, check out Context.getBounds or this.inMathBound instead, which caches and also takes care of codeblock languages which should behave like math mode.
+		 */
+		private computeEquationBounds = (
+			state: EditorState,
+			pos?: number,
+		): MathBounds | null => {
+			if (!pos) pos = state.selection.main.to;
+			const tree = syntaxTree(state);
+
+			const cursor = tree.cursor();
+			cursor.childBefore(pos);
+			if (
+				!(
+					cursor.name.contains("math") &&
+					!cursor.name.startsWith("hashtag_hashtag-end_meta_tag")
+				)
+			) {
+				return null;
+			}
+			if (close_math_nodes.has(cursor.name) && pos >= cursor.to) {
+				// Cursor is after a closing math node, so no math mode
+				return null;
+			}
+			do {
+				if (open_math_nodes.has(cursor.name)) {
+					break;
+				}
+			} while (cursor.prev());
+			const begin = cursor.node;
+			if (!begin) return null;
+			cursor.childAfter(pos);
+			do {
+				if (close_math_nodes.has(cursor.name)) {
+					break;
+				}
+			} while (cursor.next());
+			const end = cursor.node;
+			if (!end) return null;
+
+			// Deals with the case of $|$\n text and stuff $$equations and stuff\n$$
+			// where text and stuff is seen as blockmath instead of text
+			if (begin.to > pos && begin.name === OPEN_DISPLAY_MATH_NODE) {
+
+				return {
+					inner_start: pos - 1,
+					inner_end: pos - 1,
+					outer_start: pos - 2,
+					outer_end: pos,
+					mode: MathMode.InlineMath,
+				};
+			}
+
+			const mathBound: MathBounds = {
+				inner_start: begin.to,
+				inner_end: end.from,
+				outer_start: begin.from,
+				outer_end: end.to,
+				mode:
+					begin.name === OPEN_INLINE_MATH_NODE
+						? MathMode.InlineMath
+						: MathMode.BlockMath,
+			};
+			return mathBound;
+		};
+		
+		private addMathBound = (bound: MathBounds) => {
+			if (this.mathBounds.length === 0) {
+				this.mathBounds.push(bound);
+			} else if (bound.outer_end <= this.mathBounds[0].outer_start) {
+				this.mathBounds.unshift(bound);
+			} else if (bound.outer_start >= this.mathBounds[this.mathBounds.length - 1].outer_end) {
+				this.mathBounds.push(bound);
+			} else {
+				// Binary search for insertion point
+				let left = 0, right = this.mathBounds.length - 1;
+				while (left <= right) {
+					const mid = (left + right) >> 1;
+					if (bound.outer_start < this.mathBounds[mid].outer_start) {
+						right = mid - 1;
+					} else {
+						left = mid + 1;
+					}
+				}
+				this.mathBounds.splice(left, 0, bound);
+			}
+			return bound;
+		}
+		
+		getEquations(state: EditorState) {
+			if (this.equations) return this.equations;
+			this.equations = new Map(
+				this.mathBounds.map((bound) => [
+					bound.inner_start,
+					state.sliceDoc(bound.inner_start, bound.inner_end),
+				]),
+			);
+			return this.equations;
+		}
+	},
+);
