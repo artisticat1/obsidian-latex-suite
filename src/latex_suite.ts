@@ -1,4 +1,4 @@
-import { EditorView, ViewUpdate } from "@codemirror/view";
+import { EditorView, ViewPlugin, ViewUpdate } from "@codemirror/view";
 
 import { runSnippets } from "./features/run_snippets";
 import { runAutoFraction } from "./features/autofraction";
@@ -28,12 +28,38 @@ export const handleUpdate = (update: ViewUpdate) => {
 	handleUndoRedo(update);
 }
 
-let lastKeyboardEvent: KeyboardEvent | null = null;
-let useNextTextInput = false;
+const ignoreEvents: readonly string[] = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"] as const;
+export const keyboardEventPlugin = ViewPlugin.fromClass(class {
+	lastKeyboardEvent: KeyboardEvent | null = null;
 
-export const onInput = (view: EditorView, from: number, to: number, text: string) => {
+	onKeydown(event: KeyboardEvent, view: EditorView) {
+		if (event.key == "Unidentified" || event.key == "Process" || event.key == "Dead") {
+			this.lastKeyboardEvent = event;
+			return;
+		} else {
+			this.lastKeyboardEvent = null;
+		}
+
+		// Skip full update since the keymove can't trigger anything but can spam the function a lot.
+		if (ignoreEvents.includes(event.key))
+			return;
+		const success = handleKeydown(event.key, event.shiftKey, event.ctrlKey || event.metaKey, isComposing(view, event), view);
+
+		if (success) event.preventDefault();
+	}
+}, {
+	eventHandlers: {
+		keydown(event, view) {
+			view.plugin(keyboardEventPlugin)!.onKeydown(event, view);
+		},
+	},
+
+})
+
+export const onInput = (view: EditorView, from: number, to: number, text: string): boolean => {
+	const lastKeyboardEvent = view.plugin(keyboardEventPlugin)?.lastKeyboardEvent;
 	if (text === "\0\0") return true;
-	if (text.length == 1 && useNextTextInput) {
+	if (text.length == 1 && lastKeyboardEvent) {
 		if (text === "\t") text = "Tab";
 		const success = handleKeydown(
 			text,
@@ -47,26 +73,7 @@ export const onInput = (view: EditorView, from: number, to: number, text: string
 			return true;
 		}
 	}
-}
-
-const ignoreEvents: readonly string[] = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"] as const;
-
-export const onKeydown = (event: KeyboardEvent, view: EditorView) => {
-	// the input event handler `onInput` will try to handle the unknown key.
-    if (event.key == "Unidentified" || event.key == "Process" || event.key == "Dead") {
-        useNextTextInput = true;
-		lastKeyboardEvent = event;
-		return;
-    } else {
-        useNextTextInput = false;
-    }
-
-	// Skip full update since the keymove can't trigger anything but can spam the function a lot.
-    if (ignoreEvents.includes(event.key))
-		return;
-	const success = handleKeydown(event.key, event.shiftKey, event.ctrlKey || event.metaKey, isComposing(view, event), view);
-
-	if (success) event.preventDefault();
+	return false;
 }
 
 export const handleKeydown = (key: string, shiftKey: boolean, ctrlKey: boolean, isIME: boolean, view: EditorView) => {

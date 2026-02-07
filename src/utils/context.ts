@@ -33,8 +33,8 @@ export const contextPlugin = ViewPlugin.fromClass(
 	pos: number;
 	ranges: SelectionRange[];
 	codeblockLanguage: string;
-	boundsCache: Map<number, Bounds>;
-	innerBoundsCache: Map<number, Bounds>;
+	boundsCache: Map<number, Bounds | null>;
+	innerBoundsCache: Map<number, Bounds | null>;
 	
 	constructor(view: EditorView) {
 		this.updateFromView(view);	
@@ -59,10 +59,12 @@ export const contextPlugin = ViewPlugin.fromClass(
 		const inCode = codeblockLanguage !== null;
 
 		const settings = getLatexSuiteConfig(state);
-		const forceMath = settings.forceMathLanguages.contains(codeblockLanguage);
+		const forceMath =
+			inCode &&
+			settings.forceMathLanguages.contains(codeblockLanguage);
 		this.mode.codeMath = forceMath;
 		this.mode.code = inCode && !forceMath;
-		if (this.mode.code) this.codeblockLanguage = codeblockLanguage;
+		if (inCode && this.mode.code) this.codeblockLanguage = codeblockLanguage;
 
 		// first, check if math mode should be "generally" on
 		const mathBoundsCache = getMathBoundsPlugin(view);
@@ -87,7 +89,7 @@ export const contextPlugin = ViewPlugin.fromClass(
 		if (!this.mode.inMath()) return false;
 
 		const bounds = this.getInnerBounds();
-		if (!bounds) return;
+		if (!bounds) return false;
 
 		const {inner_start: start, inner_end: end} = bounds;
 		const text = this.state.sliceDoc(start, end);
@@ -143,14 +145,15 @@ export const contextPlugin = ViewPlugin.fromClass(
 		);
 	}
 
-	getBounds(pos: number = this.pos): Bounds {
+	getBounds(pos: number = this.pos): Bounds | null {
 		// yes, I also want the cache to work over the produced range instead of just that one through
 		// a BTree or the like, but that'd be probably overkill
-		if (this.boundsCache.has(pos)) {
-			return this.boundsCache.get(pos);
+		const cached = this.boundsCache.get(pos);
+		if (cached !== undefined) {
+			return cached;
 		}
 
-		let bounds;
+		let bounds: Bounds | null;
 		if (this.mode.codeMath) {
 			// means a codeblock language triggered the math mode -> use the codeblock bounds instead
 			bounds = getCodeblockBounds(this.state, pos);
@@ -163,10 +166,11 @@ export const contextPlugin = ViewPlugin.fromClass(
 	}
 
 	// Accounts for equations within text environments, e.g. $$\text{... $...$}$$
-	getInnerBounds(pos: number = this.pos): Bounds {
-		let bounds;
-		if (this.innerBoundsCache.has(pos)) {
-			return this.innerBoundsCache.get(pos);
+	getInnerBounds(pos: number = this.pos): Bounds | null {
+		let bounds: Bounds | null;
+		const cached = this.innerBoundsCache.get(pos);
+		if (cached !== undefined) {
+			return cached;
 		}
 		if (this.mode.codeMath) {
 			// means a codeblock language triggered the math mode -> use the codeblock bounds instead
@@ -197,7 +201,7 @@ enum MathMode {
 }
 
 // Accounts for equations within text environments, e.g. $$\text{... $...$}$$
-const getInnerEquationBounds = (view: EditorView, pos?: number ):Bounds => {
+const getInnerEquationBounds = (view: EditorView, pos?: number ):Bounds | null => {
 	if (!pos) pos = view.state.selection.main.to;
 	const bounds = getMathBoundsPlugin(view).inMathBound(view.state, pos);
 	if (!bounds) return null;
