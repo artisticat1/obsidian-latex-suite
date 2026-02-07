@@ -311,9 +311,10 @@ export const mathBoundsPlugin = ViewPlugin.fromClass(
 			// nodes could be unbalanced or unbalanced in the viewport
 			// - e.g., starting with a closing math node or ending with a opening math node
 			if (close_math_nodes.has(temp_math_nodes[0]?.name)) {
-				temp_math_bounds.push(
-					this.computeEquationBounds(view.state, temp_math_nodes[0].from),
-				);
+				const bounds = this.computeEquationBounds(view.state, temp_math_nodes[0].from);
+				if (bounds) {
+					temp_math_bounds.push(bounds);
+				}
 			}
 			const start_i = open_math_nodes.has(temp_math_nodes[0]?.name)
 				? 0
