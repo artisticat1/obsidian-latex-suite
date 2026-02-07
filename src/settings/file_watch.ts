@@ -89,6 +89,10 @@ function* generateFilesWithin(fileOrFolder: TAbstractFile): Generator<TFile> {
 
 function getFilesWithin(vault: Vault, path: string): Set<TFile> {
 	const fileOrFolder = vault.getAbstractFileByPath(path);
+	if (!fileOrFolder) {
+		console.warn(`Could not find file or folder at path ${path}`);
+		return new Set<TFile>();
+	}
 	const files = generateFilesWithin(fileOrFolder);
 	return new Set(files);
 }

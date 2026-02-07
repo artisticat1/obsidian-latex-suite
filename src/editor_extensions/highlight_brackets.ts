@@ -1,7 +1,7 @@
 import { EditorView, ViewUpdate, Decoration, DecorationSet, ViewPlugin } from "@codemirror/view";
 import { Prec, Range } from "@codemirror/state";
 import { findMatchingBracket, getOpenBracket, getCloseBracket } from "../utils/editor_utils";
-import { Context, contextPlugin, mathBoundsPlugin } from "src/utils/context";
+import { Context, getContextPlugin, getMathBoundsPlugin } from "src/utils/context";
 
 const Ncolors = 3;
 
@@ -20,7 +20,7 @@ type BracketConcealment = {
 
 type ColorBracketsCachedEquations = Record<string, BracketConcealment[]>;
 function colorPairedBrackets(view: EditorView, cached_equations: ColorBracketsCachedEquations) {
-	const equations = view.plugin(mathBoundsPlugin).getEquations(view.state);
+	const equations = getMathBoundsPlugin(view).getEquations(view.state);
 	const new_equations: typeof cached_equations = {};
 	for (const eqn of equations.values()) {
 		if (eqn in cached_equations) {
@@ -32,23 +32,21 @@ function colorPairedBrackets(view: EditorView, cached_equations: ColorBracketsCa
 		const openBrackets = ["{", "[", "("];
 		const closeBrackets = ["}", "]", ")"];
 
-		const bracketsStack = [];
-		const bracketsPosStack = [];
+		const bracketsStack: { char: string, pos: number }[] = [];
 		const localSpecs: BracketConcealment[] = [];
 
 		for (let i = 0; i < eqn.length; i++) {
 			const char = eqn.charAt(i);
 
 			if (openBrackets.contains(char)) {
-				bracketsStack.push(char);
-				bracketsPosStack.push(i);
+				bracketsStack.push({ char, pos: i });
 			}
 			else if (closeBrackets.contains(char)) {
 				const lastBracket = bracketsStack.at(-1);
 
-				if (getCloseBracket(lastBracket) === char) {
+				if (lastBracket && getCloseBracket(lastBracket.char) === char) {
 					bracketsStack.pop();
-					const lastBracketPos = bracketsPosStack.pop();
+					const lastBracketPos = lastBracket.pos;
 					const depth = bracketsStack.length % Ncolors;
 
 					const className = "latex-suite-color-bracket-" + depth;
@@ -120,7 +118,7 @@ function highlightCursorBrackets(view: EditorView) {
 	const selection = view.state.selection;
 	const ranges = selection.ranges;
 	const text = view.state.doc.toString();
-	const ctx = view.plugin(contextPlugin);
+	const ctx = getContextPlugin(view);
 
 	if (!ctx.mode.inMath()) {
 		return Decoration.none;

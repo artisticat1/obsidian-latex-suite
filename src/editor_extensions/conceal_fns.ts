@@ -1,7 +1,7 @@
 // Conceal functions
 
 import { EditorView } from "@codemirror/view";
-import { mathBoundsPlugin } from "src/utils/context";
+import { getMathBoundsPlugin } from "src/utils/context";
 import { findMatchingBracket } from "src/utils/editor_utils";
 import { ConcealSpec, mkConcealSpec } from "./conceal";
 import { greek, cmd_symbols, map_super, map_sub, fractions, brackets, mathscrcal, mathbb, operators } from "./conceal_maps";
@@ -436,7 +436,7 @@ export function conceal(
 	view: EditorView,
 	cached_equations: ConcealCachedEquations,
 ): { specs: ConcealSpec[]; cached_equations: ConcealCachedEquations } {
-	const equations = view.plugin(mathBoundsPlugin).getEquations(view.state);
+	const equations = getMathBoundsPlugin(view).getEquations(view.state);
 	const new_equations: typeof cached_equations = {};
 
 	for (const eqn of equations.values()) {

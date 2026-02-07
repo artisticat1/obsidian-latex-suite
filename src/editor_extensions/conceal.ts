@@ -283,7 +283,7 @@ export const mkConcealPlugin = (revealTimeout: number) => ViewPlugin.fromClass(c
 		this.delayedReveal.cancel();
 
 		const selection = update.state.selection;
-		const mousedown = update.view.plugin(livePreviewState)?.mousedown;
+		const mousedown = update.view.plugin(livePreviewState)?.mousedown ?? false;
 
 		const {specs: concealSpecs, cached_equations} = conceal(update.view, this.cached_equations);
 		this.cached_equations = cached_equations;
@@ -326,5 +326,5 @@ export const mkConcealPlugin = (revealTimeout: number) => ViewPlugin.fromClass(c
 	}
 }, {
 	decorations: v => v.decorations,
-	provide: plugin => EditorView.atomicRanges.of(view => view.plugin(plugin).atomicRanges),
+	provide: plugin => EditorView.atomicRanges.of(view => view.plugin(plugin)?.atomicRanges ?? RangeSet.empty),
 });

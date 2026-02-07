@@ -112,10 +112,10 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 			inputEl = component.inputEl;
 			inputEl.addClass("latex-suite-location-input-el");
+			new FileSuggest(this.app, inputEl);
 		});
 
 		this.snippetsFileLocEl = snippetsFileLoc.settingEl;
-		new FileSuggest(this.app, inputEl);
 
 
 		// Hide settings that are not relevant when "loadSnippetsFromFile" is set to true/false
@@ -431,7 +431,6 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			.setDesc(snippetVariablesFileLocDesc);
 
 
-		let inputVariablesEl;
 		snippetVariablesFileLoc.addSearch(component => {
 			component
 				.setPlaceholder(DEFAULT_SETTINGS.snippetVariablesFileLocation)
@@ -441,13 +440,13 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings(true);
 				}, 500, true));
 
-			inputVariablesEl = component.inputEl;
+			const inputVariablesEl = component.inputEl;
 			inputVariablesEl.addClass("latex-suite-location-input-el");
+			new FileSuggest(this.app, inputVariablesEl);
 		}
 		);
 
 		this.snippetVariablesFileLocEl = snippetVariablesFileLoc.settingEl;
-		new FileSuggest(this.app, inputVariablesEl);
 
 
 		// Hide settings that are not relevant when "loadSnippetsFromFile" is set to true/false

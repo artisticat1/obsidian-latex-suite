@@ -40,7 +40,7 @@ export class TabstopGroup {
 
         view.dispatch({
             selection: toSelect,
-            effects: isEndSnippet ? endSnippet.of(null) : null
+            effects: isEndSnippet ? endSnippet.of(null) : undefined
         })
         resetCursorBlink();
 

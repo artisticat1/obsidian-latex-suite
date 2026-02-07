@@ -33,8 +33,8 @@ export const contextPlugin = ViewPlugin.fromClass(
 	pos: number;
 	ranges: SelectionRange[];
 	codeblockLanguage: string;
-	boundsCache: Map<number, Bounds>;
-	innerBoundsCache: Map<number, Bounds>;
+	boundsCache: Map<number, Bounds | null>;
+	innerBoundsCache: Map<number, Bounds | null>;
 	
 	constructor(view: EditorView) {
 		this.updateFromView(view);	
@@ -59,13 +59,15 @@ export const contextPlugin = ViewPlugin.fromClass(
 		const inCode = codeblockLanguage !== null;
 
 		const settings = getLatexSuiteConfig(state);
-		const forceMath = settings.forceMathLanguages.contains(codeblockLanguage);
+		const forceMath =
+			inCode &&
+			settings.forceMathLanguages.contains(codeblockLanguage);
 		this.mode.codeMath = forceMath;
 		this.mode.code = inCode && !forceMath;
-		if (this.mode.code) this.codeblockLanguage = codeblockLanguage;
+		if (inCode && this.mode.code) this.codeblockLanguage = codeblockLanguage;
 
 		// first, check if math mode should be "generally" on
-		const mathBoundsCache = view.plugin(mathBoundsPlugin);
+		const mathBoundsCache = getMathBoundsPlugin(view);
 		const inMath = forceMath || mathBoundsCache.inMathBound(state, this.pos);
 		
 		if (inMath !== true && inMath !== null) {
@@ -87,7 +89,7 @@ export const contextPlugin = ViewPlugin.fromClass(
 		if (!this.mode.inMath()) return false;
 
 		const bounds = this.getInnerBounds();
-		if (!bounds) return;
+		if (!bounds) return false;
 
 		const {inner_start: start, inner_end: end} = bounds;
 		const text = this.state.sliceDoc(start, end);
@@ -143,19 +145,20 @@ export const contextPlugin = ViewPlugin.fromClass(
 		);
 	}
 
-	getBounds(pos: number = this.pos): Bounds {
+	getBounds(pos: number = this.pos): Bounds | null {
 		// yes, I also want the cache to work over the produced range instead of just that one through
 		// a BTree or the like, but that'd be probably overkill
-		if (this.boundsCache.has(pos)) {
-			return this.boundsCache.get(pos);
+		const cached = this.boundsCache.get(pos);
+		if (cached !== undefined) {
+			return cached;
 		}
 
-		let bounds;
+		let bounds: Bounds | null;
 		if (this.mode.codeMath) {
 			// means a codeblock language triggered the math mode -> use the codeblock bounds instead
 			bounds = getCodeblockBounds(this.state, pos);
 		} else {
-			bounds = this.view.plugin(mathBoundsPlugin).inMathBound(this.state, pos);
+			bounds = getMathBoundsPlugin(this.view).inMathBound(this.state, pos);
 		}
 
 		this.boundsCache.set(pos, bounds);
@@ -163,10 +166,11 @@ export const contextPlugin = ViewPlugin.fromClass(
 	}
 
 	// Accounts for equations within text environments, e.g. $$\text{... $...$}$$
-	getInnerBounds(pos: number = this.pos): Bounds {
-		let bounds;
-		if (this.innerBoundsCache.has(pos)) {
-			return this.innerBoundsCache.get(pos);
+	getInnerBounds(pos: number = this.pos): Bounds | null {
+		let bounds: Bounds | null;
+		const cached = this.innerBoundsCache.get(pos);
+		if (cached !== undefined) {
+			return cached;
 		}
 		if (this.mode.codeMath) {
 			// means a codeblock language triggered the math mode -> use the codeblock bounds instead
@@ -182,6 +186,13 @@ export const contextPlugin = ViewPlugin.fromClass(
 })
 type ContextPluginValue<T> = T extends ViewPlugin<infer V> ? V : never
 export type Context = ContextPluginValue<typeof contextPlugin>;
+export const getContextPlugin = (view: EditorView): Context => {
+	const plugin = view.plugin(contextPlugin)
+	if (!plugin) {
+		throw new Error("Context plugin not found, something went wrong with the plugin initialization");
+	}
+	return plugin;
+}
 
 
 enum MathMode {
@@ -190,9 +201,9 @@ enum MathMode {
 }
 
 // Accounts for equations within text environments, e.g. $$\text{... $...$}$$
-const getInnerEquationBounds = (view: EditorView, pos?: number ):Bounds => {
+const getInnerEquationBounds = (view: EditorView, pos?: number ):Bounds | null => {
 	if (!pos) pos = view.state.selection.main.to;
-	const bounds = view.plugin(mathBoundsPlugin).inMathBound(view.state, pos);
+	const bounds = getMathBoundsPlugin(view).inMathBound(view.state, pos);
 	if (!bounds) return null;
 	let text = view.state.sliceDoc(bounds.inner_start, bounds.inner_end);
 
@@ -484,3 +495,11 @@ export const mathBoundsPlugin = ViewPlugin.fromClass(
 		}
 	},
 );
+
+export const getMathBoundsPlugin = (view: EditorView) => {
+	const plugin = view.plugin(mathBoundsPlugin)
+	if (!plugin) {
+		throw new Error("MathBoundsPlugin not found, something went wrong with the plugin initialization");
+	}
+	return plugin;
+}

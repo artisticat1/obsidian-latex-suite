@@ -1,7 +1,7 @@
 import { Tooltip, showTooltip, EditorView, ViewUpdate } from "@codemirror/view";
 import { StateField, EditorState, EditorSelection, StateEffect } from "@codemirror/state";
 import { renderMath, finishRenderMath, editorLivePreviewField } from "obsidian";
-import { Context, contextPlugin } from "src/utils/context";
+import { Context, getContextPlugin } from "src/utils/context";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
 
 const updateTooltipEffect = StateEffect.define<Tooltip[]>();
@@ -43,7 +43,7 @@ export function handleMathTooltip(update: ViewUpdate) {
 	}
 
 	const settings = getLatexSuiteConfig(update.state);
-	const ctx = update.view.plugin(contextPlugin);
+	const ctx = getContextPlugin(update.view);
 
 	if (!shouldShowTooltip(update.state, ctx)) {
 		const currTooltips = update.state.field(cursorTooltipField);
