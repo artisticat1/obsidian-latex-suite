@@ -1,7 +1,7 @@
 import { EditorView, ViewUpdate, Decoration, DecorationSet, ViewPlugin } from "@codemirror/view";
 import { Prec, Range } from "@codemirror/state";
 import { findMatchingBracket, getOpenBracket, getCloseBracket } from "../utils/editor_utils";
-import { Context, contextPlugin, mathBoundsPlugin } from "src/utils/context";
+import { Context, getMathBoundsPlugin } from "src/utils/context";
 
 const Ncolors = 3;
 
@@ -20,7 +20,7 @@ type BracketConcealment = {
 
 type ColorBracketsCachedEquations = Record<string, BracketConcealment[]>;
 function colorPairedBrackets(view: EditorView, cached_equations: ColorBracketsCachedEquations) {
-	const equations = view.plugin(mathBoundsPlugin).getEquations(view.state);
+	const equations = getMathBoundsPlugin(view).getEquations(view.state);
 	const new_equations: typeof cached_equations = {};
 	for (const eqn of equations.values()) {
 		if (eqn in cached_equations) {
@@ -120,7 +120,7 @@ function highlightCursorBrackets(view: EditorView) {
 	const selection = view.state.selection;
 	const ranges = selection.ranges;
 	const text = view.state.doc.toString();
-	const ctx = view.plugin(contextPlugin);
+	const ctx = getContextPlugin(view);
 
 	if (!ctx.mode.inMath()) {
 		return Decoration.none;

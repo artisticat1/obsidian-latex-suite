@@ -2,11 +2,11 @@ import { Editor } from "obsidian";
 import { EditorView } from "@codemirror/view";
 import { replaceRange, setCursor, setSelection } from "../utils/editor_utils";
 import LatexSuitePlugin from "src/main";
-import { Context, contextPlugin } from "src/utils/context";
+import { getContextPlugin } from "src/utils/context";
 
 
 function boxCurrentEquation(view: EditorView) {
-	const ctx = view.plugin(contextPlugin);
+	const ctx = getContextPlugin(view);
 	const result = ctx.getBounds();
 	if (!result) return false;
 	const {inner_start: start, inner_end: end} = result;
@@ -34,7 +34,7 @@ function getBoxEquationCommand() {
 
 			// @ts-ignore
 			const view = editor.cm;
-			const ctx = view.plugin(contextPlugin);
+			const ctx = getContextPlugin(view);
 			const withinEquation = ctx.mode.inMath();
 
 			if (checking) return withinEquation;
@@ -57,7 +57,7 @@ function getSelectEquationCommand() {
 
 			// @ts-ignore
 			const view = editor.cm;
-			const ctx = view.plugin(contextPlugin);
+			const ctx = getContextPlugin(view);
 			const withinEquation = ctx.mode.inMath();
 
 			if (checking) return withinEquation;

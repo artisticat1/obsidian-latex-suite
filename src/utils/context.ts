@@ -65,7 +65,7 @@ export const contextPlugin = ViewPlugin.fromClass(
 		if (this.mode.code) this.codeblockLanguage = codeblockLanguage;
 
 		// first, check if math mode should be "generally" on
-		const mathBoundsCache = view.plugin(mathBoundsPlugin);
+		const mathBoundsCache = getMathBoundsPlugin(view);
 		const inMath = forceMath || mathBoundsCache.inMathBound(state, this.pos);
 		
 		if (inMath !== true && inMath !== null) {
@@ -155,7 +155,7 @@ export const contextPlugin = ViewPlugin.fromClass(
 			// means a codeblock language triggered the math mode -> use the codeblock bounds instead
 			bounds = getCodeblockBounds(this.state, pos);
 		} else {
-			bounds = this.view.plugin(mathBoundsPlugin).inMathBound(this.state, pos);
+			bounds = getMathBoundsPlugin(this.view).inMathBound(this.state, pos);
 		}
 
 		this.boundsCache.set(pos, bounds);
@@ -182,6 +182,13 @@ export const contextPlugin = ViewPlugin.fromClass(
 })
 type ContextPluginValue<T> = T extends ViewPlugin<infer V> ? V : never
 export type Context = ContextPluginValue<typeof contextPlugin>;
+export const getContextPlugin = (view: EditorView): Context => {
+	const plugin = view.plugin(contextPlugin)
+	if (!plugin) {
+		throw new Error("Context plugin not found, something went wrong with the plugin initialization");
+	}
+	return plugin;
+}
 
 
 enum MathMode {
@@ -192,7 +199,7 @@ enum MathMode {
 // Accounts for equations within text environments, e.g. $$\text{... $...$}$$
 const getInnerEquationBounds = (view: EditorView, pos?: number ):Bounds => {
 	if (!pos) pos = view.state.selection.main.to;
-	const bounds = view.plugin(mathBoundsPlugin).inMathBound(view.state, pos);
+	const bounds = getMathBoundsPlugin(view).inMathBound(view.state, pos);
 	if (!bounds) return null;
 	let text = view.state.sliceDoc(bounds.inner_start, bounds.inner_end);
 
@@ -484,3 +491,11 @@ export const mathBoundsPlugin = ViewPlugin.fromClass(
 		}
 	},
 );
+
+export const getMathBoundsPlugin = (view: EditorView) => {
+	const plugin = view.plugin(mathBoundsPlugin)
+	if (!plugin) {
+		throw new Error("MathBoundsPlugin not found, something went wrong with the plugin initialization");
+	}
+	return plugin;
+}

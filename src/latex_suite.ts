@@ -5,7 +5,7 @@ import { runAutoFraction } from "./features/autofraction";
 import { tabout, shouldTaboutByCloseBracket } from "./features/tabout";
 import { runMatrixShortcuts } from "./features/matrix_shortcuts";
 
-import { contextPlugin } from "./utils/context";
+import { getContextPlugin } from "./utils/context";
 import { getCharacterAtPos, replaceRange } from "./utils/editor_utils";
 import { setSelectionToNextTabstop } from "./snippets/snippet_management";
 import { removeAllTabstops } from "./snippets/codemirror/tabstops_state_field";
@@ -72,7 +72,7 @@ export const onKeydown = (event: KeyboardEvent, view: EditorView) => {
 export const handleKeydown = (key: string, shiftKey: boolean, ctrlKey: boolean, isIME: boolean, view: EditorView) => {
 
 	const settings = getLatexSuiteConfig(view);
-	const ctx = view.plugin(contextPlugin);
+	const ctx = getContextPlugin(view);
 
 	let success = false;
 
