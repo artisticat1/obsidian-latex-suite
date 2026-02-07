@@ -1,7 +1,7 @@
 import { Tooltip, showTooltip, EditorView, ViewUpdate } from "@codemirror/view";
 import { StateField, EditorState, EditorSelection, StateEffect } from "@codemirror/state";
 import { renderMath, finishRenderMath, editorLivePreviewField } from "obsidian";
-import { Context, getContextPlugin } from "src/utils/context";
+import { Bounds, Context, getContextPlugin } from "src/utils/context";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
 
 const updateTooltipEffect = StateEffect.define<Tooltip[]>();
@@ -27,7 +27,8 @@ export function handleMathTooltip(update: ViewUpdate) {
 	
 	// We don't need to update the tooltip every time the cursor moves. 
 	// Only update when we leaf or enter a LaTeX block. High impact.
-	if (update.selectionSet && !update.docChanged) {
+	const ctx = getContextPlugin(update.view);
+	if (update.selectionSet && !update.docChanged && ctx.mode.inEquation()) {
 		const oldSel = update.startState.selection.main;
 		const newSel = update.state.selection.main;
 		
@@ -43,9 +44,9 @@ export function handleMathTooltip(update: ViewUpdate) {
 	}
 
 	const settings = getLatexSuiteConfig(update.state);
-	const ctx = getContextPlugin(update.view);
+	const eqnBounds = shouldShowTooltip(update.state, ctx);
 
-	if (!shouldShowTooltip(update.state, ctx)) {
+	if (!eqnBounds) {
 		const currTooltips = update.state.field(cursorTooltipField);
 		// a little optimization:
 		// If the tooltip is not currently shown and there is no need to show it,
@@ -62,8 +63,6 @@ export function handleMathTooltip(update: ViewUpdate) {
 	* process when there is a need to show the tooltip: from here
 	*/
 
-	// HACK: eqnBounds is not null because shouldShowTooltip was true
-	const eqnBounds = ctx.getBounds();
 	const eqn = update.state.sliceDoc(eqnBounds.inner_start, eqnBounds.inner_end);
 
 	const above = settings.mathPreviewPositionIsAbove;
@@ -118,21 +117,21 @@ export function handleMathTooltip(update: ViewUpdate) {
 	});
 }
 
-function shouldShowTooltip(state: EditorState, ctx: Context): boolean {
-	if (!ctx.mode.inMath()) return false;
+function shouldShowTooltip(state: EditorState, ctx: Context): Bounds | null {
+	if (!ctx.mode.inMath()) return null;
 
 	const isLivePreview = state.field(editorLivePreviewField);
-	if (ctx.mode.blockMath && isLivePreview) return false;
+	if (ctx.mode.blockMath && isLivePreview) return null;
 
 	// FIXME: eqnBounds can be null
 	const eqnBounds = ctx.getBounds();
-	if (!eqnBounds) return false;
+	if (!eqnBounds) return null;
 
 	// Don't render an empty equation
 	const eqn = state.sliceDoc(eqnBounds.inner_start, eqnBounds.inner_end).trim();
-	if (eqn === "") return false;
+	if (eqn === "") return null;
 
-	return true;
+	return eqnBounds;
 }
 
 export const cursorTooltipBaseTheme = EditorView.baseTheme({
