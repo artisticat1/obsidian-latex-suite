@@ -224,18 +224,11 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		popup_line2.setText("The popup preview will be shown for all inline math equations, as well as for block math equations in Source mode.");
 		popup_fragment.append(popup_line1, popup_space, popup_line2);
 
-		new Setting(containerEl)
+		const mathPreviewSetting = new Setting(containerEl)
 			.setName("Enabled")
 			.setDesc(popup_fragment)
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.mathPreviewEnabled)
-				.onChange(async (value) => {
-					this.plugin.settings.mathPreviewEnabled = value;
 
-					await this.plugin.saveSettings();
-				}));
-
-		new Setting(containerEl)
+		const positionSetting = new Setting(containerEl)
 			.setName("Position")
 			.setDesc("Where to display the popup preview relative to the equation source.")
 			.addDropdown((dropdown) => dropdown
@@ -247,6 +240,51 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				})
 			);
+		const cursorSetting = new Setting(containerEl)
+			.setName("Cursor symbol")
+			.setDesc(`The symbol to use as the cursor in the popup preview such as ${DEFAULT_SETTINGS.mathPreviewCursor}. Leave it blank to turn it off.`)
+			.addText(text => {
+				text
+					.setPlaceholder(DEFAULT_SETTINGS.mathPreviewCursor)
+					.setValue(this.plugin.settings.mathPreviewCursor)
+					.onChange(async (value) => {
+						this.plugin.settings.mathPreviewCursor = value;
+						await this.plugin.saveSettings();
+					});
+
+				const datalist = containerEl.createEl("datalist", {attr: { id: "math-preview-cursor-list" }});
+				["▶", "┃", "|", "\\_", "{\\mid}", "{\\triangle}"].forEach(s => datalist.createEl("option", { value: s }));
+				text.inputEl.setAttribute("list", "math-preview-cursor-list");
+				return text;
+			});
+		
+		const highlightSetting = new Setting(containerEl)
+			.setName("Highlight brackets in preview")
+			.setDesc("Whether to highlight the area within the nearest pair of brackets around the cursor in the popup preview.")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.mathPreviewBracketHighlighting)
+				.onChange(async (value) => {
+					this.plugin.settings.mathPreviewBracketHighlighting = value;
+					await this.plugin.saveSettings();
+				}));
+		const mathPreviewDependentSettings = [positionSetting, cursorSetting, highlightSetting];
+		mathPreviewDependentSettings.forEach((setting) =>
+			setting.settingEl.toggleClass(
+				"hidden",
+				!this.plugin.settings.mathPreviewEnabled,
+			),
+		);
+
+		mathPreviewSetting.addToggle(toggle => 
+			toggle
+				.setValue(this.plugin.settings.mathPreviewEnabled)
+				.onChange(async (value) => {
+					this.plugin.settings.mathPreviewEnabled = value;
+					mathPreviewDependentSettings.forEach((setting) =>
+						setting.settingEl.toggleClass("hidden", !value),
+					);
+					await this.plugin.saveSettings();
+				}));
 	}
 
 	private displayAutofractionSettings() {
@@ -266,14 +304,20 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setName("Fraction symbol")
 			.setDesc("The fraction symbol to use in the replacement. e.g. \\frac, \\dfrac, \\tfrac")
-			.addText(text => text
-				.setPlaceholder(DEFAULT_SETTINGS.autofractionSymbol)
-				.setValue(this.plugin.settings.autofractionSymbol)
-				.onChange(async (value) => {
-					this.plugin.settings.autofractionSymbol = value;
+			.addText(text => {
+				text
+					.setPlaceholder(DEFAULT_SETTINGS.autofractionSymbol)
+					.setValue(this.plugin.settings.autofractionSymbol)
+					.onChange(async (value) => {
+						this.plugin.settings.autofractionSymbol = value;
 
-					await this.plugin.saveSettings();
-				}));
+						await this.plugin.saveSettings();
+					});
+
+				const datalist = containerEl.createEl("datalist", { attr: { id: "autofraction-symbol-list" } });
+				["\\frac", "\\dfrac", "\\tfrac"].forEach(s => datalist.createEl("option", { value: s }));
+				text.inputEl.setAttribute("list", "autofraction-symbol-list");
+			});
 
 
 		new Setting(containerEl)
