@@ -439,6 +439,14 @@ export const mathBoundsPlugin = ViewPlugin.fromClass(
 
 			const cursor = tree.cursor();
 			cursor.childBefore(pos);
+			// Obsidian parses nested environments such as callouts and list incorrectly,
+			// or it generates an incorrect tree. In such case we move left until we find a non-empty node.
+			if (cursor.node.firstChild && cursor.name !== "Document") {
+				while (state.sliceDoc(pos, pos + 1) === "\n" && pos > 0) {
+					pos -= 1;
+				}
+				cursor.moveTo(pos, -1);
+			}
 			if (
 				!(
 					cursor.name.contains("math") &&
