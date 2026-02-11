@@ -335,61 +335,73 @@ export const mathBoundsPlugin = ViewPlugin.fromClass(
 
 		updateMathBounds(view: EditorView) {
 			const tree = syntaxTree(view.state);
-			const temp_math_nodes: SyntaxNode[] = [];
-			for (const { from, to } of view.visibleRanges) {
-
+			const math_nodes_viewports: SyntaxNode[][] = [];
+			view.visibleRanges.forEach(({ from, to }, i) => {
+				math_nodes_viewports.push([]);
 				tree.iterate({
 					from,
 					to,
 					enter: (node: SyntaxNodeRef) => {
+						// Don't include math nodes at the boundaries as in livepreview it means they are not rendered.
 						if (
-							open_math_nodes.has(node.name) ||
-							close_math_nodes.has(node.name)
+							(open_math_nodes.has(node.name) && node.to < to) ||
+							(close_math_nodes.has(node.name) &&
+								node.from > from)
 						) {
-							temp_math_nodes.push(node.node);
+							math_nodes_viewports[i].push(node.node);
 						}
 					},
 				});
-			}
+			});
 			const temp_math_bounds: MathBounds[] = [];
-			// nodes could be unbalanced or unbalanced in the viewport
-			// - e.g., starting with a closing math node or ending with a opening math node
-			if (close_math_nodes.has(temp_math_nodes[0]?.name)) {
-				const bounds = this.computeEquationBounds(view.state, temp_math_nodes[0].from);
-				if (bounds) {
-					temp_math_bounds.push(bounds);
+			for (const math_nodes_viewport of math_nodes_viewports) {
+				// nodes could be unbalanced or unbalanced in the viewport
+				// - e.g., starting with a closing math node or ending with a opening math node
+				if (close_math_nodes.has(math_nodes_viewport[0]?.name)) {
+					const bounds = this.computeEquationBounds(view.state, math_nodes_viewport[0].from);
+					if (bounds) {
+						temp_math_bounds.push(bounds);
+					}
+				}
+				const start_i = open_math_nodes.has(math_nodes_viewport[0]?.name)
+					? 0
+					: 1;
+				for (let i = start_i; i < math_nodes_viewport.length - 1; i += 2) {
+					const open_node = math_nodes_viewport[i];
+					const close_node = math_nodes_viewport[i + 1];
+					temp_math_bounds.push({
+						inner_start: open_node.to,
+						inner_end: close_node.from,
+						outer_start: open_node.from,
+						outer_end: close_node.to,
+						mode:
+							open_node.name === OPEN_INLINE_MATH_NODE
+								? MathMode.InlineMath
+								: MathMode.BlockMath,
+					});
+				}
+				
+				if (
+					open_math_nodes.has(
+						math_nodes_viewport[math_nodes_viewport.length - 1]?.name,
+					)
+				) {
+					const last_node = math_nodes_viewport[math_nodes_viewport.length - 1];
+					const bounds = this.computeEquationBounds(view.state, last_node.to);
+					if (bounds) {
+						temp_math_bounds.push(bounds);
+					}
 				}
 			}
-			const start_i = open_math_nodes.has(temp_math_nodes[0]?.name)
-				? 0
-				: 1;
-			for (let i = start_i; i < temp_math_nodes.length - 1; i += 2) {
-				const open_node = temp_math_nodes[i];
-				const close_node = temp_math_nodes[i + 1];
-				temp_math_bounds.push({
-					inner_start: open_node.to,
-					inner_end: close_node.from,
-					outer_start: open_node.from,
-					outer_end: close_node.to,
-					mode:
-						open_node.name === OPEN_INLINE_MATH_NODE
-							? MathMode.InlineMath
-							: MathMode.BlockMath,
-				});
-			}
-			
-			if (
-				open_math_nodes.has(
-					temp_math_nodes[temp_math_nodes.length - 1]?.name,
-				)
-			) {
-				const last_node = temp_math_nodes[temp_math_nodes.length - 1];
-				const bounds = this.computeEquationBounds(view.state, last_node.to);
-				if (bounds) {
-					temp_math_bounds.push(bounds);
+			this.mathBounds = temp_math_bounds.filter((val, i) => {
+				if (i === 0) return true;
+				const prev = temp_math_bounds[i - 1];
+				if (prev.outer_start === val.outer_start && prev.outer_end === val.outer_end) {
+					// duplicate bound, likely due to unbalanced math nodes in the viewport, so we skip it
+					return false;
 				}
-			}
-			this.mathBounds = temp_math_bounds;
+				return true;
+			});
 		}
 
 		inMathBound = (state: EditorState, pos: number): MathBounds | null => {
@@ -437,7 +449,7 @@ export const mathBoundsPlugin = ViewPlugin.fromClass(
 			state: EditorState,
 			pos?: number,
 		): MathBounds | null => {
-			if (!pos) pos = state.selection.main.to;
+			if (pos === undefined) pos = state.selection.main.to;
 			const tree = syntaxTree(state);
 
 			const cursor = tree.cursor();
