@@ -1,4 +1,5 @@
 name: Release Obsidian plugin
+run-name: ${{ github.ref_name }}
 
 on:
   push:
