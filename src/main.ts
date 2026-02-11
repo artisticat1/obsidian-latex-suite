@@ -48,7 +48,7 @@ export default class LatexSuitePlugin extends Plugin {
 			const message = "Obsidian Latex Suite: This plugin does not support the legacy editor. Switch to Live Preview mode to use this plugin.";
 
 			new Notice(message, 100000);
-			console.log(message);
+			console.error(message);
 
 			return;
 		}
@@ -63,7 +63,7 @@ export default class LatexSuitePlugin extends Plugin {
 			message.createEl("code", { text: "Advanced settings > Suppress IME warning" });
 			message.appendText(".");
 			new Notice(message, 10000);
-			console.log(message);
+			console.info(message);
 		}
 	}
 
@@ -118,7 +118,7 @@ export default class LatexSuitePlugin extends Plugin {
 			return await parseSnippetVariables(this.settings.snippetVariables);
 		} catch (e) {
 			new Notice(`Failed to load snippet variables from settings: ${e}`);
-			console.log(`Failed to load snippet variables from settings: ${e}`);
+			console.error(`Failed to load snippet variables from settings: ${e}`);
 			return {};
 		}
 	}
@@ -128,7 +128,7 @@ export default class LatexSuitePlugin extends Plugin {
 			return await parseSnippets(this.settings.snippets, snippetVariables);
 		} catch (e) {
 			new Notice(`Failed to load snippets from settings: ${e}`);
-			console.log(`Failed to load snippets from settings: ${e}`);
+			console.error(`Failed to load snippets from settings: ${e}`);
 			return [];
 		}
 	}

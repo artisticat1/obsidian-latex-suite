@@ -112,7 +112,7 @@ export function processLatexSuiteSettings(snippets: Snippet[], settings: LatexSu
 			});
 		}
 		catch (e) {
-			console.log(e);
+			console.error(e);
 		}
 
 		return envs;

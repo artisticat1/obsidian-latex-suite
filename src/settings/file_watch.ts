@@ -130,7 +130,7 @@ export async function getVariablesFromFiles(plugin: LatexSuitePlugin, files: Fil
 			Object.assign(snippetVariables, await parseSnippetVariables(content));
 		} catch (e) {
 			new Notice(`Failed to parse variable file ${file.name}: ${e}`);
-			console.log(`Failed to parse variable file ${file.name}: ${e}`);
+			console.error(`Failed to parse variable file ${file.name}: ${e}`);
 			files.definitelyVariableFiles.delete(file);
 		}
 	}
@@ -170,7 +170,7 @@ export async function getSnippetsFromFiles(
 			snippets.push(...await parseSnippets(content, snippetVariables));
 		} catch (e) {
 			new Notice(`Failed to parse snippet file ${file.name}: ${e}`);
-			console.log(`Failed to parse snippet file ${file.name}: ${e}`);
+			console.error(`Failed to parse snippet file ${file.name}: ${e}`);
 			files.definitelySnippetFiles.delete(file);
 		}
 	}
