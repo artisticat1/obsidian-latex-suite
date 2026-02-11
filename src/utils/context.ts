@@ -410,7 +410,10 @@ export const mathBoundsPlugin = ViewPlugin.fromClass(
 					right = mid - 1;
 				} else if (pos >= bound.outer_end) {
 					left = mid + 1;
-				} else {
+				} else if ((pos <= bound.inner_start || pos >= bound.inner_end)) {
+					break;
+				}
+				else {
 					return bound;
 				}
 			}
@@ -442,10 +445,11 @@ export const mathBoundsPlugin = ViewPlugin.fromClass(
 			// Obsidian parses nested environments such as callouts and list incorrectly,
 			// or it generates an incorrect tree. In such case we move left until we find a non-empty node.
 			if (cursor.node.firstChild && cursor.name !== "Document") {
-				while (state.sliceDoc(pos, pos + 1) === "\n" && pos > 0) {
-					pos -= 1;
+				let slicePos = pos;
+				while (state.sliceDoc(slicePos, slicePos + 1) === "\n" && slicePos > 0) {
+					slicePos -= 1;
 				}
-				cursor.moveTo(pos, -1);
+				cursor.moveTo(slicePos, -1);
 			}
 			if (
 				!(
