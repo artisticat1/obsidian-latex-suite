@@ -165,7 +165,7 @@ function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snip
 
 		// Add $ so regex matches end of string
 		// i.e. look for a match at the cursor's current position
-		triggerStr = `${triggerStr}$`;
+		triggerStr = `(?:${triggerStr})$`;
 
 		// convert trigger into RegExp instance
 		trigger = new RegExp(triggerStr, flags);
