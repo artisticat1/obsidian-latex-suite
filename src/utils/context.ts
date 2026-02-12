@@ -6,6 +6,7 @@ import { Environment } from "../snippets/environment";
 import { getLatexSuiteConfig } from "../snippets/codemirror/config";
 import { syntaxTree } from "@codemirror/language";
 import { SyntaxNode, SyntaxNodeRef } from "@lezer/common";
+import { textAreaEnvs } from "./default_text_areas";
 
 const OPEN_INLINE_MATH_NODE = "formatting_formatting-math_formatting-math-begin_keyword_math";
 const CLOSE_INLINE_MATH_NODE = "formatting_formatting-math_formatting-math-end_keyword_math_math-";
@@ -94,7 +95,7 @@ export const contextPlugin = ViewPlugin.fromClass(
 
 	}
 
-	isWithinEnvironment(pos: number, env: Environment): boolean {
+	isWithinEnvironment(pos: number, envs: Environment | Environment[]): boolean {
 		if (!this.mode.inMath()) return false;
 
 		const bounds = this.getInnerBounds();
@@ -102,56 +103,63 @@ export const contextPlugin = ViewPlugin.fromClass(
 
 		const {inner_start: start, inner_end: end} = bounds;
 		const text = this.state.sliceDoc(start, end);
-		// pos referred to the absolute position in the whole document, but we just sliced the text
-		// so now pos must be relative to the start in order to be any useful
-		pos -= start;
-
-		const openBracket = env.openSymbol.slice(-1);
-		const closeBracket = getCloseBracket(openBracket);
-
-		// Take care when the open symbol ends with a bracket {, [, or (
-		// as then the closing symbol, }, ] or ), is not unique to this open symbol
-		let offset;
-		let openSearchSymbol;
-
-		if (["{", "[", "("].contains(openBracket) && env.closeSymbol === closeBracket) {
-			offset = env.openSymbol.length - 1;
-			openSearchSymbol = openBracket;
-		} else {
-			offset = 0;
-			openSearchSymbol = env.openSymbol;
+		if (!Array.isArray(envs)) {
+			envs = [envs];
 		}
+		outer_loop: for (const env of envs) {
+			// pos referred to the absolute position in the whole document, but we just sliced the text
+			// so now pos must be relative to the start in order to be any useful
+			pos -= start;
 
-		let left = text.lastIndexOf(env.openSymbol, pos - 1);
+			const openBracket = env.openSymbol.slice(-1);
+			const closeBracket = getCloseBracket(openBracket);
 
-		while (left != -1) {
-			const right = findMatchingBracket(text, left + offset, openSearchSymbol, env.closeSymbol, false);
+			// Take care when the open symbol ends with a bracket {, [, or (
+			// as then the closing symbol, }, ] or ), is not unique to this open symbol
+			let offset;
+			let openSearchSymbol;
 
-			if (right === -1) return false;
-
-			// Check whether the cursor lies inside the environment symbols
-			if ((right >= pos) && (pos >= left + env.openSymbol.length)) {
-				return true;
+			if (
+				["{", "[", "("].contains(openBracket) &&
+				env.closeSymbol === closeBracket
+			) {
+				offset = env.openSymbol.length - 1;
+				openSearchSymbol = openBracket;
+			} else {
+				offset = 0;
+				openSearchSymbol = env.openSymbol;
 			}
 
-			if (left <= 0) return false;
+			let left = text.lastIndexOf(env.openSymbol, pos - 1);
 
-			// Find the next open symbol
-			left = text.lastIndexOf(env.openSymbol, left - 1);
+			while (left != -1) {
+				const right = findMatchingBracket(
+					text,
+					left + offset,
+					openSearchSymbol,
+					env.closeSymbol,
+					false,
+				);
+
+				if (right === -1) continue outer_loop;
+
+				// Check whether the cursor lies inside the environment symbols
+				if (right >= pos && pos >= left + env.openSymbol.length) {
+					return true;
+				}
+
+				if (left <= 0) continue outer_loop;
+
+				// Find the next open symbol
+				left = text.lastIndexOf(env.openSymbol, left - 1);
+			}
 		}
 
 		return false;
 	}
 
 	inTextEnvironment(): boolean {
-		return (
-			this.isWithinEnvironment(this.pos, {openSymbol: "\\text{", closeSymbol: "}"}) ||
-			this.isWithinEnvironment(this.pos, {openSymbol: "\\tag{", closeSymbol: "}"}) ||
-			this.isWithinEnvironment(this.pos, {openSymbol: "\\begin{", closeSymbol: "}"}) ||
-			this.isWithinEnvironment(this.pos, {openSymbol: "\\end{", closeSymbol: "}"}) ||
-			this.isWithinEnvironment(this.pos, {openSymbol: "\\mathrm{", closeSymbol: "}"}) ||
-			this.isWithinEnvironment(this.pos, {openSymbol: "\\color{", closeSymbol: "}"})
-		);
+		return this.isWithinEnvironment(this.pos, textAreaEnvs)
 	}
 
 	getBounds(pos: number = this.pos): Bounds | null {
