@@ -146,7 +146,7 @@ export async function tryGetVariablesFromUnknownFiles(plugin: LatexSuitePlugin, 
 		try {
 			Object.assign(snippetVariables, await parseSnippetVariables(content));
 			files.definitelyVariableFiles.add(file);
-		} catch (e) {
+		} catch {
 			// No error here, we just assume this is a snippets file.
 			// If it's not, then an error will be raised later, while parsing it.
 			files.definitelySnippetFiles.add(file);

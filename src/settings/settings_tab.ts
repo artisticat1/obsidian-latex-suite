@@ -601,7 +601,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					snippetVariables = await parseSnippetVariables(this.plugin.settings.snippetVariables)
 					await parseSnippets(snippets, snippetVariables);
 				}
-				catch (e) {
+				catch {
 					success = false;
 				}
 
