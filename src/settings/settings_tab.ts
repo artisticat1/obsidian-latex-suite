@@ -377,7 +377,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		const containerEl = this.containerEl;
 		this.addHeading(containerEl, "Tabout", "tabout");
 
-		const taboutEnabledSetting = new Setting(containerEl)
+		new Setting(containerEl)
 			.setName("Enabled")
 			.setDesc("Whether tabout is enabled.")
 			.addToggle(toggle => toggle

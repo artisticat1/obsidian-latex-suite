@@ -30,9 +30,9 @@ const readNextToken = (latexString: string, start: number): { token: Token; next
 	const char = latexString[start];
 
 	switch (char) {
-		case '%':
+		case "%":
 			return readCommentToken(latexString, start);
-		case '\\':
+		case "\\":
 			return readEscapeToken(latexString, start);
 		default:
 			return readSingleCharacterToken(latexString, start);
@@ -44,7 +44,7 @@ const readCommentToken = (latexString: string, start: number): { token: Token; n
 	const length = latexString.length;
 	let current = start + 1;
 
-	while (current < length && latexString[current] !== '\n') {
+	while (current < length && latexString[current] !== "\n") {
 		current++;
 	}
 

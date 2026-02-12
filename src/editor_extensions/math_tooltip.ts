@@ -132,7 +132,7 @@ export function handleMathTooltip(update: ViewUpdate) {
 		try {
 			const renderedEqn = renderMath(eqnWithDecorations, ctx.mode.blockMath || ctx.mode.codeMath);
 			const highlight = renderedEqn.querySelector(
-				'[style*="background-color: var(--latex-suite-math-preview-highlight)"]',
+				"[style*=\"background-color: var(--latex-suite-math-preview-highlight)\"]",
 			) as HTMLElement;
 			highlight?.addClass("latex-suite-math-preview-highlight");
 			highlight?.style.removeProperty("background-color");

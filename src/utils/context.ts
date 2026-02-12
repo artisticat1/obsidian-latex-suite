@@ -1,6 +1,6 @@
 import { EditorState, SelectionRange } from "@codemirror/state";
 import { EditorView, PluginValue, ViewPlugin, ViewUpdate } from "@codemirror/view";
-import { Direction, escalateToToken, findMatchingBracket, getCharacterAtPos, getCloseBracket } from "src/utils/editor_utils";
+import { findMatchingBracket, getCloseBracket } from "src/utils/editor_utils";
 import { Mode } from "../snippets/options";
 import { Environment } from "../snippets/environment";
 import { getLatexSuiteConfig } from "../snippets/codemirror/config";
