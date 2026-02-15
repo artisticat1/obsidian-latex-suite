@@ -565,6 +565,20 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 					await this.plugin.saveSettings();
 				}));
+		
+		new Setting(containerEl)
+			.setName("Snippet debug mode")
+			.setDesc("Set the level of debug information to log about snippet expansion. Set to \"info\" or \"verbose\" to help identify issues with snippet syntax or why a snippet is not expanding. Verbose mode will log most information to the developer console on debug level.")
+			.addDropdown((dropdown) => dropdown
+				.addOption("off", "Off")
+				.addOption("info", "Info")
+				.addOption("verbose", "Verbose")
+				.setValue(this.plugin.settings.snippetDebug)
+				.onChange(async (value) => {
+					this.plugin.settings.snippetDebug = value as "off" | "info" | "verbose";
+					await this.plugin.saveSettings();
+				})
+			);
 	}
 
 	createSnippetsEditor(snippetsSetting: Setting) {
