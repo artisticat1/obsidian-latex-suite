@@ -59,8 +59,8 @@ export const autoEnlargeBrackets = (view: EditorView) => {
 		}
 
 		// Enlarge the brackets
-		queueSnippet(view, i, i+bracketSize, left + open + " ");
-		queueSnippet(view, j, j+bracketSize, " " + right + close);
+		queueSnippet(i, i+bracketSize, left + open + " ");
+		queueSnippet(j, j+bracketSize, " " + right + close);
 	}
 
 	expandSnippets(view);
