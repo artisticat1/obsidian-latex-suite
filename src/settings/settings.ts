@@ -3,6 +3,8 @@ import { Environment } from "../snippets/environment";
 import { DEFAULT_SNIPPETS } from "src/utils/default_snippets";
 import { DEFAULT_SNIPPET_VARIABLES } from "src/utils/default_snippet_variables";
 
+export type snippetDebugLevel = "off" | "info" | "verbose";
+
 interface LatexSuiteBasicSettings {
 	snippetsEnabled: boolean;
 	snippetsTrigger: "Tab" | " "
@@ -29,6 +31,7 @@ interface LatexSuiteBasicSettings {
 	taboutEnabled: boolean;
 	autoEnlargeBrackets: boolean;
 	wordDelimiters: string;
+	snippetDebug: snippetDebugLevel;
 }
 
 /**
@@ -94,6 +97,7 @@ export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
 	taboutClosingSymbols: "), ], \\rbrack, \\}, \\rbrace, \\rangle, \\rvert, \\rVert, \\rfloor, \\rceil, \\urcorner, }",
 	autoEnlargeBracketsTriggers: "sum, int, frac, prod, bigcup, bigcap",
 	forceMathLanguages: "math",
+	snippetDebug: "off",
 }
 
 export function processLatexSuiteSettings(snippets: Snippet[], settings: LatexSuitePluginSettings):LatexSuiteCMSettings {

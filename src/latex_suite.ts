@@ -107,7 +107,7 @@ export const handleKeydown = (key: string, shiftKey: boolean, ctrlKey: boolean, 
 		// Allows Ctrl + z for undo, instead of triggering a snippet ending with z
 		if (!ctrlKey) {
 			try {
-				success = runSnippets(view, ctx, key);
+				success = runSnippets(view, ctx, key, settings.snippetDebug);
 				if (success) return true;
 			}
 			catch (e) {
