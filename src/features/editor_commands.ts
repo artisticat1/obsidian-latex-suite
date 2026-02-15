@@ -116,12 +116,24 @@ function getDisableAllFeaturesCommand(plugin: LatexSuitePlugin) {
 	}
 }
 
+function getToggleConcealCommand(plugin: LatexSuitePlugin) {
+	return {
+		id: "latex-suite-toggle-conceal",
+		name: "Toggle conceal",
+		callback: async () => {
+			plugin.settings.concealEnabled = !plugin.settings.concealEnabled;
+			await plugin.saveSettings();
+		},
+	}
+}
+
 
 export const getEditorCommands = (plugin: LatexSuitePlugin) => {
 	return [
 		getBoxEquationCommand(),
 		getSelectEquationCommand(),
 		getEnableAllFeaturesCommand(plugin),
-		getDisableAllFeaturesCommand(plugin)
+		getDisableAllFeaturesCommand(plugin),
+		getToggleConcealCommand(plugin),
 	];
 };
