@@ -6,14 +6,16 @@ import { Mode, Options } from "src/snippets/options";
 import { expandSnippets } from "src/snippets/snippet_management";
 import { Context } from "src/utils/context";
 import { autoEnlargeBrackets } from "./auto_enlarge_brackets";
+import { snippetDebugLevel } from "src/settings/settings";
+import { Notice } from "obsidian";
 
 
-export const runSnippets = (view: EditorView, ctx: Context, key: string):boolean => {
+export const runSnippets = (view: EditorView, ctx: Context, key: string, debug: snippetDebugLevel):boolean => {
 
 	let shouldAutoEnlargeBrackets = false;
 
 	for (const range of ctx.ranges) {
-		const result = runSnippetCursor(view, ctx, key, range);
+		const result = runSnippetCursor(view, ctx, key, range, debug);
 
 		if (result.shouldAutoEnlargeBrackets) shouldAutoEnlargeBrackets = true;
 	}
@@ -29,14 +31,15 @@ export const runSnippets = (view: EditorView, ctx: Context, key: string):boolean
 }
 
 
-const runSnippetCursor = (view: EditorView, ctx: Context, key: string, range: SelectionRange):{success: boolean; shouldAutoEnlargeBrackets: boolean} => {
+const runSnippetCursor = (view: EditorView, ctx: Context, key: string, range: SelectionRange, debug: snippetDebugLevel):{success: boolean; shouldAutoEnlargeBrackets: boolean} => {
 
 	const settings = getLatexSuiteConfig(view);
 	const {from, to} = range;
 	const sel = view.state.sliceDoc(from, to);
 	const line = view.state.sliceDoc(0, to);
 	const updatedLine = line + key;
-	for (const snippet of settings.snippets) {
+	for (let i=0; i < settings.snippets.length; i++) {
+		const snippet = settings.snippets[i];
 		let effectiveLine = line;
 
 		if (!snippetShouldRunInMode(snippet.options, ctx.mode)) {
@@ -85,6 +88,35 @@ const runSnippetCursor = (view: EditorView, ctx: Context, key: string, range: Se
 		queueSnippet(view, start, to, replacement, key);
 
 		const containsTrigger = settings.autoEnlargeBracketsTriggers.some(word => replacement.contains("\\" + word));
+		if (debug === "info" || debug === "verbose") {
+			const trigger = snippet.trigger.toString()
+			const description = snippet.description || "No description";
+			const message = "Obsidian Latex Suite: <br><ul>" +
+				`<li>Description: ${new Option(description).innerHTML}\n</li>` +
+				`<li>Parsed trigger: <code>${new Option(trigger).innerHTML}</code>\n</li>`+
+				`<li>Replacement: <code>${new Option(replacement).innerHTML}</code>\n</li>` +
+				`<li>Auto-enlarge brackets: ${containsTrigger}\n</li>` +
+				"</ul>";
+			const fragment = new DocumentFragment();
+			const div = fragment.createDiv()
+			div.innerHTML = message;
+			new Notice(fragment, 5000);
+			console.info(div.textContent)
+		}
+		if (debug === "verbose") {
+			console.debug({
+				snippets_unexpanded: settings.snippets
+					.slice(0, i)
+					.map((s) => ({
+						description: s.description,
+						trigger: s.trigger,
+						options: s.options,
+						replacement: s.replacement
+					})),
+				current_mode: ctx.mode,
+				effectiveLine: effectiveLine,
+			});	
+		}	
 		return {success: true, shouldAutoEnlargeBrackets: containsTrigger};
 	}
 
