@@ -1,11 +1,13 @@
 import { EditorView } from "@codemirror/view";
-import { EditorState, SelectionRange } from "@codemirror/state";
+import { countColumn, EditorState, SelectionRange } from "@codemirror/state";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
 import { queueSnippet } from "src/snippets/codemirror/snippet_queue_state_field";
 import { Mode, Options } from "src/snippets/options";
 import { expandSnippets } from "src/snippets/snippet_management";
 import { Context } from "src/utils/context";
 import { autoEnlargeBrackets } from "./auto_enlarge_brackets";
+import { getIndentation, getIndentUnit, IndentContext, indentString, indentUnit, syntaxTree } from "@codemirror/language";
+import { Tree } from "@lezer/common";
 
 
 export const runSnippets = (view: EditorView, ctx: Context, key: string):boolean => {
@@ -79,6 +81,7 @@ const runSnippetCursor = (view: EditorView, ctx: Context, key: string, range: Se
 		if (ctx.mode.inlineMath && settings.removeSnippetWhitespace) {
 			replacement = trimWhitespace(replacement, ctx);
 		}
+		replacement = keepIndentAndCallout(view.state, to, replacement);
 
 		// Expand the snippet
 		const start = triggerPos;
@@ -147,5 +150,26 @@ const trimWhitespace = (replacement: string, ctx: Context) => {
 		}
 	}
 
+	return replacement;
+}
+
+const keepIndentAndCallout = (state: EditorState, pos: number, replacement: string): string => {
+	const line = state.doc.lineAt(pos);
+	const lineText = line.text;
+	const calloutAndIndent = lineText.match(/^(>*)(\s*)/);
+	const callouts = calloutAndIndent?.[1] ?? "";
+	const indentation = calloutAndIndent?.[2] ?? "";
+	const originalColIndent = countColumn(indentation, state.tabSize);
+	const indentUnitSize = getIndentUnit(state);
+	const misalignment = originalColIndent % indentUnitSize;
+	replacement = replacement.replace(/\n(\t*)/g, (match, p1) => {
+		// not preserving misalignment when indent level is increased
+		const newColIndent =
+			p1.length * indentUnitSize +
+			originalColIndent -
+			(p1.length && misalignment);
+		const indent = indentString(state, newColIndent);
+		return "\n" + callouts + indent;
+	});
 	return replacement;
 }
