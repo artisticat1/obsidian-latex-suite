@@ -128,6 +128,7 @@ export function handleMathTooltip(update: ViewUpdate) {
 	const create = () => {
 		const dom = document.createElement("div");
 		dom.addClass("cm-tooltip-cursor");
+		dom.addClass(above ? "cm-tooltip-above" : "cm-tooltip-below");
 
 		try {
 			const renderedEqn = renderMath(eqnWithDecorations, ctx.mode.blockMath || ctx.mode.codeMath);

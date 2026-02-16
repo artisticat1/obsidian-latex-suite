@@ -192,8 +192,25 @@ sup.cm-math, sub.cm-math {
     0px 3.4px 6.7px rgba(0, 0, 0, 0.15),
     0px 0px 30px rgba(0, 0, 0, 0.27);
 }
+/* CM6 puts the top of the tooltip higher than what's viewable (negative top value),
+so to compensate for this, we align the content to the bottom of the tooltip container,
+and limit the height.
+*/
+.cm-tooltip.cm-tooltip-cursor.cm-tooltip-above {
+	display: flex;
+}
 
+.cm-tooltip.cm-tooltip-cursor.cm-tooltip-above > .MathJax {
+	overflow-y: auto;
+	max-height: 70%;
+	display: inline-block;
+	align-self: flex-end;
+}
 
+.cm-tooltip.cm-tooltip-cursor.cm-tooltip-below > .MathJax {
+	overflow-y: auto;
+	max-height: 90%;
+}
 /* Highlight brackets */
 .theme-light .latex-suite-highlighted-bracket, .theme-light .latex-suite-highlighted-bracket [class^="latex-suite-color-bracket-"] {
     background-color: hsl(var(--accent-h), var(--accent-s), 40%, 0.3);
