@@ -1,4 +1,3 @@
-import { EditorView } from "@codemirror/view";
 import { ChangeSpec } from "@codemirror/state"
 import { TabstopSpec } from "../tabstop";
 import { findMatchingBracket } from "src/utils/editor_utils";
@@ -16,9 +15,8 @@ export class SnippetChangeSpec {
         this.keyPressed = keyPressed;
     }
 
-    getTabstops(view: EditorView, start: number):TabstopSpec[] {
+    getTabstops(text: string, start: number):TabstopSpec[] {
         const tabstops:TabstopSpec[] = [];
-        const text = view.state.doc.toString();
 
         for (let i = start; i < start + this.insert.length; i++) {
 
