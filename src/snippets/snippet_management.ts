@@ -2,7 +2,7 @@ import { EditorView } from "@codemirror/view";
 import { ChangeSet, StateEffect } from "@codemirror/state";
 import { endSnippet, startSnippet } from "./codemirror/history";
 import { isolateHistory } from "@codemirror/commands";
-import { getEditorSelectionEndpoints, TabstopSpec, tabstopSpecsToTabstopGroups } from "./tabstop";
+import { TabstopSpec, tabstopSpecsToTabstopGroups } from "./tabstop";
 import { addTabstops, getNextTabstopColor, tabstopsStateField } from "./codemirror/tabstops_state_field";
 import { clearSnippetQueue, getSnippetQueue } from "./codemirror/snippet_queue_state_field";
 import { SnippetChangeSpec } from "./codemirror/snippet_change_spec";
@@ -110,7 +110,7 @@ function expandTabstops(
 		selection: sel,
 		effects: endSnippet.of(null),
 		sequential: true
-	}
+	};
 	view.dispatch({
 		effects: [undoChanges.effects, ...effects],
 		changes: undoChanges.changes.compose(changes),
