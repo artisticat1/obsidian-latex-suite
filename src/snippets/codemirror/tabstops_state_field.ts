@@ -4,28 +4,39 @@ import { TabstopGroup } from "../tabstop";
 
 const addTabstopsEffect = StateEffect.define<TabstopGroup[]>();
 const removeAllTabstopsEffect = StateEffect.define();
-
-export const tabstopsStateField = StateField.define<TabstopGroup[]>({
+type TabstopsState = {
+	index: number,
+	tabstopGroups: TabstopGroup[],
+	color: number,
+}
+export const tabstopsStateField = StateField.define<TabstopsState>({
 
 	create() {
-		return [];
+		return {
+			index: 0,
+			tabstopGroups: [],
+			color: 0,
+		};
 	},
 
 	update(value, transaction) {
-		let tabstopGroups = value;
+		let tabstopGroups = value.tabstopGroups;
+		let color = value.color;
 		// Optimization: tabstops that are added should already have their changes applied
 		// So changes are only applied to existing tabstops
 		tabstopGroups.forEach(grp => grp.map(transaction.changes));
 	
 		for (const effect of transaction.effects) {
 			if (effect.is(addTabstopsEffect)) {
-				tabstopGroups.unshift(...effect.value);
+				tabstopGroups.splice(value.index, 1, ...effect.value);
 			}
 			else if (effect.is(removeAllTabstopsEffect)) {
 				tabstopGroups = [];
+				color = 0;
 			}
 		}
 
+		let index = value.index;
 		// Remove the tabstop groups that the cursor has passed. This scenario
 		// happens when the user manually moves the cursor using arrow keys or mouse
 		if (transaction.selection) {
@@ -33,23 +44,29 @@ export const tabstopsStateField = StateField.define<TabstopGroup[]>({
 				tabstopGroups,
 				transaction.selection
 			);
-			tabstopGroups = tabstopGroups.slice(currTabstopGroupIndex);
+			index = currTabstopGroupIndex;
 			
-			if (tabstopGroups.length <= 1) {
+			if (tabstopGroups.length <= 1 || index >= tabstopGroups.length-1) {
 				// Clear all tabstop groups if there's just one remaining
 				tabstopGroups = [];
+				index = 0;
+				color = 0;
 			} else {
 				tabstopGroups[0].hideFromEditor();
 			}
 		}
 
-		return tabstopGroups;
+		return {
+			index,
+			tabstopGroups,
+			color,
+		};
 	},
 
 	provide: (field) => {
 		return EditorView.decorations.of(view => {
 			// "Flatten" the array of DecorationSets to produce a single DecorationSet
-			const tabstopGroups = view.state.field(field);
+			const tabstopGroups = view.state.field(field).tabstopGroups;
 			const decos = [];
 
 			for (const tabstopGroup of tabstopGroups) {
@@ -74,7 +91,7 @@ function getCurrentTabstopGroupIndex(
 }
 
 export function getTabstopGroupsFromView(view: EditorView) {
-	const currentTabstopGroups = view.state.field(tabstopsStateField);
+	const currentTabstopGroups = view.state.field(tabstopsStateField).tabstopGroups;
 
 	return currentTabstopGroups;
 }
@@ -95,13 +112,5 @@ export function removeAllTabstops(view: EditorView) {
 const N_COLORS = 3;
 
 export function getNextTabstopColor(view: EditorView) {
-	const field = view.state.field(tabstopsStateField);
-	const existingColors = field.map(tabstopGroup => tabstopGroup.color);
-	const uniqueExistingColors = new Set(existingColors);
-
-	for (let i = 0; i < N_COLORS; i++) {
-		if (!uniqueExistingColors.has(i)) return i;
-	}
-
-	return 0;
+	return view.state.field(tabstopsStateField).color++ % N_COLORS;
 }

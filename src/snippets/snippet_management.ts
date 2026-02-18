@@ -1,5 +1,5 @@
 import { EditorView } from "@codemirror/view";
-import { ChangeSet, StateEffect } from "@codemirror/state";
+import { ChangeSet } from "@codemirror/state";
 import { endSnippet, startSnippet } from "./codemirror/history";
 import { isolateHistory } from "@codemirror/commands";
 import { TabstopSpec, tabstopSpecsToTabstopGroups } from "./tabstop";
@@ -16,12 +16,12 @@ export function expandSnippets(view: EditorView):boolean {
 
 	// Try to apply changes all at once, because `view.dispatch` gets expensive for large documents
 	const undoChanges = handleUndoKeypresses(view, snippetsToExpand);
-	const newText = undoChanges.changes.apply(view.state.doc).toString();
+	const newText = undoChanges.apply(view.state.doc).toString();
 	const tabstopsToAdd = computeTabstops(newText, snippetsToExpand, originalDocLength);
 
 	// Insert any tabstops
 	if (tabstopsToAdd.length === 0) {
-		view.dispatch(undoChanges);
+		view.dispatch({ changes: undoChanges });
 		clearSnippetQueue(view);
 		return true;
 	}
@@ -63,10 +63,7 @@ function handleUndoKeypresses(view: EditorView, snippets: SnippetChangeSpec[]) {
 	const combinedChanges = undoKeyPresses.compose(changesAsChangeSet);
 
 	// Mark the transaction as the beginning of a snippet (for undo/history purposes)
-	return {
-		changes: combinedChanges,
-		effects: startSnippet.of(null)
-	};
+	return combinedChanges;
 }
 
 function computeTabstops(text: string, snippets: SnippetChangeSpec[], originalDocLength: number) {
@@ -86,7 +83,7 @@ function computeTabstops(text: string, snippets: SnippetChangeSpec[], originalDo
 function expandTabstops(
 	view: EditorView,
 	tabstops: TabstopSpec[],
-	undoChanges: { changes: ChangeSet; effects: StateEffect<null> },
+	undoChanges: ChangeSet,
 	newLength: number
 ) {
 	const changes = ChangeSet.of(
@@ -102,6 +99,8 @@ function expandTabstops(
 	const color = getNextTabstopColor(view);
 	const tabstopGroups = tabstopSpecsToTabstopGroups(tabstops, color);
 	tabstopGroups.forEach((grp) => grp.map(changes));
+	const extraTabstopGroups = tabstopSpecsToTabstopGroups(tabstops, color)
+	extraTabstopGroups.forEach((grp) => grp.map(changes));
 	// Insert the replacements
 	const effects = addTabstops(tabstopGroups).effects;
 	const firstGrp = tabstopGroups[0];
@@ -112,16 +111,17 @@ function expandTabstops(
 		sequential: true
 	};
 	view.dispatch({
-		effects: [undoChanges.effects, ...effects],
-		changes: undoChanges.changes.compose(changes),
+		effects: [...effects, startSnippet.of(extraTabstopGroups)],
+		changes: undoChanges.compose(changes),
 	}, spec);
 }
 
 // Returns true if the transaction was dispatched
-export function setSelectionToNextTabstop(view: EditorView): boolean {
-	const tabstopGroups = view.state.field(tabstopsStateField);
+export function setSelectionToNextTabstop(view: EditorView, shiftKey: boolean): boolean {
+	const tabstopGroups = view.state.field(tabstopsStateField).tabstopGroups;
+	const index = view.state.field(tabstopsStateField).index;
 
-	function aux(nextGrpIndex: number) {
+	function aux(nextGrpIndex: number, direction: 1 | -1): boolean {
 		const nextGrp = tabstopGroups[nextGrpIndex];
 		if (!nextGrp) return false;
 
@@ -133,8 +133,9 @@ export function setSelectionToNextTabstop(view: EditorView): boolean {
 			nextGrpSel = nextGrp.toEditorSelection(true);
 		}
 
-		if (currSel.eq(nextGrpSel))
-			return aux(nextGrpIndex + 1);
+		if (currSel.eq(nextGrpSel)){
+			return aux(nextGrpIndex + direction, direction);
+		}
 
 		view.dispatch({
 			selection: nextGrpSel,
@@ -143,6 +144,6 @@ export function setSelectionToNextTabstop(view: EditorView): boolean {
 
 		return true;
 	}
-
-	return aux(1);
+	const direction = shiftKey ? -1 : 1;
+	return aux(index + direction, direction);
 }
