@@ -32,6 +32,11 @@ interface LatexSuiteBasicSettings {
 	autoEnlargeBrackets: boolean;
 	wordDelimiters: string;
 	snippetDebug: snippetDebugLevel;
+	vimEnabled: boolean;
+	vimSelectMode: string;
+	vimVisualMode: string;
+	vimMatrixEnter: string;
+
 }
 
 /**
@@ -98,6 +103,10 @@ export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
 	autoEnlargeBracketsTriggers: "sum, int, frac, prod, bigcup, bigcap",
 	forceMathLanguages: "math",
 	snippetDebug: "off",
+	vimEnabled: false,
+	vimSelectMode: "<C-g>",
+	vimVisualMode: "<C-g>",
+	vimMatrixEnter: "o",
 }
 
 export function processLatexSuiteSettings(snippets: Snippet[], settings: LatexSuitePluginSettings):LatexSuiteCMSettings {
