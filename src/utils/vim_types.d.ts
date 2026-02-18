@@ -1,4 +1,7 @@
-import { EditorSelection, ChangeDesc, Extension } from "@codemirror/state";
+/**
+ * Rough type definitions of vim apis, only use public apis that are documented in codemirror5 documentation.
+ */
+import { EditorSelection, ChangeDesc } from "@codemirror/state";
 import { StringStream } from "@codemirror/language";
 import { EditorView, ViewUpdate } from "@codemirror/view";
 import { SearchQuery } from "@codemirror/search";
