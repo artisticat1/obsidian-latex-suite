@@ -2,7 +2,6 @@ import { EditorView, ViewPlugin } from "@codemirror/view";
 import { SnippetChangeSpec } from "./snippet_change_spec";
 import { getIndentUnit, indentString } from "@codemirror/language";
 import { countColumn, EditorState } from "@codemirror/state";
-import { getCharacterAtPos } from "src/utils/editor_utils";
 export const snippetQueuePlugin = ViewPlugin.fromClass(
 	class {
 	private snippetQueue: SnippetChangeSpec[] = [];

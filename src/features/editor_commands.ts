@@ -149,7 +149,7 @@ export interface vimCommand {
 	type: "action" | "operator" | "motion";
 	action: (cm: CodeMirrorEditor) => void;
 	key: string;
-	context?: "normal" | "visual" | "replace" | "insert";
+	context: "normal" | "visual" | "replace" | "insert";
 }
 
 export function getVimSelectModeCommand(settings: LatexSuitePluginSettings): vimCommand {
@@ -204,7 +204,8 @@ export function getVimRunMatrixEnterCommand(settings: LatexSuitePluginSettings):
 			const line: string = cm.getLine(cursorLine);
 			cm.setCursor({line: cursorLine, ch: line.length + 1})
 			const view = EditorView.findFromDOM(cm.getWrapperElement());
-			const ctx = Context.fromView(view);
+			if (!view) return;
+			const ctx = getContextPlugin(view)
 			if (runMatrixShortcuts(view, ctx, "Enter", false)) {
 				vimObj.enterInsertMode(cm);
 				return;
@@ -233,7 +234,7 @@ export function getVimRunMatrixEnterCommand(settings: LatexSuitePluginSettings):
 					view.dispatch(transaction);
 				}
 			});
-			if (!succes) console.error(`Failed to insert newline and indent latex-suite-insert-newline-and-indent`);
+			if (!succes) console.error("Failed to insert newline and indent latex-suite-insert-newline-and-indent");
 			// go into insert mode after the newline is inserted, otherwise macros rerun for some reason
 			vimObj.enterInsertMode(cm);
 		},
