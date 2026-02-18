@@ -82,6 +82,21 @@ To reveal the LaTeX syntax, move your cursor over it. You can also choose to del
 ![conceal demo 3](https://raw.githubusercontent.com/artisticat1/obsidian-latex-suite/main/gifs/conceal_delay.gif)
 ![conceal demo](https://raw.githubusercontent.com/artisticat1/obsidian-latex-suite/main/gifs/conceal.png)
 
+> [!NOTE]
+> One of your selected monospace fonts in obsidian needs to support these symbols.
+> [JuliaMono](https://juliamono.netlify.app/) has been known to work for all symbols.
+> Either install the font or add the following to your css file:
+> ```css
+> @font-face {
+>     font-family: JuliaMono;
+>     src: url(https://github.com/cormullion/juliamono/raw/refs/heads/master/webfonts/JuliaMono-Regular.woff2) format("woff2");
+>     text-rendering: optimizeLegibility;
+> }
+> 
+> body {
+>   --font-monospace-override: JuliaMono;
+> }
+> ```
 
 ### Tabout
 To make it easier to navigate and exit equations,
@@ -173,7 +188,7 @@ Snippets can be edited in the plugin settings. The structure of a snippet is as 
 - `m` : Math mode. Only run this snippet inside math. Shorthand for both `M` and `n`
 - `M` : Block math mode. Only run this snippet inside a `$$ ... $$` block
 - `n` : Inline math mode. Only run this snippet inside a `$ ... $` block
-- `A` : Auto. Expand this snippet as soon as the trigger is typed. If omitted, the <kbd>Tab</kbd> key must be pressed to expand the snippet
+- `A` : Auto. Expand this snippet as soon as the trigger is typed. If omitted, the <kbd>Tab</kbd> key must be pressed to expand the snippet. This doesn't always work for [IME keyboards](./DOCS.md@IME-keyboards) (like chinese/pinyin, gboard, german/french diacritic keyboards).
 - `r` : [Regex](./DOCS.md#regex-snippets). The `trigger` will be treated as a regular expression
 - `v` : [Visual](./DOCS.md#visual-snippets). Only run this snippet on a selection. The trigger should be a single character
 - `w` : Word boundary. Only run this snippet when the trigger is preceded (and followed by) a word delimiter, such as `.`, `,`, or `-`.

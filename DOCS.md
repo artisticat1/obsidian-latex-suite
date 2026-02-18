@@ -86,7 +86,7 @@ Using a RegExp literal, the same snippet can be written as
 > [!IMPORTANT]
 > - Some characters, such as `\`, `+`, and `.`, are special characters in regex. If you want to use these literally, remember to escape them by inserting two backslashes (`\\`) before them!
 >   - (One backslash to escape the special character, and another to escape that backslash)
-> - [Lookbehind regex is not supported on iOS.](https://github.com/bicarlsen/obsidian_image_caption/issues/4#issuecomment-982982629) Using lookbehind regex will cause snippets to break on iOS.
+> - [Lookbehind regex is not supported on iOS versions prior to 16.4.](https://github.com/bicarlsen/obsidian_image_caption/issues/4#issuecomment-982982629) Using lookbehind regex will cause snippets to break on iOS versions prior to 16.4.
 
 
 ### Snippet variables
@@ -230,26 +230,133 @@ based on which type of snippet the replacement applies to.
 
 If a snippet replacement function returns a non-string value, the snippet is ignored and will not expand.
 
+### IME keyboards
+By defaults snippets won't automatically expand for [Input Method Editor](https://en.wikipedia.org/wiki/Input_method)(IME) keyboards when they are in the middle of a composition because of `Advanced Settings > Don't trigger snippets when IME is active`. Keyboards like gboard are almost always in composition, making automatic unusable. Currently there is only support for keyboards like gboard, so turning that setting off will enable all automatic snippets. But due to the way french/german/chinese keyboards behave, there will still be automatic snippets that don't work (like `trigger: "^"`) when this setting is turned off. 
+
+On mobile devices a warning is shown that this setting is turned on, notifying that the keyboard is supported. If you use a different keyboard than swipe/touch keyboard thats IME, e.g. a physical keyboard with pinyin or if `Don't trigger snippets when IME is active` is turned on intentionally, you can turn that warning off.
+
 ## Snippet files
 
 You can choose to load snippets from a file or from all files within a folder. To do this, toggle the setting **Snippets > Load snippets from file or folder**. The file or folder must be within your vault, and not in a hidden folder (such as `.obsidian/`).
 
-Snippet files can be saved with any extension. However, to obtain syntax highlighting in external editors, you may wish to save your snippet files with an extension of `.js`.
+Snippet files can be saved with any extension. However, to obtain syntax highlighting in external editors, you may wish to save your snippet files with an extension of `.js`. If you don't have an external editor, (vscode)[https://code.visualstudio.com/] is a beginner-friendly editor to start with. If you wish to edit the snippet files inside Obsidian, you can create a regular markdown file and format it in a certain way to still get the syntax highlighting. See below.
 
-A snippets file is a JavaScript array of snippets, or a JavaScript module with a default export of an array of snippets.
+A snippets file is a Javascript module/file with a default export of an array of snippets. (The file can also contain only an array but this can mess up with syntax highlighting and its easier to break this file, so it is not recommended)
 
 _Note: an **array** is a list of items. In JavaScript, this is represented with the bracket symbols `[` `]`, with the items between them and separated by commas, e.g. `[ item1, item2 ]`._
 
 ### Example
-A snippet file containing an array of snippets:
+1. A snippets file called `latex-suite-snippets.js` in `/path/to/obsidian-vault/latex-suite-snippets.js`. The path in the settings should be relative to the vault, so in this case it would be `latex-suite-snippets.js`
 
-```typescript
-[
+```javascript
+export default [
 	{trigger: "mk", replacement: "$$0$", options: "tA"},
 	{trigger: "dm", replacement: "$$\n$0\n$$", options: "tAw"},
 	{trigger: /([A-Za-z])(\d)/, replacement: "[[0]]_{[[1]]}", options: "mA"}
 ]
 ```
+
+2. A snippets file that can be edited by obsidian. For example `latex-suite-snippets.md` formatted in the following way:
+~~~md
+/*
+
+First start with an opening `/*`.
+
+In javascript everything between `/*` and a closing `* /` (without the space in the second one)
+is treated as a "comment" and is ignored
+
+Then open a code block with javascript to get the highlighting like:
+
+```javascript
+*/
+// everything before the */ is a comment for javascript,
+// so you could still place text between the ```javascript and */.
+// But gets javascript syntax highlighting from obsidian, so its not recommended
+export default [
+	{trigger: "mk", replacement: "$$0$", options: "tA"},
+	{trigger: "dm", replacement: "$$\n$0\n$$", options: "tAw"},
+	{trigger: /([A-Za-z])(\d)/, replacement: "[[0]]_{[[1]]}", options: "mA"}
+];
+// Don't forget to comment the closing code block ticks with /* ... */ like the following:
+// The backticks need to be at the beginning of the line, so you can't use //``` to get the highlighting in obsidian.
+/*
+```
+*/
+~~~
+
+3. A folder called `latex-suite` with 2 snippet files in that folder called `greek.js` and `symbols_and_matrices.md`.
+	In the settings the snippet-path is `latex-suite`.
+	Then your vault looks like the following
+```
+.
+├── latex-suite
+│   ├── greek.js
+│   └── symbols_and_matrices.md
+└── .obsidian
+```
+where your `greek.js` looks like the following
+```js
+const greek_snippets = [
+	// Greek letters
+	{trigger: "@a", replacement: "\\alpha", options: "mA"},
+	{trigger: "@b", replacement: "\\beta", options: "mA"},
+	// ... further snippets
+];
+export default greek_snippets
+```
+
+and your `symbols_and_matrices.md` can look like the following:
+
+~~~md
+/*
+Don't forget the comments in md files
+```javascript
+*/
+// `const <var_name> = ...` declares constant variable that can't be reassigned later
+// so `const a = 1; a=2;` gives an error. 
+// If you want to reassign variables use `let <var_name> = ...`
+const symbol_snippets = [
+	{trigger: "\\sum", replacement: "\\sum_{${0:i}=${1:1}}^{${2:N}} $3", options: "m"},
+	{trigger: "\\prod", replacement: "\\prod_{${0:i}=${1:1}}^{${2:N}} $3", options: "m"},
+    {trigger: "lim", replacement: "\\lim_{ ${0:n} \\to ${1:\\infty} } $2", options: "mA"},
+	// further snippets here
+];
+/*
+```
+
+Insert your markdown here, like examples as reminders.
+Reminder the string `* /` (without the space) always marks the end of the comment.
+So you can't use it here.
+
+Then you can have another block
+```javascript
+*/
+const matrix_snippets = [
+	{trigger: "pmat", replacement: "\\begin{pmatrix}\n$0\n\\end{pmatrix}", options: "MA"},
+	{trigger: "bmat", replacement: "\\begin{bmatrix}\n$0\n\\end{bmatrix}", options: "MA"},
+	{trigger: "Bmat", replacement: "\\begin{Bmatrix}\n$0\n\\end{Bmatrix}", options: "MA"},
+	// further snippets here
+];
+/*
+```
+
+(Further markdown here)
+
+```javascript
+*/
+// the `...` is called the "spread" operator
+// And you can use it extract all items into one array
+// As [matrix_snippets, greek_snippets] would be an array containing 2 arrays and thus not valid.
+export default [...matrix_snippets, ...greek_snippets];
+/*
+You don't have to use variables and you don't have to structure it in multiple blocks
+But it could be nice. Note that a javascript module can have only **ONE** `export default`
+```
+*/
+~~~
+
+If the external file is invalid, there will be a notice in obsidian and a message in console.
+On desktop the console can be opened with `(Ctrl/Cmd)-Shift-I`.
 
 ## Snippet variable files
 
@@ -267,7 +374,7 @@ _Note: an **object** is a mapping of names to values. In JavaScript, this is rep
 A snippet variables file containing an object of variables, with the 3 acceptable formats:
 
 ```typescript
-{
+export default {
   	"${GREEK}": "alpha|beta|gamma|Gamma|delta|Delta|epsilon|varepsilon|zeta|eta|theta|vartheta|Theta|iota|kappa|lambda|Lambda|mu|nu|xi|omicron|pi|rho|varrho|sigma|Sigma|tau|upsilon|Upsilon|phi|varphi|Phi|chi|psi|omega|Omega",
   	"SYMBOL": "parallel|perp|partial|nabla|hbar|ell|infty|oplus|ominus|otimes|oslash|square|star|dagger|vee|wedge|subseteq|subset|supseteq|supset|emptyset|exists|nexists|forall|implies|impliedby|iff|setminus|neg|lor|land|bigcup|bigcap|cdot|times|simeq|approx",
   	MORE_SYMBOLS: "leq|geq|neq|gg|ll|equiv|sim|propto|rightarrow|leftarrow|Rightarrow|Leftarrow|leftrightarrow|to|mapsto|cap|cup|in|sum|prod|exp|ln|log|det|dots|vdots|ddots|pm|mp|int|iint|iiint|oint"
