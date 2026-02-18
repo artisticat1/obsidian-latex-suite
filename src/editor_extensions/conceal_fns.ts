@@ -4,11 +4,23 @@ import { EditorView } from "@codemirror/view";
 import { getMathBoundsPlugin } from "src/utils/context";
 import { findMatchingBracket } from "src/utils/editor_utils";
 import { ConcealSpec, mkConcealSpec } from "./conceal";
-import { greek, cmd_symbols, map_super, map_sub, fractions, brackets, mathscrcal, mathbb, operators } from "./conceal_maps";
+import { greek, cmd_symbols, map_super, map_sub, fractions, brackets, mathscrcal, mathbb, operators, not_remap as raw_not_remap } from "./conceal_maps";
 
+
+
+/**
+ *sort by length. This is a workaround for ios devices < 16.4 where lookbehind is not supported.
+ * This is to ensure regex preferes "top" over "to" for the string "\\top" since top is earlier as on of the options in the regex.
+ */
+const ALL_SYMBOLS: Record<string,string> = Object.fromEntries(
+	Object.entries({...greek, ...cmd_symbols}).sort((a,b) => b[0].length - a[0].length)
+)
+const not_remap: Record<string,string> = Object.fromEntries([
+	...Object.entries(raw_not_remap).sort((a,b) => b[0].length - a[0].length)
+]);
 
 function escapeRegex(regex: string) {
-	const escapeChars = ["\\", "(", ")", "+", "-", "[", "]", "{", "}"];
+	const escapeChars = ["\\", "(", ")", "+", "-", "[", "]", "{", "}", "."];
 
 	for (const escapeChar of escapeChars) {
 		regex = regex.replaceAll(escapeChar, "\\" + escapeChar);
@@ -31,6 +43,29 @@ function getEndIncludingLimits(eqn: string, end: number): number {
 		return end + LIMITS.length;
 	}
 	return end;
+}
+/**
+ * Conceals all symbols and ensures \not gets priority over the normal symbol.
+ * @param eqn the equation that need to be concealed
+ * @param symbols normal symbols with \ as prefix
+ * @param notSymbols symbols that can be negated with \not before
+ * @returns the concealed text
+ */
+function concealNotSymbols(eqn: string, symbols: Record<string,string>, notSymbols: Record<string,string>): ConcealSpec[] {
+	const normalSpec = concealSymbols(eqn, "\\\\", "", symbols, undefined, false);
+	const notSpec = concealSymbols(eqn, "\\\\not[ \t]*\\\\", "", notSymbols, undefined, false);
+	const spec: ConcealSpec[] = [];
+	const notSpecEnds: number[] = []
+	for (let i = 0; i < notSpec.length; i++){
+		spec.push(notSpec[i]);
+		notSpecEnds.push(normalSpec[i][0].end);
+	}
+	for (let i = 0; i < normalSpec.length; i++){
+		if (!notSpecEnds.includes(normalSpec[i][0].end)){
+			spec.push(normalSpec[i]);
+		}
+	}
+	return spec;
 }
 
 function concealSymbols(eqn: string, prefix: string, suffix: string, symbolMap: {[key: string]: string}, className?: string, allowSucceedingLetters = true): ConcealSpec[] {
@@ -433,7 +468,6 @@ function concealOperatorname(eqn: string): ConcealSpec[] {
 	return specs;
 }
 
-const ALL_SYMBOLS = {...greek, ...cmd_symbols} as const;
 export type ConcealCachedEquations = Record<string, ConcealSpec[]>;
 export function conceal(
 	view: EditorView,
@@ -452,7 +486,7 @@ export function conceal(
 			...concealSymbols(eqn, "\\^", "", map_super),
 			...concealSymbols(eqn, "_", "", map_sub),
 			...concealSymbols(eqn, "\\\\frac", "", fractions),
-			...concealSymbols(eqn, "\\\\", "", ALL_SYMBOLS, undefined, false),
+			...concealNotSymbols(eqn, ALL_SYMBOLS, not_remap),
 			...concealSupSub(eqn, true, ALL_SYMBOLS),
 			...concealSupSub(eqn, false, ALL_SYMBOLS),
 			...concealModifier(eqn, "hat", "\u0302"),
