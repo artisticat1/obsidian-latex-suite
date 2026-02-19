@@ -8,6 +8,7 @@ import { LatexSuitePluginSettings } from "src/settings/settings";
 import { runMatrixShortcuts } from "./matrix_shortcuts";
 import { insertNewlineAndIndent } from "@codemirror/commands";
 import { Transaction, Annotation, TransactionSpec } from "@codemirror/state";
+import { concealCompartment, concealPlugin } from "src/editor_extensions/conceal";
 
 
 function boxCurrentEquation(view: EditorView) {
@@ -125,8 +126,14 @@ function getToggleConcealCommand(plugin: LatexSuitePlugin) {
 	return {
 		id: "latex-suite-toggle-conceal",
 		name: "Toggle conceal",
-		callback: async () => {
+		editorCallback: async (editor: Editor) => {
 			plugin.settings.concealEnabled = !plugin.settings.concealEnabled;
+			//@ts-ignore
+			const view = editor.cm as EditorView;
+			const extension = plugin.settings.concealEnabled ? concealPlugin : [];
+			view.dispatch({
+				effects: concealCompartment.reconfigure(extension),
+			})
 			await plugin.saveSettings();
 		},
 	}

@@ -1,9 +1,10 @@
 // https://discuss.codemirror.net/t/concealing-syntax/3135
 
 import { ViewUpdate, Decoration, DecorationSet, WidgetType, ViewPlugin, EditorView } from "@codemirror/view";
-import { EditorSelection, Range, RangeSet, RangeSetBuilder, RangeValue } from "@codemirror/state";
+import { Compartment, EditorSelection, Range, RangeSet, RangeSetBuilder, RangeValue } from "@codemirror/state";
 import { conceal, ConcealCachedEquations } from "./conceal_fns";
 import { debounce, livePreviewState } from "obsidian";
+import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
 
 export type Replacement = {
 	start: number,
@@ -244,7 +245,7 @@ function buildAtomicRanges(concealments: Concealment[]) {
 	return builder.finish();
 }
 
-export const mkConcealPlugin = (revealTimeout: number) => ViewPlugin.fromClass(class {
+export const concealPlugin = ViewPlugin.fromClass(class {
 	// Stateful ViewPlugin: you should avoid one in general, but here
 	// the approach based on StateField and updateListener conflicts with
 	// obsidian's internal logic and causes weird rendering.
@@ -254,19 +255,27 @@ export const mkConcealPlugin = (revealTimeout: number) => ViewPlugin.fromClass(c
 	delayEnabled: boolean;
 	cached_equations: ConcealCachedEquations;
 	concealSpecs: ConcealSpec[];
+	delayedReveal;
 
 
-	constructor() {
+	constructor(view: EditorView) {
 		this.concealments = [];
 		this.decorations = Decoration.none;
 		this.atomicRanges = RangeSet.empty;
+		const revealTimeout = getLatexSuiteConfig(view).concealRevealTimeout;
 		this.delayEnabled = revealTimeout > 0;
 		this.cached_equations = {};
 		this.concealSpecs = [];
+		this.delayedReveal = debounce(
+			this.delayedRevealCallback,
+			revealTimeout,
+			true,
+		);
+		// HACK: trigger an initial concealment calculation
+		this.update({view, state: view.state, docChanged: true} as ViewUpdate);
 	}
 
-	delayedReveal = debounce((delayedConcealments: Concealment[], view: EditorView) => {
-		// Implicitly change the state
+	delayedRevealCallback = (delayedConcealments: Concealment[], view: EditorView) => {
 		for (const concealment of delayedConcealments) {
 			concealment.enable = false;
 		}
@@ -278,7 +287,7 @@ export const mkConcealPlugin = (revealTimeout: number) => ViewPlugin.fromClass(c
 		//TODO: If replit or the future maintainers of vim ever decides to support CM6 (decorations) properly, remove this.
 		//@ts-ignore
 		view?.cm?.signal("vim-command-done");
-	}, revealTimeout, true);
+	}
 
 	update(update: ViewUpdate) {
 		if (!(update.docChanged || update.viewportChanged || update.selectionSet))
@@ -343,3 +352,5 @@ export const mkConcealPlugin = (revealTimeout: number) => ViewPlugin.fromClass(c
 	decorations: v => v.decorations,
 	provide: plugin => EditorView.atomicRanges.of(view => view.plugin(plugin)?.atomicRanges ?? RangeSet.empty),
 });
+
+export const concealCompartment = new Compartment();
