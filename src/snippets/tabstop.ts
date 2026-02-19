@@ -1,5 +1,5 @@
 import { ChangeDesc, EditorSelection, SelectionRange } from "@codemirror/state";
-import { Decoration, DecorationSet, EditorView } from "@codemirror/view";
+import { Decoration, DecorationSet, EditorView, WidgetType } from "@codemirror/view";
 import { resetCursorBlink } from "src/utils/editor_utils";
 import { endSnippet } from "./codemirror/history";
 
@@ -103,6 +103,8 @@ export class TabstopGroup {
         while (cur.value != null) {
             if (cur.from != cur.to){
                 ranges.push(cur.value.range(cur.from, cur.to));
+            } else {
+				ranges.push(createFieldMarker(cur.from, cur.to))
             }
             cur.next();
         }
@@ -141,4 +143,16 @@ export function getEditorSelectionEndpoints(sel: EditorSelection) {
     const endpoints = sel.ranges.map(range => EditorSelection.range(range.to, range.to));
 
     return EditorSelection.create(endpoints);
+}
+
+const FieldMarker = Decoration.widget({widget: new class extends WidgetType {
+		toDOM() {
+			const span = document.createElement("span");
+			span.className = "cm-snippetFieldPosition";
+			return span
+		}
+		ignoreEvent() {return false}
+	}})
+function createFieldMarker(from: number, to: number) {
+	return FieldMarker.range(from,to)
 }

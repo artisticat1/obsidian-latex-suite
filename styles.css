@@ -254,3 +254,11 @@ and limit the height.
 .latex-suite-math-preview-highlight {
 	background-color: var(--text-selection);
 }
+.cm-snippetFieldPosition {
+    vertical-align: text-top;
+    width: 0;
+    height: 1.15em;
+    display: inline-block;
+    margin: 0 -0.7px -.7em;
+    border-left: 1.4px dotted #888;
+  }

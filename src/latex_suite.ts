@@ -118,7 +118,7 @@ export const handleKeydown = (key: string, shiftKey: boolean, ctrlKey: boolean, 
 	}
 
 	if (key === "Tab") {
-		success = setSelectionToNextTabstop(view);
+		success = setSelectionToNextTabstop(view, shiftKey);
 
 		if (success) return true;
 	}
