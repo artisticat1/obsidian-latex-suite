@@ -501,15 +501,17 @@ export const mathBoundsPlugin = ViewPlugin.fromClass(
 
 			// Deals with the case of $|$\n text and stuff $$equations and stuff\n$$
 			// where text and stuff is seen as blockmath instead of text
-			if (begin.to > pos && begin.name === OPEN_DISPLAY_MATH_NODE) {
-
+			if (begin.to > pos && begin.from < pos && begin.name === OPEN_DISPLAY_MATH_NODE ) {
 				return {
-					inner_start: pos - 1,
-					inner_end: pos - 1,
-					outer_start: pos - 2,
-					outer_end: pos,
+					inner_start: pos,
+					inner_end: pos,
+					outer_start: begin.from,
+					outer_end: begin.to,
 					mode: MathMode.InlineMath,
 				};
+			}
+			if (end.from < pos || begin.to > pos) {
+				return null;
 			}
 
 			const mathBound: MathBounds = {
