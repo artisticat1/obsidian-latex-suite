@@ -163,22 +163,6 @@ export function getKeymaps(settings: LatexSuiteCMSettings): LatexSuiteKeyBinding
 		};
 	};
 
-	const snippetTriggerSnippets = settings.snippets.filter((s) => !s.options.automatic && !s.triggerKey);
-	keybindings.push({
-		key: settings.snippetsTrigger,
-		run: (view: EditorView) => {
-			if (!getLatexSuiteConfig(view).snippetsEnabled) return false;
-			if (settings.suppressSnippetTriggerOnIME && view.composing) return false;
-			try {
-				const ctx = getContextPlugin(view);
-				return runSnippets(view, ctx, {snippets: snippetTriggerSnippets}, settings.snippetDebug);
-			} catch (e) {
-				clearSnippetQueue(view);
-				console.error(e);
-				return false;
-			}
-		},
-	});
 	keybindings.push(
 		...Array.from(snippet_triggers, (key) => {
 			return {

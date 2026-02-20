@@ -4,7 +4,7 @@ import { App, ButtonComponent, ExtraButtonComponent, Modal, Platform, PluginSett
 import { parseKeyName, parseSnippetVariables, parseSnippets } from "src/snippets/parse";
 import { DEFAULT_SNIPPETS } from "src/utils/default_snippets";
 import LatexSuitePlugin from "../main";
-import { DEFAULT_SETTINGS } from "./settings";
+import { DEFAULT_SETTINGS, LatexSuiteCMKeymapSettings } from "./settings";
 import { FileSuggest } from "./ui/file_suggest";
 import { basicSetup } from "./ui/snippets_editor/extensions";
 import { getVimSelectModeCommand, vimCommand, getVimVisualModeCommand, getVimEditorCommands, getVimRunMatrixEnterCommand } from "src/features/editor_commands";
@@ -126,17 +126,9 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		this.snippetsFileLocEl.toggleClass("hidden", !loadSnippetsFromFile);
 
 
-		new Setting(containerEl)
-			.setName("Key trigger for non-auto snippets")
-			.setDesc("What key to press to expand non-auto snippets. Key names may be strings like \"Shift-Ctrl-Enter\" a key prefixed with zero or more modifiers. Modifiers can be given in any order. Shift- (or s-), Alt- (or a-), Ctrl- (or c- or Control-),  Cmd- (or m- or Meta-) or Mod- (Cmd- on Mac, Ctrl- on Windows/Linux) are recognized. Chords are seperated by a space.")
-			.addText((text) => text
-				.setValue(this.plugin.settings.snippetsTrigger)
-				.onChange(async (value) => {
-					parseKeyName(value);
-					this.plugin.settings.snippetsTrigger = value;
-					await this.plugin.saveSettings();
-				})
-			);
+		this.createTriggerSetting(containerEl, "non-auto snippets", "snippetsTrigger");
+		this.createTriggerSetting(containerEl, "next tabstop", "snippetNextTabstopTrigger")
+		this.createTriggerSetting(containerEl, "previous tabstop", "snippetPreviousTabstopTrigger")
 	}
 
 	private displayConcealSettings() {
@@ -389,18 +381,8 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 					await this.plugin.saveSettings();
 				}));
-
-		new Setting(containerEl)
-			.setName("Key trigger for tabout")
-			.setDesc("What key to press to trigger tabout. Key names may be strings like \"Shift-Ctrl-Enter\" a key prefixed with zero or more modifiers. Modifiers can be given in any order. Shift- (or s-), Alt- (or a-), Ctrl- (or c- or Control-),  Cmd- (or m- or Meta-) or Mod- (Cmd- on Mac, Ctrl- on Windows/Linux) are recognized. Chords are seperated by a space.")
-			.addText((text) => text
-				.setValue(this.plugin.settings.taboutTrigger)
-				.onChange(async (value) => {
-					parseKeyName(value);
-					this.plugin.settings.taboutTrigger = value;
-					await this.plugin.saveSettings();
-				})
-			);
+		this.createTriggerSetting(containerEl, "tabout", "taboutTrigger")
+			
 		const taboutClosingBracketsSetting =  new Setting(containerEl)
 			.setName("Closing brackets")
 			.setDesc("A list of closing brackets for tabout, separated by commas.")
@@ -783,6 +765,21 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				).open();
 			});
 	}
+
+	createTriggerSetting(containerEl: HTMLElement, name: string, settingName: keyof LatexSuiteCMKeymapSettings) {
+		return new Setting(containerEl)
+			.setName(`Key trigger for ${name}`)
+			.setDesc(getTriggerHelpText(name))
+			.addText((text) => text
+				.setValue(this.plugin.settings[settingName] as string)
+				.setPlaceholder(DEFAULT_SETTINGS[settingName])
+				.onChange(async (value) => {
+					parseKeyName(value);
+					this.plugin.settings[settingName] = value;
+					await this.plugin.saveSettings();
+				})
+			);
+	}
 }
 
 class ConfirmationModal extends Modal {
@@ -822,4 +819,10 @@ function createCMEditor(content: string, extensions: Extension[]) {
  */
 export function isIMESupported(): boolean {
 	return Platform.isMobileApp
+}
+function getTriggerHelpText(name: string) {
+	const fragment = new DocumentFragment();
+	const div = fragment.createDiv();
+	div.innerHTML = `What key to press to trigger ${name}. Should follow codemirror keymap syntax such as "Ctrl-k Ctrl-a". For more info see <a href="https://codemirror.net/docs/ref/#view.KeyBinding">codemirror keymap documentation</a>.`;
+	return fragment;
 }
