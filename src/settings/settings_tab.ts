@@ -1,7 +1,7 @@
 import { EditorState, Extension } from "@codemirror/state";
 import { EditorView, ViewUpdate } from "@codemirror/view";
 import { App, ButtonComponent, ExtraButtonComponent, Modal, Platform, PluginSettingTab, Setting, debounce, setIcon } from "obsidian";
-import { parseSnippetVariables, parseSnippets } from "src/snippets/parse";
+import { parseKeyName, parseSnippetVariables, parseSnippets } from "src/snippets/parse";
 import { DEFAULT_SNIPPETS } from "src/utils/default_snippets";
 import LatexSuitePlugin from "../main";
 import { DEFAULT_SETTINGS } from "./settings";
@@ -128,14 +128,12 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName("Key trigger for non-auto snippets")
-			.setDesc("What key to press to expand non-auto snippets.")
-			.addDropdown((dropdown) => dropdown
-				.addOption("Tab", "Tab")
-				.addOption(" ", "Space")
+			.setDesc("What key to press to expand non-auto snippets. Key names may be strings like \"Shift-Ctrl-Enter\" a key prefixed with zero or more modifiers. Modifiers can be given in any order. Shift- (or s-), Alt- (or a-), Ctrl- (or c- or Control-),  Cmd- (or m- or Meta-) or Mod- (Cmd- on Mac, Ctrl- on Windows/Linux) are recognized. Chords are seperated by a space.")
+			.addText((text) => text
 				.setValue(this.plugin.settings.snippetsTrigger)
 				.onChange(async (value) => {
-					this.plugin.settings.snippetsTrigger = value as "Tab" |
-						" ";
+					parseKeyName(value);
+					this.plugin.settings.snippetsTrigger = value;
 					await this.plugin.saveSettings();
 				})
 			);
@@ -392,6 +390,17 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
+		new Setting(containerEl)
+			.setName("Key trigger for tabout")
+			.setDesc("What key to press to trigger tabout. Key names may be strings like \"Shift-Ctrl-Enter\" a key prefixed with zero or more modifiers. Modifiers can be given in any order. Shift- (or s-), Alt- (or a-), Ctrl- (or c- or Control-),  Cmd- (or m- or Meta-) or Mod- (Cmd- on Mac, Ctrl- on Windows/Linux) are recognized. Chords are seperated by a space.")
+			.addText((text) => text
+				.setValue(this.plugin.settings.taboutTrigger)
+				.onChange(async (value) => {
+					parseKeyName(value);
+					this.plugin.settings.taboutTrigger = value;
+					await this.plugin.saveSettings();
+				})
+			);
 		const taboutClosingBracketsSetting =  new Setting(containerEl)
 			.setName("Closing brackets")
 			.setDesc("A list of closing brackets for tabout, separated by commas.")

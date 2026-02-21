@@ -4,6 +4,7 @@ import { RegexSnippet, serializeSnippetLike, Snippet, StringSnippet, VISUAL_SNIP
 import { Options } from "./options";
 import { sortSnippets } from "./sort";
 import { EXCLUSIONS, Environment } from "./environment";
+import { Platform } from "obsidian";
 
 export type SnippetVariables = Record<string, string>;
 
@@ -108,6 +109,7 @@ const RawSnippetSchema = object({
 	flags: optional(string_()),
 	priority: optional(number()),
 	description: optional(string_()),
+	triggerKey: optional(string_()),
 });
 
 type RawSnippet = Output<typeof RawSnippetSchema>;
@@ -139,6 +141,7 @@ function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snip
 	const options = Options.fromSource(raw.options);
 	let trigger;
 	let excludedEnvironments;
+	const triggerKey = parseKeyName(raw.triggerKey ??  "");
 
 	// we have a regex snippet
 	if (options.regex || raw.trigger instanceof RegExp) {
@@ -172,7 +175,7 @@ function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snip
 
 		options.regex = true;
 
-		const normalised = { trigger, replacement, options, priority, description, excludedEnvironments };
+		const normalised = { trigger, replacement, options, priority, description, excludedEnvironments, triggerKey };
 
 		return new RegexSnippet(normalised);
 	}
@@ -189,7 +192,7 @@ function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snip
 			options.visual = true;
 		}
 
-		const normalised = { trigger, replacement, options, priority, description, excludedEnvironments };
+		const normalised = { trigger, replacement, options, priority, description, excludedEnvironments, triggerKey };
 
 		if (options.visual) {
 			return new VisualSnippet(normalised);
@@ -233,6 +236,33 @@ function getExcludedEnvironments(trigger: string): Environment[] {
 	if (EXCLUSIONS.hasOwnProperty(trigger)) {
 		result.push(...EXCLUSIONS[trigger]);
 	}
+	return result;
+}
+
+export function parseKeyName(name: string): string {
+	return name.split(/ (?!$)/).map(part => normalizeKeyName(part)).join(" ");
+}
+
+function normalizeKeyName(name: string) {
+	const parts = name.split(/-(?!$)/);
+	let result = parts[parts.length - 1];
+	if (result === "Space") result = " ";
+	let alt, ctrl, shift, meta;
+	for (let i = 0; i < parts.length - 1; ++i) {
+		const mod = parts[i];
+		if (/^(cmd|meta|m)$/i.test(mod)) meta = true;
+		else if (/^a(lt)?$/i.test(mod)) alt = true;
+		else if (/^(c|ctrl|control)$/i.test(mod)) ctrl = true;
+		else if (/^s(hift)?$/i.test(mod)) shift = true;
+		else if (/^mod$/i.test(mod)) {
+			if (Platform.isMacOS) meta = true;
+			else ctrl = true;
+		} else throw new Error("Unrecognized modifier name: " + mod);
+	}
+	if (alt) result = "Alt-" + result;
+	if (ctrl) result = "Ctrl-" + result;
+	if (meta) result = "Meta-" + result;
+	if (shift) result = "Shift-" + result;
 	return result;
 }
 
