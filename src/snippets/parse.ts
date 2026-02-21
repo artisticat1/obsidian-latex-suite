@@ -18,8 +18,8 @@ async function importRaw(maybeJavaScriptCode: string) {
 			// otherwise, try to import as a standalone js object
 			raw = await importModuleDefault(`data:text/javascript;base64,${encode(`export default ${maybeJavaScriptCode}`)}`);
 		}
-	} catch (e) {
-		throw `Invalid format: ${e}`;
+	} catch {
+		throw `Invalid format`;
 	}
 	return raw;
 }
@@ -86,8 +86,8 @@ async function importModuleDefault(module: string): Promise<unknown> {
 	let data;
 	try {
 		data = await import(module);
-	} catch (e) {
-		throw `failed to import module ${module}: ${e}`;
+	} catch {
+		throw `failed to import module ${module}`;
 	}
 
 	// it's safe to use `in` here - it has a null prototype, so `Object.hasOwnProperty` isn't available,
@@ -122,7 +122,7 @@ function validateRawSnippets(snippets: unknown): RawSnippet[] {
 		try {
 			return parse(RawSnippetSchema, raw);
 		} catch (e) {
-			throw `Value does not resemble snippet.\nErroring snippet:\n${serializeSnippetLike(raw)}\nError details:\n${e}`;
+			throw `Value does not resemble snippet.\nErroring snippet:\n${serializeSnippetLike(raw)}`;
 		}
 	})
 }
