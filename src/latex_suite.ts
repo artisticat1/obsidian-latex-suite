@@ -171,14 +171,14 @@ export function getKeymaps(settings: LatexSuiteCMSettings): LatexSuiteKeyBinding
 	);
 
 	keybindings.push({
-		key: "Tab",
+		key: settings.snippetNextTabstopTrigger,
 		run: function nextTabstop(view: EditorView) {
 			return setSelectionToNextTabstop(view, false);
 		},
 	});
 
 	keybindings.push({
-		key: "Shift-Tab",
+		key: settings.snippetPreviousTabstopTrigger,
 		run: function previousTabstop(view: EditorView) {
 			return setSelectionToNextTabstop(view, true);
 		},
