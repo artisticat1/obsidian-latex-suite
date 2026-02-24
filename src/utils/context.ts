@@ -34,7 +34,7 @@ export const contextPlugin = ViewPlugin.fromClass(
 	class Context implements PluginValue {
 	view: EditorView;
 	state: EditorState;
-	mode!: Mode;
+	mode: Mode;
 	pos: number;
 	ranges: SelectionRange[];
 	codeblockLanguage: string | null = null;
@@ -70,8 +70,8 @@ export const contextPlugin = ViewPlugin.fromClass(
 			inCode &&
 			settings.forceMathLanguages.contains(codeblockLanguage);
 		this.mode.codeMath = forceMath;
-		this.mode.code = inCode && !forceMath;
-		if (inCode && this.mode.code) {
+		this.mode.code = inCode && !forceMath ? codeblockLanguage : false;
+		if (inCode && this.mode.code !== false) {
 			this.codeblockLanguage = codeblockLanguage;
 			this.boundsCache.set(this.pos, codeBlockInfo);
 		}

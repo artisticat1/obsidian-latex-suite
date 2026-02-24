@@ -140,8 +140,12 @@ const snippetShouldRunInMode = (options: Options, mode: Mode) => {
 		return true;
 	}
 
-	if (options.mode.text && mode.text ||
-		options.mode.code && mode.code
+	if (options.mode.text && mode.text) {
+		return true;
+	}
+	if (
+		(options.mode.code === mode.code && mode.code !== false) ||
+		(options.mode.code === true && mode.code !== false)
 	) {
 		return true;
 	}
