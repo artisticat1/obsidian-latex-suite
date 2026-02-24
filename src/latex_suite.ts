@@ -28,7 +28,6 @@ export const handleUpdate = (update: ViewUpdate) => {
 	handleUndoRedo(update);
 }
 
-const ignoreEvents: readonly string[] = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"] as const;
 export const keyboardEventPlugin = ViewPlugin.fromClass(class {
 	lastKeyboardEvent: KeyboardEvent | null = null;
 
@@ -40,10 +39,7 @@ export const keyboardEventPlugin = ViewPlugin.fromClass(class {
 			this.lastKeyboardEvent = null;
 		}
 
-		// Skip full update since the keymove can't trigger anything but can spam the function a lot.
-		if (ignoreEvents.includes(event.key))
-			return;
-		const success = handleKeydown(event.key, event.shiftKey, event.ctrlKey || event.metaKey, isComposing(view, event), view) || runScopeHandlers(view, event, "latex-suite");
+		const success = handleKeydown(event.key, event.ctrlKey || event.metaKey, isComposing(view, event), view) || runScopeHandlers(view, event, "latex-suite");
 
 		if (success) event.preventDefault();
 	}
@@ -63,7 +59,6 @@ export const onInput = (view: EditorView, from: number, to: number, text: string
 		if (text === "\t") text = "Tab";
 		const success = handleKeydown(
 			text,
-			lastKeyboardEvent.shiftKey,
 			lastKeyboardEvent.ctrlKey || lastKeyboardEvent.metaKey,
 			isComposing(view, lastKeyboardEvent),
 			view
@@ -76,7 +71,10 @@ export const onInput = (view: EditorView, from: number, to: number, text: string
 	return false;
 }
 
-export const handleKeydown = (key: string, shiftKey: boolean, ctrlKey: boolean, isIME: boolean, view: EditorView) => {
+export const handleKeydown = (key: string, ctrlKey: boolean, isIME: boolean, view: EditorView) => {
+	if (key.length > 1) {
+		return false
+	}
 
 	const settings = getLatexSuiteConfig(view);
 	const ctx = getContextPlugin(view);
@@ -90,7 +88,7 @@ export const handleKeydown = (key: string, shiftKey: boolean, ctrlKey: boolean, 
 	) {
 		return false;
 	}
-	const snippets = settings.snippets.filter( (s) => s.options.automatic);
+	const snippets = settings.snippets.filter((s) => s.options.automatic);
 	try {
 		if (runSnippets(view, ctx, {snippets, key}, settings.snippetDebug)) return true;
 	} catch (e) {
@@ -118,7 +116,7 @@ export function getKeymaps(settings: LatexSuiteCMSettings): LatexSuiteKeyBinding
 	 */
 	keybindings.push({
 		key: "Backspace",
-		run: (view: EditorView) => {
+		run: function autoDelete$(view: EditorView) {
 			if (!getLatexSuiteConfig(view).autoDelete$) return false;
 			const ctx = getContextPlugin(view);
 			if (!ctx.mode.strictlyInMath()) return false;
@@ -174,21 +172,21 @@ export function getKeymaps(settings: LatexSuiteCMSettings): LatexSuiteKeyBinding
 
 	keybindings.push({
 		key: "Tab",
-		run: (view: EditorView) => {
+		run: function nextTabstop(view: EditorView) {
 			return setSelectionToNextTabstop(view, false);
 		},
 	});
 
 	keybindings.push({
 		key: "Shift-Tab",
-		run: (view: EditorView) => {
+		run: function previousTabstop(view: EditorView) {
 			return setSelectionToNextTabstop(view, true);
 		},
 	});
 
 	keybindings.push({
 		key: "/",
-		run: (view: EditorView) => {
+		run: function autofraction (view: EditorView) {
 			if (!getLatexSuiteConfig(view).autofractionEnabled) return false;
 			const ctx = getContextPlugin(view);
 			if (!ctx.mode.strictlyInMath()) return false;
@@ -200,7 +198,7 @@ export function getKeymaps(settings: LatexSuiteCMSettings): LatexSuiteKeyBinding
 	const matrixShortcuts = [
 		{
 			key: "Enter",
-			run: (view: EditorView) => {
+			run: function newlineMatrix(view: EditorView) {
 				const ctx = getContextPlugin(view);
 				if (!ctx.mode.strictlyInMath()) return false;
 				return runMatrixShortcuts(view, ctx, "Enter", false);
@@ -208,7 +206,7 @@ export function getKeymaps(settings: LatexSuiteCMSettings): LatexSuiteKeyBinding
 		},
 		{
 			key: "Tab",
-			run: (view: EditorView) => {
+			run: function newCellMatrix(view: EditorView) {
 				const ctx = getContextPlugin(view);
 				if (!ctx.mode.strictlyInMath()) return false;
 				return runMatrixShortcuts(view, ctx, "Tab", false);
@@ -216,7 +214,7 @@ export function getKeymaps(settings: LatexSuiteCMSettings): LatexSuiteKeyBinding
 		},
 		{
 			key: "Shift-Enter",
-			run: (view: EditorView) => {
+			run: function exitMatrix(view: EditorView) {
 				const ctx = getContextPlugin(view);
 				if (!ctx.mode.strictlyInMath()) return false;
 				return runMatrixShortcuts(view, ctx, "Enter", true);
@@ -235,7 +233,7 @@ export function getKeymaps(settings: LatexSuiteCMSettings): LatexSuiteKeyBinding
 	const taboutShortcuts = [
 		{
 			key: settings.taboutTrigger,
-			run: (view: EditorView) => {
+			run: function exitEquation(view: EditorView) {
 				if (!view.state.selection.main.empty) return false;
 				const ctx = getContextPlugin(view);
 				return tabout(view, ctx);
@@ -243,7 +241,7 @@ export function getKeymaps(settings: LatexSuiteCMSettings): LatexSuiteKeyBinding
 		},
 		...[")", "}", "]"].map((key) => ({
 			key,
-			run: (view: EditorView) => {
+			run: function nextClosingBracket(view: EditorView) {
 				if (!shouldTaboutByCloseBracket(view, key)) return false;
 				const ctx = getContextPlugin(view);
 				return tabout(view, ctx);
