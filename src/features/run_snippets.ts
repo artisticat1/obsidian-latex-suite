@@ -8,14 +8,19 @@ import { Context } from "src/utils/context";
 import { autoEnlargeBrackets } from "./auto_enlarge_brackets";
 import { snippetDebugLevel } from "src/settings/settings";
 import { Notice } from "obsidian";
+import { Snippet, SnippetType } from "src/snippets/snippets";
 
+type SnippetInfo = {
+	snippets: Snippet<SnippetType>[];
+	key?: string;
+}
 
-export const runSnippets = (view: EditorView, ctx: Context, key: string, debug: snippetDebugLevel):boolean => {
+export const runSnippets = (view: EditorView, ctx: Context, snippetInfo: SnippetInfo, debug: snippetDebugLevel):boolean => {
 
 	let shouldAutoEnlargeBrackets = false;
 
 	for (const range of ctx.ranges) {
-		const result = runSnippetCursor(view, ctx, key, range, debug);
+		const result = runSnippetCursor(view, ctx, snippetInfo, range, debug);
 
 		if (result.shouldAutoEnlargeBrackets) shouldAutoEnlargeBrackets = true;
 	}
@@ -31,32 +36,26 @@ export const runSnippets = (view: EditorView, ctx: Context, key: string, debug: 
 }
 
 
-const runSnippetCursor = (view: EditorView, ctx: Context, key: string, range: SelectionRange, debug: snippetDebugLevel):{success: boolean; shouldAutoEnlargeBrackets: boolean} => {
+const runSnippetCursor = (view: EditorView, ctx: Context, snippetInfo: SnippetInfo, range: SelectionRange, debug: snippetDebugLevel):{success: boolean; shouldAutoEnlargeBrackets: boolean} => {
 
 	const settings = getLatexSuiteConfig(view);
 	const {from, to} = range;
 	const sel = view.state.sliceDoc(from, to);
 	const line = view.state.sliceDoc(0, to);
+	const key = snippetInfo.key ?? "";
+	// If the key pressed wasn't a text character, continue
+	if (snippetInfo.key && snippetInfo.key.length !== 1) {
+		return {success: false, shouldAutoEnlargeBrackets: false};
+	}
 	const updatedLine = line + key;
-	for (let i=0; i < settings.snippets.length; i++) {
-		const snippet = settings.snippets[i];
-		let effectiveLine = line;
+	for (let i=0; i < snippetInfo.snippets.length; i++) {
+		const snippet = snippetInfo.snippets[i];
 
 		if (!snippetShouldRunInMode(snippet.options, ctx.mode)) {
 			continue;
 		}
 
-		if (snippet.options.automatic || snippet.type === "visual") {
-			// If the key pressed wasn't a text character, continue
-			if (!(key.length === 1)) continue;
-			effectiveLine = updatedLine;
-		}
-		else if (!(key === settings.snippetsTrigger)) {
-			// The snippet must be triggered by a key
-			continue;
-		}
-
-		const result = snippet.process(effectiveLine, range, sel);
+		const result = snippet.process(updatedLine, range, sel);
 		if (result === null) continue;
 
 		// Check that this snippet is not excluded in a certain environment
@@ -86,7 +85,8 @@ const runSnippetCursor = (view: EditorView, ctx: Context, key: string, range: Se
 
 		// Expand the snippet
 		const start = triggerPos;
-		queueSnippet(view, start, to, replacement, key);
+		const triggerKey = (snippet.options.automatic && snippet.type !== "visual") ? key : undefined;
+		queueSnippet(view, start, to, replacement, triggerKey);
 
 		const containsTrigger = settings.autoEnlargeBracketsTriggers.some(word => replacement.contains("\\" + word));
 		if (debug === "info" || debug === "verbose") {
@@ -106,7 +106,7 @@ const runSnippetCursor = (view: EditorView, ctx: Context, key: string, range: Se
 		}
 		if (debug === "verbose") {
 			console.debug({
-				snippets_unexpanded: settings.snippets
+				snippets_unexpanded: snippetInfo.snippets
 					.slice(0, i)
 					.map((s) => ({
 						description: s.description,
@@ -115,7 +115,7 @@ const runSnippetCursor = (view: EditorView, ctx: Context, key: string, range: Se
 						replacement: s.replacement
 					})),
 				current_mode: ctx.mode,
-				effectiveLine: effectiveLine,
+				updatedLine,
 			});	
 		}	
 		return {success: true, shouldAutoEnlargeBrackets: containsTrigger};

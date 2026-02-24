@@ -5,9 +5,11 @@ import { DEFAULT_SNIPPET_VARIABLES } from "src/utils/default_snippet_variables";
 
 export type snippetDebugLevel = "off" | "info" | "verbose";
 
+type CMKeyMap = string;
+type VimKeyMap = string;
+
 interface LatexSuiteBasicSettings {
 	snippetsEnabled: boolean;
-	snippetsTrigger: "Tab" | " "
 	suppressSnippetTriggerOnIME: boolean;
 	suppressIMEWarning: boolean;
 	removeSnippetWhitespace: boolean;
@@ -33,10 +35,18 @@ interface LatexSuiteBasicSettings {
 	wordDelimiters: string;
 	snippetDebug: snippetDebugLevel;
 	vimEnabled: boolean;
-	vimSelectMode: string;
-	vimVisualMode: string;
-	vimMatrixEnter: string;
+	vimSelectMode: VimKeyMap;
+	vimVisualMode: VimKeyMap;
+	vimMatrixEnter: VimKeyMap;
 
+}
+
+/** triggers following the same format as https://codemirror.net/docs/ref/#view.KeyBinding */
+export interface LatexSuiteCMKeymapSettings {
+	snippetsTrigger: CMKeyMap;
+	snippetNextTabstopTrigger: CMKeyMap;
+	snippetPreviousTabstopTrigger: CMKeyMap;
+	taboutTrigger: CMKeyMap;
 }
 
 /**
@@ -58,8 +68,8 @@ interface LatexSuiteParsedSettings {
 	forceMathLanguages: string[];
 }
 
-export type LatexSuitePluginSettings = {snippets: string, snippetVariables: string} & LatexSuiteBasicSettings & LatexSuiteRawSettings;
-export type LatexSuiteCMSettings = {snippets: Snippet[]} & LatexSuiteBasicSettings & LatexSuiteParsedSettings;
+export type LatexSuitePluginSettings = {snippets: string, snippetVariables: string} & LatexSuiteBasicSettings & LatexSuiteRawSettings & LatexSuiteCMKeymapSettings;
+export type LatexSuiteCMSettings = {snippets: Snippet[]} & LatexSuiteBasicSettings & LatexSuiteParsedSettings & LatexSuiteCMKeymapSettings;
 
 export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
 	snippets: DEFAULT_SNIPPETS,
@@ -68,6 +78,8 @@ export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
 	// Basic settings
 	snippetsEnabled: true,
 	snippetsTrigger: "Tab",
+	snippetNextTabstopTrigger: "Tab",
+	snippetPreviousTabstopTrigger: "Shift-Tab",
 	suppressSnippetTriggerOnIME: true,
 	suppressIMEWarning: false,
 	removeSnippetWhitespace: true,
@@ -89,6 +101,7 @@ export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
 	autofractionBreakingChars: "+-=\t",
 	matrixShortcutsEnabled: true,
 	taboutEnabled: true,
+	taboutTrigger: "Tab",
 	autoEnlargeBrackets: true,
 	wordDelimiters: "., +-\\n\t:;!?\\/{}[]()=~$'\"|`<>*^%#@&",
 
