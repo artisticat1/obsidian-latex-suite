@@ -8,7 +8,6 @@ import { LatexSuitePluginSettings } from "src/settings/settings";
 import { runMatrixShortcuts } from "./matrix_shortcuts";
 import { insertNewlineAndIndent } from "@codemirror/commands";
 import { Transaction, Annotation, TransactionSpec } from "@codemirror/state";
-import { concealCompartment, concealPlugin } from "src/editor_extensions/conceal";
 
 
 function boxCurrentEquation(view: EditorView) {
