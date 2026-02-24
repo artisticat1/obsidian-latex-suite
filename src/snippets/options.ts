@@ -1,5 +1,5 @@
 export class Options {
-	mode!: Mode;
+	mode: Mode;
 	automatic: boolean;
 	regex: boolean;
 	onWordBoundary: boolean;
@@ -13,9 +13,9 @@ export class Options {
 		this.visual = false;
 	}
 
-	static fromSource(source: string):Options {
+	static fromSource(source: string, language: string | undefined):Options {
 		const options = new Options();
-		options.mode = Mode.fromSource(source);
+		options.mode = Mode.fromSource(source, language);
 
 		for (const flag_char of source) {
 			switch (flag_char) {
@@ -43,7 +43,7 @@ export class Mode {
 	inlineMath: boolean;
 	blockMath: boolean;
 	codeMath: boolean;
-	code: boolean;
+	code: string | boolean;
 	textEnv: boolean;
 
 	/**
@@ -84,11 +84,11 @@ export class Mode {
 		this.blockMath = !this.blockMath;
 		this.inlineMath = !this.inlineMath;
 		this.codeMath = !this.codeMath;
-		this.code = !this.code;
+		this.code = this.code === false ? true : false;
 		this.textEnv = !this.textEnv;
 	}
 
-	static fromSource(source: string): Mode {
+	static fromSource(source: string, language: string | undefined): Mode {
 		const mode = new Mode();
 
 		for (const flag_char of source) {
@@ -112,12 +112,15 @@ export class Mode {
 			}
 		}
 
+		if (language !== undefined) {
+			mode.code = language;
+		}
 
 		if (!(mode.text ||
 			mode.inlineMath ||
 			mode.blockMath ||
 			mode.codeMath ||
-			mode.code ||
+			mode.code !== false ||
 			mode.textEnv)
 		) {
 			// for backwards compat we need to assume that this is a catchall mode then

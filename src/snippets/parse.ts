@@ -110,6 +110,7 @@ const RawSnippetSchema = object({
 	priority: optional(number()),
 	description: optional(string_()),
 	triggerKey: optional(string_()),
+	language: optional(string_()),
 });
 
 type RawSnippet = Output<typeof RawSnippetSchema>;
@@ -138,7 +139,7 @@ function validateRawSnippets(snippets: unknown): RawSnippet[] {
  */
 function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snippet {
 	const { replacement, priority, description } = raw;
-	const options = Options.fromSource(raw.options);
+	const options = Options.fromSource(raw.options, raw.language);
 	let trigger;
 	let excludedEnvironments;
 	const triggerKey = parseKeyName(raw.triggerKey ??  "");
