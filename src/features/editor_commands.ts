@@ -126,14 +126,8 @@ function getToggleConcealCommand(plugin: LatexSuitePlugin) {
 	return {
 		id: "latex-suite-toggle-conceal",
 		name: "Toggle conceal",
-		editorCallback: async (editor: Editor) => {
+		callback: async () => {
 			plugin.settings.concealEnabled = !plugin.settings.concealEnabled;
-			//@ts-ignore
-			const view = editor.cm as EditorView;
-			const extension = plugin.settings.concealEnabled ? concealPlugin : [];
-			view.dispatch({
-				effects: concealCompartment.reconfigure(extension),
-			})
 			await plugin.saveSettings();
 		},
 	}

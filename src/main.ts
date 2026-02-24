@@ -11,7 +11,7 @@ import { SnippetVariables, parseSnippetVariables, parseSnippets } from "./snippe
 import { handleUpdate, onInput, keyboardEventPlugin, getKeymaps } from "./latex_suite";
 import { EditorView, keymap, tooltips } from "@codemirror/view";
 import { snippetExtensions } from "./snippets/codemirror/extensions";
-import { concealCompartment, concealPlugin } from "./editor_extensions/conceal";
+import { concealPlugin } from "./editor_extensions/conceal";
 import { colorPairedBracketsPluginLowestPrec, highlightCursorBracketsPlugin } from "./editor_extensions/highlight_brackets";
 import { cursorTooltipBaseTheme, cursorTooltipField } from "./editor_extensions/math_tooltip";
 import { contextPlugin, mathBoundsPlugin } from "./utils/context";
@@ -191,9 +191,7 @@ export default class LatexSuitePlugin extends Plugin {
 
 		// Optional extensions
 		if (this.CMSettings.concealEnabled) {
-			this.editorExtensions.push(concealCompartment.of(concealPlugin));
-		} else {
-			this.editorExtensions.push(concealCompartment.of([]));
+			this.editorExtensions.push(concealPlugin);
 		}
 		if (this.CMSettings.colorPairedBracketsEnabled)
 			this.editorExtensions.push(colorPairedBracketsPluginLowestPrec);

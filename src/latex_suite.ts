@@ -114,23 +114,25 @@ export function getKeymaps(settings: LatexSuiteCMSettings): LatexSuiteKeyBinding
 	 * When backspace is pressed, if the cursor is inside an empty inline math,
 	 * delete both $ symbols, not just the first one.
 	 */
-	keybindings.push({
-		key: "Backspace",
-		run: function autoDelete$(view: EditorView) {
-			if (!getLatexSuiteConfig(view).autoDelete$) return false;
-			const ctx = getContextPlugin(view);
-			if (!ctx.mode.strictlyInMath()) return false;
-			const charAtPos = getCharacterAtPos(view, ctx.pos);
-			const charAtPrevPos = getCharacterAtPos(view, ctx.pos - 1);
-			if (charAtPos === "$" && charAtPrevPos === "$") {
-				replaceRange(view, ctx.pos - 1, ctx.pos + 1, "");
-				// Note: not sure if removeAllTabstops is necessary
-				removeAllTabstops(view);
-				return true;
-			}
-			return false;
-		},
-	});
+	if (settings.autoDelete$) {
+		keybindings.push({
+			key: "Backspace",
+			run: function autoDelete$(view: EditorView) {
+				if (!getLatexSuiteConfig(view).autoDelete$) return false;
+				const ctx = getContextPlugin(view);
+				if (!ctx.mode.strictlyInMath()) return false;
+				const charAtPos = getCharacterAtPos(view, ctx.pos);
+				const charAtPrevPos = getCharacterAtPos(view, ctx.pos - 1);
+				if (charAtPos === "$" && charAtPrevPos === "$") {
+					replaceRange(view, ctx.pos - 1, ctx.pos + 1, "");
+					// Note: not sure if removeAllTabstops is necessary
+					removeAllTabstops(view);
+					return true;
+				}
+				return false;
+			},
+		});
+	}
 	
 	const snippet_triggers = new Set(
 		settings.snippets.map((s) => s.triggerKey).filter((s) => s !== null)
@@ -146,7 +148,6 @@ export function getKeymaps(settings: LatexSuiteCMSettings): LatexSuiteKeyBinding
 		);
 		return (view: EditorView) => {
 			const settings = getLatexSuiteConfig(view);
-			if (!settings.snippetsEnabled) return false;
 			// Prevent IME from triggering keydown events.
 			if (settings.suppressSnippetTriggerOnIME && view.composing)
 				return false;
@@ -160,15 +161,16 @@ export function getKeymaps(settings: LatexSuiteCMSettings): LatexSuiteKeyBinding
 			}
 		};
 	};
-
-	keybindings.push(
-		...Array.from(snippet_triggers, (key) => {
-			return {
-				key,
-				run: runMaker(key),
-			};
-		})
-	);
+	if (settings.snippetsEnabled) {
+		keybindings.push(
+			...Array.from(snippet_triggers, (key) => {
+				return {
+					key,
+					run: runMaker(key),
+				};
+			})
+		);
+	}
 
 	keybindings.push({
 		key: settings.snippetNextTabstopTrigger,
@@ -183,16 +185,17 @@ export function getKeymaps(settings: LatexSuiteCMSettings): LatexSuiteKeyBinding
 			return setSelectionToNextTabstop(view, true);
 		},
 	});
-
-	keybindings.push({
-		key: "/",
-		run: function autofraction (view: EditorView) {
-			if (!getLatexSuiteConfig(view).autofractionEnabled) return false;
-			const ctx = getContextPlugin(view);
-			if (!ctx.mode.strictlyInMath()) return false;
-			return runAutoFraction(view, ctx);
-		},
-	});
+	if (settings.autofractionEnabled) {
+		keybindings.push({
+			key: "/",
+			run: function autofraction (view: EditorView) {
+				if (!getLatexSuiteConfig(view).autofractionEnabled) return false;
+				const ctx = getContextPlugin(view);
+				if (!ctx.mode.strictlyInMath()) return false;
+				return runAutoFraction(view, ctx);
+			},
+		});
+	}
 
 	// Matrix shortcuts are intentionally put before tabout shortcuts,
 	const matrixShortcuts = [
@@ -221,14 +224,9 @@ export function getKeymaps(settings: LatexSuiteCMSettings): LatexSuiteKeyBinding
 			},
 		},
 	];
-	matrixShortcuts.forEach((keybinding) => {
-		const run = keybinding.run;
-		keybinding.run = (view: EditorView) => {
-			if (!getLatexSuiteConfig(view).matrixShortcutsEnabled) return false;
-			return run(view);
-		};
-	});
-	keybindings.push(...matrixShortcuts);
+	if (settings.matrixShortcutsEnabled) {
+		keybindings.push(...matrixShortcuts);
+	}
 
 	const taboutShortcuts = [
 		{
@@ -248,14 +246,9 @@ export function getKeymaps(settings: LatexSuiteCMSettings): LatexSuiteKeyBinding
 			},
 		})),
 	];
-	taboutShortcuts.forEach((keybinding) => {
-		const run = keybinding.run;
-		keybinding.run = (view: EditorView) => {
-			if (!getLatexSuiteConfig(view).taboutEnabled) return false;
-			return run(view);
-		};
-	});
-	keybindings.push(...taboutShortcuts);
+	if (settings.taboutEnabled) {
+		keybindings.push(...taboutShortcuts);
+	}
 
 	return keybindings.map((keybinding) => ({
 		...keybinding,

@@ -352,5 +352,3 @@ export const concealPlugin = ViewPlugin.fromClass(class {
 	decorations: v => v.decorations,
 	provide: plugin => EditorView.atomicRanges.of(view => view.plugin(plugin)?.atomicRanges ?? RangeSet.empty),
 });
-
-export const concealCompartment = new Compartment();
