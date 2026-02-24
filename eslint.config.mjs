@@ -19,6 +19,7 @@ export default defineConfig([
 		"src/default_snippets.js",
 		"src/utils/debug.ts",
 		"src/utils/vim_types.d.ts",
+		"./main.js"
 	]),
 	{
 		extends: compat.extends(
