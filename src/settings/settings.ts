@@ -152,7 +152,9 @@ export function processLatexSuiteSettings(snippets: Snippet[], settings: LatexSu
 		autofractionExcludedEnvs: getAutofractionExcludedEnvs(settings.autofractionExcludedEnvs),
 		matrixShortcutsEnvNames: strToArray(settings.matrixShortcutsEnvNames),
 		taboutClosingSymbols: new Set<string>(strToArray(settings.taboutClosingSymbols)),
-		autoEnlargeBracketsTriggers: strToArray(settings.autoEnlargeBracketsTriggers),
+		// Add backslash to triggers that are LaTeX commands
+		autoEnlargeBracketsTriggers: strToArray(settings.autoEnlargeBracketsTriggers)
+			.map(trigger => /[A-Za-z]+/.test(trigger) ? `\\${trigger}` : trigger), 
 		forceMathLanguages: strToArray(settings.forceMathLanguages),
 	}
 }

@@ -89,7 +89,7 @@ const runSnippetCursor = (view: EditorView, ctx: Context, snippetInfo: SnippetIn
 		const triggerKey = (snippet.options.automatic && snippet.type !== "visual") ? key : undefined;
 		queueSnippet(view, start, to, replacement, triggerKey);
 
-		const containsTrigger = settings.autoEnlargeBracketsTriggers.some(word => replacement.contains("\\" + word));
+		const containsTrigger = settings.autoEnlargeBracketsTriggers.some(word => replacement.contains(word));
 		if (debug === "info" || debug === "verbose") {
 			const trigger = snippet.trigger.toString()
 			const triggerKey = snippet.triggerKey ? `<li>Trigger key: ${new Option(snippet.triggerKey).innerHTML}\n</li>` : "";
