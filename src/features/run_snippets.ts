@@ -15,6 +15,7 @@ type SnippetInfo = {
 	key?: string;
 }
 
+let lastNotice: Notice | null = null;
 export const runSnippets = (view: EditorView, ctx: Context, snippetInfo: SnippetInfo, debug: snippetDebugLevel):boolean => {
 
 	let shouldAutoEnlargeBrackets = false;
@@ -101,7 +102,10 @@ const runSnippetCursor = (view: EditorView, ctx: Context, snippetInfo: SnippetIn
 			const fragment = new DocumentFragment();
 			const div = fragment.createDiv()
 			div.innerHTML = message;
-			new Notice(fragment, 5000);
+			if (lastNotice) {
+				lastNotice.hide();
+			}
+			lastNotice = new Notice(fragment, 5000);
 			console.info(div.textContent)
 		}
 		if (debug === "verbose") {
