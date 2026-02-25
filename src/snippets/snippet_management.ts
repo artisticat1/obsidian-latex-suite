@@ -1,5 +1,5 @@
 import { EditorView } from "@codemirror/view";
-import { ChangeSet } from "@codemirror/state";
+import { ChangeSet, EditorSelection } from "@codemirror/state";
 import { endSnippet, startSnippet } from "./codemirror/history";
 import { isolateHistory } from "@codemirror/commands";
 import { TabstopSpec, tabstopSpecsToTabstopGroups } from "./tabstop";
@@ -16,17 +16,23 @@ export function expandSnippets(view: EditorView):boolean {
 
 	// Try to apply changes all at once, because `view.dispatch` gets expensive for large documents
 	const undoChanges = handleUndoKeypresses(view, snippetsToExpand);
+	// If from===to, normally the cursor would be before the text, but after the text makes more sense as that happens when from <to.
+	const selection = view.state.selection.map(undoChanges, 1);
 	const newText = undoChanges.apply(view.state.doc).toString();
 	const tabstopsToAdd = computeTabstops(newText, snippetsToExpand, originalDocLength);
+	const changes = {
+		changes: undoChanges,
+		selection: selection
+	}
 
 	// Insert any tabstops
 	if (tabstopsToAdd.length === 0) {
-		view.dispatch({ changes: undoChanges });
+		view.dispatch(changes)
 		clearSnippetQueue(view);
 		return true;
 	}
 
-	expandTabstops(view, tabstopsToAdd, undoChanges, newText.length);
+	expandTabstops(view, tabstopsToAdd, changes, newText.length);
 
 	clearSnippetQueue(view);
 	return true;
@@ -83,7 +89,10 @@ function computeTabstops(text: string, snippets: SnippetChangeSpec[], originalDo
 function expandTabstops(
 	view: EditorView,
 	tabstops: TabstopSpec[],
-	undoChanges: ChangeSet,
+	undoChanges: {
+		changes:ChangeSet,
+		selection: EditorSelection
+	},
 	newLength: number
 ) {
 	const changes = ChangeSet.of(
@@ -112,7 +121,8 @@ function expandTabstops(
 	};
 	view.dispatch({
 		effects: [...effects, startSnippet.of(extraTabstopGroups)],
-		changes: undoChanges.compose(changes),
+		changes: undoChanges.changes.compose(changes),
+		selection: undoChanges.selection
 	}, spec);
 }
 
