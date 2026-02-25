@@ -92,10 +92,12 @@ const runSnippetCursor = (view: EditorView, ctx: Context, snippetInfo: SnippetIn
 		const containsTrigger = settings.autoEnlargeBracketsTriggers.some(word => replacement.contains("\\" + word));
 		if (debug === "info" || debug === "verbose") {
 			const trigger = snippet.trigger.toString()
+			const triggerKey = snippet.triggerKey ? `<li>Trigger key: ${new Option(snippet.triggerKey).innerHTML}\n</li>` : "";
 			const description = snippet.description || "No description";
 			const message = "Obsidian Latex Suite: <br><ul>" +
 				`<li>Description: ${new Option(description).innerHTML}\n</li>` +
 				`<li>Parsed trigger: <code>${new Option(trigger).innerHTML}</code>\n</li>`+
+				triggerKey + 
 				`<li>Replacement: <code>${new Option(replacement).innerHTML}</code>\n</li>` +
 				`<li>Auto-enlarge brackets: ${containsTrigger}\n</li>` +
 				"</ul>";
