@@ -50,7 +50,7 @@ function comparePriority(a: number, b: number) {
 }
 
 function getPriority(snippet: Snippet) {
-	return snippet.priority || 0;
+	return snippet.priority;
 }
 
 function getTriggerLength(snippet: Snippet) {

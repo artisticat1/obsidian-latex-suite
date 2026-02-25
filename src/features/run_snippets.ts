@@ -93,7 +93,7 @@ const runSnippetCursor = (view: EditorView, ctx: Context, snippetInfo: SnippetIn
 		if (debug === "info" || debug === "verbose") {
 			const trigger = snippet.trigger.toString()
 			const triggerKey = snippet.triggerKey ? `<li>Trigger key: ${new Option(snippet.triggerKey).innerHTML}\n</li>` : "";
-			const description = snippet.description || "No description";
+			const description = snippet.description;
 			const message = "Obsidian Latex Suite: <br><ul>" +
 				`<li>Description: ${new Option(description).innerHTML}\n</li>` +
 				`<li>Parsed trigger: <code>${new Option(trigger).innerHTML}</code>\n</li>`+

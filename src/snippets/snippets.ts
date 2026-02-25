@@ -52,9 +52,9 @@ export abstract class Snippet<T extends SnippetType = SnippetType> {
 	type: T;
 	data: SnippetData<T>;
 	options: Options;
-	priority?: number;
-	description?: string;
-	triggerKey: string | null;
+	priority: number;
+	description: string;
+	triggerKey: string;
 
 	excludedEnvironments: Environment[];
 
@@ -63,10 +63,10 @@ export abstract class Snippet<T extends SnippetType = SnippetType> {
 		trigger: SnippetData<T>["trigger"],
 		replacement: SnippetData<T>["replacement"],
 		options: Options,
-		priority?: number | undefined,
-		description?: string | undefined,
-		excludedEnvironments?: Environment[],
-		triggerKey?: string,
+		priority: number = 0,
+		description: string = "no description provided",
+		excludedEnvironments: Environment[] = [],
+		triggerKey: string = "",
 	) {
 		this.type = type;
 		// @ts-ignore
@@ -74,8 +74,8 @@ export abstract class Snippet<T extends SnippetType = SnippetType> {
 		this.options = options;
 		this.priority = priority;
 		this.description = description;
-		this.excludedEnvironments = excludedEnvironments ?? [];
-		this.triggerKey = triggerKey ?? null;
+		this.excludedEnvironments = excludedEnvironments;
+		this.triggerKey = triggerKey;
 	}
 
 	// we need to explicitly type the return value here so the derived classes,

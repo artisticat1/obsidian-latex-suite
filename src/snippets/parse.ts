@@ -106,10 +106,10 @@ const RawSnippetSchema = object({
 	trigger: union([string_(), instance(RegExp)]),
 	replacement: union([string_(), special<AnyFunction>(x => typeof x === "function")]),
 	options: string_(),
-	flags: optional(string_()),
-	priority: optional(number()),
-	description: optional(string_()),
-	triggerKey: optional(string_()),
+	flags: optional(string_(), ""),
+	priority: optional(number(), 0),
+	description: optional(string_(), "no description provided"),
+	triggerKey: optional(string_(), ""),
 	language: optional(string_()),
 });
 
@@ -142,13 +142,13 @@ function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snip
 	const options = Options.fromSource(raw.options, raw.language);
 	let trigger;
 	let excludedEnvironments;
-	const triggerKey = parseKeyName(raw.triggerKey ??  "");
+	const triggerKey = parseKeyName(raw.triggerKey);
 
 	// we have a regex snippet
 	if (options.regex || raw.trigger instanceof RegExp) {
 		let triggerStr: string;
 		// normalize flags to a string
-		let flags = raw.flags ?? "";
+		let flags = raw.flags;
 
 		// extract trigger string from trigger,
 		// and merge flags, if trigger is a regexp already
