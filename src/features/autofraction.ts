@@ -16,7 +16,7 @@ export const runAutoFraction = (view: EditorView, ctx: Context): boolean => {
 
 	const success = expandSnippets(view);
 	
-		if (success) {
+	if (success) {
 		autoEnlargeBrackets(view);
 	}
 

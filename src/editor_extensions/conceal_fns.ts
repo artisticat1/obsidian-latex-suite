@@ -19,7 +19,7 @@ const not_remap: Record<string,string> = Object.fromEntries([
 	...Object.entries(raw_not_remap).sort((a,b) => b[0].length - a[0].length)
 ]);
 
-function escapeRegex(regex: string) {
+export function escapeRegex(regex: string) {
 	const escapeChars = ["\\", "(", ")", "+", "-", "[", "]", "{", "}", "."];
 
 	for (const escapeChar of escapeChars) {
