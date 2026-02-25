@@ -102,9 +102,7 @@ const runSnippetCursor = (view: EditorView, ctx: Context, snippetInfo: SnippetIn
 			const fragment = new DocumentFragment();
 			const div = fragment.createDiv()
 			div.innerHTML = message;
-			if (lastNotice) {
-				lastNotice.hide();
-			}
+			lastNotice?.hide();
 			lastNotice = new Notice(fragment, 5000);
 			console.info(div.textContent)
 		}
