@@ -49,14 +49,14 @@ export async function parseSnippetVariables(snippetVariablesStr: string) {
 }
 
 export async function parseSnippets(snippetsStr: string, snippetVariables: SnippetVariables) {
-	let rawSnippets = await importRaw(snippetsStr) as RawSnippet[];
+	const rawSnippets = await importRaw(snippetsStr);
 
 	let parsedSnippets;
 	try {
 		// validate the shape of the raw snippets
-		rawSnippets = validateRawSnippets(rawSnippets);
+		const rawValidatedSnippets = validateRawSnippets(rawSnippets);
 
-		parsedSnippets = rawSnippets.map((raw) => {
+		parsedSnippets = rawValidatedSnippets.map((raw) => {
 			try {
 				// Normalize the raw snippet and convert it into a Snippet
 				return parseSnippet(raw, snippetVariables);
@@ -121,7 +121,7 @@ type RawSnippet = Output<typeof RawSnippetSchema>;
  */
 function validateRawSnippets(snippets: unknown): RawSnippet[] {
 	if (!Array.isArray(snippets)) { throw "Expected snippets to be an array"; }
-	return snippets.map((raw) => {
+	return snippets.flat().map((raw) => {
 		try {
 			return parse(RawSnippetSchema, raw);
 		} catch (e) {
