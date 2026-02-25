@@ -205,10 +205,11 @@
      description: "Add space after hyperbolic trig funcs"},
 
     {
-        trigger: /(arcsin|arccos|arctan|arccsc|arcsec|arccot)/,
+        trigger: /(arccsc|arcsec|arccot)/,
         replacement: "\\operatorname{[[0]]}$0",
         options: "mA",
         description: "Inverse trig functions, Are not built-in MathJax functions",
+		priority: 1,
     },
 
     // Visual operations
