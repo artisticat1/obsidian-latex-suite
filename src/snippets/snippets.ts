@@ -33,6 +33,7 @@ export type SnippetData<T extends SnippetType> = {
 	regex: {
 		trigger: RegExp;
 		replacement: string | ((match: RegExpExecArray) => string);
+		triggerAfter?: RegExp;
 	};
 	string: {
 		trigger: string;
@@ -41,7 +42,7 @@ export type SnippetData<T extends SnippetType> = {
 }[T]
 
 export type ProcessSnippetResult =
-	| { triggerPos: number, replacement: string }
+	| { triggerPos: number, replacement: string, triggerEndPos?: number }
 	| null
 
 /**
@@ -83,7 +84,7 @@ export abstract class Snippet<T extends SnippetType = SnippetType> {
 	get trigger(): SnippetData<T>["trigger"] { return this.data.trigger; }
 	get replacement(): SnippetData<T>["replacement"] { return this.data.replacement; }
 
-	abstract process(effectiveLine: string, range: SelectionRange, sel: string): ProcessSnippetResult;
+	abstract process(effectiveLine: string, range: SelectionRange, sel: string, effectiveLineAfter?: string): ProcessSnippetResult;
 
 	toString() {
 		return serializeSnippetLike({
@@ -129,19 +130,25 @@ export class VisualSnippet extends Snippet<"visual"> {
 
 export class RegexSnippet extends Snippet<"regex"> {
 
-	constructor({ trigger, replacement, options, priority, description, excludedEnvironments , triggerKey}: CreateSnippet<"regex">) {
+	constructor({ trigger, replacement, options, priority, description, excludedEnvironments , triggerKey, triggerAfter}: CreateSnippet<"regex">) {
 		super("regex", trigger, replacement, options, priority, description, excludedEnvironments, triggerKey);
+		this.data.triggerAfter = triggerAfter;
 	}
 
-	process(effectiveLine: string, range: SelectionRange, sel: string): ProcessSnippetResult {
+	process(effectiveLine: string, range: SelectionRange, sel: string, effectiveLineAfter: string): ProcessSnippetResult {
 		const hasSelection = !!sel;
 		// non-visual snippets only run when there is no selection
 		if (hasSelection) { return null; }
 
 		const result = this.trigger.exec(effectiveLine);
 		if (result === null) { return null; }
+		const afterResult = this.data.triggerAfter?.exec(effectiveLineAfter);
+		if (this.data.triggerAfter && afterResult === null) { return null; }
 
 		const triggerPos = result.index;
+		const triggerEndPos = afterResult
+			? result.index + result[0].length + afterResult[0].length -1
+			: undefined;
 
 		let replacement;
 		if (typeof this.replacement === "string") {
@@ -163,7 +170,7 @@ export class RegexSnippet extends Snippet<"regex"> {
 			if (typeof replacement !== "string") { return null; }
 		}
 
-		return { triggerPos, replacement };
+		return { triggerPos, replacement, triggerEndPos };
 	}
 }
 

@@ -49,6 +49,7 @@ const runSnippetCursor = (view: EditorView, ctx: Context, snippetInfo: SnippetIn
 		return {success: false, shouldAutoEnlargeBrackets: false};
 	}
 	const updatedLine = line + key;
+	const effectiveLineAfter = view.state.sliceDoc(to);
 	for (let i=0; i < snippetInfo.snippets.length; i++) {
 		const snippet = snippetInfo.snippets[i];
 
@@ -56,7 +57,7 @@ const runSnippetCursor = (view: EditorView, ctx: Context, snippetInfo: SnippetIn
 			continue;
 		}
 
-		const result = snippet.process(updatedLine, range, sel);
+		const result = snippet.process(updatedLine, range, sel, effectiveLineAfter);
 		if (result === null) continue;
 
 		// Check that this snippet is not excluded in a certain environment
@@ -71,6 +72,13 @@ const runSnippetCursor = (view: EditorView, ctx: Context, snippetInfo: SnippetIn
 		if (isExcluded) { continue; }
 
 		const triggerPos = result.triggerPos;
+		let triggerEndPos;
+		if (result.triggerEndPos !== undefined) {
+			triggerEndPos = result.triggerEndPos;
+		}
+		else {
+			triggerEndPos = to;
+		}
 
 		if (snippet.options.onWordBoundary) {
 			// Check that the trigger is preceded and followed by a word delimiter
@@ -87,7 +95,7 @@ const runSnippetCursor = (view: EditorView, ctx: Context, snippetInfo: SnippetIn
 		// Expand the snippet
 		const start = triggerPos;
 		const triggerKey = (snippet.options.automatic && snippet.type !== "visual") ? key : undefined;
-		queueSnippet(view, start, to, replacement, triggerKey);
+		queueSnippet(view, start, triggerEndPos, replacement, triggerKey, to);
 
 		const containsTrigger = settings.autoEnlargeBracketsTriggers.some(word => replacement.contains(word));
 		if (debug === "info" || debug === "verbose") {
