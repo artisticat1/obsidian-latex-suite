@@ -121,6 +121,22 @@ function getDisableAllFeaturesCommand(plugin: LatexSuitePlugin) {
 	}
 }
 
+function getToggleAllFeaturesCommand(plugin: LatexSuitePlugin) {
+	return {
+		id: "latex-suite-toggle-all-features",
+		name: "Toggle all features",
+		callback: async () => {
+			plugin.settings.snippetsEnabled = !plugin.settings.snippetsEnabled;
+			plugin.settings.autofractionEnabled = !plugin.settings.autofractionEnabled;
+			plugin.settings.matrixShortcutsEnabled = !plugin.settings.matrixShortcutsEnabled;
+			plugin.settings.taboutEnabled = !plugin.settings.taboutEnabled;
+			plugin.settings.autoEnlargeBrackets = !plugin.settings.autoEnlargeBrackets;
+
+			await plugin.saveSettings();
+		},
+	}
+}
+
 function getToggleConcealCommand(plugin: LatexSuitePlugin) {
 	return {
 		id: "latex-suite-toggle-conceal",
