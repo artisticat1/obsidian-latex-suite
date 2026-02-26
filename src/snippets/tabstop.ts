@@ -111,6 +111,12 @@ export class TabstopGroup {
 
         return ranges;
     }
+	copy() {
+		const newTabstopGroup = new TabstopGroup([], this.color);
+		newTabstopGroup.decos = this.decos;
+		newTabstopGroup.hidden = this.hidden;
+		return newTabstopGroup;
+	}
 }
 
 export function tabstopSpecsToTabstopGroups(tabstops: TabstopSpec[], color: number):TabstopGroup[] {

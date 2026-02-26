@@ -14,7 +14,6 @@ export class SnippetChangeSpec {
         this.to = to;
         this.insert = insert;
         this.keyPressed = keyPressed;
-		console.log({from, to, insert, keyPressed, after})
 		this.after = after
     }
 

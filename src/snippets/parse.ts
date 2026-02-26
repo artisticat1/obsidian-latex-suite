@@ -194,9 +194,16 @@ function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snip
 		return new RegexSnippet(normalised);
 	}
 	else {
-		let trigger = raw.trigger as string;
+		let trigger = raw.trigger;
 		// substitute snippet variables
 		trigger = insertSnippetVariables(trigger, snippetVariables);
+
+		let triggerAfter = raw.triggerAfter;
+		if (triggerAfter !== undefined && typeof triggerAfter === "string") {
+			triggerAfter = insertSnippetVariables(triggerAfter, snippetVariables);
+		} else if (triggerAfter instanceof RegExp) {
+			throw "triggerAfter cannot be a RegExp for non-regex snippets";
+		}
 
 		// get excluded environment(s) for this trigger, if any
 		excludedEnvironments = getExcludedEnvironments(trigger);
@@ -206,7 +213,7 @@ function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snip
 			options.visual = true;
 		}
 
-		const normalised = { trigger, replacement, options, priority, description, excludedEnvironments, triggerKey };
+		const normalised = { trigger, replacement, options, priority, description, excludedEnvironments, triggerKey, triggerAfter };
 
 		if (options.visual) {
 			return new VisualSnippet(normalised);
