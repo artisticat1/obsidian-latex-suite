@@ -23,6 +23,8 @@ const sizeControls = [
 	"\\left",
 	"\\right",
 ];
+const sizeControlPattern = "(?:" + sizeControls.map(escapeRegex).join("|") + "\\s*)$";
+const sizeControlParser = new RegExp(sizeControlPattern, "s");
 const brackets: { [open: string]: string } = {
 	"(": ")",
 	"[": "]",
@@ -88,6 +90,9 @@ export const autoEnlargeBrackets = (view: EditorView) => {
 		const containsTrigger = settings.autoEnlargeBracketsTriggers.some(word => bracketContents.contains(word));
 
 		if (!containsTrigger) {
+			continue;
+		}
+		if (sizeControlParser.test(bracketContents)) {
 			continue;
 		}
 
