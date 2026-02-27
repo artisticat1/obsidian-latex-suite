@@ -225,19 +225,23 @@ const getInnerEquationBounds = (view: EditorView, pos?: number ):Bounds | null =
 	let text = view.state.sliceDoc(bounds.inner_start, bounds.inner_end);
 
 	// ignore \$
-	text = text.replaceAll("\\$", "\\R");
-
-	const left = text.lastIndexOf("$", pos-1);
-	const right = text.indexOf("$", pos);
-
-	if (left === -1 || right === -1) return bounds;
-
-	return {
-		inner_start: left + 1,
-		inner_end: right,
-		outer_start: left,
-		outer_end: right + 1,
-	};
+	text = text.replaceAll(/\\[$|\\]/g, "\\R");
+	pos = pos - bounds.inner_start;
+	const delimiters: [string,string][] = [["$","$"], ["\\(", "\\)"]]
+	for (const [leftDelim, rightDelim] of delimiters) {
+		const left = text.lastIndexOf(leftDelim, pos-1)	
+		const right = text.indexOf(rightDelim, pos)
+		if (left === -1 || right === -1) {
+			continue
+		}
+		return {
+			inner_start: left,
+			inner_end: right,
+			outer_start: left - leftDelim.length,
+			outer_end: right + rightDelim.length
+		}
+	}
+	return bounds
 }
 
 /**

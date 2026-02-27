@@ -35,10 +35,12 @@ const brackets: { [open: string]: string } = {
 	"\\lceil": "\\rceil",
 	"\\lfloor": "\\rfloor",
 };
+const ignorePattern = ["\\\\", "\\(", "\\)"]
 const rawParser = [
 	...sizeControls,
 	...Object.keys(brackets),
 	...Object.values(brackets),
+	...ignorePattern,
 ]
 	.map((s) => escapeRegex(s))
 	.sort((a,b) => a.length - b.length)
@@ -51,7 +53,7 @@ export const autoEnlargeBrackets = (view: EditorView) => {
 
 	// The Context needs to be regenerated since changes to the document may have happened before autoEnlargeBrackets was triggered
 	const ctx = getContextPlugin(view);
-	const result = ctx.getBounds();
+	const result = ctx.getInnerBounds();
 	if (!result) return false;
 	const {inner_start: start, inner_end: end} = result;
 
@@ -75,6 +77,8 @@ export const autoEnlargeBrackets = (view: EditorView) => {
 			open = match[0];
 		} else if (sizeControls.contains(match[0])) {
 			skip = match.index + match[0].length;
+		} else if (ignorePattern.contains(match[0])) {
+			continue
 		}
 		if (!found) continue;
 		const bracketSize = open.length;
