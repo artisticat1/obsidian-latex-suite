@@ -104,9 +104,10 @@ function concealSymbols(eqn: string, prefix: string, suffix: string, symbolMap: 
 	return specs;
 }
 
-function concealModifier(eqn: string, modifier: string, combiningCharacter: string): ConcealSpec[] {
+function concealModifier(eqn: string, modifier: string, combiningCharacter: string, allowSucceedingLetters = false): ConcealSpec[] {
 
-	const regexStr = ("\\\\" + modifier + "{([A-Za-z])}");
+	const plusSign = allowSucceedingLetters ? "+" : "";
+	const regexStr = ("\\\\" + modifier + `{([A-Za-z]${plusSign})}`);
 	const symbolRegex = new RegExp(regexStr, "g");
 
 
@@ -116,11 +117,10 @@ function concealModifier(eqn: string, modifier: string, combiningCharacter: stri
 
 	for (const match of matches) {
 		const symbol = match[1];
-
 		specs.push(mkConcealSpec({
 			start: match.index,
 			end: match.index + match[0].length,
-			text: symbol + combiningCharacter,
+			text: symbol.split("").map(s => s + combiningCharacter).join(""),
 			class: "latex-suite-unicode",
 		}));
 	}
@@ -492,7 +492,8 @@ export function conceal(
 			...concealModifier(eqn, "hat", "\u0302"),
 			...concealModifier(eqn, "dot", "\u0307"),
 			...concealModifier(eqn, "ddot", "\u0308"),
-			...concealModifier(eqn, "overline", "\u0304"),
+			...concealModifier(eqn, "overline", "\u0304", true),
+			...concealModifier(eqn, "overrightarrow", "\u2192", true),
 			...concealModifier(eqn, "bar", "\u0304"),
 			...concealModifier(eqn, "tilde", "\u0303"),
 			...concealModifier(eqn, "vec", "\u20D7"),

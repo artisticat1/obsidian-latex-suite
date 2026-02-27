@@ -245,6 +245,33 @@ function buildAtomicRanges(concealments: Concealment[]) {
 	return builder.finish();
 }
 
+const updateSelection = debounce((view: EditorView) => {
+	const ranges = view.state.selection.ranges.map(r => {
+		return EditorSelection.range(r.from, r.to, r.assoc);
+	});
+	console.log(ranges, ranges.shuffle())
+	view.dispatch({
+		selection: EditorSelection.create(ranges),
+	});
+}, 50);
+export const mouseDownState = ViewPlugin.fromClass(class {
+	mousedown: boolean = false;
+	test = "false";
+}, {
+	eventHandlers: {
+		mousedown() {
+			this.mousedown = true;
+		},
+		mouseup(_, view) {
+			this.mousedown = false;	
+			if (view.state.selection.ranges.some(r => !r.empty)) {
+				updateSelection(view);
+			}
+		},
+	},
+});
+	
+	
 export const concealPlugin = ViewPlugin.fromClass(class {
 	// Stateful ViewPlugin: you should avoid one in general, but here
 	// the approach based on StateField and updateListener conflicts with
@@ -310,7 +337,7 @@ export const concealPlugin = ViewPlugin.fromClass(class {
 	private updateFromConcealSpecs(concealSpecs: ConcealSpec[], update: ViewUpdate) {
 
 		const selection = update.state.selection;
-		const mousedown = update.view.plugin(livePreviewState)?.mousedown ?? false;
+		const mousedown = update.view.plugin(mouseDownState)?.mousedown ?? false;
 
 		// Collect concealments from the new conceal specs
 		const concealments: Concealment[] = [];
