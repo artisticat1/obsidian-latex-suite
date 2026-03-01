@@ -6,6 +6,13 @@ import { tabout } from "src/features/tabout";
 import { queueSnippet } from "src/snippets/codemirror/snippet_queue_state_field";
 import { expandSnippets } from "src/snippets/snippet_management";
 
+const OPEN_BRACKETS: {[bracket: string]: string} = {
+	"{": "}",
+	"[": "]",
+	"(": ")",
+	"\\langle": "\\rangle",
+}
+
 export const runMatrixShortcuts = (view: EditorView, ctx: Context, key: string, shiftKey: boolean): boolean => {
 	const settings = getLatexSuiteConfig(view);
 
@@ -23,6 +30,47 @@ export const runMatrixShortcuts = (view: EditorView, ctx: Context, key: string, 
 
 	// Take main cursor since ctx.mode takes the main cursor, weird behaviour is expected with multicursor because of this.
 	if (key === "Tab" && view.state.selection.main.empty) {
+		// only run tabout if there is a closing bracket with no matching opening bracket before it.
+		matrix_tabout: {
+			const currentLine = view.state.doc.lineAt(ctx.pos);
+			const match = currentLine.text.slice(0, ctx.pos - currentLine.from).match(/(\}|\]|\)|\\rangle)/g);
+			if (!match){
+				break matrix_tabout;
+			}
+			const closeBracket: {[bracket: string]: number} = {
+				"}": 0,
+				")": 0,
+				"]": 0,
+				"\\rangle": 0,
+			}
+			for (let i = ctx.pos - currentLine.from; i < currentLine.text.length; i++) {
+				const char = currentLine.text[i];
+				if (char in OPEN_BRACKETS) {
+					closeBracket[OPEN_BRACKETS[char]]--;	
+					continue
+				}
+				if (currentLine.text.slice(i, i + "\\langle".length) === "\\langle") {
+					closeBracket["\\rangle"]--;
+					i += "\\langle".length - 1;
+					continue
+				}
+				if (char in closeBracket) {
+					closeBracket[char]++;
+					if (closeBracket[char] > 0) {
+						setCursor(view, currentLine.from + i+1);
+						return true
+					}
+				}
+				if (currentLine.text.slice(i, i + "\\rangle".length) === "\\rangle"){
+					closeBracket["\\rangle"]++;
+					i += "\\rangle".length - 1
+					if (closeBracket["\\rangle"] > 0) {
+						setCursor(view, currentLine.from + i+1);
+						return true
+					}
+				}
+			}
+		}
 		view.dispatch(view.state.replaceSelection(" & "));
 
 		return true;
