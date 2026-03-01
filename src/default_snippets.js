@@ -1,7 +1,21 @@
 [
     // Math mode
 	{trigger: "mk", replacement: "$$0$", options: "tA"},
-	{trigger: "dm", replacement: "$$\n$0\n$$", options: "tAw"},
+	{trigger: "dm", replacement: "$$\n$0\n$$", options: "tAw", priority: 50},
+	{trigger: /^([ \t]*)(\d+[.)]|[-*+])(\s+)(.*?)\bdm\b$/m,
+     replacement: (m) => {
+       const lead   = (m[1] ?? "").replace(/\t/g, "    ");
+       const marker = m[2] ?? "";
+       const gap    = (m[3] ?? " ").replace(/\t/g, " ");
+       const text   = (m[4] ?? "").replace(/\s+$/, "");
+   
+       const firstLine = text ? `${lead}${marker}${gap}${text}` : `${lead}${marker}${gap}`;
+       const indent    = `${lead}${" ".repeat(marker.length)}${gap}`;
+
+       return `${firstLine} $$\n${indent}$0\n${indent}$$\n${indent}$1`;
+     },
+     options: "rtA",
+     priority: 100},
 	{trigger: "beg", replacement: "\\begin{$0}\n$1\n\\end{$0}", options: "mA"},
 
     // Dashes
