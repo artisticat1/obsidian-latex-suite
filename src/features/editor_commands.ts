@@ -126,11 +126,17 @@ function getToggleAllFeaturesCommand(plugin: LatexSuitePlugin) {
 		id: "latex-suite-toggle-all-features",
 		name: "Toggle all features",
 		callback: async () => {
-			plugin.settings.snippetsEnabled = !plugin.settings.snippetsEnabled;
-			plugin.settings.autofractionEnabled = !plugin.settings.autofractionEnabled;
-			plugin.settings.matrixShortcutsEnabled = !plugin.settings.matrixShortcutsEnabled;
-			plugin.settings.taboutEnabled = !plugin.settings.taboutEnabled;
-			plugin.settings.autoEnlargeBrackets = !plugin.settings.autoEnlargeBrackets;
+			const on =
+				plugin.settings.snippetsEnabled ||
+				plugin.settings.autofractionEnabled ||
+				plugin.settings.matrixShortcutsEnabled ||
+				plugin.settings.taboutEnabled ||
+				plugin.settings.autoEnlargeBrackets;
+			plugin.settings.snippetsEnabled = !on;
+			plugin.settings.autofractionEnabled = !on;
+			plugin.settings.matrixShortcutsEnabled = !on;
+			plugin.settings.taboutEnabled = !on;
+			plugin.settings.autoEnlargeBrackets = !on;
 
 			await plugin.saveSettings();
 		},
@@ -156,6 +162,7 @@ export const getEditorCommands = (plugin: LatexSuitePlugin) => {
 		getEnableAllFeaturesCommand(plugin),
 		getDisableAllFeaturesCommand(plugin),
 		getToggleConcealCommand(plugin),
+		getToggleAllFeaturesCommand(plugin),
 	];
 };
 
