@@ -46,10 +46,11 @@ function handleUndoKeypresses(view: EditorView, snippets: SnippetChangeSpec[]) {
 	for (const snippet of snippets) {
 		if (snippet.keyPressed && (snippet.keyPressed.length === 1)) {
 			// Use prevChar so that cursors are placed at the end of the added text
-			const prevChar = view.state.doc.sliceString(snippet.to-1, snippet.to);
+			const to = snippet.after ?? snippet.to;
+			const prevChar = view.state.doc.sliceString(to-1, to);
 
-			const from = snippet.to === 0 ? 0 : snippet.to-1;
-			keyPresses.push({from: from, to: snippet.to, insert: prevChar + snippet.keyPressed});
+			const from = to === 0 ? 0 : to-1;
+			keyPresses.push({from: from, to, insert: prevChar + snippet.keyPressed});
 		}
 	}
 
@@ -108,8 +109,7 @@ function expandTabstops(
 	const color = getNextTabstopColor(view);
 	const tabstopGroups = tabstopSpecsToTabstopGroups(tabstops, color);
 	tabstopGroups.forEach((grp) => grp.map(changes));
-	const extraTabstopGroups = tabstopSpecsToTabstopGroups(tabstops, color)
-	extraTabstopGroups.forEach((grp) => grp.map(changes));
+	const frozenTabstopGroups = tabstopGroups.map(grp => grp.copy())
 	// Insert the replacements
 	const effects = addTabstops(tabstopGroups).effects;
 	const firstGrp = tabstopGroups[0];
@@ -120,7 +120,7 @@ function expandTabstops(
 		sequential: true
 	};
 	view.dispatch({
-		effects: [...effects, startSnippet.of(extraTabstopGroups)],
+		effects: [...effects, startSnippet.of(frozenTabstopGroups)],
 		changes: undoChanges.changes.compose(changes),
 		selection: undoChanges.selection
 	}, spec);

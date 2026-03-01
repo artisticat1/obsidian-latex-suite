@@ -16,7 +16,7 @@ export const snippetQueuePlugin = ViewPlugin.fromClass(
 	}
 	
 	get snippetQueueValue(): SnippetChangeSpec[] {
-		return this.snippetQueue.map(s => new SnippetChangeSpec(s.from, s.to, s.insert, s.keyPressed));
+		return this.snippetQueue.map(s => new SnippetChangeSpec(s.from, s.to, s.insert, s.keyPressed, s.after));
 	}
 })
 
@@ -29,8 +29,8 @@ export function getSnippetQueue(view: EditorView) {
 }
 
 
-export function queueSnippet(view: EditorView, from: number, to: number, insert: string, keyPressed?: string) {
-	const snippet = new SnippetChangeSpec(from, to, keepIndentAndCallout(view.state, from, to, insert), keyPressed);
+export function queueSnippet(view: EditorView, from: number, to: number, insert: string, keyPressed?: string, after?: number) {
+	const snippet = new SnippetChangeSpec(from, to, keepIndentAndCallout(view.state, from, to, insert), keyPressed, after);
 	getSnippetQueue(view).QueueSnippets([snippet]);
 }
 

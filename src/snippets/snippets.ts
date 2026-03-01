@@ -33,15 +33,17 @@ export type SnippetData<T extends SnippetType> = {
 	regex: {
 		trigger: RegExp;
 		replacement: string | ((match: RegExpExecArray) => string);
+		triggerAfter?: RegExp;
 	};
 	string: {
 		trigger: string;
 		replacement: string | ((match: string) => string);
+		triggerAfter?: string;
 	};
 }[T]
 
 export type ProcessSnippetResult =
-	| { triggerPos: number, replacement: string }
+	| { triggerPos: number, replacement: string, triggerEndPos?: number }
 	| null
 
 /**
@@ -83,7 +85,7 @@ export abstract class Snippet<T extends SnippetType = SnippetType> {
 	get trigger(): SnippetData<T>["trigger"] { return this.data.trigger; }
 	get replacement(): SnippetData<T>["replacement"] { return this.data.replacement; }
 
-	abstract process(effectiveLine: string, range: SelectionRange, sel: string): ProcessSnippetResult;
+	abstract process(effectiveLine: string, range: SelectionRange, sel: string, effectiveLineAfter?: string): ProcessSnippetResult;
 
 	toString() {
 		return serializeSnippetLike({
@@ -129,19 +131,27 @@ export class VisualSnippet extends Snippet<"visual"> {
 
 export class RegexSnippet extends Snippet<"regex"> {
 
-	constructor({ trigger, replacement, options, priority, description, excludedEnvironments , triggerKey}: CreateSnippet<"regex">) {
+	constructor({ trigger, replacement, options, priority, description, excludedEnvironments , triggerKey, triggerAfter}: CreateSnippet<"regex">) {
 		super("regex", trigger, replacement, options, priority, description, excludedEnvironments, triggerKey);
+		this.data.triggerAfter = triggerAfter;
 	}
 
-	process(effectiveLine: string, range: SelectionRange, sel: string): ProcessSnippetResult {
+	process(effectiveLine: string, range: SelectionRange, sel: string, effectiveLineAfter: string): ProcessSnippetResult {
 		const hasSelection = !!sel;
 		// non-visual snippets only run when there is no selection
 		if (hasSelection) { return null; }
 
 		const result = this.trigger.exec(effectiveLine);
 		if (result === null) { return null; }
-
+		const afterResult = this.data.triggerAfter?.exec(effectiveLineAfter);
+		if (this.data.triggerAfter && afterResult === null) { return null; }
+		if (this.data.triggerAfter) {
+			console.log("triggerAfter result:", afterResult);
+		}
 		const triggerPos = result.index;
+		const triggerEndPos = afterResult
+			? result.index + result[0].length + afterResult[0].length -1
+			: undefined;
 
 		let replacement;
 		if (typeof this.replacement === "string") {
@@ -163,26 +173,35 @@ export class RegexSnippet extends Snippet<"regex"> {
 			if (typeof replacement !== "string") { return null; }
 		}
 
-		return { triggerPos, replacement };
+		return { triggerPos, replacement, triggerEndPos };
 	}
 }
 
 export class StringSnippet extends Snippet<"string"> {
 	data: SnippetData<"string">;
 
-	constructor({ trigger, replacement, options, priority, description, excludedEnvironments: excludeIn, triggerKey }: CreateSnippet<"string">) {
+	constructor({ trigger, replacement, options, priority, description, excludedEnvironments: excludeIn, triggerKey, triggerAfter }: CreateSnippet<"string">) {
 		super("string", trigger, replacement, options, priority, description, excludeIn, triggerKey);
+		this.data.triggerAfter = triggerAfter;
 	}
 
-	process(effectiveLine: string, range: SelectionRange, sel: string): ProcessSnippetResult {
+	process(effectiveLine: string, range: SelectionRange, sel: string, effectiveLineAfter: string): ProcessSnippetResult {
 		const hasSelection = !!sel;
 		// non-visual snippets only run when there is no selection
 		if (hasSelection) { return null; }
 
 		// Check whether the trigger text was typed
 		if (!(effectiveLine.endsWith(this.trigger))) { return null; }
+		if (this.data.triggerAfter && !effectiveLineAfter.startsWith(this.data.triggerAfter)) { return null; }
+		console.log(this.data.triggerAfter)
+		if (this.data.triggerAfter) {
+			console.log("triggerAfter effectiveLineAfter:", effectiveLineAfter);
+		}
 
 		const triggerPos = effectiveLine.length - this.trigger.length;
+		const triggerEndPos = this.data.triggerAfter !== undefined
+			? effectiveLine.length + this.data.triggerAfter.length - 1
+			: undefined;
 		const replacement = typeof this.replacement === "string"
 			? this.replacement
 			: this.replacement(this.trigger);
@@ -191,7 +210,7 @@ export class StringSnippet extends Snippet<"string"> {
 		// we have no way to validate beforehand that it really does return a string
 		if (typeof replacement !== "string") { return null; }
 
-		return { triggerPos, replacement };
+		return { triggerPos, replacement, triggerEndPos };
 	}
 }
 

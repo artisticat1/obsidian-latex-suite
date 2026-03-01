@@ -45,7 +45,7 @@ export const handleUndoRedo = (update: ViewUpdate) => {
 
 			if (effect.is(startSnippet) && redoTr) {
 				update.view.dispatch({
-					effects: addTabstops(effect.value).effects,
+					effects: addTabstops(effect.value.map(grp => grp.copy())).effects,
 				})
 			}
 		}
