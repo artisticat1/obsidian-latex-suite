@@ -20,7 +20,7 @@ async function importRaw(maybeJavaScriptCode: string) {
 			raw = await importModuleDefault(`data:text/javascript;base64,${encode(`export default ${maybeJavaScriptCode}`)}`);
 		}
 	} catch {
-		throw `Invalid format`;
+		throw "Invalid format";
 	}
 	return raw;
 }
@@ -124,7 +124,7 @@ function validateRawSnippets(snippets: unknown): RawSnippet[] {
 	return snippets.flat().map((raw) => {
 		try {
 			return parse(RawSnippetSchema, raw);
-		} catch (e) {
+		} catch {
 			throw `Value does not resemble snippet.\nErroring snippet:\n${serializeSnippetLike(raw)}`;
 		}
 	})
