@@ -1,21 +1,24 @@
 [
     // Math mode
 	{trigger: "mk", replacement: "$$0$", options: "tA"},
-	{trigger: "dm", replacement: "$$\n$0\n$$", options: "tAw", priority: 50},
-	{trigger: /^([ \t]*)(\d+[.)]|[-*+])(\s+)(.*?)\bdm\b$/m,
+	{trigger: "dm", replacement: "$$\n$0\n$$", options: "tAw"},
+	{trigger: /(^|\n)([ \t]*)(\d+\.|[-*+])([ \t]+)(.*?)\bdm\b[ \t]*$/,
      replacement: (m) => {
-       const lead   = (m[1] ?? "").replace(/\t/g, "    ");
-       const marker = m[2] ?? "";
-       const gap    = (m[3] ?? " ").replace(/\t/g, " ");
-       const text   = (m[4] ?? "").replace(/\s+$/, "");
-   
-       const firstLine = text ? `${lead}${marker}${gap}${text}` : `${lead}${marker}${gap}`;
-       const indent    = `${lead}${" ".repeat(marker.length)}${gap}`;
+        const bol    = m[1] ?? ""; // "" or "\n"
+        const lead   = (m[2] ?? "").replace(/\t/g, "    ");
+        const marker = m[3] ?? "";
+        const gap    = (m[4] ?? " ").replace(/\t/g, " ");
+        const text   = (m[5] ?? "").replace(/\s+$/, "");
 
-       return `${firstLine} $$\n${indent}$0\n${indent}$$\n${indent}$1`;
+        const firstLine = `${lead}${marker}${gap}${text}`.replace(/[ \t]+$/, "");
+        const indent    = `${lead}${" ".repeat(marker.length)}${gap}`;
+
+        return `${bol}${firstLine}\n${indent}$$\n${indent}$0\n${indent}$$\n${indent}$1`;
      },
-     options: "rtA",
-     priority: 100},
+    options: "rtA",
+    priority: 1,
+	},
+
 	{trigger: "beg", replacement: "\\begin{$0}\n$1\n\\end{$0}", options: "mA"},
 
     // Dashes
