@@ -125,7 +125,7 @@
 
 	// \dot{x}3 -> \dot{x}_{3}, \dot{\alpha}3 -> \dot{\alpha}_{3}
 	{
-	  trigger: "\\\\(${ACCENT})\\{((?:\\\\(?:${GREEK})|[A-Za-z]))\\}(\\d)",
+		trigger: "\\\\((?:${ACCENT}))\\{((?:\\\\(?:${GREEK})|[A-Za-z]))\\}(\\d)",
 	  replacement: "\\[[0]]{[[1]]}_{[[2]]}",
 	  options: "rmA",
 	  priority: -1,
@@ -133,21 +133,21 @@
 	
 	// \dot{x}_{3}4 -> \dot{x}_{34}
 	{
-	  trigger: "\\\\(${ACCENT})\\{((?:\\\\(?:${GREEK})|[A-Za-z]))\\}_\\{(\\d+)\\}(\\d)",
+		trigger: "\\\\((?:${ACCENT}))\\{((?:\\\\(?:${GREEK})|[A-Za-z]))\\}_\\{(\\d+)\\}(\\d)",
 	  replacement: "\\[[0]]{[[1]]}_{[[2]][[3]]}",
 	  options: "rmA",
 	  priority: -1,
 	},
 	// \dot{\vec{a}}3 -> \dot{\vec{a}}_{3}
 	{
-	  trigger: "\\\\(${ACCENT})\\{\\\\(${ACCENT2})\\{((?:\\\\(?:${GREEK})|[A-Za-z]))\\}\\}(\\d)",
+	  trigger: "\\\\((?:${ACCENT}))\\{\\\\((?:${ACCENT}))\\{((?:\\\\(?:${GREEK})|[A-Za-z]))\\}\\}(\\d)",
 	  replacement: "\\[[0]]{\\[[1]]{[[2]]}}_{[[3]]}",
 	  options: "rmA",
 	  priority: -1,
 	},
 	// \dot{\vec{a}}_{3}4 -> \dot{\vec{a}}_{34}
 	{
-	  trigger: "\\\\(${ACCENT})\\{\\\\(${ACCENT2})\\{((?:\\\\(?:${GREEK})|[A-Za-z]))\\}\\}_\\{(\\d+)\\}(\\d)",
+		trigger: "\\\\((?:${ACCENT}))\\{\\\\((?:${ACCENT}))\\{((?:\\\\(?:${GREEK})|[A-Za-z]))\\}\\}_\\{(\\d+)\\}(\\d)",
 	  replacement: "\\[[0]]{\\[[1]]{[[2]]}}_{[[3]][[4]]}",
 	  options: "rmA",
 	  priority: -1,
