@@ -7,9 +7,11 @@
   trigger: string | RegExp,
   replacement: string,
   options: string,
-  priority?: number,
-  description?: string,
-  flags?: string,
+  priority?: number = 0,
+  description?: string = "no description provided",
+  flags?: string = "",
+  triggerKey?: string = "",
+  language?: string,
 }
 ```
 
@@ -23,6 +25,11 @@
 - `flags` (optional): Flags for [regex snippets](#regex).
   - Not applicable to non-regex snippets.
   - The following flags are permitted: `i`, `m`, `s`, `u`, `v`.
+- `triggerKey` (optional): The shortcut to expand the snippet.
+  - Has to be in <a href="https://codemirror.net/docs/ref/#view.KeyBinding">codemirror keymap format</a> such as `Ctrl-a`.
+  - Empty strings are ignored and both the `triggerKey` and `trigger` need to match (`trigger` can be an empty string making it a hotkey). See #439 for examples and a snippet to add a snippet as an hotkey.
+  - No other shortcut such as obsidians hotkeys, vims keymaps or other plugins can have used the shortcut before this plugin. For example `Ctrl-o` by default will open quick switcher and thus won't as a `triggerKey`.
+- `language` (optional): Which code language to expand this in. Needs to match the text after <code>```</code> exactly.
 
 ### Options
 - `t` : Text mode. Only run this snippet outside math

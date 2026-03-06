@@ -135,7 +135,7 @@ export function getKeymaps(settings: LatexSuiteCMSettings): LatexSuiteKeyBinding
 	}
 	
 	const snippet_triggers = new Set(
-		settings.snippets.map((s) => s.triggerKey).filter((s) => s !== null)
+		settings.snippets.map((s) => s.triggerKey).filter((s) => s !== "")
 	);
 	snippet_triggers.add(settings.snippetsTrigger);
 	const runMaker = (key: string) => {

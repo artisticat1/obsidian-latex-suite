@@ -170,6 +170,8 @@ Snippets can be edited in the plugin settings. The structure of a snippet is as 
   priority?: number,
   description?: string,
   flags?: string,
+  triggerKey?: string,
+  language?: string,
 }
 ```
 
@@ -181,6 +183,8 @@ Snippets can be edited in the plugin settings. The structure of a snippet is as 
 - `priority` (optional): This snippet's priority. Snippets with higher priority are run first. Can be negative. Defaults to 0.
 - `description` (optional): A description for this snippet.
 - `flags` (optional): Flags for regex snippets.
+- `triggerKey` (optional): Shortcut for snippets.
+- `language` (optional): code language for snippets.
 
 
 #### Options
