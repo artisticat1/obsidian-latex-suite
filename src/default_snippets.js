@@ -110,7 +110,7 @@
 	//
 	// x3 -> x_{3}, \alpha3 -> \alpha_{3}
 	{
-	  trigger: "((?:\\\\(?:${GREEK})|[A-Za-z]))(\\d)",
+	  trigger: "((?:\\\\${GREEK}|[A-Za-z]))(\\d)",
 	  replacement: "[[0]]_{[[1]]}",
 	  options: "rmA",
 	  priority: -1,
