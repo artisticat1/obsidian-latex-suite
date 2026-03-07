@@ -125,7 +125,7 @@
 
 	// \dot{x}3 -> \dot{x}_{3}, \dot{\alpha}3 -> \dot{\alpha}_{3}
 	{
-		trigger: "\\\\((?:${ACCENT}))\\{((?:\\\\(?:${GREEK})|[A-Za-z]))\\}(\\d)",
+		trigger: "\\\\(${ACCENT})\\{((?:\\\\${GREEK}|[A-Za-z]))\\}(\\d)",
 	  replacement: "\\[[0]]{[[1]]}_{[[2]]}",
 	  options: "rmA",
 	  priority: -1,
