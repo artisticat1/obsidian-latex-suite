@@ -133,7 +133,7 @@
 	
 	// \dot{x}_{3}4 -> \dot{x}_{34}
 	{
-		trigger: "\\\\((?:${ACCENT}))\\{((?:\\\\(?:${GREEK})|[A-Za-z]))\\}_\\{(\\d+)\\}(\\d)",
+		trigger: "\\\\(${ACCENT})\\{((?:\\\\${GREEK}|[A-Za-z]))\\}_\\{(\\d+)\\}(\\d)",
 	  replacement: "\\[[0]]{[[1]]}_{[[2]][[3]]}",
 	  options: "rmA",
 	  priority: -1,
