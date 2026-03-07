@@ -1,22 +1,18 @@
 [
     // Math mode
 	{trigger: "mk", replacement: "$$0$", options: "tA"},
-	{trigger: "dm", replacement: "$$\n$0\n$$", options: "tAw"},
-	{trigger: /(^|\n)([ \t]*)(\d+\.|[-*+])([ \t]+)(.*?)\bdm\b[ \t]*$/,
-     replacement: (m) => {
-        const bol    = m[1] ?? ""; // "" or "\n"
-        const lead   = (m[2] ?? "").replace(/\t/g, "    ");
-        const marker = m[3] ?? "";
-        const gap    = (m[4] ?? " ").replace(/\t/g, " ");
-        const text   = (m[5] ?? "").replace(/\s+$/, "");
-
-        const firstLine = `${lead}${marker}${gap}${text}`.replace(/[ \t]+$/, "");
-        const indent    = `${lead}${" ".repeat(marker.length)}${gap}`;
-
-        return `${bol}${firstLine}\n${indent}$$\n${indent}$0\n${indent}$$\n${indent}$1`;
-     },
-    options: "rtA",
-    priority: 1,
+	{trigger: "dm", replacement: "$$\n\t$0\n$$", options: "tAw"},
+	{trigger: /(?<=\S.*)dm/, replacement: "\n$$\n\t$0\n$$", options: "tAw", priority: 1},
+	{
+		trigger: /(?<=(?:\n|^)[ \t]*>*)(?<marker>\d+[.)]|[-*+])(?<whitespace>[ \t]+)(?<text>.*)dm/,
+		replacement: (m) => {
+			const { whitespace, text, marker } = m.groups;
+			const firstLine = marker + whitespace + text;
+			const indent = " ".repeat(marker.length) + whitespace;
+			return `${firstLine}\n${indent}$$\n${indent}\t$0\n${indent}$$`;
+		},
+		options: "rtA",
+		priority: 2,
 	},
 
 	{trigger: "beg", replacement: "\\begin{$0}\n$1\n\\end{$0}", options: "mA"},
