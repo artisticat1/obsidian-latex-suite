@@ -9,7 +9,7 @@
 			const { whitespace, text, marker } = m.groups;
 			const firstLine = marker + whitespace + text;
 			const indent = " ".repeat(marker.length) + whitespace;
-			return `${firstLine}\n${indent}$$\n${indent}\t$0\n${indent}$$`;
+			return `${firstLine}\n${indent}$$\n${indent}\t$0\n${indent}$$\n${indent}$1`;
 		},
 		options: "rtA",
 		priority: 2,
