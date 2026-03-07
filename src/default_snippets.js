@@ -140,7 +140,7 @@
 	},
 	// \dot{\vec{a}}3 -> \dot{\vec{a}}_{3}
 	{
-	  trigger: "\\\\((?:${ACCENT}))\\{\\\\((?:${ACCENT}))\\{((?:\\\\(?:${GREEK})|[A-Za-z]))\\}\\}(\\d)",
+	  trigger: "\\\\(${ACCENT})\\{\\\\(${ACCENT})\\{((?:\\\\${GREEK}|[A-Za-z]))\\}\\}(\\d)",
 	  replacement: "\\[[0]]{\\[[1]]{[[2]]}}_{[[3]]}",
 	  options: "rmA",
 	  priority: -1,
