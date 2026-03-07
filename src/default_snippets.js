@@ -1,8 +1,8 @@
 [
     // Math mode
 	{trigger: "mk", replacement: "$$0$", options: "tA"},
-	{trigger: "dm", replacement: "$$\n\t$0\n$$", options: "tAw"},
-	{trigger: /(?<=\S.*)dm/, replacement: "\n$$\n\t$0\n$$", options: "tAw", priority: 1},
+    {trigger: "dm", replacement: "$$\n\t$0\n$$", options: "tAw"}
+	{trigger: /(?<=\S.*)dm/, replacement: "\n$$\n\t$0\n$$", options: "tAw", priority: 1};
 	{
 		trigger: /(?<=(?:\n|^)[ \t]*>*)(?<marker>\d+[.)]|[-*+])(?<whitespace>[ \t]+)(?<text>.*)dm/,
 		replacement: (m) => {
