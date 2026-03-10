@@ -1,18 +1,19 @@
 [
     // Math mode
 	{trigger: "mk", replacement: "$$0$", options: "tA"},
-    {trigger: "dm", replacement: "$$\n\t$0\n$$", options: "tAw"}
-	{trigger: /(?<=\S.*)dm/, replacement: "\n$$\n\t$0\n$$", options: "tAw", priority: 1};
+    {trigger: "dm", replacement: "$$\n\t$0\n$$", options: "tAw"},
+	{trigger: /(?<=\S.*)dm/, replacement: "\n$$\n\t$0\n$$", options: "tAw", priority: 1},
 	{
 		trigger: /(?<=(?:\n|^)[ \t]*>*)(?<marker>\d+[.)]|[-*+])(?<whitespace>[ \t]+)(?<text>.*)dm/,
 		replacement: (m) => {
 			const { whitespace, text, marker } = m.groups;
 			const firstLine = marker + whitespace + text;
 			const indent = " ".repeat(marker.length) + whitespace;
-			return `${firstLine}\n${indent}$$\n${indent}\t$0\n${indent}$$\n${indent}$1`;
+			return `${firstLine}\n${indent}$$\n${indent}\t$0\n${indent}$$`;
 		},
 		options: "rtA",
 		priority: 2,
+		description: "Display math when in a list"
 	},
 
 	{trigger: "beg", replacement: "\\begin{$0}\n$1\n\\end{$0}", options: "mA"},
@@ -106,14 +107,14 @@
 	//
 	// x3 -> x_{3}, \alpha3 -> \alpha_{3}
 	{
-	  trigger: "((?:\\\\${GREEK}|[A-Za-z]))(\\d)",
+	  trigger: "(\\\\${GREEK}|[A-Za-z])(\\d)",
 	  replacement: "[[0]]_{[[1]]}",
 	  options: "rmA",
 	  priority: -1,
 	},
 	// x_{3}4 -> x_{34}, \alpha_{3}4 -> \alpha_{34}
 	{
-	  trigger: "((?:\\\\${GREEK}|[A-Za-z]))_{(\\d+)}(\\d)",
+	  trigger: "(\\\\${GREEK}|[A-Za-z])_{(\\d+)}(\\d)",
 	  replacement: "[[0]]_{[[1]][[2]]}",
 	  options: "rmA",
 	  priority: -1,
@@ -121,7 +122,7 @@
 
 	// \dot{x}3 -> \dot{x}_{3}, \dot{\alpha}3 -> \dot{\alpha}_{3}
 	{
-		trigger: "\\\\(${ACCENT})\\{((?:\\\\${GREEK}|[A-Za-z]))\\}(\\d)",
+		trigger: "\\\\(${ACCENT})\\{(\\\\${GREEK}|[A-Za-z])\\}(\\d)",
 	  replacement: "\\[[0]]{[[1]]}_{[[2]]}",
 	  options: "rmA",
 	  priority: -1,
@@ -129,21 +130,21 @@
 	
 	// \dot{x}_{3}4 -> \dot{x}_{34}
 	{
-		trigger: "\\\\(${ACCENT})\\{((?:\\\\${GREEK}|[A-Za-z]))\\}_\\{(\\d+)\\}(\\d)",
+		trigger: "\\\\(${ACCENT})\\{(\\\\${GREEK}|[A-Za-z])\\}_\\{(\\d+)\\}(\\d)",
 	  replacement: "\\[[0]]{[[1]]}_{[[2]][[3]]}",
 	  options: "rmA",
 	  priority: -1,
 	},
 	// \dot{\vec{a}}3 -> \dot{\vec{a}}_{3}
 	{
-	  trigger: "\\\\(${ACCENT})\\{\\\\(${ACCENT})\\{((?:\\\\${GREEK}|[A-Za-z]))\\}\\}(\\d)",
+	  trigger: "\\\\(${ACCENT})\\{\\\\(${ACCENT})\\{(\\\\${GREEK}|[A-Za-z])\\}\\}(\\d)",
 	  replacement: "\\[[0]]{\\[[1]]{[[2]]}}_{[[3]]}",
 	  options: "rmA",
 	  priority: -1,
 	},
 	// \dot{\vec{a}}_{3}4 -> \dot{\vec{a}}_{34}
 	{
-		trigger: "\\\\(${ACCENT})\\{\\\\(${ACCENT})\\{((?:\\\\${GREEK}|[A-Za-z]))\\}\\}_\\{(\\d+)\\}(\\d)",
+		trigger: "\\\\(${ACCENT})\\{\\\\(${ACCENT})\\{(\\\\${GREEK}|[A-Za-z])\\}\\}_\\{(\\d+)\\}(\\d)",
 	  replacement: "\\[[0]]{\\[[1]]{[[2]]}}_{[[3]][[4]]}",
 	  options: "rmA",
 	  priority: -1,
