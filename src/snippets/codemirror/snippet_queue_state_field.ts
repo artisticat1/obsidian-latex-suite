@@ -33,11 +33,14 @@ export function queueSnippet(view: EditorView, from: number, to: number, insert:
 	const snippet = new SnippetChangeSpec(from, to, keepIndentAndCallout(view.state, from, to, insert), keyPressed);
 	getSnippetQueue(view).QueueSnippets([snippet]);
 }
+// following spec https://spec.commonmark.org/0.31.2/#block-quotes. 
+export const CALLOUTREGEX = /((?:(?:^ {0,3}>)(?: {0,4}>)*|^(?: {0,3}>)?))(\s*)/;
 
 const keepIndentAndCallout = (state: EditorState,from: number, to: number, replacement: string): string => {
 	const line = state.doc.lineAt(to);
 	const lineText = line.text;
-	const calloutAndIndent = lineText.match(/^(>*)(\s*)/);
+	CALLOUTREGEX.lastIndex = 0;
+	const calloutAndIndent = lineText.match(CALLOUTREGEX);
 	if (!calloutAndIndent) return replacement;
 	const callouts = calloutAndIndent[1];
 	const indentation = calloutAndIndent[2];
