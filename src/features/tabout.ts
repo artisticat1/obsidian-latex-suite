@@ -150,9 +150,9 @@ export const tabout = (view: EditorView, ctx: Context): boolean => {
 
 		// Trim whitespace at beginning / end of equation
 		const currentLine = doc.lineAt(cursorPos);
-		if (currentLine.text.trim() !== currentLine.text) {
+		if (currentLine.text.trimEnd() !== currentLine.text) {
 			transactions.push({
-				changes: {from: currentLine.from, to: currentLine.to, insert: currentLine.text.trim()}
+				changes: {from: currentLine.from, to: currentLine.to, insert: currentLine.text.trimEnd()}
 			})
 		}
 		view.dispatch(...transactions);
