@@ -69,7 +69,7 @@ export const tabout = (view: EditorView, ctx: Context): boolean => {
 
 	const bounds = ctx.getBounds();
 	if (!bounds) return false;
-    const { inner_start, inner_end, outer_end } = bounds;
+    const { inner_start, inner_end, outer_end, outer_start } = bounds;
 	if (outer_end <= ctx.pos) return false;
 
 	const doc = view.state.doc;
@@ -125,20 +125,34 @@ export const tabout = (view: EditorView, ctx: Context): boolean => {
 		const transactions: TransactionSpec[] = [];
 
 		// If there's no line after the equation, create one
+		const startIndent = doc.lineAt(outer_start).text.match(/^\s*/)?.[0] || "";
 		if (endLine.number === doc.lines) {
-			transactions.push({changes: {from: endLine.to, to: endLine.to, insert: "\n"}, selection: {anchor: endLine.to + 1}});
+			transactions.push({
+				changes: {
+					from: endLine.to,
+					to: endLine.to,
+					insert: "\n" + startIndent,
+				},
+				selection: { anchor: endLine.to + 1 + startIndent.length },
+			});
 		} else {
-			transactions.push({});
+			const lineAfter = doc.lineAt(endLine.to + 1);
+			if (lineAfter.text.trim() === "") {
+				transactions.push({
+					changes: {from: lineAfter.from, to: lineAfter.to, insert: startIndent},
+					selection: { anchor: endLine.to + 1 + startIndent.length },
+				});
+			}
+			else {
+				transactions.push({ selection: { anchor: endLine.to + 1 } });
+			}
 		}
-
-		// Finally, move outside the $$ symbol. Merged with previous transaction to avoid out of bounds error.
-		transactions[0].selection = {anchor: endLine.to+1};
 
 		// Trim whitespace at beginning / end of equation
 		const currentLine = doc.lineAt(cursorPos);
-		if (currentLine.text.trim() !== currentLine.text) {
+		if (currentLine.text.trimEnd() !== currentLine.text) {
 			transactions.push({
-				changes: {from: currentLine.from, to: currentLine.to, insert: currentLine.text.trim()}
+				changes: {from: currentLine.from, to: currentLine.to, insert: currentLine.text.trimEnd()}
 			})
 		}
 		view.dispatch(...transactions);
