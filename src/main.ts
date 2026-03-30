@@ -46,7 +46,7 @@ export default class LatexSuitePlugin extends Plugin {
 	legacyEditorWarning() {
 		// @ts-ignore
 		if (this.app.vault.config?.legacyEditor) {
-			const message = "Obsidian Latex Suite: This plugin does not support the legacy editor. Switch to Live Preview mode to use this plugin.";
+			const message = "Latex Suite: This plugin does not support the legacy editor. Switch to Live Preview mode to use this plugin.";
 
 			new Notice(message, 100000);
 			console.error(message);
@@ -58,7 +58,7 @@ export default class LatexSuitePlugin extends Plugin {
 	IMEEditorWarning() {
 		if (isIMESupported() && !this.settings.suppressIMEWarning && this.settings.suppressSnippetTriggerOnIME) {
 			const message = createFragment();
-			message.appendText("Obsidian Latex Suite: this plugin supports your IME keyboard, but ");
+			message.appendText("Latex Suite: this plugin supports your IME keyboard, but ");
 			message.createEl("code", { text: "Advanced settings > Don't trigger snippets when IME is active" });
 			message.appendText(" is currently enabled. You may want to disable it in the plugin settings to fully enable automatic snippets. Be aware that this may cause unexpected snippet triggers while using your IME. To turn this warning off, enable ");
 			message.createEl("code", { text: "Advanced settings > Suppress IME warning" });
