@@ -90,8 +90,10 @@ export function handleMathTooltip(update: ViewUpdate) {
 	const eqnPos = normalizedPos - eqnBounds.inner_start;
 
 	let eqnWithDecorations: string;
+	// skip \{\} as thats not an argument to a macro
+	const tempEscapedEqn = eqn.replaceAll(/\\[\\{}]/g, "\\R")
 	const { left, right } = settings.mathPreviewBracketHighlighting
-		? findMatchingBrackets(eqn, eqnPos, "{", "}")
+		? findMatchingBrackets(tempEscapedEqn, eqnPos, "{", "}")
 		: { left: -1, right: -1 };
 
 	if (right !== -1 && left !== -1) {
