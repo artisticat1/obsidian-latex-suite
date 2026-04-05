@@ -90,6 +90,8 @@ const mathFonts = [
 	"symcal",    
 	"symbfcal",  
 	"Bbb",
+	"begin",
+	"end",
 ] as const;
 
 export const mathFontsEnvsRaw = `[${mathFonts.map(env => `\n\t["${env}", "}"]`)}\n]`;

@@ -16,7 +16,8 @@
 		description: "Display math when in a list"
 	},
 
-	{trigger: "beg", replacement: "\\begin{$0}\n$1\n\\end{$0}", options: "mA"},
+	{trigger: /(?:(?<=[^\\])|^)beg]))/, replacement: "\\begin{$0}\n\t$1\n\\end{$0}", options: "MA"},
+	{trigger: /(?:(?<=[^\\])|^)beg]))/, replacement: "\\begin{$0} $1 \\end{$0}", options: "nA"},
 
     // Dashes
 	// {trigger: "--", replacement: "–", options: "tA"},
