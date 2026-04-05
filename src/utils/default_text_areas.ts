@@ -28,6 +28,8 @@ const textArea = [
 	"fcolorbox", // has two inputs \fcolorbox{color}{background}{text} needs seperate handling
 	"unicode",
 	"mmlToken", // MathML token, also has two inputs
+	"begin",
+	"end",
 ] as const;
 
 export const textAreaEnvs: Array<{ openSymbol: `\\${typeof textArea[number]}{`, closeSymbol: "}" }> = textArea.map(env => {
@@ -90,8 +92,6 @@ const mathFonts = [
 	"symcal",    
 	"symbfcal",  
 	"Bbb",
-	"begin",
-	"end",
 ] as const;
 
 export const mathFontsEnvsRaw = `[${mathFonts.map(env => `\n\t["${env}", "}"]`)}\n]`;

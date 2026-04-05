@@ -103,14 +103,15 @@ export const contextPlugin = ViewPlugin.fromClass(
 
 		const {inner_start: start, inner_end: end} = bounds;
 		const text = this.state.sliceDoc(start, end);
+
+		// pos referred to the absolute position in the whole document, but we just sliced the text
+		// so now pos must be relative to the start in order to be any useful
+		pos -= start;
+
 		if (!Array.isArray(envs)) {
 			envs = [envs];
 		}
 		outer_loop: for (const env of envs) {
-			// pos referred to the absolute position in the whole document, but we just sliced the text
-			// so now pos must be relative to the start in order to be any useful
-			pos -= start;
-
 			const openBracket = env.openSymbol.slice(-1);
 			const closeBracket = getCloseBracket(openBracket);
 
