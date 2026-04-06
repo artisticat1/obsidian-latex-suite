@@ -5,12 +5,13 @@ import { Context } from "src/utils/context";
 import { tabout } from "src/features/tabout";
 import { queueSnippet } from "src/snippets/codemirror/snippet_queue_state_field";
 import { expandSnippets } from "src/snippets/snippet_management";
+import { Environment } from "src/snippets/environment";
 
 export const runMatrixShortcuts = (view: EditorView, ctx: Context, key: string, shiftKey: boolean): boolean => {
 	const settings = getLatexSuiteConfig(view);
 
 	// Check whether we are inside a matrix / align / case environment
-	let isInsideAnEnv = false;
+	let isInsideAnEnv: null | Environment = null;
 
 	for (const envName of settings.matrixShortcutsEnvNames) {
 		const env = { openSymbol: "\\begin{" + envName + "}", closeSymbol: "\\end{" + envName + "}" };

@@ -21,18 +21,26 @@ const textArea = [
 	"mbox",
 	"fbox",
 	"framebox",
-	"begin",
-	"end",
-	"tag",
 	"colorbox",
 	"fcolorbox", // has two inputs \fcolorbox{color}{background}{text} needs seperate handling
-	"unicode",
-	"mmlToken", // MathML token, also has two inputs
-	"begin",
-	"end",
 ] as const;
 
-export const textAreaEnvs: Array<{ openSymbol: `\\${typeof textArea[number]}{`, closeSymbol: "}" }> = textArea.map(env => {
+/**
+ * List of environments where math commands are illegal to insert.
+ * Here treating them as text also doesn't make sense so autocomplete/snippets are disabled for them.
+ */
+export const snippetLessArea =[
+	"tag",
+	"begin",
+	"end",
+	"mmlToken", // MathML token, also has two inputs
+	"unicode",
+] as const
+
+export const textAreaEnvs: {
+	openSymbol: `\\${(typeof textArea)[number] | (typeof snippetLessArea)[number]}{`;
+	closeSymbol: "}";
+}[] = [...textArea, ...snippetLessArea].map((env) => {
 	return { openSymbol: `\\${env}{`, closeSymbol: "}" };
 });
 

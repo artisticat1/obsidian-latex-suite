@@ -6,7 +6,7 @@ import { Environment } from "../snippets/environment";
 import { getLatexSuiteConfig } from "../snippets/codemirror/config";
 import { syntaxTree } from "@codemirror/language";
 import { SyntaxNode, SyntaxNodeRef } from "@lezer/common";
-import { textAreaEnvs } from "./default_text_areas";
+import { snippetLessArea, textAreaEnvs } from "./default_text_areas";
 
 const OPEN_INLINE_MATH_NODE = "formatting_formatting-math_formatting-math-begin_keyword_math";
 const CLOSE_INLINE_MATH_NODE = "formatting_formatting-math_formatting-math-end_keyword_math_math-";
@@ -88,18 +88,25 @@ export const contextPlugin = ViewPlugin.fromClass(
 		}
 
 		if (inMath) {
-			this.mode.textEnv = this.inTextEnvironment();
+			const textEnv = this.inTextEnvironment();
+			if (textEnv === "text") {
+				this.mode.textEnv = true;
+			} else if (textEnv === "none") {
+				this.mode.inlineMath = false;
+				this.mode.blockMath = false;
+				this.mode.codeMath = false;
+			}
 		}
 
 		this.mode.text = !inCode && !inMath;
 
 	}
 
-	isWithinEnvironment(pos: number, envs: Environment | Environment[]): boolean {
-		if (!this.mode.inMath()) return false;
+	isWithinEnvironment<T extends Environment>(pos: number, envs: T | T[]): T | null {
+		if (!this.mode.inMath()) return null;
 
 		const bounds = this.getInnerBounds();
-		if (!bounds) return false;
+		if (!bounds) return null;
 
 		const {inner_start: start, inner_end: end} = bounds;
 		const text = this.state.sliceDoc(start, end);
@@ -146,7 +153,7 @@ export const contextPlugin = ViewPlugin.fromClass(
 
 				// Check whether the cursor lies inside the environment symbols
 				if (right >= pos && pos >= left + env.openSymbol.length) {
-					return true;
+					return env;
 				}
 
 				if (left <= 0) continue outer_loop;
@@ -156,11 +163,18 @@ export const contextPlugin = ViewPlugin.fromClass(
 			}
 		}
 
-		return false;
+		return null;
 	}
 
-	inTextEnvironment(): boolean {
-		return this.isWithinEnvironment(this.pos, textAreaEnvs)
+	inTextEnvironment(): "text" | "none" | null {
+		const result = this.isWithinEnvironment(this.pos, textAreaEnvs)
+		if (!result) return null;
+		const openSymbol = result.openSymbol.slice(1, -1);
+		if (snippetLessArea.includes(openSymbol as (typeof snippetLessArea)[number])) {
+			return "none"
+		} else {
+			return "text"
+		}
 	}
 
 	getBounds(pos: number = this.pos): Bounds | null {
