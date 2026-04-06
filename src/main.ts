@@ -1,5 +1,5 @@
 import { Extension, Prec } from "@codemirror/state";
-import { Plugin, Notice, loadMathJax, addIcon } from "obsidian";
+import { Plugin, Notice, loadMathJax, addIcon, renderMath, finishRenderMath } from "obsidian";
 import { onFileCreate, onFileChange, onFileDelete, getSnippetsFromFiles, getFileSets, getVariablesFromFiles, tryGetVariablesFromUnknownFiles } from "./settings/file_watch";
 import { LatexSuitePluginSettings, DEFAULT_SETTINGS, LatexSuiteCMSettings, processLatexSuiteSettings } from "./settings/settings";
 import { isIMESupported, LatexSuiteSettingTab } from "./settings/settings_tab";
@@ -21,6 +21,7 @@ export default class LatexSuitePlugin extends Plugin {
 	settings: LatexSuitePluginSettings;
 	CMSettings: LatexSuiteCMSettings;
 	editorExtensions: Extension[] = [];
+	mathRenders = {renderMath, finishRenderMath};
 
 	async onload() {
 		await this.loadSettings();
@@ -182,7 +183,7 @@ export default class LatexSuitePlugin extends Plugin {
 			getLatexSuiteConfigExtension(this.CMSettings),
 			Prec.highest(keyboardEventPlugin.extension),
 			Prec.highest(EditorView.inputHandler.of(onInput)),
-			EditorView.updateListener.of(handleUpdate),
+			EditorView.updateListener.of((update) => handleUpdate(update, this.mathRenders)),
 			snippetExtensions,
 		]);
 		
