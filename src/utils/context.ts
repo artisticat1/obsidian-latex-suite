@@ -40,14 +40,27 @@ export const contextPlugin = ViewPlugin.fromClass(
 	codeblockLanguage: string | null = null;
 	boundsCache: Map<number, Bounds | null>;
 	innerBoundsCache: Map<number, Bounds | null>;
+	shouldUpdate: boolean = false;
 	
 	constructor(view: EditorView) {
 		this.updateFromView(view);	
 	}
+	
+	/**
+	 * Small optimization to avoid updating the context when no extension is used.
+	 * @param view current view
+	 */
+	init(view: EditorView) {
+		if (this.shouldUpdate) {
+			this.updateFromView(view);
+			this.shouldUpdate = false;
+		}
+		return this
+	}
 
 	update(update: ViewUpdate) {
 		if (!(update.docChanged || update.selectionSet || update.viewportChanged)) return;
-		this.updateFromView(update.view);	
+		this.shouldUpdate = true;
 	}
 	updateFromView(view: EditorView) {
 		const state = view.state;
@@ -223,7 +236,7 @@ export const getContextPlugin = (view: EditorView): Context => {
 	if (!plugin) {
 		throw new Error("Context plugin not found, something went wrong with the plugin initialization");
 	}
-	return plugin;
+	return plugin.init(view);
 }
 
 
@@ -341,18 +354,27 @@ const langIfWithinCodeblock = (
 }
 
 export const mathBoundsPlugin = ViewPlugin.fromClass(
-	class {
+	class MathBoundsPlugin implements PluginValue {
 		protected mathBounds: MathBounds[] = [];
 		equations: Map<number, string> | null = null;
+		shouldUpdate: boolean = false;
 
 		constructor(view: EditorView) {
 			this.updateMathBounds(view);
 		}
+		
+		init(view: EditorView) {
+			if (this.shouldUpdate) {
+				this.equations = null;
+				this.updateMathBounds(view);
+				this.shouldUpdate = false;
+			}
+			return this
+		}
 
 		update(update: ViewUpdate) {
 			if (update.docChanged || update.viewportChanged) {
-				this.equations = null;
-				this.updateMathBounds(update.view);
+				this.shouldUpdate = true;
 			}
 		}
 
@@ -583,5 +605,5 @@ export const getMathBoundsPlugin = (view: EditorView) => {
 	if (!plugin) {
 		throw new Error("MathBoundsPlugin not found, something went wrong with the plugin initialization");
 	}
-	return plugin;
+	return plugin.init(view);
 }
