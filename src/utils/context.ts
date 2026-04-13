@@ -115,7 +115,7 @@ export const contextPlugin = ViewPlugin.fromClass(
 
 	}
 
-	isWithinEnvironment<T extends Environment>(pos: number, envs: T | T[]): T | null {
+	isWithinEnvironment<T extends Environment>(pos: number, envs: T | T[]): T & Bounds | null {
 		if (!this.mode.inMath()) return null;
 
 		const bounds = this.getInnerBounds();
@@ -166,7 +166,13 @@ export const contextPlugin = ViewPlugin.fromClass(
 
 				// Check whether the cursor lies inside the environment symbols
 				if (right >= pos && pos >= left + env.openSymbol.length) {
-					return env;
+					return {
+						...env,
+						inner_start: left + env.openSymbol.length + start,
+						inner_end: right + start,
+						outer_start: left + start,
+						outer_end: right + env.closeSymbol.length + start,
+					};
 				}
 
 				if (left <= 0) continue outer_loop;
