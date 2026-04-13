@@ -2,7 +2,7 @@ import { EditorView, ViewPlugin, ViewUpdate, KeyBinding, runScopeHandlers } from
 import { runSnippets } from "./features/run_snippets";
 import { runAutoFraction } from "./features/autofraction";
 import { tabout, shouldTaboutByCloseBracket } from "./features/tabout";
-import { addCellMatrixShortcut, exitMatrixShortCut, newlineMatrixShortcut } from "./features/matrix_shortcuts";
+import { addCellMatrixShortcut, exitMatrixShortCut, newlineMatrixShortcut, priorityTaboutMatrixShortcut } from "./features/matrix_shortcuts";
 
 import { getContextPlugin } from "./utils/context";
 import { getCharacterAtPos, replaceRange } from "./utils/editor_utils";
@@ -212,6 +212,12 @@ export function getKeymaps(settings: LatexSuiteCMSettings): LatexSuiteKeyBinding
 			run: exitMatrixShortCut,
 		},
 	];
+	if (settings.taboutEnabled && settings.taboutTrigger === "Tab") {
+		keybindings.unshift({
+			key: settings.taboutTrigger,
+			run: priorityTaboutMatrixShortcut
+		})
+	}
 	if (settings.matrixShortcutsEnabled) {
 		keybindings.push(...matrixShortcuts);
 	}
