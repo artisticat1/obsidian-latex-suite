@@ -2,15 +2,8 @@ import LatexSuitePlugin from "../main";
 import { Vault, TFile, TFolder, TAbstractFile, Notice, debounce } from "obsidian";
 import { Snippet } from "../snippets/snippets";
 import { parseSnippets, parseSnippetVariables, type SnippetVariables } from "../snippets/parse";
-// @ts-ignore
-import differenceImplementation from "set.prototype.difference";
-// @ts-ignore
-import intersectionImplementation from "set.prototype.intersection";
 import { sortSnippets } from "src/snippets/sort";
-
-const difference: <T>(self: Set<T>, other: Set<T>) => Set<T> = differenceImplementation;
-const intersection: <T>(self: Set<T>, other: Set<T>) => Set<T> = intersectionImplementation;
-
+import { difference, intersection } from "src/utils/prototype_utils";
 
 function isInFolder(file: TFile, dir: TFolder) {
 	let cur = file.parent;
