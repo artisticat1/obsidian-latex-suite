@@ -1,5 +1,6 @@
 import { TransactionSpec } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
+import { intersection } from "src/utils/prototype_utils";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
 import { Context } from "src/utils/context";
 import { setCursor, getCharacterAtPos } from "src/utils/editor_utils";
@@ -29,6 +30,20 @@ const DELIMITERS = new Set<string>([
 	"\\Uparrow", "\\Downarrow",
 	"."
 ]);
+const DELIMITERS_MAP = {
+	"(": ")",
+	"[": "]",
+	"{": "}",
+	"\\lbrack": "\\rbrack",
+	"\\lbrace": "\\rbrace",
+	"\\langle": "\\rangle",
+	"\\lvert": "\\rvert",
+	"\\lVert": "\\rVert",
+	"\\lfloor": "\\rfloor",
+	"\\lceil": "\\rceil",
+	"\\ulcorner": "\\urcorner",
+	"<": ">",
+} as const;
 
 
 const isLeftCommandToken = (token: Token): boolean => LEFT_COMMANDS.has(token.text);
@@ -160,6 +175,28 @@ export const tabout = (view: EditorView, ctx: Context): boolean => {
 
 	return true;
 };
+
+export const taboutByEnclosedBrackets = (view: EditorView, latexString: string): number | null => {
+	const tokens = tokenize(latexString);
+
+	const closingSymbols = getLatexSuiteConfig(view).taboutClosingSymbols;
+
+	const delimiter_stack: string[] = [];
+	const closing_delimiters = intersection(new Set<string>(Object.values(DELIMITERS_MAP)), closingSymbols);
+	const opening_delimiters = new Set(Object.keys(DELIMITERS_MAP).filter(key => closing_delimiters.has(key)));
+	for (let i = 0; i < tokens.length; i++) {
+		const token = tokens[i];
+		if (closing_delimiters.has(token.text)) {
+			if (delimiter_stack.length === 0) {
+				return token.end;
+			}
+			delimiter_stack.pop();
+		} else if (opening_delimiters.has(token.text)) {
+			delimiter_stack.push(token.text);
+		}
+	}
+	return null;
+}
 
 
 export const shouldTaboutByCloseBracket = (view: EditorView, keyPressed: string) => {

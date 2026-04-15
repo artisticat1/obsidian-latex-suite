@@ -4,6 +4,7 @@ import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
 import { Bounds, getContextPlugin } from "src/utils/context";
 import { queueSnippet } from "src/snippets/codemirror/snippet_queue_state_field";
 import { expandSnippets } from "src/snippets/snippet_management";
+import { taboutByEnclosedBrackets } from "./tabout";
 
 const newlineMatrixShortcutCallback = (view: EditorView): boolean => {
 	const ctx = getContextPlugin(view);
@@ -60,6 +61,19 @@ const matrixShortcutsRunner = (shortcut: (view: EditorView, bounds?: Bounds) => 
 	return shortcut(view, envBounds);
 }
 
+const priorityTaboutShortcutCallback = (view: EditorView): boolean => {
+	const ctx = getContextPlugin(view);
+	const currentLine = view.state.doc.lineAt(ctx.pos);
+	const currentLineText = currentLine.text.slice(ctx.pos - currentLine.from);
+	const bracketEnd = taboutByEnclosedBrackets(view, currentLineText);
+	if (bracketEnd !== null) {
+		setCursor(view, ctx.pos + bracketEnd);
+		return true;
+	}
+	return false;
+}
+
 export const newlineMatrixShortcut = matrixShortcutsRunner(newlineMatrixShortcutCallback);
 export const exitMatrixShortCut = matrixShortcutsRunner(taboutMatrixShortcutCallback);
 export const addCellMatrixShortcut = matrixShortcutsRunner(addCellMatrixShortcutCallback);
+export const priorityTaboutMatrixShortcut = matrixShortcutsRunner(priorityTaboutShortcutCallback);
