@@ -5,7 +5,7 @@ import LatexSuitePlugin from "src/main";
 import { getContextPlugin } from "src/utils/context";
 import { CodeMirrorEditor, Vim } from "src/utils/vim_types";
 import { LatexSuitePluginSettings } from "src/settings/settings";
-import { runMatrixShortcuts } from "./matrix_shortcuts";
+import { newlineMatrixShortcut} from "./matrix_shortcuts";
 import { insertNewlineAndIndent } from "@codemirror/commands";
 import { Transaction, Annotation, TransactionSpec } from "@codemirror/state";
 
@@ -228,8 +228,7 @@ export function getVimRunMatrixEnterCommand(settings: LatexSuitePluginSettings):
 			cm.setCursor({line: cursorLine, ch: line.length + 1})
 			const view = EditorView.findFromDOM(cm.getWrapperElement());
 			if (!view) return;
-			const ctx = getContextPlugin(view)
-			if (runMatrixShortcuts(view, ctx, "Enter", false)) {
+			if (newlineMatrixShortcut(view)) {
 				vimObj.enterInsertMode(cm);
 				return;
 			}
