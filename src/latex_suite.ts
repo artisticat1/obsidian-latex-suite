@@ -2,7 +2,7 @@ import { EditorView, ViewPlugin, ViewUpdate, KeyBinding, runScopeHandlers } from
 import { runSnippets } from "./features/run_snippets";
 import { runAutoFraction } from "./features/autofraction";
 import { tabout, shouldTaboutByCloseBracket } from "./features/tabout";
-import { runMatrixShortcuts } from "./features/matrix_shortcuts";
+import { addCellMatrixShortcut, exitMatrixShortCut, newlineMatrixShortcut } from "./features/matrix_shortcuts";
 
 import { getContextPlugin } from "./utils/context";
 import { getCharacterAtPos, replaceRange } from "./utils/editor_utils";
@@ -201,27 +201,15 @@ export function getKeymaps(settings: LatexSuiteCMSettings): LatexSuiteKeyBinding
 	const matrixShortcuts = [
 		{
 			key: "Enter",
-			run: function newlineMatrix(view: EditorView) {
-				const ctx = getContextPlugin(view);
-				if (!ctx.mode.strictlyInMath()) return false;
-				return runMatrixShortcuts(view, ctx, "Enter", false);
-			},
+			run: newlineMatrixShortcut,
 		},
 		{
 			key: "Tab",
-			run: function newCellMatrix(view: EditorView) {
-				const ctx = getContextPlugin(view);
-				if (!ctx.mode.strictlyInMath()) return false;
-				return runMatrixShortcuts(view, ctx, "Tab", false);
-			},
+			run: addCellMatrixShortcut,
 		},
 		{
 			key: "Shift-Enter",
-			run: function exitMatrix(view: EditorView) {
-				const ctx = getContextPlugin(view);
-				if (!ctx.mode.strictlyInMath()) return false;
-				return runMatrixShortcuts(view, ctx, "Enter", true);
-			},
+			run: exitMatrixShortCut,
 		},
 	];
 	if (settings.matrixShortcutsEnabled) {
