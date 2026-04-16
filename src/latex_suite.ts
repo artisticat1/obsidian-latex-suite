@@ -213,7 +213,7 @@ export function getKeymaps(settings: LatexSuiteCMSettings): LatexSuiteKeyBinding
 		},
 	];
 	if (settings.taboutEnabled && settings.taboutTrigger === "Tab") {
-		keybindings.unshift({
+		matrixShortcuts.unshift({
 			key: settings.taboutTrigger,
 			run: priorityTaboutMatrixShortcut
 		})
