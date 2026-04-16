@@ -183,7 +183,11 @@ export const taboutByEnclosedBrackets = (view: EditorView, latexString: string):
 
 	const delimiter_stack: string[] = [];
 	const closing_delimiters = intersection(new Set<string>(Object.values(DELIMITERS_MAP)), closingSymbols);
-	const opening_delimiters = new Set(Object.keys(DELIMITERS_MAP).filter(key => closing_delimiters.has(key)));
+	const opening_delimiters = new Set(
+		Object.keys(DELIMITERS_MAP).filter((key: keyof typeof DELIMITERS_MAP) =>
+			closing_delimiters.has(DELIMITERS_MAP[key]),
+		),
+	);
 	for (let i = 0; i < tokens.length; i++) {
 		const token = tokens[i];
 		if (closing_delimiters.has(token.text)) {
