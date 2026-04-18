@@ -36,7 +36,6 @@
 		"esbuild-plugin-inline-import": "^1.0.2",
 		"eslint": "^9.39.2",
 		"globals": "^17.3.0",
-		"js-base64": "^3.7.5",
 		"obsidian": "^0.15.0",
 		"tslib": "2.3.1",
 		"typescript": "^5.9.3"

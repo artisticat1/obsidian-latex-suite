@@ -120,7 +120,7 @@ export async function getVariablesFromFiles(plugin: LatexSuitePlugin, files: Fil
 	for (const file of files.definitelyVariableFiles) {
 		const content = await plugin.app.vault.cachedRead(file);
 		try {
-			Object.assign(snippetVariables, await parseSnippetVariables(content));
+			Object.assign(snippetVariables, await parseSnippetVariables(content, file.toString()));
 		} catch (e) {
 			new Notice(`Failed to parse variable file ${file.name}: ${e}`);
 			console.error(`Failed to parse variable file ${file.name}: ${e}`);
@@ -137,7 +137,7 @@ export async function tryGetVariablesFromUnknownFiles(plugin: LatexSuitePlugin, 
 	for (const file of files.snippetOrVariableFiles) {
 		const content = await plugin.app.vault.cachedRead(file);
 		try {
-			Object.assign(snippetVariables, await parseSnippetVariables(content));
+			Object.assign(snippetVariables, await parseSnippetVariables(content, file.toString()));
 			files.definitelyVariableFiles.add(file);
 		} catch {
 			// No error here, we just assume this is a snippets file.
@@ -160,7 +160,7 @@ export async function getSnippetsFromFiles(
 	for (const file of files.definitelySnippetFiles) {
 		const content = await plugin.app.vault.cachedRead(file);
 		try {
-			snippets.push(...await parseSnippets(content, snippetVariables));
+			snippets.push(...await parseSnippets(content, snippetVariables, file.toString()));
 		} catch (e) {
 			new Notice(`Failed to parse snippet file ${file.name}: ${e}`);
 			console.error(`Failed to parse snippet file ${file.name}: ${e}`);

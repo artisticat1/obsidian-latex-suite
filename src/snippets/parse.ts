@@ -1,5 +1,4 @@
 import { optional, object, string as string_, union, instance, parse, number, Output, special } from "valibot";
-import { encode } from "js-base64";
 import { RegexSnippet, serializeSnippetLike, Snippet, StringSnippet, VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER, VisualSnippet } from "./snippets";
 import { Options } from "./options";
 import { sortSnippets } from "./sort";
@@ -8,25 +7,37 @@ import { Platform } from "obsidian";
 
 export type SnippetVariables = Record<string, string>;
 
-async function importRaw(maybeJavaScriptCode: string) {
-	let raw;
-	try {
-		try {
-			// first, try to import as a plain js module
-			// js-base64.encode is needed over builtin `window.btoa` because the latter errors on unicode
-			raw = await importModuleDefault(`data:text/javascript;base64,${encode(maybeJavaScriptCode)}`);
-		} catch {
-			// otherwise, try to import as a standalone js object
-			raw = await importModuleDefault(`data:text/javascript;base64,${encode(`export default ${maybeJavaScriptCode}`)}`);
-		}
-	} catch {
-		throw "Invalid format";
-	}
-	return raw;
+function importModule(source: string, identifier: string): Promise<object> {
+	const sourceWithSourceURL = `${source}\n//# sourceURL=latex-suite:${identifier}`;
+	const blob = new Blob([sourceWithSourceURL], { type: "text/javascript" });
+	const url = URL.createObjectURL(blob);
+	const result = import(url);
+	URL.revokeObjectURL(url);
+	return result;
 }
 
-export async function parseSnippetVariables(snippetVariablesStr: string) {
-	const rawSnippetVariables = await importRaw(snippetVariablesStr) as SnippetVariables;
+async function importRaw(module: string, identifier: string): Promise<unknown> {
+	let data: object;
+	try {
+		data = await importModule(module, identifier);
+	} catch (e) {
+		console.error(e)
+		try {
+		data = await importModule("export default " + module, identifier);
+		} catch (e) {
+			console.error(e)
+			throw "Invalid format";
+		}
+	}
+	if ("default" in data) {
+		return data.default;
+	} else {
+		throw "No default export found";
+	}
+}
+
+export async function parseSnippetVariables(snippetVariablesStr: string, identifier: string) {
+	const rawSnippetVariables = await importRaw(snippetVariablesStr, identifier) as SnippetVariables;
 
 	if (Array.isArray(rawSnippetVariables))
 		throw "Cannot parse an array as a variables object";
@@ -48,8 +59,8 @@ export async function parseSnippetVariables(snippetVariablesStr: string) {
 	return snippetVariables;
 }
 
-export async function parseSnippets(snippetsStr: string, snippetVariables: SnippetVariables) {
-	const rawSnippets = await importRaw(snippetsStr);
+export async function parseSnippets(snippetsStr: string, snippetVariables: SnippetVariables, identifier: string) {
+	const rawSnippets = await importRaw(snippetsStr, identifier);
 
 	let parsedSnippets;
 	try {
@@ -72,32 +83,6 @@ export async function parseSnippets(snippetsStr: string, snippetVariables: Snipp
 	parsedSnippets = sortSnippets(parsedSnippets);
 
 	return parsedSnippets;
-}
-
-/** load snippet string as module */
-
-/**
- * imports the default export of a given module.
- *
- * @param module the module to import. this can be a resource path, data url, etc
- * @returns the default export of said module
- * @throws if import fails or default export is undefined
- */
-async function importModuleDefault(module: string): Promise<unknown> {
-	let data;
-	try {
-		data = await import(module);
-	} catch {
-		throw `failed to import module ${module}`;
-	}
-
-	// it's safe to use `in` here - it has a null prototype, so `Object.hasOwnProperty` isn't available,
-	// but on the other hand we don't need to worry about something further up the prototype chain messing with this check
-	if (!("default" in data)) {
-		throw `No default export provided for module ${module}`;
-	}
-
-	return data.default;
 }
 
 /** raw snippet IR */
