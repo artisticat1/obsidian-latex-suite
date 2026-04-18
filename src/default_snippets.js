@@ -220,6 +220,10 @@ export default [
 	{trigger: "\\\\(${GREEK}) tilde", replacement: "\\tilde{\\[[0]]}", options: "rmA"},
 	{trigger: "\\\\(${GREEK}) und", replacement: "\\underline{\\[[0]]}", options: "rmA"},
 
+	// Disable automatic snippets while typing macros
+	// This is a catch all rule that may disable other snippets in some cases.
+	// Increase the priority of the snippets that shouldn't be disabled.
+	{trigger: /\\[A-Za-z]+/, replacement: "$0", options: "mAU", priority: 1, description: "Disable snippets while typing macros"},
 
     // Derivatives and integrals
     {trigger: "par", replacement: "\\frac{ \\partial ${0:y} }{ \\partial ${1:x} } $2", options: "m"},

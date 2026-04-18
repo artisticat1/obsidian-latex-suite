@@ -106,8 +106,11 @@ const runSnippetCursor = (view: EditorView, ctx: Context, snippetInfo: SnippetIn
 
 		// Expand the snippet
 		const start = triggerPos;
-		const triggerKey = (snippet.options.automatic && snippet.type !== "visual") ? key : undefined;
-		queueSnippet(view, start, triggerEndPos, replacement, triggerKey, to);
+		const triggerKey =
+			snippet.options.automatic && snippet.type !== "visual" && snippet.options.undoKey
+				? key
+				: undefined;
+		queueSnippet(view, start, triggerEndPos, replacement, triggerKey);
 
 		const containsTrigger = settings.autoEnlargeBracketsTriggers.some(word => replacement.contains(word));
 		if (debug === "info" || debug === "verbose") {
