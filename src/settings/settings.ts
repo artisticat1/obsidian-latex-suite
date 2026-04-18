@@ -38,6 +38,7 @@ interface LatexSuiteBasicSettings {
 	vimSelectMode: VimKeyMap;
 	vimVisualMode: VimKeyMap;
 	vimMatrixEnter: VimKeyMap;
+	snippetRecursion: number;
 
 }
 
@@ -120,6 +121,7 @@ export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
 	vimSelectMode: "<C-g>",
 	vimVisualMode: "<C-g>",
 	vimMatrixEnter: "o",
+	snippetRecursion: 0,
 }
 
 export function processLatexSuiteSettings(snippets: Snippet[], settings: LatexSuitePluginSettings):LatexSuiteCMSettings {

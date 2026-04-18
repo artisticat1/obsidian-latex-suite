@@ -1,6 +1,6 @@
 import { EditorState, Extension } from "@codemirror/state";
 import { EditorView, ViewUpdate } from "@codemirror/view";
-import { App, ButtonComponent, ExtraButtonComponent, Modal, Platform, PluginSettingTab, Setting, debounce, setIcon } from "obsidian";
+import { App, ButtonComponent, ExtraButtonComponent, Modal, Notice, Platform, PluginSettingTab, Setting, debounce, setIcon } from "obsidian";
 import { parseKeyName, parseSnippetVariables, parseSnippets } from "src/snippets/parse";
 import { DEFAULT_SNIPPETS } from "src/utils/default_snippets";
 import LatexSuitePlugin from "../main";
@@ -35,6 +35,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		iconEl.addClass("latex-suite-settings-icon");
 
 		parentEl.prepend(iconEl);
+		return heading;
 	}
 
 	display(): void {
@@ -50,6 +51,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		this.displayTaboutSettings();
 		this.displayAutoEnlargeBracketsSettings();
 		this.displayAdvancedSnippetSettings();
+		this.displayExperimentalSettings();
 	}
 
 	private displaySnippetSettings() {
@@ -667,6 +669,37 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				}
 				});
 		});
+	}
+	
+	private displayExperimentalSettings() {
+		const containerEl = this.containerEl;
+		this.addHeading(containerEl, "Experimental features", "experiment")
+			.setDesc("Features that are still in testing and may need user feedback. Backwards compatibility may break for these features/ these settings can be overriden.");
+		const fragment = new DocumentFragment()
+		const span = fragment.createDiv({
+			text: "How many times to run snippets in a row. Set to 0 disable recursion. ",
+		});
+		span.createEl("a", {href: "https://github.com/artisticat1/obsidian-latex-suite/pull/536", text: "Related pr/feedback."})
+		new Setting(containerEl)
+			.setName("Snippet recursion")
+			.setDesc(fragment)
+			.addText(text => text
+				.setPlaceholder(String(DEFAULT_SETTINGS.snippetRecursion))
+				.setValue(String(this.plugin.settings.snippetRecursion))
+				.onChange(async (value) => {
+					try {
+						const snippetRecurisve = parseInt(value, 10);
+						if (snippetRecurisve < 0) {
+							new Notice("Snippet recursion must be a non-negative integer.");
+							return;
+						}
+						this.plugin.settings.snippetRecursion = snippetRecurisve;
+					} catch (e) {
+						return
+					}
+					await this.plugin.saveSettings();
+				})
+			);
 	}
 
 	createSnippetsEditor(snippetsSetting: Setting) {
