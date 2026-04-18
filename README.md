@@ -197,6 +197,7 @@ Snippets can be edited in the plugin settings. The structure of a snippet is as 
 - `v` : [Visual](./DOCS.md#visual-snippets). Only run this snippet on a selection. The trigger should be a single character
 - `w` : Word boundary. Only run this snippet when the trigger is preceded (and followed by) a word delimiter, such as `.`, `,`, or `-`.
 - `c` : Code mode. Only run this snippet inside a ```` ``` ... ``` ```` block
+- `U`: Skip undo. When an automatic snippet expands, pressing undo returns to the state before the trigger key was typed, instead of first removing the snippet and reinserting that key.
 
 Insert **tabstops** for the cursor to jump to by writing "$0", "$1", etc. in the `replacement`.
 
