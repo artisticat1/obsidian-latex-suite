@@ -4,7 +4,7 @@ import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
 import { queueSnippet } from "src/snippets/codemirror/snippet_queue_state_field";
 import { Mode, Options } from "src/snippets/options";
 import { expandSnippets } from "src/snippets/snippet_management";
-import { Context } from "src/utils/context";
+import { Context, getContextPlugin } from "src/utils/context";
 import { autoEnlargeBrackets } from "./auto_enlarge_brackets";
 import { snippetDebugLevel } from "src/settings/settings";
 import { Notice } from "obsidian";
@@ -14,26 +14,36 @@ type SnippetInfo = {
 	snippets: Snippet<SnippetType>[];
 	key?: string;
 }
-
+type RunSnippetsOptions = {
+	recursive: number;
+	debug: snippetDebugLevel;
+}
 let lastNotice: Notice | null = null;
-export const runSnippets = (view: EditorView, ctx: Context, snippetInfo: SnippetInfo, debug: snippetDebugLevel):boolean => {
+export const runSnippets = (view: EditorView, snippetInfo: SnippetInfo, options: RunSnippetsOptions):boolean => {
+	let didExpand = false;
+	for (let i=0; i <= options.recursive; i++) {
+		const ctx = getContextPlugin(view);
+		let shouldAutoEnlargeBrackets = false;
 
-	let shouldAutoEnlargeBrackets = false;
+		for (const range of ctx.ranges) {
+			const result = runSnippetCursor(view, ctx, snippetInfo, range, options.debug);
 
-	for (const range of ctx.ranges) {
-		const result = runSnippetCursor(view, ctx, snippetInfo, range, debug);
+			if (result.shouldAutoEnlargeBrackets) shouldAutoEnlargeBrackets = true;
+		}
 
-		if (result.shouldAutoEnlargeBrackets) shouldAutoEnlargeBrackets = true;
+		const success = expandSnippets(view);
+		didExpand = didExpand || success;
+
+
+		if (shouldAutoEnlargeBrackets) {
+			autoEnlargeBrackets(view);
+		}
+		if (!success) {
+			break
+		}
+		snippetInfo.key = undefined; // only run keypress once.
 	}
-
-	const success = expandSnippets(view);
-
-
-	if (shouldAutoEnlargeBrackets) {
-		autoEnlargeBrackets(view);
-	}
-
-	return success;
+	return didExpand
 }
 
 

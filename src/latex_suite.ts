@@ -90,7 +90,8 @@ export const handleKeydown = (key: string, ctrlKey: boolean, isIME: boolean, vie
 	}
 	const snippets = settings.snippets.filter((s) => s.options.automatic);
 	try {
-		if (runSnippets(view, ctx, {snippets, key}, settings.snippetDebug)) return true;
+		const options = {recursive: settings.snippetRecursion, debug: settings.snippetDebug};
+		if (runSnippets(view, {snippets, key}, options)) return true;
 	} catch (e) {
 		clearSnippetQueue(view);
 		console.error(e);
@@ -153,7 +154,8 @@ export function getKeymaps(settings: LatexSuiteCMSettings): LatexSuiteKeyBinding
 				return false;
 			try {
 				const ctx = getContextPlugin(view);
-				return runSnippets(view, ctx, {snippets}, settings.snippetDebug);
+				const options = {recursive: settings.snippetRecursion, debug: settings.snippetDebug};
+				return runSnippets(view, {snippets}, options);
 			} catch (e) {
 				clearSnippetQueue(view);
 				console.error(e);
