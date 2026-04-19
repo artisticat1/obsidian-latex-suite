@@ -47,8 +47,13 @@ const findMatchingBrackets = (text: string, cursorPos: number, openBracket: stri
 	return { left, right };
 }
 
+export type MathRenders = {
+	renderMath: typeof renderMath,
+	finishRenderMath: typeof finishRenderMath,
+}
 // update the tooltip by dispatching an updateTooltipEffect
-export function handleMathTooltip(update: ViewUpdate) {
+export function handleMathTooltip(update: ViewUpdate, mathRenders: MathRenders) {
+	const {renderMath, finishRenderMath} = mathRenders;
 	const shouldUpdate = update.docChanged || update.selectionSet;
 	if (!shouldUpdate) return;
 	const settings = getLatexSuiteConfig(update.state);

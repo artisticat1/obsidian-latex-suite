@@ -16,13 +16,13 @@ import { handleMathTooltip } from "./editor_extensions/math_tooltip";
 import { isComposing, forceEndComposition } from "./utils/editor_utils";
 import { LatexSuiteCMSettings } from "./settings/settings";
 
-export const handleUpdate = (update: ViewUpdate) => {
+export const handleUpdate = (update: ViewUpdate, mathRenders: MathRenders) => {
 	const settings = getLatexSuiteConfig(update.state);
 
 	// The math tooltip handler is driven by view updates because it utilizes
 	// information about visual line, which is not available in EditorState
 	if (settings.mathPreviewEnabled) {
-		handleMathTooltip(update);
+		handleMathTooltip(update, mathRenders);
 	}
 
 	handleUndoRedo(update);
