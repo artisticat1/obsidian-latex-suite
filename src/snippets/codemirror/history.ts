@@ -54,4 +54,5 @@ export const handleUndoRedo = (update: ViewUpdate) => {
 	if (undoTr) {
 		removeAllTabstops(update.view);
 	}
+	return !!(undoTr || redoTr);
 };

@@ -700,6 +700,17 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				})
 			);
+		
+		new Setting(containerEl)
+			.setName("IME support for automatic snippets")
+			.setDesc("Whether to expand automatic snippets when a key is pressed after IME composition instead of during IME composition. This may solve some issues with IME/Chinese keyboards. Will force end composition after a successful snippet expansion.")
+			.addToggle((toggle) => toggle
+				.setValue(this.plugin.settings.snippetIMEVersion)
+				.onChange(async (value) => {
+					this.plugin.settings.snippetIMEVersion = value;
+					await this.plugin.saveSettings();
+				})
+			);
 	}
 
 	createSnippetsEditor(snippetsSetting: Setting) {

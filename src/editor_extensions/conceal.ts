@@ -5,6 +5,7 @@ import { EditorSelection, Range, RangeSet, RangeSetBuilder, RangeValue } from "@
 import { conceal, ConcealCachedEquations } from "./conceal_fns";
 import { debounce, livePreviewState } from "obsidian";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
+import { tempKeyPress } from "src/snippets/snippet_management";
 
 export type Replacement = {
 	start: number,
@@ -292,6 +293,9 @@ export const concealPlugin = ViewPlugin.fromClass(class {
 	update(update: ViewUpdate) {
 		if (!(update.docChanged || update.viewportChanged || update.selectionSet))
 			return;
+		if (update.transactions.some(tr => tr.annotation(tempKeyPress))) {
+			return;
+		}
 
 		// Cancel the delayed revealment whenever we update the concealments
 		this.delayedReveal.cancel();
