@@ -1,4 +1,4 @@
-import { optional, object, string as string_, union, instance, parse, number, Output, special } from "valibot";
+import { optional, object, string as string_, union, parse, number, InferOutput as Output, looseObject, custom, is } from "valibot";
 import { RegexSnippet, serializeSnippetLike, Snippet, StringSnippet, VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER, VisualSnippet } from "./snippets";
 import { Options } from "./options";
 import { sortSnippets } from "./sort";
@@ -86,10 +86,18 @@ export async function parseSnippets(snippetsStr: string, snippetVariables: Snipp
 }
 
 /** raw snippet IR */
+const FakeRegexSchema = looseObject({
+	constructor: custom<new (source: string, flags: string) => unknown>(x => typeof x === "function"),
+	source: string_(),
+	flags: string_(),
+	exec: custom<(string: string) => RegExpExecArray | null>(x => typeof x === "function"),
+});
+export type FakeRegex = Output<typeof FakeRegexSchema>;
+
 
 const RawSnippetSchema = object({
-	trigger: union([string_(), instance(RegExp)]),
-	replacement: union([string_(), special<AnyFunction>(x => typeof x === "function")]),
+	trigger: union([string_(), vTypeGuard(x => is(FakeRegexSchema, x))]),
+	replacement: union([string_(), custom<AnyFunction>(x => typeof x === "function")]),
 	options: string_(),
 	flags: optional(string_(), ""),
 	priority: optional(number(), 0),
@@ -125,23 +133,25 @@ function validateRawSnippets(snippets: unknown): RawSnippet[] {
 function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snippet {
 	const { replacement, priority, description } = raw;
 	const options = Options.fromSource(raw.options, raw.language);
-	let trigger;
+	let trigger: FakeRegex;
 	let excludedEnvironments;
 	const triggerKey = parseKeyName(raw.triggerKey);
 
 	// we have a regex snippet
-	if (options.regex || raw.trigger instanceof RegExp) {
+	if (options.regex || typeof raw.trigger !== "string") {
 		let triggerStr: string;
 		// normalize flags to a string
 		let flags = raw.flags;
-
+		let fakeRegexConstructor: new (source: string, flags: string) => unknown;
 		// extract trigger string from trigger,
 		// and merge flags, if trigger is a regexp already
-		if (raw.trigger instanceof RegExp) {
+		if (typeof raw.trigger !== "string") {
 			triggerStr = raw.trigger.source;
-			flags = `${(raw.trigger as RegExp).flags}${flags}`;
+			flags = `${raw.trigger.flags}${flags}`;
+			fakeRegexConstructor = raw.trigger.constructor;
 		} else {
 			triggerStr = raw.trigger;
+			fakeRegexConstructor = RegExp;
 		}
 		// filter out invalid flags
 		flags = filterFlags(flags);
@@ -157,7 +167,13 @@ function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snip
 		triggerStr = `(?:${triggerStr})$`;
 
 		// convert trigger into RegExp instance
-		trigger = new RegExp(triggerStr, flags);
+		const tempTrigger = new fakeRegexConstructor(triggerStr, flags);
+		if (!is(FakeRegexSchema, tempTrigger)) {
+			// errors out as is returned false but typescript doesn't do exceptions
+			parse(FakeRegexSchema, tempTrigger);
+			throw new Error("Fake regex failed to recreate a valid fake regex");
+		}
+		trigger = tempTrigger;
 
 		options.regex = true;
 
@@ -256,3 +272,7 @@ function normalizeKeyName(name: string) {
 type Fn<Args extends readonly any[], Ret> = (...args: Args) => Ret;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyFunction = Fn<any, any>;
+
+function vTypeGuard<T>(typeGuard: (input: unknown) => input is T) {
+	return custom<T>(typeGuard)
+}
