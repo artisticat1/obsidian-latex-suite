@@ -1,5 +1,5 @@
 import { EditorView } from "@codemirror/view";
-import { ChangeSet, EditorSelection } from "@codemirror/state";
+import { Annotation, ChangeSet, EditorSelection } from "@codemirror/state";
 import { endSnippet, startSnippet } from "./codemirror/history";
 import { isolateHistory } from "@codemirror/commands";
 import { TabstopSpec, tabstopSpecsToTabstopGroups } from "./tabstop";
@@ -37,6 +37,8 @@ export function expandSnippets(view: EditorView):boolean {
 	clearSnippetQueue(view);
 	return true;
 }
+// optimization to avoid updating math preview and conceal when a keypress is pushed into the history but immediately undone
+export const tempKeyPress = Annotation.define<true>();
 
 function handleUndoKeypresses(view: EditorView, snippets: SnippetChangeSpec[]) {
 	const originalDoc = view.state.doc;
@@ -59,7 +61,7 @@ function handleUndoKeypresses(view: EditorView, snippets: SnippetChangeSpec[]) {
 	if (keyPresses.length > 0) {
 		view.dispatch({
 			changes: keyPresses,
-			annotations: isolateHistory.of("full"),
+			annotations: [isolateHistory.of("full"), tempKeyPress.of(true)],
 		});
 	}
 
@@ -122,7 +124,8 @@ function expandTabstops(
 	view.dispatch({
 		effects: [...effects, startSnippet.of(extraTabstopGroups)],
 		changes: undoChanges.changes.compose(changes),
-		selection: undoChanges.selection
+		selection: undoChanges.selection,
+		annotations: isolateHistory.of("before")
 	}, spec);
 }
 

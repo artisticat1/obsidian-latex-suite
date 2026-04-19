@@ -2,6 +2,7 @@ import { EditorView, ViewUpdate, Decoration, DecorationSet, ViewPlugin } from "@
 import { Prec, Range } from "@codemirror/state";
 import { findMatchingBracket, getOpenBracket, getCloseBracket } from "../utils/editor_utils";
 import { Context, getContextPlugin, getMathBoundsPlugin } from "src/utils/context";
+import { tempKeyPress } from "src/snippets/snippet_management";
 
 const Ncolors = 3;
 
@@ -198,6 +199,9 @@ export const colorPairedBracketsPlugin = ViewPlugin.fromClass(class {
 	}
 
 	update(update: ViewUpdate) {
+		if (update.transactions.some(tr => tr.annotation(tempKeyPress))) {
+			return;
+		}
 		if (update.docChanged || update.viewportChanged) {
 			({
 				decorations: this.decorations,
@@ -219,6 +223,9 @@ export const highlightCursorBracketsPlugin = ViewPlugin.fromClass(class {
 	}
 
 	update(update: ViewUpdate) {
+		if (update.transactions.some(tr => tr.annotation(tempKeyPress))) {
+			return;
+		}
 		if (update.docChanged || update.selectionSet)
 			this.decorations = highlightCursorBrackets(update.view);
 	}

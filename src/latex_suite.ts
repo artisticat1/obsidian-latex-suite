@@ -6,7 +6,7 @@ import { addCellMatrixShortcut, exitMatrixShortCut, newlineMatrixShortcut, prior
 
 import { getContextPlugin } from "./utils/context";
 import { getCharacterAtPos, replaceRange } from "./utils/editor_utils";
-import { setSelectionToNextTabstop } from "./snippets/snippet_management";
+import { setSelectionToNextTabstop, tempKeyPress } from "./snippets/snippet_management";
 import { removeAllTabstops } from "./snippets/codemirror/tabstops_state_field";
 import { getLatexSuiteConfig } from "./snippets/codemirror/config";
 import { clearSnippetQueue } from "./snippets/codemirror/snippet_queue_state_field";
@@ -21,11 +21,25 @@ export const handleUpdate = (update: ViewUpdate) => {
 
 	// The math tooltip handler is driven by view updates because it utilizes
 	// information about visual line, which is not available in EditorState
-	if (settings.mathPreviewEnabled) {
+	if (settings.mathPreviewEnabled && !update.transactions.some(tr => tr.annotation(tempKeyPress))) {
 		handleMathTooltip(update);
 	}
 
-	handleUndoRedo(update);
+	if (handleUndoRedo(update)) {
+		return;
+	}
+
+	const isUserEvent = update.transactions.some((tr) => tr.isUserEvent("input"));
+	if (!isUserEvent) {
+		return;
+	}
+
+	// HACK: reusing logic from handleKeydown with empty string
+	const success = handleKeydown("", false, update.view.composing, update.view);
+	if (success) {
+		forceEndComposition(update.view);
+	}
+
 }
 
 export const keyboardEventPlugin = ViewPlugin.fromClass(class {
@@ -38,8 +52,17 @@ export const keyboardEventPlugin = ViewPlugin.fromClass(class {
 		} else {
 			this.lastKeyboardEvent = null;
 		}
+		const snippetIMEVersion = getLatexSuiteConfig(view).snippetIMEVersion;
 
-		const success = handleKeydown(event.key, event.ctrlKey || event.metaKey, isComposing(view, event), view) || runScopeHandlers(view, event, "latex-suite");
+		const success =
+			(!snippetIMEVersion &&
+				handleKeydown(
+					event.key,
+					event.ctrlKey || event.metaKey,
+					isComposing(view, event),
+					view,
+				)) ||
+			runScopeHandlers(view, event, "latex-suite");
 
 		if (success) event.preventDefault();
 	}
@@ -53,6 +76,10 @@ export const keyboardEventPlugin = ViewPlugin.fromClass(class {
 })
 
 export const onInput = (view: EditorView, from: number, to: number, text: string): boolean => {
+	const snippetIMEVersion = getLatexSuiteConfig(view).snippetIMEVersion;
+	if (snippetIMEVersion) {
+		return false;
+	}
 	const lastKeyboardEvent = view.plugin(keyboardEventPlugin)?.lastKeyboardEvent;
 	if (text === "\0\0") return true;
 	if (text.length == 1 && lastKeyboardEvent) {
