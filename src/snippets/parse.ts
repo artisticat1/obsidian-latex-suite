@@ -1,4 +1,4 @@
-import { optional, object, string as string_, union, parse, number, InferOutput as Output, looseObject, custom, is } from "valibot";
+import { optional, object, string as string_, union, parse, number, InferOutput as Output, custom, instance } from "valibot";
 import { RegexSnippet, serializeSnippetLike, Snippet, StringSnippet, VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER, VisualSnippet } from "./snippets";
 import { Options } from "./options";
 import { sortSnippets } from "./sort";
@@ -86,17 +86,9 @@ export async function parseSnippets(snippetsStr: string, snippetVariables: Snipp
 }
 
 /** raw snippet IR */
-const FakeRegexSchema = looseObject({
-	constructor: custom<new (source: string, flags: string) => unknown>(x => typeof x === "function"),
-	source: string_(),
-	flags: string_(),
-	exec: custom<(string: string) => RegExpExecArray | null>(x => typeof x === "function"),
-});
-export type FakeRegex = Output<typeof FakeRegexSchema>;
-
 
 const RawSnippetSchema = object({
-	trigger: union([string_(), vTypeGuard(x => is(FakeRegexSchema, x))]),
+	trigger: union([string_(), instance(RegExp)]),
 	replacement: union([string_(), custom<AnyFunction>(x => typeof x === "function")]),
 	options: string_(),
 	flags: optional(string_(), ""),
@@ -133,25 +125,22 @@ function validateRawSnippets(snippets: unknown): RawSnippet[] {
 function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snippet {
 	const { replacement, priority, description } = raw;
 	const options = Options.fromSource(raw.options, raw.language);
-	let trigger: FakeRegex;
 	let excludedEnvironments;
 	const triggerKey = parseKeyName(raw.triggerKey);
 
 	// we have a regex snippet
-	if (options.regex || typeof raw.trigger !== "string") {
+	if (options.regex || raw.trigger instanceof RegExp) {
 		let triggerStr: string;
 		// normalize flags to a string
 		let flags = raw.flags;
-		let fakeRegexConstructor: new (source: string, flags: string) => unknown;
+
 		// extract trigger string from trigger,
 		// and merge flags, if trigger is a regexp already
-		if (typeof raw.trigger !== "string") {
+		if (raw.trigger instanceof RegExp) {
 			triggerStr = raw.trigger.source;
 			flags = `${raw.trigger.flags}${flags}`;
-			fakeRegexConstructor = raw.trigger.constructor;
 		} else {
 			triggerStr = raw.trigger;
-			fakeRegexConstructor = RegExp;
 		}
 		// filter out invalid flags
 		flags = filterFlags(flags);
@@ -166,14 +155,14 @@ function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snip
 		// i.e. look for a match at the cursor's current position
 		triggerStr = `(?:${triggerStr})$`;
 
+		// allow inheritance/ fake/custom RegExp such as pcre2 regex (regex++ package).
+		const RegExpConstructor =
+			typeof raw.trigger === "string"
+				? RegExp
+				: (raw.trigger.constructor as typeof RegExp);
+
 		// convert trigger into RegExp instance
-		const tempTrigger = new fakeRegexConstructor(triggerStr, flags);
-		if (!is(FakeRegexSchema, tempTrigger)) {
-			// errors out as is returned false but typescript doesn't do exceptions
-			parse(FakeRegexSchema, tempTrigger);
-			throw new Error("Fake regex failed to recreate a valid fake regex");
-		}
-		trigger = tempTrigger;
+		const trigger = new RegExpConstructor(triggerStr, flags);
 
 		options.regex = true;
 
@@ -182,9 +171,8 @@ function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snip
 		return new RegexSnippet(normalised);
 	}
 	else {
-		let trigger = raw.trigger as string;
 		// substitute snippet variables
-		trigger = insertSnippetVariables(trigger, snippetVariables);
+		const trigger = insertSnippetVariables(raw.trigger, snippetVariables);
 
 		// get excluded environment(s) for this trigger, if any
 		excludedEnvironments = getExcludedEnvironments(trigger);
@@ -272,7 +260,3 @@ function normalizeKeyName(name: string) {
 type Fn<Args extends readonly any[], Ret> = (...args: Args) => Ret;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyFunction = Fn<any, any>;
-
-function vTypeGuard<T>(typeGuard: (input: unknown) => input is T) {
-	return custom<T>(typeGuard)
-}

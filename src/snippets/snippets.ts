@@ -1,7 +1,6 @@
 import { SelectionRange } from "@codemirror/state";
 import { Options } from "./options";
 import { Environment } from "./environment";
-import { FakeRegex } from "./parse";
 
 /**
  * in visual snippets, if the replacement is a string, this is the magic substring to indicate the selection.
@@ -32,7 +31,7 @@ export type SnippetData<T extends SnippetType> = {
 		replacement: string | ((selection: string) => string | false);
 	};
 	regex: {
-		trigger: FakeRegex;
+		trigger: RegExp;
 		replacement: string | ((match: RegExpExecArray) => string);
 	};
 	string: {
