@@ -104,7 +104,6 @@ export const handleKeydown = (key: string, ctrlKey: boolean, isIME: boolean, vie
 	}
 
 	const settings = getLatexSuiteConfig(view);
-	const ctx = getContextPlugin(view);
 
 	if (
 		!settings.snippetsEnabled ||
@@ -180,7 +179,6 @@ export function getKeymaps(settings: LatexSuiteCMSettings): LatexSuiteKeyBinding
 			if (settings.suppressSnippetTriggerOnIME && view.composing)
 				return false;
 			try {
-				const ctx = getContextPlugin(view);
 				const options = {recursive: settings.snippetRecursion, debug: settings.snippetDebug};
 				return runSnippets(view, {snippets}, options);
 			} catch (e) {

@@ -9,7 +9,7 @@ import { taboutByEnclosedBrackets } from "./tabout";
 const newlineMatrixShortcutCallback = (view: EditorView): boolean => {
 	const ctx = getContextPlugin(view);
 	const cur_line = view.state.doc.lineAt(ctx.pos);
-	const current_matrix_line = cur_line.text.match(/(?<=\\begin{[^]]*}|\\\\|^)(\s|\&)+/);
+	const current_matrix_line = cur_line.text.match(/(?<=\\begin{[^]]*}|\\\\|^)(\s|&)+/);
 	const added_cells = current_matrix_line?.[0].trimStart() ?? ""
 	if (ctx.mode.blockMath) {
 		// Keep current indentation and callout characters

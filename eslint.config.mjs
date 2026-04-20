@@ -13,7 +13,7 @@ const compat = new FlatCompat({
 
 export default defineConfig([
 	globalIgnores([
-		"**/npm node_modules",
+		"**/node_modules",
 		"**/build",
 		"src/default_snippet_variables.js",
 		"src/default_snippets.js",

@@ -694,7 +694,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 							return;
 						}
 						this.plugin.settings.snippetRecursion = snippetRecurisve;
-					} catch (e) {
+					} catch {
 						return
 					}
 					await this.plugin.saveSettings();
