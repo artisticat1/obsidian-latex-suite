@@ -32,11 +32,11 @@ export type SnippetData<T extends SnippetType> = {
 	};
 	regex: {
 		trigger: RegExp;
-		replacement: string | ((match: RegExpExecArray) => string);
+		replacement: string | ((match: RegExpExecArray) => string | false);
 	};
 	string: {
 		trigger: string;
-		replacement: string | ((match: string) => string);
+		replacement: string | ((match: string) => string | false);
 	};
 }[T]
 

@@ -4,6 +4,7 @@ export class Options {
 	regex: boolean;
 	onWordBoundary: boolean;
 	visual: boolean;
+	undoKey: boolean;
 
 	constructor() {
 		this.mode = new Mode();
@@ -11,6 +12,7 @@ export class Options {
 		this.regex = false;
 		this.onWordBoundary = false;
 		this.visual = false;
+		this.undoKey = true;
 	}
 
 	static fromSource(source: string, language: string | undefined):Options {
@@ -31,6 +33,9 @@ export class Options {
 				case "v":
 					options.visual = true;
 					break;
+				case "U":
+					options.undoKey = false;
+				break;
 			}
 		}
 
