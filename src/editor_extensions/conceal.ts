@@ -1,7 +1,7 @@
 // https://discuss.codemirror.net/t/concealing-syntax/3135
 
 import { ViewUpdate, Decoration, DecorationSet, WidgetType, ViewPlugin, EditorView } from "@codemirror/view";
-import { EditorSelection, Range, RangeSet, RangeSetBuilder, RangeValue } from "@codemirror/state";
+import { EditorSelection, Range, RangeSet, RangeSetBuilder, RangeValue, Transaction } from "@codemirror/state";
 import { conceal, ConcealCachedEquations } from "./conceal_fns";
 import { debounce, livePreviewState } from "obsidian";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
@@ -273,7 +273,8 @@ export const concealPlugin = ViewPlugin.fromClass(class {
 			true,
 		);
 		// HACK: trigger an initial concealment calculation
-		this.update({view, state: view.state, docChanged: true} as ViewUpdate);
+		const transactions: readonly Transaction[] = [];
+		this.update({view, state: view.state, docChanged: true, transactions} as ViewUpdate);
 	}
 
 	delayedRevealCallback = (delayedConcealments: Concealment[], view: EditorView) => {
