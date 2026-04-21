@@ -51,7 +51,7 @@ export const contextPlugin = ViewPlugin.fromClass(
 			this.boundsCache.clear();
 			this.innerBoundsCache.clear();
 			this.mode = new Mode()
-			const mathBounds = getMathBoundsPlugin(this.view)
+			const mathBounds = getMathBoundsPlugin(this.view, false)
 			mathBounds.reset()
 		}
 
@@ -246,12 +246,12 @@ export const contextPlugin = ViewPlugin.fromClass(
 	})
 type ContextPluginValue<T> = T extends ViewPlugin<infer V> ? V : never
 export type Context = ContextPluginValue<typeof contextPlugin>;
-export const getContextPlugin = (view: EditorView): Context => {
+export const getContextPlugin = (view: EditorView, init: boolean = true): Context => {
 	const plugin = view.plugin(contextPlugin)
 	if (!plugin) {
 		throw new Error("Context plugin not found, something went wrong with the plugin initialization");
 	}
-	return plugin.init(view);
+	return init? plugin.init(view) : plugin;
 }
 
 
@@ -621,10 +621,10 @@ export const mathBoundsPlugin = ViewPlugin.fromClass(
 	},
 );
 
-export const getMathBoundsPlugin = (view: EditorView) => {
+export const getMathBoundsPlugin = (view: EditorView, init: boolean = true) => {
 	const plugin = view.plugin(mathBoundsPlugin)
 	if (!plugin) {
 		throw new Error("MathBoundsPlugin not found, something went wrong with the plugin initialization");
 	}
-	return plugin.init(view);
+	return init ? plugin.init(view) : plugin;
 }
