@@ -14,13 +14,14 @@ import { snippetExtensions } from "./snippets/codemirror/extensions";
 import { concealPlugin } from "./editor_extensions/conceal";
 import { colorPairedBracketsPluginLowestPrec, highlightCursorBracketsPlugin } from "./editor_extensions/highlight_brackets";
 import { cursorTooltipBaseTheme, cursorTooltipField } from "./editor_extensions/math_tooltip";
-import { contextPlugin, mathBoundsPlugin } from "./utils/context";
+import { contextPlugin, getContextPlugin, mathBoundsPlugin } from "./utils/context";
 import { Vim } from "./utils/vim_types";
 
 export default class LatexSuitePlugin extends Plugin {
 	settings: LatexSuitePluginSettings;
 	CMSettings: LatexSuiteCMSettings;
 	editorExtensions: Extension[] = [];
+	disableMath = (view: EditorView) => getContextPlugin(view).disableMath();
 
 	async onload() {
 		await this.loadSettings();
@@ -185,7 +186,7 @@ export default class LatexSuitePlugin extends Plugin {
 			EditorView.updateListener.of(handleUpdate),
 			snippetExtensions,
 		]);
-		
+
 		const latexSuiteKeymaps = getKeymaps(this.CMSettings)
 		this.editorExtensions.push(keymap.of(latexSuiteKeymaps))
 
@@ -238,7 +239,7 @@ export default class LatexSuitePlugin extends Plugin {
 				vimObject.mapCommand(command.key, command.type, command.id, {}, { context: command.context });
 			}
 		}
-		
+
 	}
 
 	watchFiles() {
