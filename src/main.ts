@@ -43,7 +43,7 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 		this.addEditorCommands();
 	}
 
-	onunload() { }
+	onunload() {}
 
 	legacyEditorWarning() {
 		// @ts-ignore
@@ -158,7 +158,7 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 				? await getSnippetsFromFiles(this, files, snippetVariables)
 				: await this.getSettingsSnippets(snippetVariables);
 
-		this.showSnippetsLoadedNotice(snippets.length, Object.keys(snippetVariables).length, becauseFileLocationUpdated, becauseFileUpdated);
+		this.showSnippetsLoadedNotice(snippets.length, Object.keys(snippetVariables).length,  becauseFileLocationUpdated, becauseFileUpdated);
 
 		return snippets;
 	}
@@ -187,7 +187,7 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 			EditorView.updateListener.of(handleUpdate),
 			snippetExtensions,
 		]);
-
+		
 		const latexSuiteKeymaps = getKeymaps(this.CMSettings)
 		this.editorExtensions.push(keymap.of(latexSuiteKeymaps))
 
@@ -227,7 +227,7 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 		for (const command of getEditorCommands(this)) {
 			this.addCommand(command);
 		}
-		vimcommand: {
+		vimcommand:  {
 			//check if vim is enabled and accessible
 			//@ts-ignore
 			if (!app?.isVimEnabled()) break vimcommand;
@@ -240,7 +240,7 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 				vimObject.mapCommand(command.key, command.type, command.id, {}, { context: command.context });
 			}
 		}
-
+		
 	}
 
 	watchFiles() {

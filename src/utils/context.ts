@@ -41,9 +41,9 @@ export const contextPlugin = ViewPlugin.fromClass(
 	boundsCache: Map<number, Bounds | null>;
 	innerBoundsCache: Map<number, Bounds | null>;
 	shouldUpdate: boolean = false;
-
+	
 	constructor(view: EditorView) {
-		this.updateFromView(view);
+		this.updateFromView(view);	
 	}
 
 	disableMath() {
@@ -101,7 +101,7 @@ export const contextPlugin = ViewPlugin.fromClass(
 		// first, check if math mode should be "generally" on
 		const mathBoundsCache = getMathBoundsPlugin(view);
 		const inMath = forceMath || mathBoundsCache.inMathBound(state, this.pos);
-
+		
 		if (inMath !== true && inMath !== null) {
 			const inInlineEquation = inMath.mode === MathMode.InlineMath;
 			this.mode.blockMath = !inInlineEquation;
@@ -130,7 +130,7 @@ export const contextPlugin = ViewPlugin.fromClass(
 		const bounds = this.getInnerBounds();
 		if (!bounds) return null;
 
-	const {inner_start: start, inner_end: end} = bounds;
+		const {inner_start: start, inner_end: end} = bounds;
 		const text = this.state.sliceDoc(start, end);
 
 		// pos referred to the absolute position in the whole document, but we just sliced the text
@@ -243,7 +243,7 @@ export const contextPlugin = ViewPlugin.fromClass(
 		return bounds;
 	}
 
-	})
+})
 type ContextPluginValue<T> = T extends ViewPlugin<infer V> ? V : never
 export type Context = ContextPluginValue<typeof contextPlugin>;
 export const getContextPlugin = (view: EditorView, init: boolean = true): Context => {
@@ -294,7 +294,7 @@ const getCodeblockBounds = (
 ): Bounds | null => {
 	const bounds = getCodeblockBoundNodes(state, pos);
 	if (!bounds) return null;
-	const { begin: blockBegin, end: blockEnd } = bounds;
+	const { begin: blockBegin, end: blockEnd } = bounds; 
 	return {
 		inner_start: blockBegin.to,
 		inner_end: blockEnd.from,
@@ -446,7 +446,7 @@ export const mathBoundsPlugin = ViewPlugin.fromClass(
 								: MathMode.BlockMath,
 					});
 				}
-
+				
 				if (
 					open_math_nodes.has(
 						math_nodes_viewport[math_nodes_viewport.length - 1]?.name,
@@ -497,7 +497,7 @@ export const mathBoundsPlugin = ViewPlugin.fromClass(
 			}
 			return this.getEquationBounds(state, pos);
 		};
-
+		
 		getEquationBounds(state: EditorState, pos?: number ):MathBounds | null {
 			if (!pos) pos = state.selection.main.to;
 			const bounds = this.computeEquationBounds(state, pos);
@@ -584,7 +584,7 @@ export const mathBoundsPlugin = ViewPlugin.fromClass(
 			};
 			return mathBound;
 		};
-
+		
 		private addMathBound = (bound: MathBounds) => {
 			if (this.mathBounds.length === 0) {
 				this.mathBounds.push(bound);
@@ -607,7 +607,7 @@ export const mathBoundsPlugin = ViewPlugin.fromClass(
 			}
 			return bound;
 		}
-
+		
 		getEquations(state: EditorState) {
 			if (this.equations) return this.equations;
 			this.equations = new Map(
