@@ -51,8 +51,8 @@ export const contextPlugin = ViewPlugin.fromClass(
 		this.boundsCache.clear();
 		this.innerBoundsCache.clear();
 		this.mode = new Mode()
-		const mathBounds = getMathBoundsPlugin(this.view, false)
-		mathBounds.reset()
+		const mathBounds = getMathBoundsPlugin(this.view, false);
+		mathBounds.reset();
 	}
 
 	/**
@@ -251,7 +251,7 @@ export const getContextPlugin = (view: EditorView, init: boolean = true): Contex
 	if (!plugin) {
 		throw new Error("Context plugin not found, something went wrong with the plugin initialization");
 	}
-	return init? plugin.init(view) : plugin;
+	return init ? plugin.init(view) : plugin;
 }
 
 
