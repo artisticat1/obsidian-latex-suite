@@ -3,9 +3,16 @@
 	"version": "1.11.5",
 	"description": "Make typesetting LaTeX math as fast as handwriting through snippets, text expansion, and editor enhancements",
 	"main": "main.js",
+	"types": "api.d.ts",
+	"exports": {
+		".": {
+			"types": "./api.d.ts"
+		}
+	},
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
+		"build:types": "rollup -c rollup.config.js",
 		"version": "npm run lint && npm run build && node version-bump.mjs && git add manifest.json versions.json",
 		"lint": "npm run tsc && npm run eslint",
 		"tsc": "tsc --noEmit -skipLibCheck",
@@ -37,6 +44,8 @@
 		"eslint": "^9.39.2",
 		"globals": "^17.3.0",
 		"obsidian": "^0.15.0",
+		"rollup": "^4.60.2",
+		"rollup-plugin-dts": "^6.4.1",
 		"tslib": "2.3.1",
 		"typescript": "^5.9.3"
 	},
