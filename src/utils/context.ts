@@ -32,216 +32,216 @@ type MathBounds = Bounds & {mode: MathMode};
 
 export const contextPlugin = ViewPlugin.fromClass(
 	class Context implements PluginValue {
-		view: EditorView;
-		state: EditorState;
-		mode: Mode;
-		pos: number;
-		ranges: SelectionRange[];
-		codeblockLanguage: string | null = null;
-		boundsCache: Map<number, Bounds | null>;
-		innerBoundsCache: Map<number, Bounds | null>;
-		shouldUpdate: boolean = false;
+	view: EditorView;
+	state: EditorState;
+	mode: Mode;
+	pos: number;
+	ranges: SelectionRange[];
+	codeblockLanguage: string | null = null;
+	boundsCache: Map<number, Bounds | null>;
+	innerBoundsCache: Map<number, Bounds | null>;
+	shouldUpdate: boolean = false;
 
-		constructor(view: EditorView) {
+	constructor(view: EditorView) {
+		this.updateFromView(view);
+	}
+
+	disableMath() {
+		this.shouldUpdate = false;
+		this.boundsCache.clear();
+		this.innerBoundsCache.clear();
+		this.mode = new Mode()
+		const mathBounds = getMathBoundsPlugin(this.view, false)
+		mathBounds.reset()
+	}
+
+	/**
+	 * Small optimization to avoid updating the context when no extension is used.
+	 * @param view current view
+	 */
+	init(view: EditorView) {
+		if (this.shouldUpdate) {
 			this.updateFromView(view);
-		}
-
-		disableMath() {
 			this.shouldUpdate = false;
-			this.boundsCache.clear();
-			this.innerBoundsCache.clear();
-			this.mode = new Mode()
-			const mathBounds = getMathBoundsPlugin(this.view, false)
-			mathBounds.reset()
+		}
+		return this
+	}
+
+	update(update: ViewUpdate) {
+		if (!(update.docChanged || update.selectionSet || update.viewportChanged)) return;
+		this.shouldUpdate = true;
+	}
+	updateFromView(view: EditorView) {
+		const state = view.state;
+		const sel = state.selection;
+		this.view = view;
+		this.state = state;
+		this.pos = sel.main.to;
+		this.ranges = Array.from(sel.ranges).reverse(); // Last to first
+		this.mode = new Mode();
+		this.boundsCache = new Map();
+		this.innerBoundsCache = new Map();
+		this.codeblockLanguage = null;
+
+		const codeBlockInfo = langIfWithinCodeblock(state);
+		const codeblockLanguage = codeBlockInfo?.codeblockLanguage ?? null;
+		const inCode = codeblockLanguage !== null;
+
+		const settings = getLatexSuiteConfig(state);
+		const forceMath =
+			inCode &&
+			settings.forceMathLanguages.contains(codeblockLanguage);
+		this.mode.codeMath = forceMath;
+		this.mode.code = inCode && !forceMath ? codeblockLanguage : false;
+		if (inCode && this.mode.code !== false) {
+			this.codeblockLanguage = codeblockLanguage;
+			this.boundsCache.set(this.pos, codeBlockInfo);
 		}
 
-		/**
-		 * Small optimization to avoid updating the context when no extension is used.
-		 * @param view current view
-		 */
-		init(view: EditorView) {
-			if (this.shouldUpdate) {
-				this.updateFromView(view);
-				this.shouldUpdate = false;
-			}
-			return this
+		// first, check if math mode should be "generally" on
+		const mathBoundsCache = getMathBoundsPlugin(view);
+		const inMath = forceMath || mathBoundsCache.inMathBound(state, this.pos);
+
+		if (inMath !== true && inMath !== null) {
+			const inInlineEquation = inMath.mode === MathMode.InlineMath;
+			this.mode.blockMath = !inInlineEquation;
+			this.mode.inlineMath = inInlineEquation;
+			this.boundsCache.set(this.pos, inMath);
 		}
 
-		update(update: ViewUpdate) {
-			if (!(update.docChanged || update.selectionSet || update.viewportChanged)) return;
-			this.shouldUpdate = true;
-		}
-		updateFromView(view: EditorView) {
-			const state = view.state;
-			const sel = state.selection;
-			this.view = view;
-			this.state = state;
-			this.pos = sel.main.to;
-			this.ranges = Array.from(sel.ranges).reverse(); // Last to first
-			this.mode = new Mode();
-			this.boundsCache = new Map();
-			this.innerBoundsCache = new Map();
-			this.codeblockLanguage = null;
-
-			const codeBlockInfo = langIfWithinCodeblock(state);
-			const codeblockLanguage = codeBlockInfo?.codeblockLanguage ?? null;
-			const inCode = codeblockLanguage !== null;
-
-			const settings = getLatexSuiteConfig(state);
-			const forceMath =
-				inCode &&
-				settings.forceMathLanguages.contains(codeblockLanguage);
-			this.mode.codeMath = forceMath;
-			this.mode.code = inCode && !forceMath ? codeblockLanguage : false;
-			if (inCode && this.mode.code !== false) {
-				this.codeblockLanguage = codeblockLanguage;
-				this.boundsCache.set(this.pos, codeBlockInfo);
+		if (inMath) {
+			const textEnv = this.inTextEnvironment();
+			if (textEnv === "text") {
+				this.mode.textEnv = true;
+			} else if (textEnv === "none") {
+				this.mode.inlineMath = false;
+				this.mode.blockMath = false;
+				this.mode.codeMath = false;
 			}
-
-			// first, check if math mode should be "generally" on
-			const mathBoundsCache = getMathBoundsPlugin(view);
-			const inMath = forceMath || mathBoundsCache.inMathBound(state, this.pos);
-
-			if (inMath !== true && inMath !== null) {
-				const inInlineEquation = inMath.mode === MathMode.InlineMath;
-				this.mode.blockMath = !inInlineEquation;
-				this.mode.inlineMath = inInlineEquation;
-				this.boundsCache.set(this.pos, inMath);
-			}
-
-			if (inMath) {
-				const textEnv = this.inTextEnvironment();
-				if (textEnv === "text") {
-					this.mode.textEnv = true;
-				} else if (textEnv === "none") {
-					this.mode.inlineMath = false;
-					this.mode.blockMath = false;
-					this.mode.codeMath = false;
-				}
-			}
-
-			this.mode.text = !inCode && !inMath;
-
 		}
 
-		isWithinEnvironment<T extends Environment>(pos: number, envs: T | T[]): T & Bounds | null {
-			if (!this.mode.inMath()) return null;
+		this.mode.text = !inCode && !inMath;
 
-			const bounds = this.getInnerBounds();
-			if (!bounds) return null;
+	}
 
-		const {inner_start: start, inner_end: end} = bounds;
-			const text = this.state.sliceDoc(start, end);
+	isWithinEnvironment<T extends Environment>(pos: number, envs: T | T[]): T & Bounds | null {
+		if (!this.mode.inMath()) return null;
 
-			// pos referred to the absolute position in the whole document, but we just sliced the text
-			// so now pos must be relative to the start in order to be any useful
-			pos -= start;
+		const bounds = this.getInnerBounds();
+		if (!bounds) return null;
 
-			if (!Array.isArray(envs)) {
-				envs = [envs];
-			}
-			outer_loop: for (const env of envs) {
-				const openBracket = env.openSymbol.slice(-1);
-				const closeBracket = getCloseBracket(openBracket);
+	const {inner_start: start, inner_end: end} = bounds;
+		const text = this.state.sliceDoc(start, end);
 
-				// Take care when the open symbol ends with a bracket {, [, or (
-				// as then the closing symbol, }, ] or ), is not unique to this open symbol
-				let offset;
-				let openSearchSymbol;
+		// pos referred to the absolute position in the whole document, but we just sliced the text
+		// so now pos must be relative to the start in order to be any useful
+		pos -= start;
 
-				if (
-					["{", "[", "("].contains(openBracket) &&
-					env.closeSymbol === closeBracket
-				) {
-					offset = env.openSymbol.length - 1;
-					openSearchSymbol = openBracket;
-				} else {
-					offset = 0;
-					openSearchSymbol = env.openSymbol;
-				}
-
-				let left = text.lastIndexOf(env.openSymbol, pos - 1);
-
-				while (left != -1) {
-					const right = findMatchingBracket(
-						text,
-						left + offset,
-						openSearchSymbol,
-						env.closeSymbol,
-						false,
-					);
-
-					if (right === -1) continue outer_loop;
-
-					// Check whether the cursor lies inside the environment symbols
-					if (right >= pos && pos >= left + env.openSymbol.length) {
-						return {
-							...env,
-							inner_start: left + env.openSymbol.length + start,
-							inner_end: right + start,
-							outer_start: left + start,
-							outer_end: right + env.closeSymbol.length + start,
-						};
-					}
-
-					if (left <= 0) continue outer_loop;
-
-					// Find the next open symbol
-					left = text.lastIndexOf(env.openSymbol, left - 1);
-				}
-			}
-
-			return null;
+		if (!Array.isArray(envs)) {
+			envs = [envs];
 		}
+		outer_loop: for (const env of envs) {
+			const openBracket = env.openSymbol.slice(-1);
+			const closeBracket = getCloseBracket(openBracket);
 
-		inTextEnvironment(): "text" | "none" | null {
-			const result = this.isWithinEnvironment(this.pos, textAreaEnvs)
-			if (!result) return null;
-			const openSymbol = result.openSymbol.slice(1, -1);
-			if (snippetLessArea.includes(openSymbol as (typeof snippetLessArea)[number])) {
-				return "none"
+			// Take care when the open symbol ends with a bracket {, [, or (
+			// as then the closing symbol, }, ] or ), is not unique to this open symbol
+			let offset;
+			let openSearchSymbol;
+
+			if (
+				["{", "[", "("].contains(openBracket) &&
+				env.closeSymbol === closeBracket
+			) {
+				offset = env.openSymbol.length - 1;
+				openSearchSymbol = openBracket;
 			} else {
-				return "text"
+				offset = 0;
+				openSearchSymbol = env.openSymbol;
+			}
+
+			let left = text.lastIndexOf(env.openSymbol, pos - 1);
+
+			while (left != -1) {
+				const right = findMatchingBracket(
+					text,
+					left + offset,
+					openSearchSymbol,
+					env.closeSymbol,
+					false,
+				);
+
+				if (right === -1) continue outer_loop;
+
+				// Check whether the cursor lies inside the environment symbols
+				if (right >= pos && pos >= left + env.openSymbol.length) {
+					return {
+						...env,
+						inner_start: left + env.openSymbol.length + start,
+						inner_end: right + start,
+						outer_start: left + start,
+						outer_end: right + env.closeSymbol.length + start,
+					};
+				}
+
+				if (left <= 0) continue outer_loop;
+
+				// Find the next open symbol
+				left = text.lastIndexOf(env.openSymbol, left - 1);
 			}
 		}
 
-		getBounds(pos: number = this.pos): Bounds | null {
-			// yes, I also want the cache to work over the produced range instead of just that one through
-			// a BTree or the like, but that'd be probably overkill
-			const cached = this.boundsCache.get(pos);
-			if (cached !== undefined) {
-				return cached;
-			}
+		return null;
+	}
 
-			let bounds: Bounds | null;
-			if (this.mode.codeMath) {
-				// means a codeblock language triggered the math mode -> use the codeblock bounds instead
-				bounds = getCodeblockBounds(this.state, pos);
-			} else {
-				bounds = getMathBoundsPlugin(this.view).inMathBound(this.state, pos);
-			}
+	inTextEnvironment(): "text" | "none" | null {
+		const result = this.isWithinEnvironment(this.pos, textAreaEnvs)
+		if (!result) return null;
+		const openSymbol = result.openSymbol.slice(1, -1);
+		if (snippetLessArea.includes(openSymbol as (typeof snippetLessArea)[number])) {
+			return "none"
+		} else {
+			return "text"
+		}
+	}
 
-			this.boundsCache.set(pos, bounds);
-			return bounds;
+	getBounds(pos: number = this.pos): Bounds | null {
+		// yes, I also want the cache to work over the produced range instead of just that one through
+		// a BTree or the like, but that'd be probably overkill
+		const cached = this.boundsCache.get(pos);
+		if (cached !== undefined) {
+			return cached;
 		}
 
-		// Accounts for equations within text environments, e.g. $$\text{... $...$}$$
-		getInnerBounds(pos: number = this.pos): Bounds | null {
-			let bounds: Bounds | null;
-			const cached = this.innerBoundsCache.get(pos);
-			if (cached !== undefined) {
-				return cached;
-			}
-			if (this.mode.codeMath) {
-				// means a codeblock language triggered the math mode -> use the codeblock bounds instead
-				bounds = this.getBounds(pos);
-			} else {
-				bounds = getInnerEquationBounds(this.view);
-			}
-			this.innerBoundsCache.set(pos, bounds);
-
-			return bounds;
+		let bounds: Bounds | null;
+		if (this.mode.codeMath) {
+			// means a codeblock language triggered the math mode -> use the codeblock bounds instead
+			bounds = getCodeblockBounds(this.state, pos);
+		} else {
+			bounds = getMathBoundsPlugin(this.view).inMathBound(this.state, pos);
 		}
+
+		this.boundsCache.set(pos, bounds);
+		return bounds;
+	}
+
+	// Accounts for equations within text environments, e.g. $$\text{... $...$}$$
+	getInnerBounds(pos: number = this.pos): Bounds | null {
+		let bounds: Bounds | null;
+		const cached = this.innerBoundsCache.get(pos);
+		if (cached !== undefined) {
+			return cached;
+		}
+		if (this.mode.codeMath) {
+			// means a codeblock language triggered the math mode -> use the codeblock bounds instead
+			bounds = this.getBounds(pos);
+		} else {
+			bounds = getInnerEquationBounds(this.view);
+		}
+		this.innerBoundsCache.set(pos, bounds);
+
+		return bounds;
+	}
 
 	})
 type ContextPluginValue<T> = T extends ViewPlugin<infer V> ? V : never
