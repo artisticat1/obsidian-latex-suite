@@ -3,10 +3,10 @@
 	"version": "1.11.5",
 	"description": "Make typesetting LaTeX math as fast as handwriting through snippets, text expansion, and editor enhancements",
 	"main": "main.js",
-	"types": "api.d.ts",
+	"types": "src/api.d.ts",
 	"exports": {
 		".": {
-			"types": "./api.d.ts"
+			"types": "./src/api.d.ts"
 		}
 	},
 	"scripts": {

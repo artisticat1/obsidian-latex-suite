@@ -16,8 +16,9 @@ import { colorPairedBracketsPluginLowestPrec, highlightCursorBracketsPlugin } fr
 import { cursorTooltipBaseTheme, cursorTooltipField } from "./editor_extensions/math_tooltip";
 import { contextPlugin, getContextPlugin, mathBoundsPlugin } from "./utils/context";
 import { Vim } from "./utils/vim_types";
+import { LatexSuitePluginPublicApi } from "./api";
 
-export default class LatexSuitePlugin extends Plugin {
+export default class LatexSuitePlugin extends Plugin implements LatexSuitePluginPublicApi {
 	settings: LatexSuitePluginSettings;
 	CMSettings: LatexSuiteCMSettings;
 	editorExtensions: Extension[] = [];
@@ -42,7 +43,7 @@ export default class LatexSuitePlugin extends Plugin {
 		this.addEditorCommands();
 	}
 
-	onunload() {}
+	onunload() { }
 
 	legacyEditorWarning() {
 		// @ts-ignore
@@ -157,7 +158,7 @@ export default class LatexSuitePlugin extends Plugin {
 				? await getSnippetsFromFiles(this, files, snippetVariables)
 				: await this.getSettingsSnippets(snippetVariables);
 
-		this.showSnippetsLoadedNotice(snippets.length, Object.keys(snippetVariables).length,  becauseFileLocationUpdated, becauseFileUpdated);
+		this.showSnippetsLoadedNotice(snippets.length, Object.keys(snippetVariables).length, becauseFileLocationUpdated, becauseFileUpdated);
 
 		return snippets;
 	}
@@ -226,7 +227,7 @@ export default class LatexSuitePlugin extends Plugin {
 		for (const command of getEditorCommands(this)) {
 			this.addCommand(command);
 		}
-		vimcommand:  {
+		vimcommand: {
 			//check if vim is enabled and accessible
 			//@ts-ignore
 			if (!app?.isVimEnabled()) break vimcommand;
