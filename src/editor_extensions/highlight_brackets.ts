@@ -118,26 +118,27 @@ function highlightCursorBrackets(view: EditorView) {
 	const widgets: Range<Decoration>[] = []
 	const selection = view.state.selection;
 	const ranges = selection.ranges;
-	const text = view.state.doc.toString();
 	const ctx = getContextPlugin(view);
 
 	if (!ctx.mode.inMath()) {
 		return Decoration.none;
 	}
 
-	const bounds = ctx.getBounds(selection.main.to);
-	if (!bounds) return Decoration.none;
-	const eqn = view.state.doc.sliceString(bounds.inner_start, bounds.inner_end);
-
 	const openBrackets = ["{", "[", "("];
 	const brackets = ["{", "[", "(", "}", "]", ")"];
 
-	let done = false;
-
-	for (const range of ranges) {
-
+	outer_loop: for (const range of ranges) {
+		const bounds = ctx.getBounds(range.to);
+		if (!bounds) {
+			console.log("No bounds found for position", range.to);
+			continue;
+		}
+		const eqn = view.state.doc.sliceString(
+			bounds.inner_start,
+			bounds.inner_end,
+		);
 		for (let i = range.to; i > range.from - 2; i--) {
-			const char = text.charAt(i);
+			const char = eqn.charAt(i - bounds.inner_start);
 			if (!brackets.contains(char)) continue;
 
 			let openBracket, closeBracket;
@@ -161,11 +162,8 @@ function highlightCursorBrackets(view: EditorView) {
 
 			widgets.push(getHighlightBracketMark(i, "latex-suite-highlighted-bracket"));
 			widgets.push(getHighlightBracketMark(j, "latex-suite-highlighted-bracket"));
-			done = true;
-			break;
+			continue outer_loop;
 		}
-
-		if (done) break;
 
 		// Highlight brackets enclosing the cursor
 		if (range.empty) {
@@ -176,11 +174,7 @@ function highlightCursorBrackets(view: EditorView) {
 
 			widgets.push(getHighlightBracketMark(result.left, "latex-suite-highlighted-bracket"));
 			widgets.push(getHighlightBracketMark(result.right, "latex-suite-highlighted-bracket"));
-			done = true;
-			break;
 		}
-
-		if (done) break;
 	}
 
 	return Decoration.set(widgets, true);
