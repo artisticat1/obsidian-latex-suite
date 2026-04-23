@@ -7,6 +7,7 @@ import { addTabstops, getNextTabstopColor, tabstopsStateField } from "./codemirr
 import { clearSnippetQueue, getSnippetQueue } from "./codemirror/snippet_queue_state_field";
 import { SnippetChangeSpec } from "./codemirror/snippet_change_spec";
 import { resetCursorBlink } from "src/utils/editor_utils";
+import { Text } from "@codemirror/state";
 
 export function expandSnippets(view: EditorView):boolean {
 	const snippetsToExpand = getSnippetQueue(view).snippetQueueValue;
@@ -18,7 +19,7 @@ export function expandSnippets(view: EditorView):boolean {
 	const undoChanges = handleUndoKeypresses(view, snippetsToExpand);
 	// If from===to, normally the cursor would be before the text, but after the text makes more sense as that happens when from <to.
 	const selection = view.state.selection.map(undoChanges, 1);
-	const newText = undoChanges.apply(view.state.doc).toString();
+	const newText = undoChanges.apply(view.state.doc);
 	const tabstopsToAdd = computeTabstops(newText, snippetsToExpand, originalDocLength);
 	const changes = {
 		changes: undoChanges,
@@ -74,15 +75,14 @@ function handleUndoKeypresses(view: EditorView, snippets: SnippetChangeSpec[]) {
 	return combinedChanges;
 }
 
-function computeTabstops(text: string, snippets: SnippetChangeSpec[], originalDocLength: number) {
+function computeTabstops(doc: Text, snippets: SnippetChangeSpec[], originalDocLength: number) {
 	// Find the positions of the cursors in the new document
 	const changeSet = ChangeSet.of(snippets, originalDocLength);
 	const oldPositions = snippets.map(change => change.from);
 	const newPositions = oldPositions.map(pos => changeSet.mapPos(pos));
-
 	const tabstopsToAdd:TabstopSpec[] = [];
 	for (let i = 0; i < snippets.length; i++) {
-		tabstopsToAdd.push(...snippets[i].getTabstops(text, newPositions[i]));
+		tabstopsToAdd.push(...snippets[i].getTabstops(doc, newPositions[i]));
 	}
 
 	return tabstopsToAdd;
