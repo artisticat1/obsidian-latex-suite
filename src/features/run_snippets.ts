@@ -61,14 +61,12 @@ const runSnippetCursor = (view: EditorView, ctx: Context, snippetInfo: SnippetIn
 	const {from, to} = range;
 	const sel = view.state.sliceDoc(from, to);
 	const {line, effectiveLineAfter} = getSliceAroundCursor(view, to);
-	// const line = view.state.sliceDoc(0, to);
 	const key = snippetInfo.key ?? "";
 	// If the key pressed wasn't a text character, continue
 	if (snippetInfo.key && snippetInfo.key.length !== 1) {
 		return {success: false, shouldAutoEnlargeBrackets: false};
 	}
 	const updatedLine = line + key;
-	// const effectiveLineAfter = view.state.sliceDoc(to);
 	for (let i=0; i < snippetInfo.snippets.length; i++) {
 		const snippet = snippetInfo.snippets[i];
 
