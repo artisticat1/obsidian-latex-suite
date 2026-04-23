@@ -167,16 +167,25 @@ function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snip
 		triggerStr = `(?:${triggerStr})$`;
 
 		// allow inheritance/ fake/custom RegExp such as pcre2 regex (regex++ package).
-		const RegExpConstructor =
+		const TriggerRegExpConstructor =
 			typeof raw.trigger === "string"
 				? RegExp
 				: (raw.trigger.constructor as typeof RegExp);
+		const AfterTriggerRegExpConstructor =
+			typeof raw.triggerAfter === "string" || raw.triggerAfter === undefined
+				? RegExp
+				: (raw.triggerAfter.constructor as typeof RegExp);
 
 		// convert trigger into RegExp instance
-		const trigger = new RegExpConstructor(triggerStr, flags);
+		const trigger = new TriggerRegExpConstructor(triggerStr, flags);
 		// Add ^ to triggerAfter so it matches the start of the string
 		triggerAfterStr = triggerAfterStr ? `^(?:${triggerAfterStr})` : undefined;
-		const triggerAfter = triggerAfterStr ? new RegExp(triggerAfterStr, triggerAfterFlags) : undefined;
+		const triggerAfter = triggerAfterStr
+			? new AfterTriggerRegExpConstructor(
+					triggerAfterStr,
+					triggerAfterFlags,
+				)
+			: undefined;
 
 		options.regex = true;
 
