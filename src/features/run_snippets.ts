@@ -45,21 +45,30 @@ export const runSnippets = (view: EditorView, snippetInfo: SnippetInfo, options:
 	}
 	return didExpand
 }
-
+const getSliceAroundCursor = (view: EditorView, to: number) => {
+	const line = view.state.sliceDoc(0, to);
+	let cachedLineAfter: string | null = null;
+	const effectiveLineAfter = () => {
+		cachedLineAfter = cachedLineAfter ?? view.state.sliceDoc(to);
+		return cachedLineAfter;
+	};
+	return {line, effectiveLineAfter};
+}
 
 const runSnippetCursor = (view: EditorView, ctx: Context, snippetInfo: SnippetInfo, range: SelectionRange, debug: snippetDebugLevel):{success: boolean; shouldAutoEnlargeBrackets: boolean} => {
 
 	const settings = getLatexSuiteConfig(view);
 	const {from, to} = range;
 	const sel = view.state.sliceDoc(from, to);
-	const line = view.state.sliceDoc(0, to);
+	const {line, effectiveLineAfter} = getSliceAroundCursor(view, to);
+	// const line = view.state.sliceDoc(0, to);
 	const key = snippetInfo.key ?? "";
 	// If the key pressed wasn't a text character, continue
 	if (snippetInfo.key && snippetInfo.key.length !== 1) {
 		return {success: false, shouldAutoEnlargeBrackets: false};
 	}
 	const updatedLine = line + key;
-	const effectiveLineAfter = view.state.sliceDoc(to);
+	// const effectiveLineAfter = view.state.sliceDoc(to);
 	for (let i=0; i < snippetInfo.snippets.length; i++) {
 		const snippet = snippetInfo.snippets[i];
 

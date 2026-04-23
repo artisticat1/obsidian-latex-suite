@@ -85,7 +85,7 @@ export abstract class Snippet<T extends SnippetType = SnippetType> {
 	get trigger(): SnippetData<T>["trigger"] { return this.data.trigger; }
 	get replacement(): SnippetData<T>["replacement"] { return this.data.replacement; }
 
-	abstract process(effectiveLine: string, range: SelectionRange, sel: string, effectiveLineAfter?: string): ProcessSnippetResult;
+	abstract process(effectiveLine: string, range: SelectionRange, sel: string, effectiveLineAfter?: () => string): ProcessSnippetResult;
 
 	toString() {
 		return serializeSnippetLike({
@@ -136,18 +136,15 @@ export class RegexSnippet extends Snippet<"regex"> {
 		this.data.triggerAfter = triggerAfter;
 	}
 
-	process(effectiveLine: string, range: SelectionRange, sel: string, effectiveLineAfter: string): ProcessSnippetResult {
+	process(effectiveLine: string, range: SelectionRange, sel: string, effectiveLineAfter: () => string): ProcessSnippetResult {
 		const hasSelection = !!sel;
 		// non-visual snippets only run when there is no selection
 		if (hasSelection) { return null; }
 
 		const result = this.trigger.exec(effectiveLine);
 		if (result === null) { return null; }
-		const afterResult = this.data.triggerAfter?.exec(effectiveLineAfter);
+		const afterResult = this.data.triggerAfter?.exec(effectiveLineAfter());
 		if (this.data.triggerAfter && afterResult === null) { return null; }
-		if (this.data.triggerAfter) {
-			console.log("triggerAfter result:", afterResult);
-		}
 		const triggerPos = result.index;
 		const triggerEndPos = afterResult
 			? result.index + result[0].length + afterResult[0].length -1
@@ -185,18 +182,14 @@ export class StringSnippet extends Snippet<"string"> {
 		this.data.triggerAfter = triggerAfter;
 	}
 
-	process(effectiveLine: string, range: SelectionRange, sel: string, effectiveLineAfter: string): ProcessSnippetResult {
+	process(effectiveLine: string, range: SelectionRange, sel: string, effectiveLineAfter: () => string): ProcessSnippetResult {
 		const hasSelection = !!sel;
 		// non-visual snippets only run when there is no selection
 		if (hasSelection) { return null; }
 
 		// Check whether the trigger text was typed
 		if (!(effectiveLine.endsWith(this.trigger))) { return null; }
-		if (this.data.triggerAfter && !effectiveLineAfter.startsWith(this.data.triggerAfter)) { return null; }
-		console.log(this.data.triggerAfter)
-		if (this.data.triggerAfter) {
-			console.log("triggerAfter effectiveLineAfter:", effectiveLineAfter);
-		}
+		if (this.data.triggerAfter && !effectiveLineAfter().startsWith(this.data.triggerAfter)) { return null; }
 
 		const triggerPos = effectiveLine.length - this.trigger.length;
 		const triggerEndPos = this.data.triggerAfter !== undefined
