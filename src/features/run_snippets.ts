@@ -45,14 +45,22 @@ export const runSnippets = (view: EditorView, snippetInfo: SnippetInfo, options:
 	}
 	return didExpand
 }
-
+const getSliceAroundCursor = (view: EditorView, to: number) => {
+	const line = view.state.sliceDoc(0, to);
+	let cachedLineAfter: string | null = null;
+	const effectiveLineAfter = () => {
+		cachedLineAfter = cachedLineAfter ?? view.state.sliceDoc(to);
+		return cachedLineAfter;
+	};
+	return {line, effectiveLineAfter};
+}
 
 const runSnippetCursor = (view: EditorView, ctx: Context, snippetInfo: SnippetInfo, range: SelectionRange, debug: snippetDebugLevel):{success: boolean; shouldAutoEnlargeBrackets: boolean} => {
 
 	const settings = getLatexSuiteConfig(view);
 	const {from, to} = range;
 	const sel = view.state.sliceDoc(from, to);
-	const line = view.state.sliceDoc(0, to);
+	const {line, effectiveLineAfter} = getSliceAroundCursor(view, to);
 	const key = snippetInfo.key ?? "";
 	// If the key pressed wasn't a text character, continue
 	if (snippetInfo.key && snippetInfo.key.length !== 1) {
@@ -66,7 +74,7 @@ const runSnippetCursor = (view: EditorView, ctx: Context, snippetInfo: SnippetIn
 			continue;
 		}
 
-		const result = snippet.process(updatedLine, range, sel);
+		const result = snippet.process(updatedLine, range, sel, effectiveLineAfter);
 		if (result === null) continue;
 
 		// Check that this snippet is not excluded in a certain environment
@@ -81,6 +89,9 @@ const runSnippetCursor = (view: EditorView, ctx: Context, snippetInfo: SnippetIn
 		if (isExcluded) { continue; }
 
 		const triggerPos = result.triggerPos;
+		const triggerEndPos = result.triggerEndPos
+			? result.triggerEndPos - key.length
+			: to;
 
 		if (snippet.options.onWordBoundary) {
 			// Check that the trigger is preceded and followed by a word delimiter
@@ -97,7 +108,7 @@ const runSnippetCursor = (view: EditorView, ctx: Context, snippetInfo: SnippetIn
 		// Expand the snippet
 		const start = triggerPos;
 		const triggerKey = (snippet.options.automatic && snippet.type !== "visual") ? key : undefined;
-		queueSnippet(view, start, to, replacement, triggerKey);
+		queueSnippet(view, start, triggerEndPos, replacement, triggerKey, to);
 
 		const containsTrigger = settings.autoEnlargeBracketsTriggers.some(word => replacement.contains(word));
 		if (debug === "info" || debug === "verbose") {

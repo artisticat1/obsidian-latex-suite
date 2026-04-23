@@ -89,6 +89,7 @@ export async function parseSnippets(snippetsStr: string, snippetVariables: Snipp
 
 const RawSnippetSchema = object({
 	trigger: union([string_(), instance(RegExp)]),
+	triggerAfter: optional(union([string_(), instance(RegExp)])),
 	replacement: union([string_(), custom<AnyFunction>(x => typeof x === "function")]),
 	options: string_(),
 	flags: optional(string_(), ""),
@@ -131,8 +132,10 @@ function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snip
 	// we have a regex snippet
 	if (options.regex || raw.trigger instanceof RegExp) {
 		let triggerStr: string;
+		let triggerAfterStr: string | undefined;
 		// normalize flags to a string
 		let flags = raw.flags;
+		let triggerAfterFlags = flags;
 
 		// extract trigger string from trigger,
 		// and merge flags, if trigger is a regexp already
@@ -142,11 +145,19 @@ function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snip
 		} else {
 			triggerStr = raw.trigger;
 		}
+		if (raw.triggerAfter instanceof RegExp) {
+			triggerAfterStr = raw.triggerAfter.source;
+			triggerAfterFlags = `${raw.triggerAfter.flags}${triggerAfterFlags}`;
+		} else {
+			triggerAfterStr = raw.triggerAfter;
+		}
 		// filter out invalid flags
 		flags = filterFlags(flags);
+		triggerAfterFlags = filterFlags(triggerAfterFlags);
 
 		// substitute snippet variables
 		triggerStr = insertSnippetVariables(triggerStr, snippetVariables);
+		triggerAfterStr = triggerAfterStr && insertSnippetVariables(triggerAfterStr, snippetVariables);
 
 		// get excluded environment(s) for this trigger, if any
 		excludedEnvironments = getExcludedEnvironments(triggerStr);
@@ -156,23 +167,42 @@ function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snip
 		triggerStr = `(?:${triggerStr})$`;
 
 		// allow inheritance/ fake/custom RegExp such as pcre2 regex (regex++ package).
-		const RegExpConstructor =
+		const TriggerRegExpConstructor =
 			typeof raw.trigger === "string"
 				? RegExp
 				: (raw.trigger.constructor as typeof RegExp);
+		const AfterTriggerRegExpConstructor =
+			typeof raw.triggerAfter === "string" || raw.triggerAfter === undefined
+				? RegExp
+				: (raw.triggerAfter.constructor as typeof RegExp);
 
 		// convert trigger into RegExp instance
-		const trigger = new RegExpConstructor(triggerStr, flags);
+		const trigger = new TriggerRegExpConstructor(triggerStr, flags);
+		// Add ^ to triggerAfter so it matches the start of the string
+		triggerAfterStr = triggerAfterStr ? `^(?:${triggerAfterStr})` : undefined;
+		const triggerAfter = triggerAfterStr
+			? new AfterTriggerRegExpConstructor(
+					triggerAfterStr,
+					triggerAfterFlags,
+				)
+			: undefined;
 
 		options.regex = true;
 
-		const normalised = { trigger, replacement, options, priority, description, excludedEnvironments, triggerKey };
+		const normalised = { trigger, replacement, options, priority, description, excludedEnvironments, triggerKey, triggerAfter };
 
 		return new RegexSnippet(normalised);
 	}
 	else {
 		// substitute snippet variables
 		const trigger = insertSnippetVariables(raw.trigger, snippetVariables);
+
+		let triggerAfter = raw.triggerAfter;
+		if (triggerAfter !== undefined && typeof triggerAfter === "string") {
+			triggerAfter = insertSnippetVariables(triggerAfter, snippetVariables);
+		} else if (triggerAfter instanceof RegExp) {
+			throw new Error("triggerAfter cannot be a RegExp for non-regex snippets");
+		}
 
 		// get excluded environment(s) for this trigger, if any
 		excludedEnvironments = getExcludedEnvironments(trigger);
@@ -182,7 +212,7 @@ function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snip
 			options.visual = true;
 		}
 
-		const normalised = { trigger, replacement, options, priority, description, excludedEnvironments, triggerKey };
+		const normalised = { trigger, replacement, options, priority, description, excludedEnvironments, triggerKey, triggerAfter };
 
 		if (options.visual) {
 			return new VisualSnippet(normalised);
