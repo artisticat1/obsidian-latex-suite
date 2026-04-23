@@ -14,7 +14,7 @@ export class SnippetChangeSpec {
         this.to = to;
         this.insert = insert;
         this.keyPressed = keyPressed;
-		this.after = after
+		this.after = after;
     }
 
     getTabstops(doc: Text, start: number):TabstopSpec[] {

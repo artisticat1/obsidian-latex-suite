@@ -89,13 +89,9 @@ const runSnippetCursor = (view: EditorView, ctx: Context, snippetInfo: SnippetIn
 		if (isExcluded) { continue; }
 
 		const triggerPos = result.triggerPos;
-		let triggerEndPos;
-		if (result.triggerEndPos !== undefined) {
-			triggerEndPos = result.triggerEndPos;
-		}
-		else {
-			triggerEndPos = to;
-		}
+		const triggerEndPos = result.triggerEndPos
+			? result.triggerEndPos - key.length
+			: to;
 
 		if (snippet.options.onWordBoundary) {
 			// Check that the trigger is preceded and followed by a word delimiter

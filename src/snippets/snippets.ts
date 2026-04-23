@@ -85,7 +85,7 @@ export abstract class Snippet<T extends SnippetType = SnippetType> {
 	get trigger(): SnippetData<T>["trigger"] { return this.data.trigger; }
 	get replacement(): SnippetData<T>["replacement"] { return this.data.replacement; }
 
-	abstract process(effectiveLine: string, range: SelectionRange, sel: string, effectiveLineAfter?: () => string): ProcessSnippetResult;
+	abstract process(effectiveLine: string, range: SelectionRange, sel: string, effectiveLineAfter: () => string): ProcessSnippetResult;
 
 	toString() {
 		return serializeSnippetLike({
@@ -147,7 +147,7 @@ export class RegexSnippet extends Snippet<"regex"> {
 		if (this.data.triggerAfter && afterResult === null) { return null; }
 		const triggerPos = result.index;
 		const triggerEndPos = afterResult
-			? result.index + result[0].length + afterResult[0].length -1
+			? effectiveLine.length + afterResult[0].length
 			: undefined;
 
 		let replacement;
@@ -193,7 +193,7 @@ export class StringSnippet extends Snippet<"string"> {
 
 		const triggerPos = effectiveLine.length - this.trigger.length;
 		const triggerEndPos = this.data.triggerAfter !== undefined
-			? effectiveLine.length + this.data.triggerAfter.length - 1
+			? effectiveLine.length + this.data.triggerAfter.length
 			: undefined;
 		const replacement = typeof this.replacement === "string"
 			? this.replacement

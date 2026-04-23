@@ -147,7 +147,7 @@ function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snip
 		}
 		if (raw.triggerAfter instanceof RegExp) {
 			triggerAfterStr = raw.triggerAfter.source;
-			triggerAfterFlags = `${(raw.triggerAfter as RegExp).flags}${triggerAfterFlags}`;
+			triggerAfterFlags = `${raw.triggerAfter.flags}${triggerAfterFlags}`;
 		} else {
 			triggerAfterStr = raw.triggerAfter;
 		}
@@ -201,7 +201,7 @@ function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snip
 		if (triggerAfter !== undefined && typeof triggerAfter === "string") {
 			triggerAfter = insertSnippetVariables(triggerAfter, snippetVariables);
 		} else if (triggerAfter instanceof RegExp) {
-			throw "triggerAfter cannot be a RegExp for non-regex snippets";
+			throw new Error("triggerAfter cannot be a RegExp for non-regex snippets");
 		}
 
 		// get excluded environment(s) for this trigger, if any
