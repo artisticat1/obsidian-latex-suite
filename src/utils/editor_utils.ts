@@ -12,7 +12,7 @@ export function replaceRange(view: EditorView, start: number, end: number, repla
 export function getCharacterAtPos(viewOrState: EditorView | EditorState, pos: number) {
 	const state = viewOrState instanceof EditorView ? viewOrState.state : viewOrState;
 	const doc = state.doc;
-	return doc.slice(pos, pos+1).toString();
+	return doc.sliceString(pos, pos+1);
 }
 
 

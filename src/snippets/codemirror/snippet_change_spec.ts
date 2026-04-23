@@ -1,4 +1,4 @@
-import { ChangeSpec } from "@codemirror/state"
+import { ChangeSpec, Text } from "@codemirror/state"
 import { TabstopSpec } from "../tabstop";
 import { findMatchingBracket } from "src/utils/editor_utils";
 
@@ -15,10 +15,10 @@ export class SnippetChangeSpec {
         this.keyPressed = keyPressed;
     }
 
-    getTabstops(text: string, start: number):TabstopSpec[] {
+    getTabstops(doc: Text, start: number):TabstopSpec[] {
         const tabstops:TabstopSpec[] = [];
-
-        for (let i = start; i < start + this.insert.length; i++) {
+		const text = doc.sliceString(start, start + this.insert.length);
+        for (let i = 0; i < text.length; i++) {
 
             if (!(text.charAt(i) === "$")) {
                 continue;
@@ -63,7 +63,12 @@ export class SnippetChangeSpec {
             }
     
             // Replace the tabstop indicator "$X" with ""
-            const tabstop = {number: number, from: tabstopStart, to: tabstopEnd, replacement: tabstopReplacement};
+            const tabstop = {
+				number: number,
+				from: tabstopStart + start,
+				to: tabstopEnd + start,
+				replacement: tabstopReplacement,
+			};
             tabstops.push(tabstop);
         }
 
