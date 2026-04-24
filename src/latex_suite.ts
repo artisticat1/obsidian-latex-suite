@@ -29,15 +29,15 @@ export const handleUpdate = (update: ViewUpdate) => {
 		return;
 	}
 
-	const isUserEvent = update.transactions.some((tr) => tr.isUserEvent("input"));
-	if (!isUserEvent) {
-		return;
+	const userEvent = update.transactions.filter((tr) => tr.isUserEvent("input.type"));
+	if (userEvent.length === 0 || !settings.snippetIMEVersion) {
+			return;
 	}
 
 	// HACK: reusing logic from handleKeydown with empty string
 	const success = handleKeydown("", false, update.view.composing, update.view);
 	if (success) {
-		forceEndComposition(update.view);
+		console.log("Handled input event as snippet trigger");
 	}
 
 }
