@@ -14,13 +14,15 @@ import { snippetExtensions } from "./snippets/codemirror/extensions";
 import { concealPlugin } from "./editor_extensions/conceal";
 import { colorPairedBracketsPluginLowestPrec, highlightCursorBracketsPlugin } from "./editor_extensions/highlight_brackets";
 import { cursorTooltipBaseTheme, cursorTooltipField } from "./editor_extensions/math_tooltip";
-import { contextPlugin, mathBoundsPlugin } from "./utils/context";
+import { contextPlugin, getContextPlugin, mathBoundsPlugin } from "./utils/context";
 import { Vim } from "./utils/vim_types";
+import { LatexSuitePluginPublicApi } from "./api";
 
-export default class LatexSuitePlugin extends Plugin {
+export default class LatexSuitePlugin extends Plugin implements LatexSuitePluginPublicApi {
 	settings: LatexSuitePluginSettings;
 	CMSettings: LatexSuiteCMSettings;
 	editorExtensions: Extension[] = [];
+	disableMath = (view: EditorView) => getContextPlugin(view, false).disableMath();
 
 	async onload() {
 		await this.loadSettings();
