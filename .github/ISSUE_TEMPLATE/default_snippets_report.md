@@ -2,10 +2,9 @@
 name: Default snippets request
 about: Suggest a change/addition to the default snippets.
 title: "[SNIPPETS]"
-labels: 
-	- default snippets
-	- enhancement
+labels: enhancement
 ---
+
 # Description of the Problem
 
 <!-- A clear and concise description of what the problem is. For example: "It's annoying when [...]" -->
