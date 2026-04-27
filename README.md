@@ -271,9 +271,18 @@ e.g. "pi" → "\\pi".
 - [Dynamic Highlights](https://github.com/nothingislost/obsidian-dynamic-highlights/blob/master/src/settings/ui.ts) for reference.
 - [Quick Latex for Obsidian](https://github.com/joeyuping/quick_latex_obsidian) for inspiration.
 
+## Related projects
+
+- [VimTex](https://github.com/lervag/vimtex) provides concealments in vim and more quality of life features for using vim in latex.
+- [UltiSnips](https://github.com/SirVer/ultisnips) provides a snippet engine for vim.
+- [LuaSnip](https://github.com/L3MON4D3/LuaSnip) provides a snippet engine for neovim, allowing more customization through declaring snippets in lua.
+- [Hypersnips](https://github.com/Oskar-Idland/hsnips) provides a similar snippet engine to one of UltiSnips in vscode.
+- [Snippetleaf](https://github.com/superle3/snippet-leaf) is a ported version of this plugin to codemirror only (the backend editor of obsidian). Works for editors such as overleaf.
+- [LaTeX Utilities](https://github.com/tecosaur/LaTeX-Utilities) provides a snippet engine for latex only in vscode.
+- [AUCTeX](https://www.gnu.org/software/auctex/) provides extensive quality of life features for latex.
 
 ## Contributing
-Any contributions and PRs are welcome!
+Any contributions and PRs are welcome! [See here for more info.](./CONTRIBUTING.md)
 
 
 ## Support
