@@ -4,6 +4,7 @@ import { renderMath, finishRenderMath, editorLivePreviewField } from "obsidian";
 import { Bounds, Context, getContextPlugin } from "src/utils/context";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
 import { syntaxTree } from "@codemirror/language";
+import { CALLOUTREGEX } from "src/snippets/codemirror/snippet_queue_state_field";
 
 type MathTooltip = {
 	equation: string,
@@ -135,9 +136,19 @@ export function handleMathTooltip(update: ViewUpdate) {
 		if (ctx.mode.blockMath) {
 			// check if every newline is followed by the same amount of > as the line of the opening delimiters
 			// if so hide them. A maximum  of 3 spaces can be at the beginning of the line before its not a block-quote.
-			const blockQuoteCount = update.state.doc.lineAt(eqnBounds.inner_start).text.match(/^ {0,3}(>+)/)?.[1].length;
-			if (blockQuoteCount) {
-				const regex = new RegExp(`^ {0,3}>{${blockQuoteCount}}`, "gm");
+			CALLOUTREGEX.lastIndex = 0;
+			console.log(update.state.doc.lineAt(eqnBounds.inner_start).text.match(CALLOUTREGEX));
+			const isBlockQoute = update.state.doc.lineAt(eqnBounds.inner_start).text.match(CALLOUTREGEX)?.[1];
+			if (isBlockQoute?.length) {
+				const blockQuoteCount = isBlockQoute.split(">").length - 1;
+				const regex =
+					blockQuoteCount === 1
+						? /^ {0,3}>/gm
+						: new RegExp(
+								`^ {0,3}> (?: {0,4}>){${blockQuoteCount - 1}}`,
+								"gm",
+							);
+				console.log(eqnWithDecorations.match(regex), regex, blockQuoteCount);
 				if (regex.test(eqn)) {
 					eqnWithDecorations = eqnWithDecorations.replaceAll(regex, "");
 				}
