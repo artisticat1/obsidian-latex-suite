@@ -246,7 +246,7 @@ function buildAtomicRanges(concealments: Concealment[]) {
 	return builder.finish();
 }
 
-export const concealPlugin = ViewPlugin.fromClass(class {
+export const mkConcealPlugin = (revealTimeout: number) => ViewPlugin.fromClass(class {
 	// Stateful ViewPlugin: you should avoid one in general, but here
 	// the approach based on StateField and updateListener conflicts with
 	// obsidian's internal logic and causes weird rendering.
@@ -263,7 +263,6 @@ export const concealPlugin = ViewPlugin.fromClass(class {
 		this.concealments = [];
 		this.decorations = Decoration.none;
 		this.atomicRanges = RangeSet.empty;
-		const revealTimeout = getLatexSuiteConfig(view).concealRevealTimeout;
 		this.delayEnabled = revealTimeout > 0;
 		this.cached_equations = {};
 		this.concealSpecs = [];
