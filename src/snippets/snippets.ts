@@ -136,7 +136,7 @@ export class RegexSnippet extends Snippet<"regex"> {
 		this.data.triggerAfter = triggerAfter;
 	}
 
-	process(effectiveLine: string, range: SelectionRange, sel: string, effectiveLineAfter: () => string): ProcessSnippetResult {
+	process(effectiveLine: string, _range: SelectionRange, sel: string, effectiveLineAfter: () => string): ProcessSnippetResult {
 		const hasSelection = !!sel;
 		// non-visual snippets only run when there is no selection
 		if (hasSelection) { return null; }
@@ -182,7 +182,7 @@ export class StringSnippet extends Snippet<"string"> {
 		this.data.triggerAfter = triggerAfter;
 	}
 
-	process(effectiveLine: string, range: SelectionRange, sel: string, effectiveLineAfter: () => string): ProcessSnippetResult {
+	process(effectiveLine: string, _range: SelectionRange, sel: string, effectiveLineAfter: () => string): ProcessSnippetResult {
 		const hasSelection = !!sel;
 		// non-visual snippets only run when there is no selection
 		if (hasSelection) { return null; }
@@ -213,7 +213,7 @@ export class StringSnippet extends Snippet<"string"> {
  * @param v
  * @returns
  */
-function replacer(k: string, v: unknown) {
+function replacer(_k: string, v: unknown) {
 	if (typeof v === "function") { return "[[Function]]"; }
 	if (v instanceof RegExp) { return `[[RegExp]]: ${v.toString()}`; }
 	return v;

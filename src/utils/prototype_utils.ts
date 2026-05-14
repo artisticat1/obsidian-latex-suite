@@ -26,10 +26,17 @@ const intersection_impl = <T>(self: Set<T>, other: Set<T>): Set<T> => {
 	return new Set(result);
 };
 
-// @ts-ignore
-const difference_proto: typeof difference_impl = Set.prototype?.difference && ((a,b) => a.difference(b))
-// @ts-ignore
-const intersection_proto: typeof intersection_impl = Set.prototype?.intersection && ((a,b) => a.intersection(b))
+let difference_proto: undefined | (<T>(a: Set<T>, b: Set<T>) => Set<T>);
+let intersection_proto: undefined | (<T>(a: Set<T>, b: Set<T>) => Set<T>);
+if (Set.prototype.difference) {
+	const difference = Set.prototype.difference;
+	// eslint breaks with satisfies somehow so using both satisfies and as such that an error will be thrown if there is an issue.
+	difference_proto = <T>(a: Set<T>, b: Set<T>) => difference.call(a, b) satisfies Set<T> as Set<T>;
+}
+if (Set.prototype.intersection) {
+	const intersection = Set.prototype.intersection;
+	intersection_proto = <T>(a: Set<T>, b: Set<T>) => intersection.call(a, b) satisfies Set<T> as Set<T>;
+}
 
 export const difference = difference_proto || difference_impl;
 export const intersection = intersection_proto || intersection_impl;

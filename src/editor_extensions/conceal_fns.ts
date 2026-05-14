@@ -151,7 +151,7 @@ function concealSupSub(eqn: string, superscript: boolean, symbolMap: {[key: stri
 		const symbolRegexStr = "\\\\(" + escapeRegex(symbolNames.join("|")) + ")";
 		const symbolRegex = new RegExp(symbolRegexStr, "g");
 
-		const replacement = exponent.replace(symbolRegex, (a, b) => {
+		const replacement = exponent.replace(symbolRegex, (_a, b: string) => {
 			return symbolMap[b];
 		});
 
@@ -454,7 +454,7 @@ function concealOperatorname(eqn: string): ConcealSpec[] {
 
 	for (const match of matches) {
 		const value = match[1];
-		const start2 = match.index!;
+		const start2 = match.index;
 		const end2 = start2 + match[0].length;
 
 		specs.push(mkConcealSpec({

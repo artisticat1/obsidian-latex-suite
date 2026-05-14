@@ -37,7 +37,7 @@ export const handleUpdate = (update: ViewUpdate) => {
 	// HACK: reusing logic from handleKeydown with empty string
 	const success = handleKeydown("", false, update.view.composing, update.view);
 	if (success) {
-		console.log("Handled input event as snippet trigger");
+		console.debug("Handled input event as snippet trigger");
 	}
 
 }
@@ -75,7 +75,7 @@ export const keyboardEventPlugin = ViewPlugin.fromClass(class {
 
 })
 
-export const onInput = (view: EditorView, from: number, to: number, text: string): boolean => {
+export const onInput = (view: EditorView, _from: number, _to: number, text: string): boolean => {
 	const snippetIMEVersion = getLatexSuiteConfig(view).snippetIMEVersion;
 	if (snippetIMEVersion) {
 		return false;

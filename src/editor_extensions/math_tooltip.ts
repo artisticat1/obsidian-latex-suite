@@ -4,6 +4,7 @@ import { renderMath, finishRenderMath, editorLivePreviewField } from "obsidian";
 import { Bounds, Context, getContextPlugin } from "src/utils/context";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
 import { syntaxTree } from "@codemirror/language";
+import { createElement } from "./obsidian_utils";
 
 type MathTooltip = {
 	equation: string,
@@ -128,7 +129,7 @@ export function handleMathTooltip(update: ViewUpdate) {
 
 	const above = settings.mathPreviewPositionIsAbove;
 	const create = () => {
-		const dom = document.createElement("div");
+		const dom = createElement("div")
 		dom.addClass("cm-tooltip-cursor");
 		dom.addClass(above ? "cm-tooltip-above" : "cm-tooltip-below");
 		// there is a plugin that can hide > in block math mode in the output.
@@ -151,7 +152,7 @@ export function handleMathTooltip(update: ViewUpdate) {
 			highlight?.addClass("latex-suite-math-preview-highlight");
 			highlight?.style.removeProperty("background-color");
 			dom.appendChild(renderedEqn);
-			finishRenderMath();
+			void finishRenderMath();
 		} catch (e) {
 			console.error("Error rendering math in tooltip:", e);
 			dom.textContent = eqn
