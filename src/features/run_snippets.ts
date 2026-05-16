@@ -7,8 +7,8 @@ import { expandSnippets } from "src/snippets/snippet_management";
 import { Context, getContextPlugin } from "src/utils/context";
 import { autoEnlargeBrackets } from "./auto_enlarge_brackets";
 import { snippetDebugLevel } from "src/settings/settings";
-import { Notice } from "obsidian";
 import { Snippet, SnippetType } from "src/snippets/snippets";
+import { showSnippetInfo } from "src/editor_extensions/obsidian_utils";
 
 type SnippetInfo = {
 	snippets: Snippet<SnippetType>[];
@@ -18,7 +18,6 @@ type RunSnippetsOptions = {
 	recursive: number;
 	debug: snippetDebugLevel;
 }
-let lastNotice: Notice | null = null;
 export const runSnippets = (view: EditorView, snippetInfo: SnippetInfo, options: RunSnippetsOptions):boolean => {
 	let didExpand = false;
 	for (let i=0; i <= options.recursive; i++) {
@@ -112,22 +111,7 @@ const runSnippetCursor = (view: EditorView, ctx: Context, snippetInfo: SnippetIn
 
 		const containsTrigger = settings.autoEnlargeBracketsTriggers.some(word => replacement.contains(word));
 		if (debug === "info" || debug === "verbose") {
-			const trigger = snippet.trigger.toString()
-			const triggerKey = snippet.triggerKey ? `<li>Trigger key: ${new Option(snippet.triggerKey).innerHTML}\n</li>` : "";
-			const description = snippet.description;
-			const message = "Latex Suite: <br><ul>" +
-				`<li>Description: ${new Option(description).innerHTML}\n</li>` +
-				`<li>Parsed trigger: <code>${new Option(trigger).innerHTML}</code>\n</li>`+
-				triggerKey + 
-				`<li>Replacement: <code>${new Option(replacement).innerHTML}</code>\n</li>` +
-				`<li>Auto-enlarge brackets: ${containsTrigger}\n</li>` +
-				"</ul>";
-			const fragment = new DocumentFragment();
-			const div = fragment.createDiv()
-			div.innerHTML = message;
-			lastNotice?.hide();
-			lastNotice = new Notice(fragment, 5000);
-			console.info(div.textContent)
+			showSnippetInfo(snippet, replacement, containsTrigger);
 		}
 		if (debug === "verbose") {
 			console.debug({
@@ -185,7 +169,7 @@ const isOnWordBoundary = (state: EditorState, triggerPos: number, to: number, wo
 	return (wordDelimiters.contains(prevChar) && wordDelimiters.contains(nextChar));
 }
 
-const trimWhitespace = (replacement: string, ctx: Context) => {
+const trimWhitespace = (replacement: string, _ctx: Context) => {
 	let spaceIndex = 0;
 
 	if (replacement.endsWith(" ")) {

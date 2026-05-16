@@ -3,7 +3,7 @@ import { EditorView } from "@codemirror/view";
 import { replaceRange, setCursor, setSelection } from "../utils/editor_utils";
 import LatexSuitePlugin from "src/main";
 import { getContextPlugin } from "src/utils/context";
-import { CodeMirrorEditor, Vim } from "src/utils/vim_types";
+import { CodeMirrorEditor } from "src/types/vim_types";
 import { LatexSuitePluginSettings } from "src/settings/settings";
 import { newlineMatrixShortcut} from "./matrix_shortcuts";
 import { insertNewlineAndIndent } from "@codemirror/commands";
@@ -37,7 +37,6 @@ function getBoxEquationCommand() {
 		name: "Box current equation",
 		editorCheckCallback: (checking: boolean, editor: Editor) => {
 
-			// @ts-ignore
 			const view = editor.cm;
 			const ctx = getContextPlugin(view);
 			const withinEquation = ctx.mode.inMath();
@@ -60,7 +59,6 @@ function getSelectEquationCommand() {
 		name: "Select current equation",
 		editorCheckCallback: (checking: boolean, editor: Editor) => {
 
-			// @ts-ignore
 			const view = editor.cm;
 			const ctx = getContextPlugin(view);
 			const withinEquation = ctx.mode.inMath();
@@ -182,8 +180,7 @@ export function getVimSelectModeCommand(settings: LatexSuitePluginSettings): vim
 		type: "action",
 		// copies current selection and selects it again since changing vim modes deletes the selection
 		action: (cm: CodeMirrorEditor) => {
-			//@ts-ignore undocumented object
-			const vimObject: Vim | null = window?.CodeMirrorAdapter?.Vim;
+			const vimObject = window?.CodeMirrorAdapter?.Vim;
 			if (!vimObject) return;
 			const selection: EditorSelection[] = cm.listSelections();
 			vimObject.enterInsertMode(cm);
@@ -203,8 +200,7 @@ export function getVimVisualModeCommand(settings: LatexSuitePluginSettings): vim
 		action: (cm: CodeMirrorEditor) => {
 			if (!cm.somethingSelected()) return;
 			const selection: EditorSelection[] = cm.listSelections();
-			//@ts-ignore undocumented object
-			const vimObject: Vim | null = window?.CodeMirrorAdapter?.Vim;
+			const vimObject = window?.CodeMirrorAdapter?.Vim;
 			if (!vimObject) return;
 			vimObject.exitInsertMode(cm);
 			cm.setSelections(selection);
@@ -220,8 +216,7 @@ export function getVimRunMatrixEnterCommand(settings: LatexSuitePluginSettings):
 		defineType: "defineAction",
 		type: "action",
 		action: (cm: CodeMirrorEditor) => {
-			//@ts-ignore
-			const vimObj: Vim | null = window?.CodeMirrorAdapter?.Vim;
+			const vimObj = window?.CodeMirrorAdapter?.Vim;
 			if (!vimObj) return;
 			const cursorLine: number = cm.getCursor().line;
 			const line: string = cm.getLine(cursorLine);

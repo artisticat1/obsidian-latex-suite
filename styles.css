@@ -102,6 +102,10 @@
     visibility: visible;
 }
 
+.snippets-editor-validity-text.setting-item-description {
+	padding: 0;
+}
+
 .snippets-editor-buttons {
     display: flex;
     flex-direction: row;

@@ -4,8 +4,8 @@ import { ViewUpdate, Decoration, DecorationSet, WidgetType, ViewPlugin, EditorVi
 import { EditorSelection, Range, RangeSet, RangeSetBuilder, RangeValue, Transaction } from "@codemirror/state";
 import { conceal, ConcealCachedEquations } from "./conceal_fns";
 import { debounce, livePreviewState } from "obsidian";
-import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
 import { tempKeyPress } from "src/snippets/snippet_management";
+import { createElement } from "./obsidian_utils";
 
 export type Replacement = {
 	start: number,
@@ -52,7 +52,7 @@ class ConcealWidget extends WidgetType {
 	}
 
 	toDOM() {
-		const span = document.createElement(this.elementType);
+		const span = createElement(this.elementType);
 		span.className = "cm-math " + this.className;
 		span.textContent = this.symbol;
 		return span;
@@ -74,7 +74,7 @@ class TextWidget extends WidgetType {
 	}
 
 	toDOM() {
-		const span = document.createElement("span");
+		const span = createElement("span");
 		span.className = "cm-math";
 		span.textContent = this.symbol;
 		return span;
@@ -262,7 +262,7 @@ export const mkConcealPlugin = (revealTimeout: number) => ViewPlugin.fromClass(c
 	constructor(view: EditorView) {
 		this.concealments = [];
 		this.decorations = Decoration.none;
-		this.atomicRanges = RangeSet.empty;
+		this.atomicRanges = RangeSet.empty as RangeSet<RangeValue>;
 		this.delayEnabled = revealTimeout > 0;
 		this.cached_equations = {};
 		this.concealSpecs = [];

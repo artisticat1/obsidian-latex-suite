@@ -2,6 +2,7 @@ import { ChangeDesc, EditorSelection, SelectionRange } from "@codemirror/state";
 import { Decoration, DecorationSet, EditorView, WidgetType } from "@codemirror/view";
 import { resetCursorBlink } from "src/utils/editor_utils";
 import { endSnippet } from "./codemirror/history";
+import { createElement } from "src/editor_extensions/obsidian_utils";
 
 const LATEX_SUITE_TABSTOP_DECO_CLASS = "latex-suite-snippet-placeholder";
 
@@ -42,7 +43,7 @@ export class TabstopGroup {
             selection: toSelect,
             effects: isEndSnippet ? endSnippet.of(null) : undefined
         })
-        resetCursorBlink();
+        resetCursorBlink(view);
 
         this.hideFromEditor();
     }
@@ -153,7 +154,7 @@ export function getEditorSelectionEndpoints(sel: EditorSelection) {
 
 const FieldMarker = Decoration.widget({widget: new class extends WidgetType {
 		toDOM() {
-			const span = document.createElement("span");
+			const span = createElement("span");
 			span.className = "cm-snippetFieldPosition";
 			return span
 		}

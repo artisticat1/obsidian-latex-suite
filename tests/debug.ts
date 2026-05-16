@@ -166,8 +166,8 @@ $$
 \\text{2nd Math section (inline or block)}
 $$
 `
-	console.log(view)
 	const isLivePreview = view.state.field(editorLivePreviewField);
+	// @ts-expect-error
 	const mdView = app.workspace.getActiveViewOfType(MarkdownView);
 	if (mdView && !isLivePreview) {
 		//@ts-ignore

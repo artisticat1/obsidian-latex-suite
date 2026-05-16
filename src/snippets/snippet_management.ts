@@ -153,7 +153,7 @@ export function setSelectionToNextTabstop(view: EditorView, shiftKey: boolean): 
 		view.dispatch({
 			selection: nextGrpSel,
 		});
-		resetCursorBlink();
+		resetCursorBlink(view);
 
 		return true;
 	}

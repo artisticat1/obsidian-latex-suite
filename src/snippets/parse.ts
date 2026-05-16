@@ -26,13 +26,13 @@ async function importRaw(module: string, identifier: string): Promise<unknown> {
 		data = await importModule("export default " + module, identifier);
 		} catch (e) {
 			console.error(e)
-			throw "Invalid format";
+			throw new Error("Invalid format");
 		}
 	}
 	if ("default" in data) {
 		return data.default;
 	} else {
-		throw "No default export found";
+		throw new Error("No default export found");
 	}
 }
 
@@ -40,18 +40,18 @@ export async function parseSnippetVariables(snippetVariablesStr: string, identif
 	const rawSnippetVariables = await importRaw(snippetVariablesStr, identifier) as SnippetVariables;
 
 	if (Array.isArray(rawSnippetVariables))
-		throw "Cannot parse an array as a variables object";
+		throw new Error("Cannot parse an array as a variables object");
 
 	const snippetVariables: SnippetVariables = {};
 	for (const [variable, value] of Object.entries(rawSnippetVariables)) {
 		if (variable.startsWith("${")) {
 			if (!variable.endsWith("}")) {
-				throw `Invalid snippet variable name '${variable}': Starts with '\${' but does not end with '}'. You need to have both or neither.`;
+				throw new Error(`Invalid snippet variable name '${variable}': Starts with '\${' but does not end with '}'. You need to have both or neither.`);
 			}
 			snippetVariables[variable] = value;
 		} else {
 			if (variable.endsWith("}")) {
-				throw `Invalid snippet variable name '${variable}': Ends with '}' but does not start with '\${'. You need to have both or neither.`;
+				throw new Error(`Invalid snippet variable name '${variable}': Ends with '}' but does not start with '\${'. You need to have both or neither.`);
 			}
 			snippetVariables["${" + variable + "}"] = value;
 		}
@@ -73,11 +73,11 @@ export async function parseSnippets(snippetsStr: string, snippetVariables: Snipp
 				return parseSnippet(raw, snippetVariables);
 			} catch (e) {
 				// provide context of which snippet errored
-				throw `${e}\nErroring snippet:\n${serializeSnippetLike(raw)}`;
+				throw new Error(`${e}\nErroring snippet:\n${serializeSnippetLike(raw)}`);
 			}
 		});
 	} catch(e) {
-		throw `Invalid snippet format: ${e}`;
+		throw new Error(`Invalid snippet format: ${e}`);
 	}
 
 	parsedSnippets = sortSnippets(parsedSnippets);
@@ -106,12 +106,12 @@ type RawSnippet = Output<typeof RawSnippetSchema>;
  * @throws if the value does not adhere to the raw snippet array schema
  */
 function validateRawSnippets(snippets: unknown): RawSnippet[] {
-	if (!Array.isArray(snippets)) { throw "Expected snippets to be an array"; }
+	if (!Array.isArray(snippets)) { throw new Error("Expected snippets to be an array"); }
 	return snippets.flat().map((raw) => {
 		try {
 			return parse(RawSnippetSchema, raw);
 		} catch {
-			throw `Value does not resemble snippet.\nErroring snippet:\n${serializeSnippetLike(raw)}`;
+			throw new Error(`Value does not resemble snippet.\nErroring snippet:\n${serializeSnippetLike(raw)}`);
 		}
 	})
 }
@@ -253,7 +253,7 @@ function insertSnippetVariables(trigger: string, variables: SnippetVariables) {
 
 function getExcludedEnvironments(trigger: string): Environment[] {
 	const result = [];
-	if (EXCLUSIONS.hasOwnProperty(trigger)) {
+	if (trigger in EXCLUSIONS) {
 		result.push(...EXCLUSIONS[trigger]);
 	}
 	return result;

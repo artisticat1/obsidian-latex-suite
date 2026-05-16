@@ -21,7 +21,7 @@ export function setCursor(view: EditorView, pos: number) {
 		selection: {anchor: pos, head: pos}
 	});
 
-	resetCursorBlink();
+	resetCursorBlink(view);
 }
 
 
@@ -30,14 +30,14 @@ export function setSelection(view: EditorView, start: number, end: number) {
 		selection: {anchor: start, head: end}
 	});
 
-	resetCursorBlink();
+	resetCursorBlink(view);
 }
 
 
-export function resetCursorBlink() {
+export function resetCursorBlink(view: EditorView) {
 	if (Platform.isMobile) return;
 
-	const cursorLayer = document.getElementsByClassName("cm-cursorLayer")[0] as HTMLElement;
+	const cursorLayer = view.contentDOM.getElementsByClassName("cm-cursorLayer")[0] as HTMLElement;
 
 	if (cursorLayer) {
 		const curAnim = cursorLayer.style.animationName;

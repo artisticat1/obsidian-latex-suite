@@ -130,7 +130,6 @@ function highlightCursorBrackets(view: EditorView) {
 	outer_loop: for (const range of ranges) {
 		const bounds = ctx.getBounds(range.to);
 		if (!bounds) {
-			console.log("No bounds found for position", range.to);
 			continue;
 		}
 		const eqn = view.state.doc.sliceString(

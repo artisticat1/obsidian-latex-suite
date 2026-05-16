@@ -6,36 +6,37 @@ import { StringStream } from "@codemirror/language";
 import { EditorView, ViewUpdate } from "@codemirror/view";
 import { SearchQuery } from "@codemirror/search";
 
-type VimState = {
-    onPasteFn?: any;
+type unknownFunction = (...args: unknown[]) => unknown;
+declare class VimState {
+    onPasteFn?: unknown;
     sel: { head: Pos$1; anchor: Pos$1 };
     insertModeReturn: boolean;
     visualBlock: boolean;
     marks: { [mark: string]: Marker$1 };
     visualMode: boolean;
     insertMode: boolean;
-    pasteFn: any;
-    lastSelection: any;
-    searchState_: any;
+    pasteFn: unknown;
+    lastSelection: unknown;
+    searchState_: unknown;
     lastEditActionCommand: actionCommand | void;
-    lastPastedText: any;
-    lastMotion: any;
+    lastPastedText: unknown;
+    lastMotion: unknown;
     options: { [optionName: string]: vimOption };
     lastEditInputState: InputStateInterface | void;
     inputState: InputStateInterface;
     visualLine: boolean;
-    insertModeRepeat: any;
+    insertModeRepeat: unknown;
     lastHSPos: number;
     lastHPos: number;
     wasInVisualBlock?: boolean;
-    insert?: any;
+    insert?: unknown;
     insertEnd?: Marker$1;
     status: string;
     exMode?: boolean;
-    mode?: any;
+    mode?: unknown;
     expectLiteralNext?: boolean;
-    constructor(): void;
-};
+}
+
 type Marker$1 = ReturnType<CodeMirror["setBookmark"]>;
 type Pos$1 = { line: number; ch: number; sticky?: string };
 interface CM5RangeInterface {
@@ -53,7 +54,7 @@ type OperatorArgs = {
     toLower?: boolean;
     shouldMoveCursor?: boolean;
     selectedCharacter?: string;
-    lastSel?: any;
+    lastSel?: unknown;
     keepCursor?: boolean;
 };
 
@@ -99,7 +100,7 @@ type MotionArgsPartial = {
 
 type MotionArgs = MotionArgsPartial & { repeat: number };
 
-type optionCallback = (value?: string | undefined, cm?: CodeMirror) => any;
+type optionCallback = (value?: string, cm?: CodeMirror) => unknown;
 type vimOption = {
     type?: string;
     defaultValue?: unknown;
@@ -126,27 +127,20 @@ type actionCommand = allCommands & {
 
 interface InputStateInterface {
     prefixRepeat: string[];
-    motionRepeat: any[];
-    operator: any | undefined | null;
+    motionRepeat: unknown[];
+    operator: unknown;
     operatorArgs: OperatorArgs | undefined | null;
     motion: string | undefined | null;
     motionArgs: MotionArgs | null;
-    keyBuffer: any[];
+    keyBuffer: unknown[];
     registerName?: string;
-    changeQueue: any;
+    changeQueue: unknown;
     operatorShortcut?: string;
     selectedCharacter?: string;
     repeatOverride?: number;
-    changeQueueList?: any[];
+    changeQueueList?: unknown[];
     pushRepeatDigit(n: string): void;
     getRepeat(): number;
-}
-
-declare global {
-    function isNaN(v: any): v is Exclude<typeof v, number>;
-    interface String {
-        trimStart(): string;
-    }
 }
 
 declare class Pos {
@@ -155,17 +149,18 @@ declare class Pos {
     sticky?: string;
     constructor(line: number, ch: number);
 }
-declare function on(emitter: any, type: string, f: Function): void;
-declare function off(emitter: any, type: string, f: Function): void;
-declare function signal(emitter: any, type: string, ...args: any[]): void;
+
+type on = (emitter: unknown, type: string, f: unknownFunction) => void;
+type off = (emitter: unknown, type: string, f: unknownFunction) => void;
+type signal = (emitter: unknown, type: string, ...args: unknown[]) => void;
 interface Operation {
     $d: number;
     isVimOp?: boolean;
-    cursorActivityHandlers?: Function[];
+    cursorActivityHandlers?: unknownFunction[];
     cursorActivity?: boolean;
-    lastChange?: any;
-    change?: any;
-    changeHandlers?: Function[];
+    lastChange?: unknown;
+    change?: unknown;
+    changeHandlers?: unknownFunction[];
     $changeStart?: number;
 }
 declare class CodeMirror {
@@ -178,34 +173,34 @@ declare class CodeMirror {
         undo: (cm: CodeMirror) => void;
         newlineAndIndent: (cm: CodeMirror) => void;
         indentAuto: (cm: CodeMirror) => void;
-        newlineAndIndentContinueComment: any;
-        save: any;
+        newlineAndIndentContinueComment: unknown;
+        save: unknown;
     };
     static isWordChar: (ch: string) => boolean;
-    static keys: any;
-    static addClass: (el: any, str: any) => void;
-    static rmClass: (el: any, str: any) => void;
+    static keys: unknown;
+    static addClass: (el: unknown, str: unknown) => void;
+    static rmClass: (el: unknown, str: unknown) => void;
     static e_preventDefault: (e: Event) => void;
     static e_stop: (e: Event) => void;
-    static lookupKey: (key: string, map: string, handle: Function) => void;
-    static on: typeof on;
-    static off: typeof off;
-    static signal: typeof signal;
+    static lookupKey: (key: string, map: string, handle: unknownFunction) => void;
+    static on: on;
+    static off: off;
+    static signal: signal;
     openDialog(
         template: Element,
-        callback: Function,
-        options: any
-    ): (newVal?: string | undefined) => void;
+        callback: unknownFunction,
+        options: unknown
+    ): (newVal?: string) => void;
     openNotification(template: Node, options: NotificationOptions): () => void;
-    static findMatchingTag: typeof findMatchingTag;
-    static findEnclosingTag: typeof findEnclosingTag;
+    static findMatchingTag: findMatchingTag;
+    static findEnclosingTag: findEnclosingTag;
     cm6: EditorView;
     state: {
         statusbar?: Element | null;
         dialog?: Element | null;
-        vimPlugin?: any;
+        vimPlugin?: unknown;
         vim?: VimState | null;
-        currentNotificationClose?: Function | null;
+        currentNotificationClose?: unknownFunction | null;
         keyMap?: string;
         overwrite?: boolean;
         textwidth?: number;
@@ -213,12 +208,12 @@ declare class CodeMirror {
     marks: Record<string, Marker>;
     $mid: number;
     curOp: Operation | null | undefined;
-    options: any;
-    _handlers: any;
+    options: unknown;
+    _handlers: unknown;
     constructor(cm6: EditorView);
-    on(type: string, f: Function): void;
-    off(type: string, f: Function): void;
-    signal(type: string, e: any, handlers?: any): void;
+    on(type: string, f: unknownFunction): void;
+    off(type: string, f: unknownFunction): void;
+    signal(type: string, e: unknown, handlers?: unknown): void;
     indexFromPos(pos: Pos): number;
     posFromIndex(offset: number): Pos;
     foldCode(pos: Pos): void;
@@ -233,13 +228,13 @@ declare class CodeMirror {
         head: Pos;
     }[];
     setSelections(p: CM5RangeInterface[], primIndex?: number): void;
-    setSelection(anchor: Pos, head: Pos, options?: any): void;
+    setSelection(anchor: Pos, head: Pos, options?: unknown): void;
     getLine(row: number): string;
     getLineHandle(row: number): {
         row: number;
         index: number;
     };
-    getLineNumber(handle: any): number | null;
+    getLineNumber(handle: unknown): number | null;
     releaseLineHandles(): void;
     getRange(s: Pos, e: Pos): string;
     replaceRange(text: string, s: Pos, e?: Pos, source?: string): void;
@@ -257,7 +252,7 @@ declare class CodeMirror {
     defaultTextHeight(): number;
     findMatchingBracket(
         pos: Pos,
-        _options?: any
+        _options?: unknown
     ):
         | {
               to: Pos;
@@ -268,8 +263,8 @@ declare class CodeMirror {
     scanForBracket(
         pos: Pos,
         dir: 1 | -1,
-        style: any,
-        config: any
+        style: unknown,
+        config: unknown
     ):
         | false
         | {
@@ -289,7 +284,7 @@ declare class CodeMirror {
     ): Marker;
     cm6Query?: SearchQuery;
     addOverlay({ query }: { query: RegExp }): SearchQuery | undefined;
-    removeOverlay(overlay?: any): void;
+    removeOverlay(overlay?: unknown): void;
     getSearchCursor(
         query: RegExp,
         pos: Pos
@@ -346,10 +341,10 @@ declare class CodeMirror {
     $lineHandleChanges: undefined | ViewUpdate[];
     onChange(update: ViewUpdate): void;
     onSelectionChange(): void;
-    operation(fn: Function, force?: boolean): any;
+    operation(fn: unknownFunction, force?: boolean): unknown;
     onBeforeEndOperation(): void;
     moveH(increment: number, unit: string): void;
-    setOption(name: string, val: any): void;
+    setOption(name: string, val: unknown): void;
     getOption(name: "firstLineNumber" | "tabSize"): number;
     getOption(name: string): number | boolean | string | undefined;
     toggleOverwrite(on: boolean): void;
@@ -359,11 +354,11 @@ declare class CodeMirror {
     isInMultiSelectMode(): boolean;
     virtualSelectionMode(): boolean;
     virtualSelection: Mutable<EditorSelection> | null;
-    forEachSelection(command: Function): void;
-    hardWrap(options: any): number;
-    showMatchesOnScrollbar?: Function;
-    save?: Function;
-    static keyName?: Function;
+    forEachSelection(command: unknownFunction): void;
+    hardWrap(options: unknown): number;
+    showMatchesOnScrollbar?: unknownFunction;
+    save?: unknownFunction;
+    static keyName?: unknownFunction;
 }
 declare type Mutable<Type> = {
     -readonly [Key in keyof Type]: Type[Key];
@@ -372,11 +367,11 @@ interface NotificationOptions {
     bottom?: boolean;
     duration?: number;
 }
-declare function findMatchingTag(cm: CodeMirror, pos: Pos): undefined;
-declare function findEnclosingTag(
+type findMatchingTag = (cm: CodeMirror, pos: Pos) => undefined;
+type findEnclosingTag = (
     cm: CodeMirror,
     pos: Pos
-):
+) =>
     | {
           open: {
               from: Pos;
@@ -399,42 +394,42 @@ declare class Marker {
     update(change: ChangeDesc): void;
 }
 declare interface Vim {
-    defineEx(name: string, prefix: string, func: Function): void;
-    defineMotion(name: string, fn: Function): void;
-    defineOperator(name: string, fn: Function): void;
-    defineAction(name: string, fn: Function): void;
+    defineEx(name: string, prefix: string, func: unknownFunction): void;
+    defineMotion(name: string, fn: unknownFunction): void;
+    defineOperator(name: string, fn: unknownFunction): void;
+    defineAction(name: string, fn: unknownFunction): void;
     defineOption(
         name: string,
-        defaultValue: any,
+        defaultValue: unknown,
         type: string,
         aliases?: string[],
-        callback?: Function
+        callback?: unknownFunction
     ): void;
-    defineRegister(name: string, register: any): void;
+    defineRegister(name: string, register: unknown): void;
     enterInsertMode(cm: CodeMirror): void;
     enterVimMode(cm: CodeMirror): void;
     exitInsertMode(cm: CodeMirror, keepCursor?: boolean): void;
     exitVisualMode(cm: CodeMirror, moveHead?: boolean): void;
     findKey(cm: CodeMirror, key: string, origin?: string): boolean;
-    getOption(name: string, cm: CodeMirror, cfg?: any): any;
-    getRegisterController(): any;
-    getVimGlobalState_(): any;
+    getOption(name: string, cm: CodeMirror, cfg?: unknown): unknown;
+    getRegisterController(): unknown;
+    getVimGlobalState_(): unknown;
     handleEx(cm: CodeMirror, input: string): void;
     handleKey(cm: CodeMirror, key: string, origin?: string): boolean;
     langmap(langmapString: string, remapCtrl: boolean): void;
     leaveVimMode(cm: CodeMirror): void;
     map(lhs: string, rhs: string, ctx?: { buffer?: boolean }): void;
-    mapCommand(keys: string, type: string, name: string, args?: any, extra?: any): void;
+    mapCommand(keys: string, type: string, name: string, args?: unknown, extra?: unknown): void;
     mapclear(ctx?: { buffer?: boolean }): void;
     maybeInitVimState_(cm: CodeMirror): VimState;
     multiSelectHandleKey(cm: CodeMirror, key: string, origin?: string): boolean;
     noremap(lhs: string, rhs: string, ctx?: { buffer?: boolean }): void;
     resetVimGlobalState_(): void;
-    setOption(name: string, value: any, cm: CodeMirror, cfg?: object): void;
+    setOption(name: string, value: unknown, cm: CodeMirror, cfg?: object): void;
     suppressErrorLogging: boolean;
     unmap(lhs: string, ctx: string): void;
-    vimKeyFromEvent(event: KeyboardEvent, vim: any): string;
-    _mapCommand(command: any): void;
+    vimKeyFromEvent(event: KeyboardEvent, vim: unknown): string;
+    _mapCommand(command: unknown): void;
 }
 
 export { Vim, CodeMirror as CodeMirrorEditor, VimState };

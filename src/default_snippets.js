@@ -2,7 +2,7 @@ export default [
     // Math mode
 	{trigger: "mk", replacement: "$$0$", options: "tA"},
     {trigger: "dm", replacement: "$$\n\t$0\n$$", options: "tAw"},
-	{trigger: /(?<=\S.*)dm/, replacement: "\n$$\n\t$0\n$$", options: "tAw", priority: 1},
+	{trigger: /(\S.*)dm/, replacement: "[[0]]\n$$\n\t$0\n$$", options: "tAw", priority: 1},
 
 	{trigger: /([^\\])beg/, replacement: "[[0]]\\begin{$0}\n\t$1\n\\end{$0}", options: "MA"},
 	{trigger: /([^\\])beg/, replacement: "[[0]]\\begin{$0} $1 \\end{$0}", options: "nA"},
@@ -366,12 +366,12 @@ export default [
 		return output;
 	}, options: "mA", description: "N x N identity matrix"},
 	{
-		trigger: /(?<=(?:\n|^)[ \t]*>*)(?<marker>\d+[.)]|[-*+])(?<whitespace>[ \t]+)(?<text>.*)dm/,
+		trigger: /(?<positive_lookbehind>(?:\n|^)[ \t]*>*)(?<marker>\d+[.)]|[-*+])(?<whitespace>[ \t]+)(?<text>.*)dm/,
 		replacement: (m) => {
-			const { whitespace, text, marker } = m.groups;
+			const { positive_lookbehind, whitespace, text, marker } = m.groups;
 			const firstLine = marker + whitespace + text;
 			const indent = " ".repeat(marker.length) + whitespace;
-			return `${firstLine}\n${indent}$$\n${indent}\t$0\n${indent}$$`;
+			return `${positive_lookbehind}${firstLine}\n${indent}$$\n${indent}\t$0\n${indent}$$`;
 		},
 		options: "rtA",
 		priority: 2,
