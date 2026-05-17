@@ -22,7 +22,13 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 	settings: LatexSuitePluginSettings;
 	CMSettings: LatexSuiteCMSettings;
 	editorExtensions: Extension[] = [];
-	disableMath = (view: EditorView) => getContextPlugin(view, false).disableMath();
+	disableMath = (view: EditorView) => {
+		try {
+			getContextPlugin(view, false).disableMath();
+		} catch (e) {
+			console.error("Error occurred while disabling math:", e);
+		}
+	};
 
 	async onload() {
 		await this.loadSettings();
