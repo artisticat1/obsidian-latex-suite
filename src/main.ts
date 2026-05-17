@@ -14,13 +14,21 @@ import { snippetExtensions } from "./snippets/codemirror/extensions";
 import { mkConcealPlugin } from "./editor_extensions/conceal";
 import { colorPairedBracketsPluginLowestPrec, highlightCursorBracketsPlugin } from "./editor_extensions/highlight_brackets";
 import { cursorTooltipBaseTheme, cursorTooltipField } from "./editor_extensions/math_tooltip";
-import { contextPlugin, mathBoundsPlugin } from "./utils/context";
+import { contextPlugin, getContextPlugin, mathBoundsPlugin } from "./utils/context";
+import { LatexSuitePluginPublicApi } from "./api";
 import * as v from "valibot"
 
-export default class LatexSuitePlugin extends Plugin {
+export default class LatexSuitePlugin extends Plugin implements LatexSuitePluginPublicApi {
 	settings: LatexSuitePluginSettings;
 	CMSettings: LatexSuiteCMSettings;
 	editorExtensions: Extension[] = [];
+	disableMath = (view: EditorView) => {
+		try {
+			getContextPlugin(view, false).disableMath();
+		} catch (e) {
+			console.error("Error occurred while disabling math:", e);
+		}
+	};
 
 	async onload() {
 		await this.loadSettings();

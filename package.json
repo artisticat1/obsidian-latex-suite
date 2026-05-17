@@ -3,6 +3,12 @@
 	"version": "1.11.5",
 	"description": "Make typesetting LaTeX math as fast as handwriting through snippets, text expansion, and editor enhancements",
 	"main": "main.js",
+	"types": "src/api.d.ts",
+	"exports": {
+		".": {
+			"types": "./src/api.d.ts"
+		}
+	},
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
