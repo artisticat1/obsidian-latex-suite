@@ -246,6 +246,15 @@ function buildAtomicRanges(concealments: Concealment[]) {
 	return builder.finish();
 }
 
+const updateSelection = debounce((view: EditorView) => {
+	const ranges = view.state.selection.ranges.map(r => {
+		return EditorSelection.range(r.from, r.to, r.assoc);
+	});
+	view.dispatch({
+		selection: EditorSelection.create(ranges),
+	});
+}, 50);
+
 export const mkConcealPlugin = (revealTimeout: number) => ViewPlugin.fromClass(class {
 	// Stateful ViewPlugin: you should avoid one in general, but here
 	// the approach based on StateField and updateListener conflicts with
@@ -257,6 +266,7 @@ export const mkConcealPlugin = (revealTimeout: number) => ViewPlugin.fromClass(c
 	cached_equations: ConcealCachedEquations;
 	concealSpecs: ConcealSpec[];
 	delayedReveal;
+	mousedown: boolean = false;
 
 
 	constructor(view: EditorView) {
@@ -274,6 +284,7 @@ export const mkConcealPlugin = (revealTimeout: number) => ViewPlugin.fromClass(c
 		// HACK: trigger an initial concealment calculation
 		const transactions: readonly Transaction[] = [];
 		this.update({view, state: view.state, docChanged: true, transactions} as ViewUpdate);
+		this.mousedown = view.plugin(livePreviewState)?.mousedown ?? false;
 	}
 
 	delayedRevealCallback = (delayedConcealments: Concealment[], view: EditorView) => {
@@ -314,12 +325,14 @@ export const mkConcealPlugin = (revealTimeout: number) => ViewPlugin.fromClass(c
 	private updateFromConcealSpecs(concealSpecs: ConcealSpec[], update: ViewUpdate) {
 
 		const selection = update.state.selection;
-		const mousedown = update.view.plugin(livePreviewState)?.mousedown ?? false;
+		const previousMouseDown = this.mousedown
+		this.mousedown = update.view.plugin(livePreviewState)?.mousedown ?? false;
 
 		// Collect concealments from the new conceal specs
 		const concealments: Concealment[] = [];
 		// concealments that should be revealed after a delay (i.e. 'delay' action)
 		const delayedConcealments: Concealment[] = [];
+		let revealed = false
 
 		for (const spec of concealSpecs) {
 			const cursorPosType = determineCursorPosType(selection, spec);
@@ -328,8 +341,9 @@ export const mkConcealPlugin = (revealTimeout: number) => ViewPlugin.fromClass(c
 			);
 
 			const concealAction = determineAction(
-				oldConcealment?.cursorPosType, cursorPosType, mousedown, this.delayEnabled
+				oldConcealment?.cursorPosType, cursorPosType, this.mousedown, this.delayEnabled
 			);
+			revealed = revealed || concealAction === "reveal";
 
 			const concealment: Concealment = {
 				spec,
@@ -343,6 +357,10 @@ export const mkConcealPlugin = (revealTimeout: number) => ViewPlugin.fromClass(c
 
 			concealments.push(concealment);
 		}
+		// if it changes from mousedown to mouseup in livepreview, shuffle the selection to update the selection visually
+		if (revealed && previousMouseDown && !this.mousedown && update.view.state.selection.ranges.some(r => !r.empty)) {
+			updateSelection(update.view);	
+		}		
 
 		if (delayedConcealments.length > 0) {
 			this.delayedReveal(delayedConcealments, update.view);
