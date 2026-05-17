@@ -102,4 +102,4 @@ const mathFonts = [
 	"Bbb",
 ] as const;
 
-export const mathFontsEnvsRaw = `[${mathFonts.map(env => `\n\t["${env}", "}"]`)}\n]`;
+export const mathFontsEnvsRaw = `[${mathFonts.map(env => `\n\t["${env}", "}"]`).join("")}\n]`;

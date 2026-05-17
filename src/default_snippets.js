@@ -2,7 +2,7 @@ export default [
     // Math mode
 	{trigger: "mk", replacement: "$$0$", options: "tA"},
     {trigger: "dm", replacement: "$$\n\t$0\n$$", options: "tAw"},
-	{trigger: /(?<=\S.*)dm/, replacement: "\n$$\n\t$0\n$$", options: "tAw", priority: 1},
+	{trigger: /(\S.*)dm/, replacement: "[[0]]\n$$\n\t$0\n$$", options: "tAw", priority: 1},
 
 	{trigger: /([^\\])beg/, replacement: "[[0]]\\begin{$0}\n\t$1\n\\end{$0}", options: "MA"},
 	{trigger: /([^\\])beg/, replacement: "[[0]]\\begin{$0} $1 \\end{$0}", options: "nA"},
@@ -209,7 +209,22 @@ export default [
 	{trigger: "([^\\\\])(${SYMBOL})", replacement: "[[0]]\\[[1]]", options: "rmA", description: "Add backslash before symbols"},
 
     // Insert space after Greek letters and symbols
-	{trigger: "\\\\(${GREEK}|${SYMBOL}|${MORE_SYMBOLS})([A-Za-z])", replacement: "\\[[0]] [[1]]", options: "rmA"},
+	{
+		trigger: "\\\\(${GREEK}|${SYMBOL}|${MORE_SYMBOLS})([A-Za-z])",
+		replacement: function (match) {
+			const [string, trigger, letter] = match;
+			const new_trigger = new RegExp(this.trigger.source.replace("([A-Za-z])", "")); 
+			// Dont insert space when the current symbol is part of another symbol
+			if (new_trigger.test(string)) {
+				return string;
+			} else {
+				return "\\" + trigger + " " + letter;
+			}
+		},
+		options: "rmA",
+		priority: 2
+	},
+
 	{trigger: "\\\\(${GREEK}|${SYMBOL}) sr", replacement: "\\[[0]]^{2}", options: "rmA"},
 	{trigger: "\\\\(${GREEK}|${SYMBOL}) cb", replacement: "\\[[0]]^{3}", options: "rmA"},
 	{trigger: "\\\\(${GREEK}|${SYMBOL}) rd", replacement: "\\[[0]]^{$0}$1", options: "rmA"},
@@ -344,6 +359,29 @@ export default [
     // {trigger: /([A-Za-z]=\d+)([\n\s.,?!:'])/, replacement: "$[[0]]$[[1]]", options: "rtAw"},
     // {trigger: /([A-Za-z]=[A-Za-z][+-]\d+)([\n\s.,?!:'])/, replacement: "$[[0]]$[[1]]", options: "tAw"},
 
+	// Disable automatic snippets while typing macros
+	// This is a catch all rule that may disable other snippets in some cases.
+	// Increase the priority of the snippets that shouldn't be disabled.
+	// {trigger: /\\[A-Za-z]+/, replacement: "$0", options: "mAU", priority: 1, description: "Disable snippets while typing macros"},
+	// Less aggressive version of the above
+	{
+		trigger: /\\([A-Za-z]+)(?:${GREEK}|${SYMBOL}|${MORE_SYMBOLS}){0}/,
+		replacement: function (match) {
+			/** @type {string} */
+			const [string, trigger, letter] = match;
+			const test_string = this.trigger.source.replace("\\\\([A-Za-z]+)", "");
+			// Check if we are partways of a trigger
+			const new_trigger = new RegExp(`\\b${trigger}`); 
+			if (new_trigger.test(test_string)) {
+				return string;
+			} else {
+				return false
+			}
+		},
+		options: "mAU",
+		priority: 3,
+		description: "Disable snippets while typing macros",
+	},
 
     // Snippet replacements can have placeholders.
 	{trigger: "tayl", replacement: "${0:f}(${1:x} + ${2:h}) = ${0:f}(${1:x}) + ${0:f}'(${1:x})${2:h} + ${0:f}''(${1:x}) \\frac{${2:h}^{2}}{2!} + \\dots$3", options: "mA", description: "Taylor expansion"},
@@ -366,15 +404,20 @@ export default [
 		return output;
 	}, options: "mA", description: "N x N identity matrix"},
 	{
-		trigger: /(?<=(?:\n|^)[ \t]*>*)(?<marker>\d+[.)]|[-*+])(?<whitespace>[ \t]+)(?<text>.*)dm/,
+		trigger: /(?<positive_lookbehind>(?:\n|^)[ \t]*>*)(?<marker>\d+[.)]|[-*+])(?<whitespace>[ \t]+)(?<text>.*)dm/,
 		replacement: (m) => {
-			const { whitespace, text, marker } = m.groups;
+			const { positive_lookbehind, whitespace, text, marker } = m.groups;
 			const firstLine = marker + whitespace + text;
 			const indent = " ".repeat(marker.length) + whitespace;
-			return `${firstLine}\n${indent}$$\n${indent}\t$0\n${indent}$$`;
+			return `${positive_lookbehind}${firstLine}\n${indent}$$\n${indent}\t$0\n${indent}$$`;
 		},
 		options: "rtA",
 		priority: 2,
 		description: "Display math when in a list"
 	},
 ]
+
+const GREEK= "(?:alpha|beta|gamma|Gamma|delta|Delta|epsilon|varepsilon|zeta|eta|theta|vartheta|Theta|iota|kappa|lambda|Lambda|mu|nu|xi|omicron|pi|rho|varrho|sigma|Sigma|tau|upsilon|Upsilon|phi|varphi|Phi|chi|psi|omega|Omega)"
+const SYMBOL= "(?:parallel|perp|partial|nabla|hbar|ell|infty|oplus|ominus|otimes|oslash|square|star|dagger|vee|wedge|subseteq|subset|supseteq|supset|emptyset|exists|nexists|forall|implies|impliedby|iff|setminus|neg|lor|land|bigcup|bigcap|cdot|times|simeq|approx)"
+const MORE_SYMBOLS= "(?:leq|geq|neq|gg|ll|equiv|sim|propto|rightarrow|leftarrow|Rightarrow|Leftarrow|leftrightarrow|to|mapsto|cap|cup|in|sum|prod|exp|ln|log|det|dots|vdots|ddots|pm|mp|int|iint|iiint|oint)"
+const ACCENT= "(?:dot|ddot|hat|bar|tilde|vec|underline|overline|mathbf|mathcal|mathrm|mathbb)"

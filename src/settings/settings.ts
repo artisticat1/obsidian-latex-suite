@@ -2,13 +2,14 @@ import { Snippet } from "../snippets/snippets";
 import { Environment } from "../snippets/environment";
 import { DEFAULT_SNIPPETS } from "src/utils/default_snippets";
 import { DEFAULT_SNIPPET_VARIABLES } from "src/utils/default_snippet_variables";
+import * as v from "valibot"
 
 export type snippetDebugLevel = "off" | "info" | "verbose";
 
 type CMKeyMap = string;
 type VimKeyMap = string;
 
-interface LatexSuiteBasicSettings {
+export interface LatexSuiteBasicSettings {
 	snippetsEnabled: boolean;
 	suppressSnippetTriggerOnIME: boolean;
 	suppressIMEWarning: boolean;
@@ -54,7 +55,7 @@ export interface LatexSuiteCMKeymapSettings {
 /**
  * Settings that require further processing (e.g. conversion to an array) before being used.
  */
-interface LatexSuiteRawSettings {
+export interface LatexSuiteRawSettings {
 	autofractionExcludedEnvs: string;
 	matrixShortcutsEnvNames: string;
 	taboutClosingSymbols: string;
@@ -126,6 +127,13 @@ export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
 	snippetIMEVersion: false,
 }
 
+const EnvironmentSchema = v.pipe(
+	v.string(),
+	v.parseJson(),
+	v.array(v.looseTuple([v.string(), v.string()], "Every item needs to be an array with 2 items"), "Needs to be an array [item1,item2]"),
+	v.mapItems(([openSymbol, closeSymbol]) => ({ openSymbol, closeSymbol })),
+);
+
 export function processLatexSuiteSettings(snippets: Snippet[], settings: LatexSuitePluginSettings):LatexSuiteCMSettings {
 
 	function strToArray(str: string) {
@@ -133,13 +141,10 @@ export function processLatexSuiteSettings(snippets: Snippet[], settings: LatexSu
 	}
 
 	function getAutofractionExcludedEnvs(envsStr: string) {
-		let envs = [];
+		let envs: Environment[] = [];
 
 		try {
-			const envsJSON = JSON.parse(envsStr);
-			envs = envsJSON.map(function(env: string[]) {
-				return {openSymbol: env[0], closeSymbol: env[1]};
-			});
+			envs = v.parse(EnvironmentSchema, envsStr);
 		}
 		catch (e) {
 			console.error(e);

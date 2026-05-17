@@ -197,6 +197,7 @@ Snippets can be edited in the plugin settings. The structure of a snippet is as 
 - `v` : [Visual](./DOCS.md#visual-snippets). Only run this snippet on a selection. The trigger should be a single character
 - `w` : Word boundary. Only run this snippet when the trigger is preceded (and followed by) a word delimiter, such as `.`, `,`, or `-`.
 - `c` : Code mode. Only run this snippet inside a ```` ``` ... ``` ```` block
+- `U`: Skip undo. When an automatic snippet expands, pressing undo returns to the state before the trigger key was typed, instead of first removing the snippet and reinserting that key.
 
 Insert **tabstops** for the cursor to jump to by writing "$0", "$1", etc. in the `replacement`.
 
@@ -271,9 +272,18 @@ e.g. "pi" → "\\pi".
 - [Dynamic Highlights](https://github.com/nothingislost/obsidian-dynamic-highlights/blob/master/src/settings/ui.ts) for reference.
 - [Quick Latex for Obsidian](https://github.com/joeyuping/quick_latex_obsidian) for inspiration.
 
+## Related projects
+
+- [VimTex](https://github.com/lervag/vimtex) provides concealments in vim and more quality of life features for using vim in latex.
+- [UltiSnips](https://github.com/SirVer/ultisnips) provides a snippet engine for vim.
+- [LuaSnip](https://github.com/L3MON4D3/LuaSnip) provides a snippet engine for neovim, allowing more customization through declaring snippets in lua.
+- [Hypersnips](https://github.com/Oskar-Idland/hsnips) provides a similar snippet engine to one of UltiSnips in vscode.
+- [Snippetleaf](https://github.com/superle3/snippet-leaf) is a ported version of this plugin to codemirror only (the backend editor of obsidian). Works for editors such as overleaf.
+- [LaTeX Utilities](https://github.com/tecosaur/LaTeX-Utilities) provides a snippet engine for latex only in vscode.
+- [AUCTeX](https://www.gnu.org/software/auctex/) provides extensive quality of life features for latex.
 
 ## Contributing
-Any contributions and PRs are welcome!
+Any contributions and PRs are welcome! [See here for more info.](./CONTRIBUTING.md)
 
 
 ## Support

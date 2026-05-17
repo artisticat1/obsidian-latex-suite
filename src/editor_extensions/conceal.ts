@@ -4,8 +4,8 @@ import { ViewUpdate, Decoration, DecorationSet, WidgetType, ViewPlugin, EditorVi
 import { EditorSelection, Range, RangeSet, RangeSetBuilder, RangeValue, Transaction } from "@codemirror/state";
 import { conceal, ConcealCachedEquations } from "./conceal_fns";
 import { debounce, livePreviewState } from "obsidian";
-import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
 import { tempKeyPress } from "src/snippets/snippet_management";
+import { createElement } from "./obsidian_utils";
 
 export type Replacement = {
 	start: number,
@@ -52,7 +52,7 @@ class ConcealWidget extends WidgetType {
 	}
 
 	toDOM() {
-		const span = document.createElement(this.elementType);
+		const span = createElement(this.elementType);
 		span.className = "cm-math " + this.className;
 		span.textContent = this.symbol;
 		return span;
@@ -74,7 +74,7 @@ class TextWidget extends WidgetType {
 	}
 
 	toDOM() {
-		const span = document.createElement("span");
+		const span = createElement("span");
 		span.className = "cm-math";
 		span.textContent = this.symbol;
 		return span;
@@ -246,7 +246,16 @@ function buildAtomicRanges(concealments: Concealment[]) {
 	return builder.finish();
 }
 
-export const concealPlugin = ViewPlugin.fromClass(class {
+const updateSelection = debounce((view: EditorView) => {
+	const ranges = view.state.selection.ranges.map(r => {
+		return EditorSelection.range(r.from, r.to, r.assoc);
+	});
+	view.dispatch({
+		selection: EditorSelection.create(ranges),
+	});
+}, 50);
+
+export const mkConcealPlugin = (revealTimeout: number) => ViewPlugin.fromClass(class {
 	// Stateful ViewPlugin: you should avoid one in general, but here
 	// the approach based on StateField and updateListener conflicts with
 	// obsidian's internal logic and causes weird rendering.
@@ -257,13 +266,13 @@ export const concealPlugin = ViewPlugin.fromClass(class {
 	cached_equations: ConcealCachedEquations;
 	concealSpecs: ConcealSpec[];
 	delayedReveal;
+	mousedown: boolean = false;
 
 
 	constructor(view: EditorView) {
 		this.concealments = [];
 		this.decorations = Decoration.none;
-		this.atomicRanges = RangeSet.empty;
-		const revealTimeout = getLatexSuiteConfig(view).concealRevealTimeout;
+		this.atomicRanges = RangeSet.empty as RangeSet<RangeValue>;
 		this.delayEnabled = revealTimeout > 0;
 		this.cached_equations = {};
 		this.concealSpecs = [];
@@ -275,6 +284,7 @@ export const concealPlugin = ViewPlugin.fromClass(class {
 		// HACK: trigger an initial concealment calculation
 		const transactions: readonly Transaction[] = [];
 		this.update({view, state: view.state, docChanged: true, transactions} as ViewUpdate);
+		this.mousedown = view.plugin(livePreviewState)?.mousedown ?? false;
 	}
 
 	delayedRevealCallback = (delayedConcealments: Concealment[], view: EditorView) => {
@@ -315,12 +325,14 @@ export const concealPlugin = ViewPlugin.fromClass(class {
 	private updateFromConcealSpecs(concealSpecs: ConcealSpec[], update: ViewUpdate) {
 
 		const selection = update.state.selection;
-		const mousedown = update.view.plugin(livePreviewState)?.mousedown ?? false;
+		const previousMouseDown = this.mousedown
+		this.mousedown = update.view.plugin(livePreviewState)?.mousedown ?? false;
 
 		// Collect concealments from the new conceal specs
 		const concealments: Concealment[] = [];
 		// concealments that should be revealed after a delay (i.e. 'delay' action)
 		const delayedConcealments: Concealment[] = [];
+		let revealed = false
 
 		for (const spec of concealSpecs) {
 			const cursorPosType = determineCursorPosType(selection, spec);
@@ -329,8 +341,9 @@ export const concealPlugin = ViewPlugin.fromClass(class {
 			);
 
 			const concealAction = determineAction(
-				oldConcealment?.cursorPosType, cursorPosType, mousedown, this.delayEnabled
+				oldConcealment?.cursorPosType, cursorPosType, this.mousedown, this.delayEnabled
 			);
+			revealed = revealed || concealAction === "reveal";
 
 			const concealment: Concealment = {
 				spec,
@@ -344,6 +357,10 @@ export const concealPlugin = ViewPlugin.fromClass(class {
 
 			concealments.push(concealment);
 		}
+		// if it changes from mousedown to mouseup in livepreview, shuffle the selection to update the selection visually
+		if (revealed && previousMouseDown && !this.mousedown && update.view.state.selection.ranges.some(r => !r.empty)) {
+			updateSelection(update.view);	
+		}		
 
 		if (delayedConcealments.length > 0) {
 			this.delayedReveal(delayedConcealments, update.view);

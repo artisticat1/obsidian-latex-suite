@@ -11,6 +11,7 @@ function importModule(source: string, identifier: string): Promise<object> {
 	const sourceWithSourceURL = `${source}\n//# sourceURL=latex-suite:${identifier}`;
 	const blob = new Blob([sourceWithSourceURL], { type: "text/javascript" });
 	const url = URL.createObjectURL(blob);
+	// eslint-disable-next-line no-unsanitized/method
 	const result = import(url);
 	URL.revokeObjectURL(url);
 	return result;
@@ -26,13 +27,13 @@ async function importRaw(module: string, identifier: string): Promise<unknown> {
 		data = await importModule("export default " + module, identifier);
 		} catch (e) {
 			console.error(e)
-			throw "Invalid format";
+			throw new Error("Invalid format");
 		}
 	}
 	if ("default" in data) {
 		return data.default;
 	} else {
-		throw "No default export found";
+		throw new Error("No default export found");
 	}
 }
 
@@ -40,18 +41,18 @@ export async function parseSnippetVariables(snippetVariablesStr: string, identif
 	const rawSnippetVariables = await importRaw(snippetVariablesStr, identifier) as SnippetVariables;
 
 	if (Array.isArray(rawSnippetVariables))
-		throw "Cannot parse an array as a variables object";
+		throw new Error("Cannot parse an array as a variables object");
 
 	const snippetVariables: SnippetVariables = {};
 	for (const [variable, value] of Object.entries(rawSnippetVariables)) {
 		if (variable.startsWith("${")) {
 			if (!variable.endsWith("}")) {
-				throw `Invalid snippet variable name '${variable}': Starts with '\${' but does not end with '}'. You need to have both or neither.`;
+				throw new Error(`Invalid snippet variable name '${variable}': Starts with '\${' but does not end with '}'. You need to have both or neither.`);
 			}
 			snippetVariables[variable] = value;
 		} else {
 			if (variable.endsWith("}")) {
-				throw `Invalid snippet variable name '${variable}': Ends with '}' but does not start with '\${'. You need to have both or neither.`;
+				throw new Error(`Invalid snippet variable name '${variable}': Ends with '}' but does not start with '\${'. You need to have both or neither.`);
 			}
 			snippetVariables["${" + variable + "}"] = value;
 		}
@@ -73,11 +74,11 @@ export async function parseSnippets(snippetsStr: string, snippetVariables: Snipp
 				return parseSnippet(raw, snippetVariables);
 			} catch (e) {
 				// provide context of which snippet errored
-				throw `${e}\nErroring snippet:\n${serializeSnippetLike(raw)}`;
+				throw new Error(`${e}\nErroring snippet:\n${serializeSnippetLike(raw)}`);
 			}
 		});
 	} catch(e) {
-		throw `Invalid snippet format: ${e}`;
+		throw new Error(`Invalid snippet format: ${e}`);
 	}
 
 	parsedSnippets = sortSnippets(parsedSnippets);
@@ -89,6 +90,7 @@ export async function parseSnippets(snippetsStr: string, snippetVariables: Snipp
 
 const RawSnippetSchema = object({
 	trigger: union([string_(), instance(RegExp)]),
+	triggerAfter: optional(union([string_(), instance(RegExp)])),
 	replacement: union([string_(), custom<AnyFunction>(x => typeof x === "function")]),
 	options: string_(),
 	flags: optional(string_(), ""),
@@ -105,12 +107,12 @@ type RawSnippet = Output<typeof RawSnippetSchema>;
  * @throws if the value does not adhere to the raw snippet array schema
  */
 function validateRawSnippets(snippets: unknown): RawSnippet[] {
-	if (!Array.isArray(snippets)) { throw "Expected snippets to be an array"; }
+	if (!Array.isArray(snippets)) { throw new Error("Expected snippets to be an array"); }
 	return snippets.flat().map((raw) => {
 		try {
 			return parse(RawSnippetSchema, raw);
 		} catch {
-			throw `Value does not resemble snippet.\nErroring snippet:\n${serializeSnippetLike(raw)}`;
+			throw new Error(`Value does not resemble snippet.\nErroring snippet:\n${serializeSnippetLike(raw)}`);
 		}
 	})
 }
@@ -131,8 +133,10 @@ function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snip
 	// we have a regex snippet
 	if (options.regex || raw.trigger instanceof RegExp) {
 		let triggerStr: string;
+		let triggerAfterStr: string | undefined;
 		// normalize flags to a string
 		let flags = raw.flags;
+		let triggerAfterFlags = flags;
 
 		// extract trigger string from trigger,
 		// and merge flags, if trigger is a regexp already
@@ -142,11 +146,19 @@ function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snip
 		} else {
 			triggerStr = raw.trigger;
 		}
+		if (raw.triggerAfter instanceof RegExp) {
+			triggerAfterStr = raw.triggerAfter.source;
+			triggerAfterFlags = `${raw.triggerAfter.flags}${triggerAfterFlags}`;
+		} else {
+			triggerAfterStr = raw.triggerAfter;
+		}
 		// filter out invalid flags
 		flags = filterFlags(flags);
+		triggerAfterFlags = filterFlags(triggerAfterFlags);
 
 		// substitute snippet variables
 		triggerStr = insertSnippetVariables(triggerStr, snippetVariables);
+		triggerAfterStr = triggerAfterStr && insertSnippetVariables(triggerAfterStr, snippetVariables);
 
 		// get excluded environment(s) for this trigger, if any
 		excludedEnvironments = getExcludedEnvironments(triggerStr);
@@ -156,23 +168,42 @@ function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snip
 		triggerStr = `(?:${triggerStr})$`;
 
 		// allow inheritance/ fake/custom RegExp such as pcre2 regex (regex++ package).
-		const RegExpConstructor =
+		const TriggerRegExpConstructor =
 			typeof raw.trigger === "string"
 				? RegExp
 				: (raw.trigger.constructor as typeof RegExp);
+		const AfterTriggerRegExpConstructor =
+			typeof raw.triggerAfter === "string" || raw.triggerAfter === undefined
+				? RegExp
+				: (raw.triggerAfter.constructor as typeof RegExp);
 
 		// convert trigger into RegExp instance
-		const trigger = new RegExpConstructor(triggerStr, flags);
+		const trigger = new TriggerRegExpConstructor(triggerStr, flags);
+		// Add ^ to triggerAfter so it matches the start of the string
+		triggerAfterStr = triggerAfterStr ? `^(?:${triggerAfterStr})` : undefined;
+		const triggerAfter = triggerAfterStr
+			? new AfterTriggerRegExpConstructor(
+					triggerAfterStr,
+					triggerAfterFlags,
+				)
+			: undefined;
 
 		options.regex = true;
 
-		const normalised = { trigger, replacement, options, priority, description, excludedEnvironments, triggerKey };
+		const normalised = { trigger, replacement, options, priority, description, excludedEnvironments, triggerKey, triggerAfter };
 
 		return new RegexSnippet(normalised);
 	}
 	else {
 		// substitute snippet variables
 		const trigger = insertSnippetVariables(raw.trigger, snippetVariables);
+
+		let triggerAfter = raw.triggerAfter;
+		if (triggerAfter !== undefined && typeof triggerAfter === "string") {
+			triggerAfter = insertSnippetVariables(triggerAfter, snippetVariables);
+		} else if (triggerAfter instanceof RegExp) {
+			throw new Error("triggerAfter cannot be a RegExp for non-regex snippets");
+		}
 
 		// get excluded environment(s) for this trigger, if any
 		excludedEnvironments = getExcludedEnvironments(trigger);
@@ -182,7 +213,7 @@ function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snip
 			options.visual = true;
 		}
 
-		const normalised = { trigger, replacement, options, priority, description, excludedEnvironments, triggerKey };
+		const normalised = { trigger, replacement, options, priority, description, excludedEnvironments, triggerKey, triggerAfter };
 
 		if (options.visual) {
 			return new VisualSnippet(normalised);
@@ -223,7 +254,7 @@ function insertSnippetVariables(trigger: string, variables: SnippetVariables) {
 
 function getExcludedEnvironments(trigger: string): Environment[] {
 	const result = [];
-	if (EXCLUSIONS.hasOwnProperty(trigger)) {
+	if (trigger in EXCLUSIONS) {
 		result.push(...EXCLUSIONS[trigger]);
 	}
 	return result;

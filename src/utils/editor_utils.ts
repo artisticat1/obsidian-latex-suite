@@ -12,7 +12,7 @@ export function replaceRange(view: EditorView, start: number, end: number, repla
 export function getCharacterAtPos(viewOrState: EditorView | EditorState, pos: number) {
 	const state = viewOrState instanceof EditorView ? viewOrState.state : viewOrState;
 	const doc = state.doc;
-	return doc.slice(pos, pos+1).toString();
+	return doc.sliceString(pos, pos+1);
 }
 
 
@@ -21,7 +21,7 @@ export function setCursor(view: EditorView, pos: number) {
 		selection: {anchor: pos, head: pos}
 	});
 
-	resetCursorBlink();
+	resetCursorBlink(view);
 }
 
 
@@ -30,14 +30,14 @@ export function setSelection(view: EditorView, start: number, end: number) {
 		selection: {anchor: start, head: end}
 	});
 
-	resetCursorBlink();
+	resetCursorBlink(view);
 }
 
 
-export function resetCursorBlink() {
+export function resetCursorBlink(view: EditorView) {
 	if (Platform.isMobile) return;
 
-	const cursorLayer = document.getElementsByClassName("cm-cursorLayer")[0] as HTMLElement;
+	const cursorLayer = view.contentDOM.getElementsByClassName("cm-cursorLayer")[0] as HTMLElement;
 
 	if (cursorLayer) {
 		const curAnim = cursorLayer.style.animationName;
@@ -137,12 +137,13 @@ export function isComposing(view: EditorView, event: KeyboardEvent): boolean {
 	// view.composing and event.isComposing are false for the first keydown event of an IME composition,
 	// so we need to check for event.keyCode === 229 to prevent IME from triggering keydown events.
 	// Note that keyCode is deprecated - it is used here because it is apparently the only way to detect the first keydown event of an IME composition.
+	// eslint-disable-next-line @typescript-eslint/no-deprecated
 	return view.composing || event.keyCode === 229;
 }
 
 /**
+ * @license
  * Force end an IME composition.
- *
  * MIT License
  * Copyright (C) 2018-2021 by Marijn Haverbeke <marijnh@gmail.com> and others
  */

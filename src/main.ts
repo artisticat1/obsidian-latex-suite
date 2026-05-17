@@ -1,7 +1,7 @@
 import { Extension, Prec } from "@codemirror/state";
 import { Plugin, Notice, loadMathJax, addIcon } from "obsidian";
 import { onFileCreate, onFileChange, onFileDelete, getSnippetsFromFiles, getFileSets, getVariablesFromFiles, tryGetVariablesFromUnknownFiles } from "./settings/file_watch";
-import { LatexSuitePluginSettings, DEFAULT_SETTINGS, LatexSuiteCMSettings, processLatexSuiteSettings } from "./settings/settings";
+import { LatexSuitePluginSettings, DEFAULT_SETTINGS, LatexSuiteCMSettings, processLatexSuiteSettings, LatexSuiteBasicSettings, LatexSuiteRawSettings } from "./settings/settings";
 import { isIMESupported, LatexSuiteSettingTab } from "./settings/settings_tab";
 import { ICONS } from "./settings/ui/icons";
 
@@ -11,12 +11,12 @@ import { SnippetVariables, parseSnippetVariables, parseSnippets } from "./snippe
 import { handleUpdate, onInput, keyboardEventPlugin, getKeymaps } from "./latex_suite";
 import { EditorView, keymap, tooltips } from "@codemirror/view";
 import { snippetExtensions } from "./snippets/codemirror/extensions";
-import { concealPlugin } from "./editor_extensions/conceal";
+import { mkConcealPlugin } from "./editor_extensions/conceal";
 import { colorPairedBracketsPluginLowestPrec, highlightCursorBracketsPlugin } from "./editor_extensions/highlight_brackets";
 import { cursorTooltipBaseTheme, cursorTooltipField } from "./editor_extensions/math_tooltip";
 import { contextPlugin, getContextPlugin, mathBoundsPlugin } from "./utils/context";
-import { Vim } from "./utils/vim_types";
 import { LatexSuitePluginPublicApi } from "./api";
+import * as v from "valibot"
 
 export default class LatexSuitePlugin extends Plugin implements LatexSuitePluginPublicApi {
 	settings: LatexSuitePluginSettings;
@@ -35,7 +35,7 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 
 		this.loadIcons();
 		this.addSettingTab(new LatexSuiteSettingTab(this.app, this));
-		loadMathJax();
+		await loadMathJax();
 
 		this.legacyEditorWarning();
 		this.IMEEditorWarning();
@@ -52,8 +52,9 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 	onunload() {}
 
 	legacyEditorWarning() {
-		// @ts-ignore
-		if (this.app.vault.config?.legacyEditor) {
+		// legacy editor existed till 1.5.0
+		type TempOldAppVault = { config?: { legacyEditor: boolean } };
+		if ((this.app.vault as TempOldAppVault).config?.legacyEditor) {
 			const message = "Latex Suite: This plugin does not support the legacy editor. Switch to Live Preview mode to use this plugin.";
 
 			new Notice(message, 100000);
@@ -72,33 +73,34 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 			message.createEl("code", { text: "Advanced settings > Suppress IME warning" });
 			message.appendText(".");
 			new Notice(message, 10000);
-			console.info(message);
+			console.warn(message);
 		}
 	}
 
 	async loadSettings() {
-		let data = await this.loadData();
+
+		let data = v.parse(v.record(v.string(), v.any()), await this.loadData());
 
 		// Migrate settings from v1.8.0 - v1.8.4
 		const shouldMigrateSettings = data ? "basicSettings" in data : false;
 
 		// @ts-ignore
-		function migrateSettings(oldSettings) {
+		function migrateSettings(oldSettings: unknown): Partial<LatexSuitePluginSettings> {
+			const settings = oldSettings as {basicSettings: LatexSuiteBasicSettings, rawSettings: LatexSuiteRawSettings} & {snippets: string};
 			return {
-				...oldSettings.basicSettings,
-				...oldSettings.rawSettings,
-				snippets: oldSettings.snippets,
+				...settings.basicSettings,
+				...settings.rawSettings,
+				snippets: settings.snippets,
 			};
 		}
 
 		if (shouldMigrateSettings) {
 			data = migrateSettings(data);
 		}
-
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, data);
+		this.settings = {...DEFAULT_SETTINGS, ...(data as Partial<LatexSuitePluginSettings>)}
 
 		if (shouldMigrateSettings) {
-			this.saveSettings();
+			await this.saveSettings();
 		}
 
 		if (this.settings.loadSnippetsFromFile || this.settings.loadSnippetVariablesFromFile) {
@@ -109,7 +111,7 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 
 			// Use onLayoutReady so that we don't try to read the snippets file too early
 			this.app.workspace.onLayoutReady(() => {
-				this.processSettings();
+				void this.processSettings();
 			});
 		}
 		else {
@@ -119,7 +121,7 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 
 	async saveSettings(didFileLocationChange = false) {
 		await this.saveData(this.settings);
-		this.processSettings(didFileLocationChange);
+		await this.processSettings(didFileLocationChange);
 	}
 
 	async getSettingsSnippetVariables() {
@@ -199,7 +201,7 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 
 		// Optional extensions
 		if (this.CMSettings.concealEnabled) {
-			this.editorExtensions.push(concealPlugin);
+			this.editorExtensions.push(mkConcealPlugin(this.settings.concealRevealTimeout));
 		}
 		if (this.CMSettings.colorPairedBracketsEnabled)
 			this.editorExtensions.push(colorPairedBracketsPluginLowestPrec);
@@ -235,11 +237,9 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 		}
 		vimcommand:  {
 			//check if vim is enabled and accessible
-			//@ts-ignore
-			if (!app?.isVimEnabled()) break vimcommand;
+			if (!this.app.isVimEnabled?.()) break vimcommand;
 			if (!this.settings.vimEnabled) break vimcommand;
-			//@ts-ignore undocumented object
-			const vimObject: Vim | null = window?.CodeMirrorAdapter?.Vim;
+			const vimObject = window?.CodeMirrorAdapter?.Vim;
 			if (!vimObject) break vimcommand;
 			for (const command of getVimEditorCommands(this.settings)) {
 				vimObject[command.defineType](command.id, command.action);

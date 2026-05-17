@@ -24,6 +24,9 @@ export const runAutoFraction = (view: EditorView, ctx: Context): boolean => {
 }
 
 
+const greek = "alpha|beta|gamma|Gamma|delta|Delta|epsilon|varepsilon|zeta|eta|theta|Theta|iota|kappa|lambda|Lambda|mu|nu|omicron|xi|Xi|pi|Pi|rho|sigma|Sigma|tau|upsilon|Upsilon|varphi|phi|Phi|chi|psi|Psi|omega|Omega";
+const regex = new RegExp("(" + greek + ") ([^ ])", "g");
+
 export const runAutoFractionCursor = (view: EditorView, ctx: Context, range: SelectionRange):boolean => {
 
 	const settings = getLatexSuiteConfig(view);
@@ -42,7 +45,7 @@ export const runAutoFractionCursor = (view: EditorView, ctx: Context, range: Sel
 	const eqnStart = result.inner_start;
 
 
-	let curLine = view.state.sliceDoc(0, to);
+	let curLine = view.state.sliceDoc(eqnStart, to);
 	let start = eqnStart;
 
 	if (from != to) {
@@ -57,13 +60,11 @@ export const runAutoFractionCursor = (view: EditorView, ctx: Context, range: Sel
 
 		// Also, allow spaces after greek letters
 		// By replacing spaces after greek letters with a dummy character (#)
-
-		const greek = "alpha|beta|gamma|Gamma|delta|Delta|epsilon|varepsilon|zeta|eta|theta|Theta|iota|kappa|lambda|Lambda|mu|nu|omicron|xi|Xi|pi|Pi|rho|sigma|Sigma|tau|upsilon|Upsilon|varphi|phi|Phi|chi|psi|Psi|omega|Omega";
-		const regex = new RegExp("(" + greek + ") ([^ ])", "g");
+		regex.lastIndex = 0;
 		curLine = curLine.replace(regex, "$1#$2");
 
 
-		for (let i = curLine.length - 1; i >= eqnStart; i--) {
+		for (let i = curLine.length - 1; i >= 0; i--) {
 			const curChar = curLine.charAt(i)
 
 			if ([")", "]", "}"].contains(curChar)) {
@@ -76,17 +77,11 @@ export const runAutoFractionCursor = (view: EditorView, ctx: Context, range: Sel
 
 				// Skip to the beginnning of the bracket
 				i = j;
-
-				if (i < eqnStart) {
-					start = eqnStart;
-					break;
-				}
-
 			}
 
 
 			if (" $([{\n".concat(settings.autofractionBreakingChars).contains(curChar)) {
-				start = i+1;
+				start = i + 1 + eqnStart;
 				break;
 			}
 		}
