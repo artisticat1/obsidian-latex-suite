@@ -214,6 +214,7 @@ export default [
 		replacement: function (match) {
 			const [string, trigger, letter] = match;
 			const new_trigger = new RegExp(this.trigger.source.replace("([A-Za-z])", "")); 
+			// Dont insert space when the current symbol is part of another symbol
 			if (new_trigger.test(string)) {
 				return string;
 			} else {
