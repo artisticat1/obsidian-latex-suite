@@ -137,12 +137,13 @@ export function isComposing(view: EditorView, event: KeyboardEvent): boolean {
 	// view.composing and event.isComposing are false for the first keydown event of an IME composition,
 	// so we need to check for event.keyCode === 229 to prevent IME from triggering keydown events.
 	// Note that keyCode is deprecated - it is used here because it is apparently the only way to detect the first keydown event of an IME composition.
+	// eslint-disable-next-line @typescript-eslint/no-deprecated
 	return view.composing || event.keyCode === 229;
 }
 
 /**
+ * @license
  * Force end an IME composition.
- *
  * MIT License
  * Copyright (C) 2018-2021 by Marijn Haverbeke <marijnh@gmail.com> and others
  */

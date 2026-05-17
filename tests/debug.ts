@@ -1,7 +1,7 @@
 import { snippet } from "@codemirror/autocomplete";
 import { Prec } from "@codemirror/state";
 import { EditorView, keymap } from "@codemirror/view";
-import { Bounds, getContextPlugin, getMathBoundsPlugin } from "./context";
+import { Bounds, getContextPlugin, getMathBoundsPlugin } from "src/utils/context"
 import { editorLivePreviewField, MarkdownView } from "obsidian";
 /*
 check math environments in markdown of hypermd syntaxtree.

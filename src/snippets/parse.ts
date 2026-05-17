@@ -11,6 +11,7 @@ function importModule(source: string, identifier: string): Promise<object> {
 	const sourceWithSourceURL = `${source}\n//# sourceURL=latex-suite:${identifier}`;
 	const blob = new Blob([sourceWithSourceURL], { type: "text/javascript" });
 	const url = URL.createObjectURL(blob);
+	// eslint-disable-next-line no-unsanitized/method
 	const result = import(url);
 	URL.revokeObjectURL(url);
 	return result;
