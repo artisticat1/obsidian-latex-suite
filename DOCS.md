@@ -43,6 +43,7 @@
 - `c` : Code mode. Only run this snippet inside a ```` ``` ... ``` ```` block
 	- Languages using `$` as part of their syntax won't trigger math mode while in their codeblock
 	- The `math` language from https://github.com/ocapraro/obsidian-math-plus doesn't trigger code mode, but block math mode instead
+- `U`: Skip undo. When an automatic snippet expands, undo returns the editor to the state before the triggering key was typed, instead of restoring that key.
 
 Multiple options can be used at once. As an exception, regex and visual are mutually exclusive.
 
