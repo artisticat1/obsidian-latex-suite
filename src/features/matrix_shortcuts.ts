@@ -31,8 +31,19 @@ const taboutMatrixShortcutCallback = (view: EditorView, bounds: Bounds): boolean
 
 		const nextLineNo = d.lineAt(ctx.pos).number + 1;
 		const nextLine = d.line(nextLineNo);
+		const nextLineText = nextLine.text;
+		const potentialEndMatrix = /\\end{([^}]*)}/.exec(nextLineText)
 
-		setCursor(view, nextLine.to);
+		let to = nextLine.to;
+		if (potentialEndMatrix && potentialEndMatrix[1] && potentialEndMatrix.index !== undefined) {
+			const envName = potentialEndMatrix[1];
+			const settingsEnvNames = getLatexSuiteConfig(view).matrixShortcutsEnvNames;
+			if (settingsEnvNames.includes(envName)) {
+				to = nextLine.from + potentialEndMatrix.index + potentialEndMatrix[0].length;
+			}
+		}
+
+		setCursor(view, to);
 	}
 	else if (ctx.mode.inlineMath) {
 		setCursor(view, bounds.outer_end);
