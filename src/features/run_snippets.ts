@@ -9,6 +9,7 @@ import { autoEnlargeBrackets } from "./auto_enlarge_brackets";
 import { snippetDebugLevel } from "src/settings/settings";
 import { Snippet, SnippetType } from "src/snippets/snippets";
 import { showSnippetInfo } from "src/editor_extensions/obsidian_utils";
+import { App, TFile } from "obsidian";
 
 type SnippetInfo = {
 	snippets: Snippet<SnippetType>[];
@@ -17,6 +18,7 @@ type SnippetInfo = {
 type RunSnippetsOptions = {
 	recursive: number;
 	debug: snippetDebugLevel;
+	file?: TFile;
 }
 export const runSnippets = (view: EditorView, snippetInfo: SnippetInfo, options: RunSnippetsOptions):boolean => {
 	let didExpand = false;
@@ -54,7 +56,7 @@ const getSliceAroundCursor = (view: EditorView, to: number) => {
 	return {line, effectiveLineAfter};
 }
 
-const runSnippetCursor = (view: EditorView, ctx: Context, snippetInfo: SnippetInfo, range: SelectionRange, debug: snippetDebugLevel):{success: boolean; shouldAutoEnlargeBrackets: boolean} => {
+const runSnippetCursor = (view: EditorView, ctx: Context, snippetInfo: SnippetInfo, range: SelectionRange, debug: snippetDebugLevel, file: TFile | null):{success: boolean; shouldAutoEnlargeBrackets: boolean} => {
 
 	const settings = getLatexSuiteConfig(view);
 	const {from, to} = range;
@@ -66,10 +68,14 @@ const runSnippetCursor = (view: EditorView, ctx: Context, snippetInfo: SnippetIn
 		return {success: false, shouldAutoEnlargeBrackets: false};
 	}
 	const updatedLine = line + key;
+	const currentFolder = (app as App).workspace.getActiveFile()?.parent?.path;
 	for (let i=0; i < snippetInfo.snippets.length; i++) {
 		const snippet = snippetInfo.snippets[i];
 
 		if (!snippetShouldRunInMode(snippet.options, ctx.mode)) {
+			continue;
+		}
+		if (snippet.folders.length > 0 && currentFolder && !snippet.folders.some(folder => currentFolder.startsWith(folder))) {
 			continue;
 		}
 

@@ -59,6 +59,7 @@ export abstract class Snippet<T extends SnippetType = SnippetType> {
 	triggerKey: string;
 
 	excludedEnvironments: Environment[];
+	folders: string[]
 
 	constructor(
 		type: T,

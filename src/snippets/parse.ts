@@ -1,4 +1,4 @@
-import { optional, object, string as string_, union, parse, number, InferOutput as Output, custom, instance } from "valibot";
+import { optional, object, string as string_, union, parse, number, InferOutput as Output, custom, instance, array } from "valibot";
 import { RegexSnippet, serializeSnippetLike, Snippet, StringSnippet, VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER, VisualSnippet } from "./snippets";
 import { Options } from "./options";
 import { sortSnippets } from "./sort";
@@ -98,6 +98,7 @@ const RawSnippetSchema = object({
 	description: optional(string_(), "no description provided"),
 	triggerKey: optional(string_(), ""),
 	language: optional(string_()),
+	folders: optional(array(string_()), []),
 });
 
 type RawSnippet = Output<typeof RawSnippetSchema>;
@@ -125,7 +126,7 @@ function validateRawSnippets(snippets: unknown): RawSnippet[] {
  * - if it is a regex snippet, the trigger is represented as a RegExp instance with flags set
  */
 function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snippet {
-	const { replacement, priority, description } = raw;
+	const { replacement, priority, description, folders } = raw;
 	const options = Options.fromSource(raw.options, raw.language);
 	let excludedEnvironments;
 	const triggerKey = parseKeyName(raw.triggerKey);
@@ -190,7 +191,7 @@ function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snip
 
 		options.regex = true;
 
-		const normalised = { trigger, replacement, options, priority, description, excludedEnvironments, triggerKey, triggerAfter };
+		const normalised = { trigger, replacement, options, priority, description, excludedEnvironments, triggerKey, triggerAfter, folders };
 
 		return new RegexSnippet(normalised);
 	}
@@ -213,7 +214,7 @@ function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snip
 			options.visual = true;
 		}
 
-		const normalised = { trigger, replacement, options, priority, description, excludedEnvironments, triggerKey, triggerAfter };
+		const normalised = { trigger, replacement, options, priority, description, excludedEnvironments, triggerKey, triggerAfter, folders };
 
 		if (options.visual) {
 			return new VisualSnippet(normalised);
