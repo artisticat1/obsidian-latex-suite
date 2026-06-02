@@ -369,6 +369,18 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
+		new Setting(containerEl)
+			.setName("Macros")
+			.setDesc("A list of macro names to run the matrix shortcuts in, separated by commas.")
+			.addText(text => text
+				.setPlaceholder(DEFAULT_SETTINGS.matrixShortcutsEnvNames)
+				.setValue(this.plugin.settings.matrixShortcutsEnvNames)
+				.onChange(async (value) => {
+					this.plugin.settings.matrixShortcutsEnvNames = value;
+
+					await this.plugin.saveSettings();
+				}));
+
 	}
 
 	private displayTaboutSettings() {

@@ -58,6 +58,7 @@ export interface LatexSuiteCMKeymapSettings {
 export interface LatexSuiteRawSettings {
 	autofractionExcludedEnvs: string;
 	matrixShortcutsEnvNames: string;
+	matrixShortcutsMacroNames: string;
 	taboutClosingSymbols: string;
 	autoEnlargeBracketsTriggers: string;
 	forceMathLanguages: string;
@@ -66,6 +67,7 @@ export interface LatexSuiteRawSettings {
 interface LatexSuiteParsedSettings {
 	autofractionExcludedEnvs: Environment[];
 	matrixShortcutsEnvNames: string[];
+	matrixShortcutsMacroNames: string[];
 	taboutClosingSymbols: Set<string>;
 	autoEnlargeBracketsTriggers: string[];
 	forceMathLanguages: string[];
@@ -115,6 +117,7 @@ export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
 		["\\\\pu{", "}"]
 	]`,
 	matrixShortcutsEnvNames: "pmatrix, cases, align, gather, bmatrix, Bmatrix, vmatrix, Vmatrix, array, matrix",
+	matrixShortcutsMacroNames: "eqalign",
 	taboutClosingSymbols: "), ], \\rbrack, \\}, \\rbrace, \\rangle, \\rvert, \\rVert, \\rfloor, \\rceil, \\urcorner, }",
 	autoEnlargeBracketsTriggers: "sum, int, frac, prod, bigcup, bigcap",
 	forceMathLanguages: "math",
@@ -160,6 +163,7 @@ export function processLatexSuiteSettings(snippets: Snippet[], settings: LatexSu
 		snippets: snippets,
 		autofractionExcludedEnvs: getAutofractionExcludedEnvs(settings.autofractionExcludedEnvs),
 		matrixShortcutsEnvNames: strToArray(settings.matrixShortcutsEnvNames),
+		matrixShortcutsMacroNames: strToArray(settings.matrixShortcutsMacroNames),
 		taboutClosingSymbols: new Set<string>(strToArray(settings.taboutClosingSymbols)),
 		// Add backslash to triggers that are LaTeX commands
 		autoEnlargeBracketsTriggers: strToArray(settings.autoEnlargeBracketsTriggers)
