@@ -72,6 +72,8 @@ export default [
 	{trigger: "([a-zA-Z])tilde", replacement: "\\tilde{[[0]]}", options: "rmA"},
 	{trigger: "([a-zA-Z])und", replacement: "\\underline{[[0]]}", options: "rmA"},
 	{trigger: "([a-zA-Z])vec", replacement: "\\vec{[[0]]}", options: "rmA"},
+	// \\overrightarrow might look better than \\vec
+	// {trigger: "([a-zA-Z])vec", replacement: "\\overrightarrow{[[0]]}", options: "rmA"},
     {trigger: "([a-zA-Z]),\\.", replacement: "\\mathbf{[[0]]}", options: "rmA"},
 	{trigger: "([a-zA-Z])\\.,", replacement: "\\mathbf{[[0]]}", options: "rmA"},
 	{trigger: "\\\\(${GREEK}),\\.", replacement: "\\boldsymbol{\\[[0]]}", options: "rmA"},
@@ -85,6 +87,7 @@ export default [
 	{trigger: "tilde", replacement: "\\tilde{$0}$1", options: "mA"},
 	{trigger: "und", replacement: "\\underline{$0}$1", options: "mA"},
 	{trigger: "vec", replacement: "\\vec{$0}$1", options: "mA"},
+	// {trigger: "vec", replacement: "\\overrightarrow{$0}$1", options: "mA"},
     {
         trigger: "pmod",
         replacement: "\\pmod{${0:n}}$1",
@@ -232,6 +235,8 @@ export default [
 	{trigger: "\\\\(${GREEK}) dot", replacement: "\\dot{\\[[0]]}", options: "rmA"},
 	{trigger: "\\\\(${GREEK}) bar", replacement: "\\bar{\\[[0]]}", options: "rmA"},
 	{trigger: "\\\\(${GREEK}) vec", replacement: "\\vec{\\[[0]]}", options: "rmA"},
+	// \\overrightarrow might look better than \\vec
+	// {trigger: "\\\\(${GREEK}) vec", replacement: "\\overrightarrow{\\[[0]]}", options: "rmA"},
 	{trigger: "\\\\(${GREEK}) tilde", replacement: "\\tilde{\\[[0]]}", options: "rmA"},
 	{trigger: "\\\\(${GREEK}) und", replacement: "\\underline{\\[[0]]}", options: "rmA"},
 
