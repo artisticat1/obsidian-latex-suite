@@ -20,6 +20,7 @@ const OPEN_CODEBLOCK_NODE =
 	"HyperMD-codeblock_HyperMD-codeblock-begin_HyperMD-codeblock-begin-bg_HyperMD-codeblock-bg";
 const CLOSE_CODEBLOCK_NODE =
 	"HyperMD-codeblock_HyperMD-codeblock-bg_HyperMD-codeblock-end_HyperMD-codeblock-end-bg";
+const CODE_NODE = "inline-code";
 
 export interface Bounds {
 	inner_start: number;
@@ -85,15 +86,17 @@ export const contextPlugin = ViewPlugin.fromClass(
 
 		const codeBlockInfo = langIfWithinCodeblock(state);
 		const codeblockLanguage = codeBlockInfo?.codeblockLanguage ?? null;
-		const inCode = codeblockLanguage !== null;
+		const inCodeBlock = codeblockLanguage !== null;
+		const inCode = inCodeBlock ? false : withingCode(state)
+		this.mode.code = inCode;
 
 		const settings = getLatexSuiteConfig(state);
 		const forceMath =
-			inCode &&
+			inCodeBlock &&
 			settings.forceMathLanguages.contains(codeblockLanguage);
 		this.mode.codeMath = forceMath;
-		this.mode.code = inCode && !forceMath ? codeblockLanguage : false;
-		if (inCode && this.mode.code !== false) {
+		this.mode.codeBlock = inCodeBlock && !forceMath ? codeblockLanguage : false;
+		if (inCodeBlock && this.mode.codeBlock !== false) {
 			this.codeblockLanguage = codeblockLanguage;
 			this.boundsCache.set(this.pos, codeBlockInfo);
 		}
@@ -120,7 +123,7 @@ export const contextPlugin = ViewPlugin.fromClass(
 			}
 		}
 
-		this.mode.text = !inCode && !inMath;
+		this.mode.text = !inCodeBlock && !inMath;
 
 	}
 
@@ -366,6 +369,12 @@ const langIfWithinCodeblock = (
 		outer_end: codeblockEnd.to,
 		codeblockLanguage: language,
 	};
+}
+
+const withingCode = (state: EditorState): boolean => {
+	const pos = state.selection.main.head;
+	const tree = syntaxTree(state);
+	return tree.resolveInner(pos, -1).name.contains(CODE_NODE)
 }
 
 export const mathBoundsPlugin = ViewPlugin.fromClass(

@@ -44,12 +44,13 @@ export class Options {
 }
 
 export class Mode {
-	text: boolean;
-	inlineMath: boolean;
-	blockMath: boolean;
-	codeMath: boolean;
-	code: string | boolean;
-	textEnv: boolean;
+	text: boolean = false;
+	inlineMath: boolean = false;
+	blockMath: boolean = false;
+	codeMath: boolean = false;
+	codeBlock: string | boolean = false;
+	code: boolean = false;
+	textEnv: boolean = false;
 
 	/**
 	 * Whether the state is inside an equation bounded by $ or $$ delimeters.
@@ -76,20 +77,13 @@ export class Mode {
 		return this.inMath() && !this.textEnv;
 	}
 
-	constructor() {
-		this.text = false;
-		this.blockMath = false;
-		this.inlineMath = false;
-		this.code = false;
-		this.textEnv = false;
-	}
-
 	invert() {
 		this.text = !this.text;
 		this.blockMath = !this.blockMath;
 		this.inlineMath = !this.inlineMath;
 		this.codeMath = !this.codeMath;
-		this.code = this.code === false ? true : false;
+		this.codeBlock = this.codeBlock === false ? true : false;
+		this.code = !this.code;
 		this.textEnv = !this.textEnv;
 	}
 
@@ -112,21 +106,25 @@ export class Mode {
 					mode.text = true;
 					break;
 				case "c":
+					mode.codeBlock = true;
+					break;
+				case "C":
 					mode.code = true;
 					break;
 			}
 		}
 
 		if (language !== undefined) {
-			mode.code = language;
+			mode.codeBlock = language;
 		}
 
 		if (!(mode.text ||
 			mode.inlineMath ||
 			mode.blockMath ||
 			mode.codeMath ||
-			mode.code !== false ||
-			mode.textEnv)
+			mode.codeBlock !== false ||
+			mode.textEnv ||
+			mode.code)
 		) {
 			// for backwards compat we need to assume that this is a catchall mode then
 			mode.invert();
