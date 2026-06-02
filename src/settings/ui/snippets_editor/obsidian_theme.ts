@@ -85,6 +85,15 @@ export const obsidianTheme = EditorView.theme({
 			color: config.foreground
 		}
 	},
+	".cm-textfield": {
+		backgroundColor: config.background,
+		color: config.foreground
+	},
+	".cm-button": {
+		backgroundColor: config.background,
+		color: config.foreground,
+		backgroundImage: "none",
+	}
 }, {dark: config.dark})
 
 export const obsidianHighlightStyle = HighlightStyle.define([
