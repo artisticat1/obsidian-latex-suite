@@ -33,6 +33,7 @@ export interface LatexSuiteBasicSettings {
 	matrixShortcutsEnabled: boolean;
 	taboutEnabled: boolean;
 	autoEnlargeBrackets: boolean;
+	autoEnlargeBracketsSpace: boolean;
 	wordDelimiters: string;
 	snippetDebug: snippetDebugLevel;
 	vimEnabled: boolean;
@@ -106,6 +107,7 @@ export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
 	taboutEnabled: true,
 	taboutTrigger: "Tab",
 	autoEnlargeBrackets: true,
+	autoEnlargeBracketsSpace: true,
 	wordDelimiters: "., +-\\n\t:;!?\\/{}[]()=~$'\"|`<>*^%#@&",
 
 	// Raw settings
