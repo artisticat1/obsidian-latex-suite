@@ -1,6 +1,6 @@
 import { Extension, Prec } from "@codemirror/state";
 import { Plugin, Notice, loadMathJax, addIcon } from "obsidian";
-import { onFileCreate, onFileChange, onFileDelete, getSnippetsFromFiles, getFileSets, getVariablesFromFiles, tryGetVariablesFromUnknownFiles } from "./settings/file_watch";
+import { onFileCreate, onFileChange, onFileDelete, getSnippetsFromFiles, getFileSets, getVariablesFromFiles, tryGetVariablesFromUnknownFiles, getConcealMappingsFromFiles } from "./settings/file_watch";
 import { LatexSuitePluginSettings, DEFAULT_SETTINGS, LatexSuiteCMSettings, processLatexSuiteSettings, LatexSuiteBasicSettings, LatexSuiteRawSettings } from "./settings/settings";
 import { isIMESupported, LatexSuiteSettingTab } from "./settings/settings_tab";
 import { ICONS } from "./settings/ui/icons";
@@ -106,8 +106,9 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 		if (this.settings.loadSnippetsFromFile || this.settings.loadSnippetVariablesFromFile) {
 			const tempSnippetVariables = await this.getSettingsSnippetVariables();
 			const tempSnippets = await this.getSettingsSnippets(tempSnippetVariables);
+			const tempConcealMapping = await this.getSettingsConcealMapping();
 
-			this.CMSettings = processLatexSuiteSettings(tempSnippets, this.settings);
+			this.CMSettings = processLatexSuiteSettings(tempSnippets, this.settings, tempConcealMapping);
 
 			// Use onLayoutReady so that we don't try to read the snippets file too early
 			this.app.workspace.onLayoutReady(() => {
@@ -170,9 +171,19 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 
 		return snippets;
 	}
+	
+	async getSettingsConcealMapping(becauseFileLocationUpdated: boolean = false, becauseFileUpdated: boolean = false) {
+		// Get files in snippet/variable folders.
+		// If either is set to be loaded from settings the set will just be empty.
+		console.debug("11")
+		const concealMapping = await getConcealMappingsFromFiles(this)
+		return concealMapping;
+	}
+
 
 	async processSettings(becauseFileLocationUpdated = false, becauseFileUpdated = false) {
-		this.CMSettings = processLatexSuiteSettings(await this.getSnippets(becauseFileLocationUpdated, becauseFileUpdated), this.settings);
+		const concealMapping = await this.getSettingsConcealMapping();
+		this.CMSettings = processLatexSuiteSettings(await this.getSnippets(becauseFileLocationUpdated, becauseFileUpdated), this.settings, concealMapping);
 		this.setEditorExtensions();
 		// Request Obsidian to reconfigure CM extensions
 		this.app.workspace.updateOptions();
