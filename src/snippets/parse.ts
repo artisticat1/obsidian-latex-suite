@@ -5,7 +5,7 @@ import { sortSnippets } from "./sort";
 import { EXCLUSIONS, Environment } from "./environment";
 import { Platform } from "obsidian";
 import { api } from "./luasnip_api";
-import { BaseNode, SnippetNode } from "./luasnip_api/node";
+import { ArrayNode, BaseNode, SnippetNode } from "./luasnip_api/node";
 
 export type SnippetVariables = Record<string, string>;
 
@@ -118,7 +118,15 @@ export async function parseSnippets(snippetsStr: string, snippetVariables: Snipp
 const RawSnippetSchema = object({
 	trigger: union([string_(), instance(RegExp)]),
 	triggerAfter: optional(union([string_(), instance(RegExp)])),
-	replacement: union([string_(), instance(BaseNode), custom<AnyFunction>(x => typeof x === "function")]),
+	replacement: union([
+		string_(),
+		instance(BaseNode),
+		pipe(
+			array(instance(BaseNode)),
+			transform((nodes) => new ArrayNode(nodes)),
+		),
+		custom<AnyFunction>((x) => typeof x === "function"),
+	]),
 	options: string_(),
 	flags: optional(string_(), ""),
 	priority: optional(number(), 0),

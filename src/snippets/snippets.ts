@@ -1,7 +1,8 @@
 import { SelectionRange } from "@codemirror/state";
 import { Options } from "./options";
 import { Environment } from "./environment";
-import { BaseNode, ResultInsert, SnippetNode } from "./luasnip_api/node";
+import { BaseNode, ResultInsert, SnippetNode, Options as NodeOptions, ArrayNode } from "./luasnip_api/node";
+import * as v from "valibot";
 
 /**
  * in visual snippets, if the replacement is a string, this is the magic substring to indicate the selection.
@@ -26,19 +27,42 @@ export type SnippetType =
 	| "regex"
 	| "string"
 
+type SnippetReplacementFunctionReturn = string | false| BaseNode | BaseNode[]
+const ReplacementOutputSchema = v.union([
+	v.string(),
+	v.instance(BaseNode),
+	v.array(v.instance(BaseNode))
+])
+function convertOutputToNode(rawReplacement: unknown): BaseNode | null {
+	const parseResult = v.safeParse(ReplacementOutputSchema, rawReplacement);
+	if (!parseResult.success) {
+		return null
+	}
+	if (typeof parseResult.output === "string") { 
+		return new SnippetNode(parseResult.output)
+	} else if (parseResult.output instanceof BaseNode) {
+		return parseResult.output
+	} else if (Array.isArray(parseResult.output)){
+		return new ArrayNode(parseResult.output);
+	} 
+
+	// never happens but ts can't figure that out without a return
+	return parseResult.output
+}
+
 export type SnippetData<T extends SnippetType> = {
 	visual: {
 		trigger: string;
-		replacement: BaseNode | ((selection: string) => string | false);
+		replacement: BaseNode | ((selection: string) => SnippetReplacementFunctionReturn);
 	};
 	regex: {
 		trigger: RegExp;
-		replacement: BaseNode | ((match: RegExpExecArray) => string | false);
+		replacement: BaseNode | ((match: RegExpExecArray) => SnippetReplacementFunctionReturn);
 		triggerAfter?: RegExp;
 	};
 	string: {
 		trigger: string;
-		replacement: BaseNode | ((match: string) => string | false);
+		replacement: BaseNode | ((match: string) => SnippetReplacementFunctionReturn);
 		triggerAfter?: string;
 	};
 }[T]
@@ -124,7 +148,7 @@ export class VisualSnippet extends Snippet<"visual"> {
 			// sanity check - if this.replacement was a function,
 			// we have no way to validate beforehand that it really does return a string
 			if (typeof replacementTemp !== "string") { return null; }
-			replacement = {insert: replacementTemp, tabstops: []}
+			replacement = convertOutputToNode(replacementTemp)
 		}
 
 		return { triggerPos, replacement };

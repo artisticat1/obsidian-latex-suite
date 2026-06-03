@@ -1,7 +1,7 @@
 
 type Captures = {match: string[], groups: Record<string, string>}
 
-type Options = {
+export type Options = {
 	captures: Captures,
 }
 export const emptyInsertOptions: Options = {
@@ -117,7 +117,7 @@ function applyReplacements(str: string, replacements: Replacement[]): string {
 
 
 export class SnippetNode extends BaseNode {
-	constructor(public snippet: string) {
+	constructor(private snippet: string) {
 		super((options) => this.parseSnippet(options.captures))
 	}
 	
@@ -168,7 +168,7 @@ export class SnippetNode extends BaseNode {
 }
 
 export class SnippetTabstopOnlyNode extends BaseNode {
-	constructor(public snippet: string) {
+	constructor(snippet: string) {
 		super(() => new SnippetNode(snippet).parseSnippet({match: [], groups: {}}));
 	}
 }
