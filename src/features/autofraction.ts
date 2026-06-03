@@ -6,6 +6,7 @@ import { expandSnippets } from "src/snippets/snippet_management";
 import { autoEnlargeBrackets } from "./auto_enlarge_brackets";
 import { Context } from "src/utils/context";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
+import { ArrayNode, emptyInsertOptions, TabstopNode, TextNode } from "src/snippets/luasnip_api/node";
 
 
 export const runAutoFraction = (view: EditorView, ctx: Context): boolean => {
@@ -101,15 +102,19 @@ export const runAutoFractionCursor = (view: EditorView, ctx: Context, range: Sel
 		}
 	}
 
-	// If the content inside parentheses is empty, the numerator would be empty and that's rarely desired.
-	const replacement =
-		numerator === ""
-			? `${settings.autofractionSymbol}{$0}{$1}$2`
-			: `${settings.autofractionSymbol}{${numerator}}{$0}$1`;
+	const snippet = new ArrayNode([
+		new TextNode(settings.autofractionSymbol + "{"),
+		// If the content inside parentheses is empty, the numerator would be empty and that's rarely desired.
+		numerator === "" ? new TabstopNode(0) : new TextNode(numerator),
+		new TextNode("}{"),
+		new TabstopNode(1),
+		new TextNode("}"),
+		new TabstopNode(2),
+	]);
 	// The keypressed shouldn't be inserted back in after an undo, if we have a selection.
 	const keyPressed = from != to ? undefined : "/";
 
-	queueSnippet(view, start, to, replacement, keyPressed);
+	queueSnippet(view, start, to, snippet.applyInsert(emptyInsertOptions), keyPressed);
 
 	return true;
 }

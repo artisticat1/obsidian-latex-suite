@@ -7,22 +7,23 @@ import { addTabstops, getNextTabstopColor, tabstopsStateField } from "./codemirr
 import { clearSnippetQueue, getSnippetQueue } from "./codemirror/snippet_queue_state_field";
 import { SnippetChangeSpec } from "./codemirror/snippet_change_spec";
 import { resetCursorBlink } from "src/utils/editor_utils";
-import { Text } from "@codemirror/state";
 
 export function expandSnippets(view: EditorView):boolean {
 	const snippetsToExpand = getSnippetQueue(view).snippetQueueValue;
 	if (snippetsToExpand.length === 0) return false;
 
-	const originalDocLength = view.state.doc.length;
-
 	// Try to apply changes all at once, because `view.dispatch` gets expensive for large documents
 	const undoChanges = handleUndoKeypresses(view, snippetsToExpand);
+	const newSnippets = snippetsToExpand.map(s => s.applyChange(undoChanges));
+	const snippetChangeSpecs = newSnippets.map(s => s.toChangeSpec());
+	
+	const finalChanges = undoChanges.compose(ChangeSet.of(snippetChangeSpecs, undoChanges.newLength));
+
+	const tabstopsToAdd = newSnippets.flatMap(s => s.getTabstops());
 	// If from===to, normally the cursor would be before the text, but after the text makes more sense as that happens when from <to.
-	const selection = view.state.selection.map(undoChanges, 1);
-	const newText = undoChanges.apply(view.state.doc);
-	const tabstopsToAdd = computeTabstops(newText, snippetsToExpand, originalDocLength);
+	const selection = view.state.selection.map(finalChanges, 1);
 	const changes = {
-		changes: undoChanges,
+		changes: finalChanges,
 		selection: selection
 	}
 
@@ -33,7 +34,7 @@ export function expandSnippets(view: EditorView):boolean {
 		return true;
 	}
 
-	expandTabstops(view, tabstopsToAdd, changes, newText.length);
+	expandTabstops(view, tabstopsToAdd, changes);
 
 	clearSnippetQueue(view);
 	return true;
@@ -69,24 +70,9 @@ function handleUndoKeypresses(view: EditorView, snippets: SnippetChangeSpec[]) {
 
 	// Undo the keypresses, and insert the replacements
 	const undoKeyPresses = ChangeSet.of(keyPresses, originalDocLength).invert(originalDoc);
-	const changesAsChangeSet = ChangeSet.of(snippets, originalDocLength);
-	const combinedChanges = undoKeyPresses.compose(changesAsChangeSet);
 
 	// Mark the transaction as the beginning of a snippet (for undo/history purposes)
-	return combinedChanges;
-}
-
-function computeTabstops(doc: Text, snippets: SnippetChangeSpec[], originalDocLength: number) {
-	// Find the positions of the cursors in the new document
-	const changeSet = ChangeSet.of(snippets, originalDocLength);
-	const oldPositions = snippets.map(change => change.from);
-	const newPositions = oldPositions.map(pos => changeSet.mapPos(pos));
-	const tabstopsToAdd:TabstopSpec[] = [];
-	for (let i = 0; i < snippets.length; i++) {
-		tabstopsToAdd.push(...snippets[i].getTabstops(doc, newPositions[i]));
-	}
-
-	return tabstopsToAdd;
+	return undoKeyPresses;
 }
 
 function expandTabstops(
@@ -95,22 +81,10 @@ function expandTabstops(
 	undoChanges: {
 		changes:ChangeSet,
 		selection: EditorSelection
-	},
-	newLength: number
+	}
 ) {
-	const changes = ChangeSet.of(
-		tabstops.map((tabstop: TabstopSpec) => {
-			return {
-				from: tabstop.from,
-				to: tabstop.to,
-				insert: tabstop.replacement,
-			};
-		}),
-		newLength
-	);
 	const color = getNextTabstopColor(view);
 	const tabstopGroups = tabstopSpecsToTabstopGroups(tabstops, color);
-	tabstopGroups.forEach((grp) => grp.map(changes));
 	const frozenTabstopGroups = tabstopGroups.map(grp => grp.copy())
 	// Insert the replacements
 	const effects = addTabstops(tabstopGroups).effects;
@@ -123,7 +97,7 @@ function expandTabstops(
 	};
 	view.dispatch({
 		effects: [...effects, startSnippet.of(frozenTabstopGroups)],
-		changes: undoChanges.changes.compose(changes),
+		changes: undoChanges.changes,
 		selection: undoChanges.selection,
 		annotations: isolateHistory.of("before")
 	}, spec);

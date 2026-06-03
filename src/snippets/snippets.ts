@@ -1,6 +1,7 @@
 import { SelectionRange } from "@codemirror/state";
 import { Options } from "./options";
 import { Environment } from "./environment";
+import { BaseNode, ResultInsert, SnippetNode } from "./luasnip_api/node";
 
 /**
  * in visual snippets, if the replacement is a string, this is the magic substring to indicate the selection.
@@ -28,22 +29,22 @@ export type SnippetType =
 export type SnippetData<T extends SnippetType> = {
 	visual: {
 		trigger: string;
-		replacement: string | ((selection: string) => string | false);
+		replacement: BaseNode | ((selection: string) => string | false);
 	};
 	regex: {
 		trigger: RegExp;
-		replacement: string | ((match: RegExpExecArray) => string | false);
+		replacement: BaseNode | ((match: RegExpExecArray) => string | false);
 		triggerAfter?: RegExp;
 	};
 	string: {
 		trigger: string;
-		replacement: string | ((match: string) => string | false);
+		replacement: BaseNode | ((match: string) => string | false);
 		triggerAfter?: string;
 	};
 }[T]
 
 export type ProcessSnippetResult =
-	| { triggerPos: number, replacement: string, triggerEndPos?: number }
+	| { triggerPos: number, replacement: ResultInsert, triggerEndPos?: number }
 	| null
 
 /**
@@ -114,15 +115,16 @@ export class VisualSnippet extends Snippet<"visual"> {
 		if (!(effectiveLine.endsWith(this.trigger))) { return null; }
 
 		const triggerPos = range.from;
-		let replacement;
-		if (typeof this.replacement === "string") {
-			replacement = this.replacement.replace(VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER, sel);
+		let replacement: ResultInsert;
+		if (this.replacement instanceof BaseNode) {
+			replacement = this.replacement.applyInsert({ captures: { match: [], groups: {} } });
 		} else {
-			replacement = this.replacement(sel);
+			const replacementTemp = this.replacement(sel) as unknown;
 
 			// sanity check - if this.replacement was a function,
 			// we have no way to validate beforehand that it really does return a string
-			if (typeof replacement !== "string") { return null; }
+			if (typeof replacementTemp !== "string") { return null; }
+			replacement = {insert: replacementTemp, tabstops: []}
 		}
 
 		return { triggerPos, replacement };
@@ -150,24 +152,18 @@ export class RegexSnippet extends Snippet<"regex"> {
 			? effectiveLine.length + afterResult[0].length
 			: undefined;
 
-		let replacement;
-		if (typeof this.replacement === "string") {
+		let replacement: ResultInsert;
+		if (this.replacement instanceof BaseNode) {
 			// Compute the replacement string
 			// result.length - 1 = the number of capturing groups
-
-			const nCaptureGroups = result.length - 1;
-			replacement = Array.from({ length: nCaptureGroups })
-				.map((_, i) => i + 1)
-				.reduce(
-					(replacement, i) => replacement.replaceAll(`[[${i - 1}]]`, result[i]),
-					this.replacement
-				);
+			replacement = this.replacement.applyInsert({ captures: { match: result, groups: result.groups ?? {} } });
 		} else {
-			replacement = this.replacement(result);
+			const replacementTemp = this.replacement(result);
 
 			// sanity check - if this.replacement was a function,
 			// we have no way to validate beforehand that it really does return a string
-			if (typeof replacement !== "string") { return null; }
+			if (typeof replacementTemp !== "string") { return null; }
+			replacement = new SnippetNode(replacementTemp).applyInsert({ captures: {match: [], groups: {}} });
 		}
 
 		return { triggerPos, replacement, triggerEndPos };
@@ -195,15 +191,17 @@ export class StringSnippet extends Snippet<"string"> {
 		const triggerEndPos = this.data.triggerAfter !== undefined
 			? effectiveLine.length + this.data.triggerAfter.length
 			: undefined;
-		const replacement = typeof this.replacement === "string"
-			? this.replacement
-			: this.replacement(this.trigger);
+		const replacement = this.replacement instanceof BaseNode
+			? this.replacement.applyInsert({ captures: { match: [], groups: {} } })
+			: {insert: this.replacement(this.trigger), tabstops: []}
 
 		// sanity check - if replacement was a function,
 		// we have no way to validate beforehand that it really does return a string
-		if (typeof replacement !== "string") { return null; }
+		const {insert, tabstops} = replacement;
+		if (typeof insert !== "string") { return null; }
 
-		return { triggerPos, replacement, triggerEndPos };
+		const verifiedReplacement: ResultInsert = { insert, tabstops };
+		return { triggerPos, replacement: verifiedReplacement, triggerEndPos };
 	}
 }
 

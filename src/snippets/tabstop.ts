@@ -7,20 +7,22 @@ import { createElement } from "src/editor_extensions/obsidian_utils";
 const LATEX_SUITE_TABSTOP_DECO_CLASS = "latex-suite-snippet-placeholder";
 
 export interface TabstopSpec {
-    number: number,
+    index: number,
     from: number,
     to: number,
-    replacement: string
 }
 
 function getMarkerDecoration(from: number, to: number, color: number) {
     const className = `${LATEX_SUITE_TABSTOP_DECO_CLASS} ${LATEX_SUITE_TABSTOP_DECO_CLASS}-${color}`;
-
-    return Decoration.mark({
-        inclusive: true,
-        color: color,
-        class: className,
-    }).range(from, to);
+	if (from === to) {
+		return FieldMarker.range(from, to);
+	} else {
+		return Decoration.mark({
+			inclusive: true,
+			color: color,
+			class: className,
+		}).range(from, to);
+	}
 }
 
 export class TabstopGroup {
@@ -124,7 +126,7 @@ export function tabstopSpecsToTabstopGroups(tabstops: TabstopSpec[], color: numb
     const tabstopsByNumber: {[n: string]: TabstopSpec[]} = {};
 
     for (const tabstop of tabstops) {
-        const n = String(tabstop.number);
+        const n = String(tabstop.index);
 
         if (tabstopsByNumber[n]) {
             tabstopsByNumber[n].push(tabstop);

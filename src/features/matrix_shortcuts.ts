@@ -5,6 +5,7 @@ import { Bounds, getContextPlugin } from "src/utils/context";
 import { queueSnippet } from "src/snippets/codemirror/snippet_queue_state_field";
 import { expandSnippets } from "src/snippets/snippet_management";
 import { taboutByEnclosedBrackets } from "./tabout";
+import { ArrayNode, emptyInsertOptions, TabstopNode, TextNode } from "src/snippets/luasnip_api/node";
 
 const newlineMatrixShortcutCallback = (view: EditorView): boolean => {
 	const ctx = getContextPlugin(view);
@@ -12,8 +13,9 @@ const newlineMatrixShortcutCallback = (view: EditorView): boolean => {
 	const current_matrix_line = cur_line.text.match(/(\\begin{[^]]*}|\\\\|^)((?:\s|&)+)/);
 	const added_cells = current_matrix_line?.[2].trimStart() ?? ""
 	if (ctx.mode.blockMath) {
+		const snippet = new ArrayNode([new TextNode(" \\\\\n" + added_cells), new TabstopNode(0,"")]);
 		// Keep current indentation and callout characters
-		queueSnippet(view, ctx.pos, ctx.pos, ` \\\\\n${added_cells}$0`);
+		queueSnippet(view, ctx.pos, ctx.pos, snippet.applyInsert(emptyInsertOptions));
 		expandSnippets(view);
 	} else {
 		view.dispatch(view.state.replaceSelection(` \\\\  ${added_cells}`));

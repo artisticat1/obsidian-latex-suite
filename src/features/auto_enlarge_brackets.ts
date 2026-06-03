@@ -5,6 +5,7 @@ import { getContextPlugin } from "src/utils/context";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
 import { escapeRegex } from "src/editor_extensions/conceal_fns";
 import { isContains, inObject } from "src/utils/type_utils";
+import { emptyInsertOptions, TextNode } from "src/snippets/luasnip_api/node";
 
 
 const sizeControls = [
@@ -145,10 +146,11 @@ export const autoEnlargeBrackets = (view: EditorView) => {
 				bracketContents.contains(word)
 			);
 			if (!containsTrigger) break;
-
 			const space = settings.autoEnlargeBracketsSpace ? " " : "";
-			queueSnippet(view, start + openStart, start + openEnd, left + openToken + space);
-			queueSnippet(view, start + closeStart, start + closeStart + token.length, space + right + token);
+			const leftNode = new TextNode(left + openToken + space);
+			const rightNode = new TextNode(space + right + token);
+			queueSnippet(view, start + openStart, start + openEnd, leftNode.applyInsert(emptyInsertOptions));
+			queueSnippet(view, start + closeStart, start + closeStart + token.length, rightNode.applyInsert(emptyInsertOptions));
 
 			stack.splice(i, 1);
 			break;

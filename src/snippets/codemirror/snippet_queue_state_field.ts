@@ -2,6 +2,7 @@ import { EditorView, ViewPlugin } from "@codemirror/view";
 import { SnippetChangeSpec } from "./snippet_change_spec";
 import { getIndentUnit, indentString } from "@codemirror/language";
 import { countColumn, EditorState } from "@codemirror/state";
+import { ResultInsert } from "../luasnip_api/node";
 export const snippetQueuePlugin = ViewPlugin.fromClass(
 	class {
 	private snippetQueue: SnippetChangeSpec[] = [];
@@ -28,9 +29,9 @@ export function getSnippetQueue(view: EditorView) {
 	return plugin
 }
 
-
-export function queueSnippet(view: EditorView, from: number, to: number, insert: string, keyPressed?: string, after?: number) {
-	const snippet = new SnippetChangeSpec(from, to, keepIndentAndCallout(view.state, from, to, insert), keyPressed, after);
+export function queueSnippet(view: EditorView, from: number, to: number, insert: ResultInsert, keyPressed?: string, after?: number) {
+	insert.insert = keepIndentAndCallout(view.state, from, to, insert.insert);
+	const snippet = new SnippetChangeSpec(from, to, insert, keyPressed, after);
 	getSnippetQueue(view).QueueSnippets([snippet]);
 }
 
