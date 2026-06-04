@@ -5,7 +5,7 @@ import { sortSnippets } from "./sort";
 import { EXCLUSIONS, Environment } from "./environment";
 import { Platform } from "obsidian";
 import { api } from "./luasnip_api";
-import { ArrayNode, BaseNode, SnippetNode } from "./luasnip_api/node";
+import { ArrayNode, BaseNode, SnippetStringNode } from "./luasnip_api/node";
 
 export type SnippetVariables = Record<string, string>;
 
@@ -181,7 +181,7 @@ function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snip
 	const { replacement: replacementRaw, priority, description, excludedEnvs: userExcludedEnvironments } = raw;
 	const replacement =
 		typeof raw.replacement === "string"
-			? new ArrayNode([new SnippetNode(raw.replacement)])
+			? new ArrayNode([new SnippetStringNode(raw.replacement)])
 			: raw.replacement;
 	const options = Options.fromSource(raw.options, raw.language);
 	const triggerKey = parseKeyName(raw.triggerKey);

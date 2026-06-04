@@ -72,8 +72,12 @@ export class TabstopNode extends BaseNode {
 }
 
 export class CaptureNode extends BaseNode {
-	constructor(key: number) {
-		super(({captures}) => captures.match[key]);
+	constructor(key: number | string) {
+		if (typeof key === "number") {
+			super(({captures}) => captures.match[key]);
+		} else if (typeof key === "string") {
+			super(({captures}) => captures.groups[key]);
+		}
 	}
 }
 
@@ -93,9 +97,30 @@ function applyReplacements(str: string, replacements: Replacement[]): string {
 	return str_arr.join("") + str.slice(offset);
 }
 
-
-
+/**
+ * @todo fix nested snippets in tabstop management as its currently broken when reversing.
+ */
 export class SnippetNode extends BaseNode {
+	constructor(private index: number, private nodes: BaseNode[]) {
+		super("", []);
+	}
+	
+	override applyInsert(options: Options): ResultInsert {
+		const result = new ArrayNode(this.nodes).applyInsert(options);
+		const super_tabstop = {index: this.index, from: 0, to: result.insert.length}
+		const final_result = {
+			insert: result.insert,
+			tabstops: [super_tabstop, ...result.tabstops.map((ts) => ({
+				...ts,
+				index: (ts.index+1)/10 + this.index,
+			}))],
+		}
+		console.debug("115",final_result.tabstops.map(ts => ts.index))
+		return final_result
+	}
+}
+
+export class SnippetStringNode extends BaseNode {
 	constructor(private snippet: string) {
 		super((options) => this.parseSnippet(options.captures))
 	}
@@ -150,7 +175,7 @@ export class VisualSnippetNode extends BaseNode {
 	
 	constructor(public snippet: string) {
 		super((options) =>
-			new SnippetNode(this.expandVisual(options.captures)).parseSnippet(
+			new SnippetStringNode(this.expandVisual(options.captures)).parseSnippet(
 				options.captures,
 			),
 		);
@@ -166,7 +191,7 @@ export class VisualSnippetNode extends BaseNode {
 }
 export class SnippetTabstopOnlyNode extends BaseNode {
 	constructor(snippet: string) {
-		super(() => new SnippetNode(snippet).parseSnippet({match: [], groups: {}}));
+		super(() => new SnippetStringNode(snippet).parseSnippet({match: [], groups: {}}));
 	}
 }
 
@@ -189,9 +214,26 @@ export class ArrayNode {
 				tabstops: offsetTabstops,
 			}
 		});
+		let current = 0;
+		const normalizedTabstops = childrenResults
+			.flatMap((r) => r.tabstops)
+			.sort((a, b) => a.index - b.index)
+			.map((ts, i, arr) => {
+				if (i === 0) {
+					current = 0
+					return {...ts, index: current};
+				} else if (ts.index === arr[i-1].index) {
+					return {...ts, index: current};
+				} else {
+					current += 1;
+					return {...ts, index: current};
+				}
+			})
+		
+		console.debug(normalizedTabstops.map(ts => ts.index))
 		return {
 			insert: childrenResults.map((r) => r.insert).join(""),
-			tabstops: childrenResults.flatMap((r) => r.tabstops),
+			tabstops: normalizedTabstops,
 		}
 	}
 }
