@@ -1,7 +1,7 @@
 import { SelectionRange } from "@codemirror/state";
 import { Options } from "./options";
 import { Environment } from "./environment";
-import { BaseNode, ResultInsert, SnippetNode, Options as NodeOptions, ArrayNode } from "./luasnip_api/node";
+import { BaseNode, ResultInsert, ArrayNode, SnippetTabstopOnlyNode, Options as InsertOptions } from "./luasnip_api/node";
 import * as v from "valibot";
 
 /**
@@ -27,21 +27,22 @@ export type SnippetType =
 	| "regex"
 	| "string"
 
-type SnippetReplacementFunctionReturn = string | false| BaseNode | BaseNode[]
 const ReplacementOutputSchema = v.union([
+	v.literal(false),
 	v.string(),
-	v.instance(BaseNode),
 	v.array(v.instance(BaseNode))
 ])
-function convertOutputToNode(rawReplacement: unknown): BaseNode | null {
+function convertOutputToNode(rawReplacement: unknown): ArrayNode | null {
 	const parseResult = v.safeParse(ReplacementOutputSchema, rawReplacement);
 	if (!parseResult.success) {
-		return null
+		console.error("Invalid replacement output:", parseResult.issues);
+		return null;
 	}
-	if (typeof parseResult.output === "string") { 
-		return new SnippetNode(parseResult.output)
-	} else if (parseResult.output instanceof BaseNode) {
-		return parseResult.output
+	if (parseResult.output === false) {
+		return null;
+	} else if (typeof parseResult.output === "string") { 
+		const snippet = new SnippetTabstopOnlyNode(parseResult.output);
+		return new ArrayNode([snippet]);
 	} else if (Array.isArray(parseResult.output)){
 		return new ArrayNode(parseResult.output);
 	} 
@@ -50,19 +51,21 @@ function convertOutputToNode(rawReplacement: unknown): BaseNode | null {
 	return parseResult.output
 }
 
+// output of replacement functions should be the output fo ReplacementOutputSchema,
+// but this would lead to false confidence as user might return something else.
 export type SnippetData<T extends SnippetType> = {
 	visual: {
 		trigger: string;
-		replacement: BaseNode | ((selection: string) => SnippetReplacementFunctionReturn);
+		replacement: ArrayNode | ((selection: string) => unknown);
 	};
 	regex: {
 		trigger: RegExp;
-		replacement: BaseNode | ((match: RegExpExecArray) => SnippetReplacementFunctionReturn);
+		replacement: ArrayNode | ((match: RegExpExecArray) => unknown);
 		triggerAfter?: RegExp;
 	};
 	string: {
 		trigger: string;
-		replacement: BaseNode | ((match: string) => SnippetReplacementFunctionReturn);
+		replacement: ArrayNode | ((match: string) => unknown);
 		triggerAfter?: string;
 	};
 }[T]
@@ -140,15 +143,17 @@ export class VisualSnippet extends Snippet<"visual"> {
 
 		const triggerPos = range.from;
 		let replacement: ResultInsert;
-		if (this.replacement instanceof BaseNode) {
-			replacement = this.replacement.applyInsert({ captures: { match: [], groups: {} } });
+		const captures = { match: [], groups: { VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER: sel} };
+		const options: InsertOptions = { captures };
+		if (this.replacement instanceof ArrayNode) {
+			replacement = this.replacement.applyInsert(options);
 		} else {
-			const replacementTemp = this.replacement(sel) as unknown;
+			const replacementTemp = convertOutputToNode(this.replacement(sel))
 
 			// sanity check - if this.replacement was a function,
-			// we have no way to validate beforehand that it really does return a string
-			if (typeof replacementTemp !== "string") { return null; }
-			replacement = convertOutputToNode(replacementTemp)
+			// we have no way to validate beforehand that it really does returns a valid output.
+			if (replacementTemp === null) { return null; }
+			replacement = replacementTemp.applyInsert(options);
 		}
 
 		return { triggerPos, replacement };
@@ -177,17 +182,18 @@ export class RegexSnippet extends Snippet<"regex"> {
 			: undefined;
 
 		let replacement: ResultInsert;
-		if (this.replacement instanceof BaseNode) {
+		const options: InsertOptions = { captures: { match: result.slice(1), groups: result.groups ?? {} } };
+		if (this.replacement instanceof ArrayNode) {
 			// Compute the replacement string
 			// result.length - 1 = the number of capturing groups
-			replacement = this.replacement.applyInsert({ captures: { match: result, groups: result.groups ?? {} } });
+			replacement = this.replacement.applyInsert(options);
 		} else {
-			const replacementTemp = this.replacement(result);
+			const replacementTemp = convertOutputToNode(this.replacement(result));
 
 			// sanity check - if this.replacement was a function,
-			// we have no way to validate beforehand that it really does return a string
-			if (typeof replacementTemp !== "string") { return null; }
-			replacement = new SnippetNode(replacementTemp).applyInsert({ captures: {match: [], groups: {}} });
+			// we have no way to validate beforehand that it really does return a valid output.
+			if (replacementTemp === null) { return null; }
+			replacement = replacementTemp.applyInsert(options);
 		}
 
 		return { triggerPos, replacement, triggerEndPos };
@@ -215,7 +221,7 @@ export class StringSnippet extends Snippet<"string"> {
 		const triggerEndPos = this.data.triggerAfter !== undefined
 			? effectiveLine.length + this.data.triggerAfter.length
 			: undefined;
-		const replacement = this.replacement instanceof BaseNode
+		const replacement = this.replacement instanceof ArrayNode
 			? this.replacement.applyInsert({ captures: { match: [], groups: {} } })
 			: {insert: this.replacement(this.trigger), tabstops: []}
 

@@ -120,7 +120,6 @@ const RawSnippetSchema = object({
 	triggerAfter: optional(union([string_(), instance(RegExp)])),
 	replacement: union([
 		string_(),
-		instance(BaseNode),
 		pipe(
 			array(instance(BaseNode)),
 			transform((nodes) => new ArrayNode(nodes)),
@@ -180,7 +179,10 @@ function validateRawSnippets(snippets: unknown): RawSnippet[] {
  */
 function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snippet {
 	const { replacement: replacementRaw, priority, description, excludedEnvs: userExcludedEnvironments } = raw;
-	const replacement = typeof raw.replacement === "string" ? new SnippetNode(raw.replacement) : raw.replacement;
+	const replacement =
+		typeof raw.replacement === "string"
+			? new ArrayNode([new SnippetNode(raw.replacement)])
+			: raw.replacement;
 	const options = Options.fromSource(raw.options, raw.language);
 	const triggerKey = parseKeyName(raw.triggerKey);
 

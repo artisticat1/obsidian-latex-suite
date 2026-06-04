@@ -1,3 +1,4 @@
+import { VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER } from "../snippets"
 
 type Captures = {match: string[], groups: Record<string, string>}
 
@@ -18,32 +19,10 @@ export class BaseNode {
 	constructor(
 		public insert: string | ((context: Options) => string | BaseNode[]),
 		public tabstops: readonly Tabstop[] = [],
-		public nodes: BaseNode[] = []
 	) {}
 	
-	applyInsert(options: Options): ResultInsert {
-		const result = this.applySingularInsert(options);
-		let offset = 0;
-		const childrenResults = this.nodes.map((node) => {
-			const rawResult = node.applyInsert(options);
-			const offsetTabstops = rawResult.tabstops.map((ts) => ({
-				...ts,
-				from: ts.from + offset,
-				to: ts.to + offset,
-			}));
-			offset += rawResult.insert.length;
-			return {
-				insert: rawResult.insert,
-				tabstops: offsetTabstops,
-			}
-		});
-		return {
-			insert: result.insert + childrenResults.map((r) => r.insert).join(""),
-			tabstops: [...result.tabstops, ...childrenResults.flatMap((r) => r.tabstops)],
-		}
-	}
 
-	private applySingularInsert(options: Options): ResultInsert {
+	applyInsert(options: Options): ResultInsert {
 		if (typeof this.insert === "string") {
 			return { insert: this.insert, tabstops: this.tabstops };
 		}
@@ -167,15 +146,53 @@ export class SnippetNode extends BaseNode {
 	}
 }
 
+export class VisualSnippetNode extends BaseNode {
+	
+	constructor(public snippet: string) {
+		super((options) =>
+			new SnippetNode(this.expandVisual(options.captures)).parseSnippet(
+				options.captures,
+			),
+		);
+	}
+	
+	expandVisual(captures: Captures): string {
+		const pattern = VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER	
+		if (!captures.groups[pattern]) {
+			throw new Error(`VisualSnippetNode requires the presence of a capture group named ${pattern} to indicate the position of the visual selection`);
+		}
+		return this.snippet.replace(pattern, captures.groups[pattern])
+	}
+}
 export class SnippetTabstopOnlyNode extends BaseNode {
 	constructor(snippet: string) {
 		super(() => new SnippetNode(snippet).parseSnippet({match: [], groups: {}}));
 	}
 }
 
-export class ArrayNode extends BaseNode {
-	constructor(children: BaseNode[]) {
-		super("", [], children);
+export class ArrayNode {
+	constructor(private children: BaseNode[]) {
+	}
+	
+	applyInsert(options: Options): ResultInsert {
+		let offset = 0;
+		const childrenResults = this.children.map((node) => {
+			const rawResult = node.applyInsert(options);
+			const offsetTabstops = rawResult.tabstops.map((ts) => ({
+				...ts,
+				from: ts.from + offset,
+				to: ts.to + offset,
+			}));
+			offset += rawResult.insert.length;
+			return {
+				insert: rawResult.insert,
+				tabstops: offsetTabstops,
+			}
+		});
+		return {
+			insert: childrenResults.map((r) => r.insert).join(""),
+			tabstops: childrenResults.flatMap((r) => r.tabstops),
+		}
 	}
 }
 

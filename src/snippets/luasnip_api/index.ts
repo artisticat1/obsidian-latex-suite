@@ -1,17 +1,12 @@
 import { SnippetVariables } from "../parse";
-import { ArrayNode, BaseNode, SnippetNode, TabstopNode, TextNode } from "./node";
+import { TabstopNode, TextNode } from "./node";
 
-
-function array_node(nodes: BaseNode[]) {
-	return new ArrayNode(nodes)
-}
+// For now SnippetNode, VisualSnippetNode and ArrayNode remain internal api only,
+// as I am not sure how bug proof it would be/how intuitif.
+// And its not really needed as they are just shortcuts of using tabstop and text nodes + a function.
 
 function tabstop_node(index: number, insert: string = "") {
 	return new TabstopNode(index, insert);
-}
-
-function snippet_node(snippet: string) {
-	return new SnippetNode(snippet)
 }
 
 function text_node(text: string) {
@@ -20,10 +15,8 @@ function text_node(text: string) {
 
 export const api = (snippetVariables: SnippetVariables) => {
 	return {
-		snippetVariables: snippetVariables,
-		array_node,
+		snippetVariables,
 		tabstop_node,
-		snippet_node,
 		text_node
 	}
 }
