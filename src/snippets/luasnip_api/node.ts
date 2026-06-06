@@ -176,7 +176,7 @@ export class VisualSnippetNode extends BaseNode {
 	constructor(public snippet: string) {
 		super((options) =>
 			new SnippetStringNode(this.expandVisual(options.captures)).parseSnippet(
-				options.captures,
+				{match: [], groups: {}},
 			),
 		);
 	}

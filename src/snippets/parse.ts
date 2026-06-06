@@ -5,7 +5,7 @@ import { sortSnippets } from "./sort";
 import { EXCLUSIONS, Environment } from "./environment";
 import { Platform } from "obsidian";
 import { api } from "./luasnip_api";
-import { ArrayNode, BaseNode, SnippetStringNode } from "./luasnip_api/node";
+import { ArrayNode, BaseNode, SnippetStringNode, SnippetTabstopOnlyNode, VisualSnippetNode } from "./luasnip_api/node";
 
 export type SnippetVariables = Record<string, string>;
 
@@ -179,15 +179,15 @@ function validateRawSnippets(snippets: unknown): RawSnippet[] {
  */
 function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snippet {
 	const { replacement: replacementRaw, priority, description, excludedEnvs: userExcludedEnvironments } = raw;
-	const replacement =
-		typeof raw.replacement === "string"
-			? new ArrayNode([new SnippetStringNode(raw.replacement)])
-			: raw.replacement;
 	const options = Options.fromSource(raw.options, raw.language);
 	const triggerKey = parseKeyName(raw.triggerKey);
 
 	// we have a regex snippet
 	if (options.regex || raw.trigger instanceof RegExp) {
+		const replacement =
+			typeof raw.replacement === "string"
+				? new ArrayNode([new SnippetStringNode(raw.replacement)])
+				: raw.replacement;
 		let triggerStr: string;
 		let triggerAfterStr: string | undefined;
 		// normalize flags to a string
@@ -269,12 +269,21 @@ function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snip
 			options.visual = true;
 		}
 
-		const normalised = { trigger, replacement, options, priority, description, excludedEnvironments, triggerKey, triggerAfter };
 
 		if (options.visual) {
+			const replacement =
+				typeof raw.replacement === "string"
+					? new ArrayNode([new VisualSnippetNode(raw.replacement)])
+					: raw.replacement;
+			const normalised = { trigger, replacement, options, priority, description, excludedEnvironments, triggerKey, triggerAfter };
 			return new VisualSnippet(normalised);
 		}
 		else {
+			const replacement =
+				typeof raw.replacement === "string"
+					? new ArrayNode([new SnippetTabstopOnlyNode(raw.replacement)])
+					: raw.replacement;
+			const normalised = { trigger, replacement, options, priority, description, excludedEnvironments, triggerKey, triggerAfter };
 			return new StringSnippet(normalised);
 		}
 	}

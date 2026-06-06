@@ -143,7 +143,7 @@ export class VisualSnippet extends Snippet<"visual"> {
 
 		const triggerPos = range.from;
 		let replacement: ResultInsert;
-		const captures = { match: [], groups: { VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER: sel} };
+		const captures = { match: [], groups: { [VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER]: sel } };
 		const options: InsertOptions = { captures };
 		if (this.replacement instanceof ArrayNode) {
 			replacement = this.replacement.applyInsert(options);
