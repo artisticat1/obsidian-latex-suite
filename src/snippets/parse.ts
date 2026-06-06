@@ -1,4 +1,4 @@
-import { optional, object, string as string_, union, parse, number, InferOutput as Output, custom, instance } from "valibot";
+import { optional, object, string as string_, union, parse, number, InferOutput as Output, custom, instance, array, pipe, transform } from "valibot";
 import { RegexSnippet, serializeSnippetLike, Snippet, StringSnippet, VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER, VisualSnippet } from "./snippets";
 import { Options } from "./options";
 import { sortSnippets } from "./sort";
@@ -98,6 +98,25 @@ const RawSnippetSchema = object({
 	description: optional(string_(), "no description provided"),
 	triggerKey: optional(string_(), ""),
 	language: optional(string_()),
+	excludedEnvs: pipe(
+		optional(
+			object({
+				matrix: optional(array(string_()), []),
+				macros: optional(array(string_()), []),
+			}),
+			{},
+		),
+		transform(({ matrix, macros }): Environment[] => [
+			...matrix.map((env) => ({
+				openSymbol: `\\begin{${env}}`,
+				closeSymbol: `\\end{${env}}`,
+			})),
+			...macros.map((env) => ({
+				openSymbol: `\\${env}{`,
+				closeSymbol: "}",
+			})),
+		]),
+	),
 });
 
 type RawSnippet = Output<typeof RawSnippetSchema>;
@@ -125,9 +144,8 @@ function validateRawSnippets(snippets: unknown): RawSnippet[] {
  * - if it is a regex snippet, the trigger is represented as a RegExp instance with flags set
  */
 function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snippet {
-	const { replacement, priority, description } = raw;
+	const { replacement, priority, description, excludedEnvs: userExcludedEnvironments } = raw;
 	const options = Options.fromSource(raw.options, raw.language);
-	let excludedEnvironments;
 	const triggerKey = parseKeyName(raw.triggerKey);
 
 	// we have a regex snippet
@@ -161,7 +179,7 @@ function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snip
 		triggerAfterStr = triggerAfterStr && insertSnippetVariables(triggerAfterStr, snippetVariables);
 
 		// get excluded environment(s) for this trigger, if any
-		excludedEnvironments = getExcludedEnvironments(triggerStr);
+		const excludedEnvironments = [...getExcludedEnvironments(triggerStr), ...userExcludedEnvironments];
 
 		// Add $ so regex matches end of string
 		// i.e. look for a match at the cursor's current position
@@ -206,7 +224,7 @@ function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snip
 		}
 
 		// get excluded environment(s) for this trigger, if any
-		excludedEnvironments = getExcludedEnvironments(trigger);
+		const excludedEnvironments = [...getExcludedEnvironments(trigger), ...userExcludedEnvironments];
 
 		// normalize visual replacements
 		if (typeof replacement === "string" && replacement.includes(VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER)) {

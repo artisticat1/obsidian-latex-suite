@@ -172,6 +172,7 @@ Snippets can be edited in the plugin settings. The structure of a snippet is as 
   flags?: string,
   triggerKey?: string,
   language?: string,
+  excludedEnvs?: { matrix?: string[], macros?: string[]}
 }
 ```
 
@@ -184,7 +185,8 @@ Snippets can be edited in the plugin settings. The structure of a snippet is as 
 - `description` (optional): A description for this snippet.
 - `flags` (optional): Flags for regex snippets.
 - `triggerKey` (optional): Shortcut for snippets.
-- `language` (optional): code language for snippets.
+- `language` (optional): Code language for snippets.
+- `excludedEnvs` (optional): Environments to exclude this snippet.
 
 
 #### Options
@@ -198,6 +200,7 @@ Snippets can be edited in the plugin settings. The structure of a snippet is as 
 - `w` : Word boundary. Only run this snippet when the trigger is preceded (and followed by) a word delimiter, such as `.`, `,`, or `-`.
 - `c` : Code mode. Only run this snippet inside a ```` ``` ... ``` ```` block
 - `U`: Skip undo. When an automatic snippet expands, pressing undo returns to the state before the trigger key was typed, instead of first removing the snippet and reinserting that key.
+- `C` : Inline code mode. Only run this snippet inside a `` ` ... ` `` block
 
 Insert **tabstops** for the cursor to jump to by writing "$0", "$1", etc. in the `replacement`.
 

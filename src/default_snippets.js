@@ -238,6 +238,8 @@ export default [
 
     // Derivatives and integrals
     {trigger: "par", replacement: "\\frac{ \\partial ${0:y} }{ \\partial ${1:x} } $2", options: "m"},
+    {trigger: /par([0-9])/, replacement: "\\frac{ \\partial^{[[0]]} ${0:y} }{ \\partial ${1:x}^{[[0]]} } $2", options: "mA"},
+    {trigger: /parn/, replacement: "\\frac{ \\partial^{${0:n}} ${1:y} }{ \\partial ${2:x}^{${0:n}} } $2", options: "mA"},
     {trigger: /pa([A-Za-z])([A-Za-z])/, replacement: "\\frac{ \\partial [[0]] }{ \\partial [[1]] } ", options: "rm"},
     {trigger: "ddt", replacement: "\\frac{d}{dt} ", options: "mA"},
 

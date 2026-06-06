@@ -12,6 +12,7 @@
   flags?: string = "",
   triggerKey?: string = "",
   language?: string,
+  excludedEnvs?: { matrix?: string[], macros?: string[] }
 }
 ```
 
@@ -30,6 +31,7 @@
   - Empty strings are ignored and both the `triggerKey` and `trigger` need to match (`trigger` can be an empty string making it a hotkey). See #439 for examples and a snippet to add a snippet as an hotkey.
   - No other shortcut such as obsidians hotkeys, vims keymaps or other plugins can have used the shortcut before this plugin. For example `Ctrl-o` by default will open quick switcher and thus won't as a `triggerKey`.
 - `language` (optional): Which code language to expand this in. Needs to match the text after <code>```</code> exactly.
+- `excludedEnvs` (optional): Which macros\commands names and matrix names to skip expansion in. Could be usefull for commands such as `ce` and `pu`.
 
 ### Options
 - `t` : Text mode. Only run this snippet outside math
@@ -44,6 +46,7 @@
 	- Languages using `$` as part of their syntax won't trigger math mode while in their codeblock
 	- The `math` language from https://github.com/ocapraro/obsidian-math-plus doesn't trigger code mode, but block math mode instead
 - `U`: Skip undo. When an automatic snippet expands, undo returns the editor to the state before the triggering key was typed, instead of restoring that key.
+- `C` : Inline code mode. Only run this snippet inside a `` ` ... ` `` block
 
 Multiple options can be used at once. As an exception, regex and visual are mutually exclusive.
 
