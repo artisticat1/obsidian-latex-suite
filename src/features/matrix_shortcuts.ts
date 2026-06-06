@@ -55,8 +55,12 @@ const matrixShortcutsRunner = (shortcut: (view: EditorView, bounds?: Bounds) => 
 		openSymbol: "\\begin{" + envName + "}",
 		closeSymbol: "\\end{" + envName + "}",
 	}));
+	const macros = settings.matrixShortcutsMacroNames.map((macroName) => ({
+		openSymbol: "\\" + macroName + "{",
+		closeSymbol: "}",
+	}));
 	// Check whether we are inside a matrix / align / case environment
-	const envBounds = ctx.isWithinEnvironment(ctx.pos, envs);
+	const envBounds = ctx.isWithinEnvironment(ctx.pos, [...envs, ...macros]);
 	if (!envBounds) return false;
 	return shortcut(view, envBounds);
 }
