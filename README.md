@@ -172,6 +172,7 @@ Snippets can be edited in the plugin settings. The structure of a snippet is as 
   flags?: string,
   triggerKey?: string,
   language?: string,
+  excludedEnvs?: { matrix?: string[], macros?: string[]}
 }
 ```
 
@@ -184,7 +185,8 @@ Snippets can be edited in the plugin settings. The structure of a snippet is as 
 - `description` (optional): A description for this snippet.
 - `flags` (optional): Flags for regex snippets.
 - `triggerKey` (optional): Shortcut for snippets.
-- `language` (optional): code language for snippets.
+- `language` (optional): Code language for snippets.
+- `excludedEnvs` (optional): Environments to exclude this snippet.
 
 
 #### Options
