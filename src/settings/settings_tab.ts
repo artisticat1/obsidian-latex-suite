@@ -430,6 +430,16 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 					await this.plugin.saveSettings();
 				}));
+		
+		new Setting(containerEl)
+			.setName("Space")
+			.setDesc("Whether to add a space after \\left( and before \\right) or not")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.autoEnlargeBracketsSpace)
+				.onChange(async (value) => {
+					this.plugin.settings.autoEnlargeBracketsSpace = value;
+					await this.plugin.saveSettings();
+				}))
 	}
 
 	private displayAdvancedSnippetSettings() {
