@@ -156,9 +156,13 @@ const snippetShouldRunInMode = (options: Options, mode: Mode) => {
 		return true;
 	}
 	if (
-		(options.mode.code === mode.code && mode.code !== false) ||
-		(options.mode.code === true && mode.code !== false)
+		(options.mode.codeBlock === mode.codeBlock && mode.codeBlock !== false) ||
+		(options.mode.codeBlock === true && mode.codeBlock !== false)
 	) {
+		return true;
+	}
+	
+	if (options.mode.code && mode.code) {
 		return true;
 	}
 }
