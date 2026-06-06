@@ -261,6 +261,7 @@ export const getContextPlugin = (view: EditorView, init: boolean = true): Contex
 enum MathMode {
 	InlineMath,
 	BlockMath,
+	CodeMath
 }
 
 // Accounts for equations within text environments, e.g. $$\text{... $...$}$$
@@ -358,9 +359,7 @@ const langIfWithinCodeblock = (
 
 	// extract the language
 	// codeblocks may start and end with an arbitrary number of backticks
-	const language = state
-		.sliceDoc(codeblockBegin.from, codeblockBegin.to)
-		.replace(/`+|~+/g, "")
+	const language = getLangFromCodeblockNode(state, codeblockBegin);
 
 	return {
 		inner_start: codeblockBegin.to,
@@ -369,6 +368,10 @@ const langIfWithinCodeblock = (
 		outer_end: codeblockEnd.to,
 		codeblockLanguage: language,
 	};
+}
+
+function getLangFromCodeblockNode(state: EditorState, node: SyntaxNode): string {
+	return state.sliceDoc(node.from, node.to).replace(/`+|~+/g, "").split(" ")[0];
 }
 
 const withingCode = (state: EditorState): boolean => {
@@ -417,11 +420,13 @@ export const mathBoundsPlugin = ViewPlugin.fromClass(
 					from,
 					to,
 					enter: (node: SyntaxNodeRef) => {
+						const opening = open_math_nodes.has(node.name) || node.name === OPEN_CODEBLOCK_NODE;
+						const closing = close_math_nodes.has(node.name) || node.name === CLOSE_CODEBLOCK_NODE;
+						if (!opening && !closing) return;
 						// Don't include math nodes at the boundaries as in livepreview it means they are not rendered.
 						if (
-							(open_math_nodes.has(node.name) && node.to < to) ||
-							(close_math_nodes.has(node.name) &&
-								node.from > from)
+							(opening && node.to < to) ||
+							(closing && node.from > from)
 						) {
 							math_nodes_viewports[i].push(node.node);
 						}
@@ -438,22 +443,36 @@ export const mathBoundsPlugin = ViewPlugin.fromClass(
 						temp_math_bounds.push(bounds);
 					}
 				}
-				const start_i = open_math_nodes.has(math_nodes_viewport[0]?.name)
+				const first_node_name = math_nodes_viewport[0]?.name;
+				const start_i = !(close_math_nodes.has(first_node_name) || first_node_name === CLOSE_CODEBLOCK_NODE)
 					? 0
 					: 1;
 				for (let i = start_i; i < math_nodes_viewport.length - 1; i += 2) {
 					const open_node = math_nodes_viewport[i];
 					const close_node = math_nodes_viewport[i + 1];
-					temp_math_bounds.push({
-						inner_start: open_node.to,
-						inner_end: close_node.from,
-						outer_start: open_node.from,
-						outer_end: close_node.to,
-						mode:
-							open_node.name === OPEN_INLINE_MATH_NODE
-								? MathMode.InlineMath
-								: MathMode.BlockMath,
-					});
+					if (open_math_nodes.has(open_node.name)) {
+						temp_math_bounds.push({
+							inner_start: open_node.to,
+							inner_end: close_node.from,
+							outer_start: open_node.from,
+							outer_end: close_node.to,
+							mode:
+								open_node.name === OPEN_INLINE_MATH_NODE
+									? MathMode.InlineMath
+									: MathMode.BlockMath,
+						});
+					} else if (open_node.name === OPEN_CODEBLOCK_NODE) {
+						const lang = getLangFromCodeblockNode(view.state, open_node);
+						if (getLatexSuiteConfig(view.state).forceMathLanguages.contains(lang)) {
+							temp_math_bounds.push({
+								inner_start: open_node.to,
+								inner_end: close_node.from,
+								outer_start: open_node.from,
+								outer_end: close_node.to,
+								mode: MathMode.CodeMath,
+							});
+						}
+					}
 				}
 				
 				if (
