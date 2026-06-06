@@ -14,8 +14,8 @@ export function expandSnippets(view: EditorView):boolean {
 
 	// Try to apply changes all at once, because `view.dispatch` gets expensive for large documents
 	const undoChanges = handleUndoKeypresses(view, snippetsToExpand);
+	const snippetChangeSpecs = snippetsToExpand.map(s => s.toChangeSpec());
 	const newSnippets = snippetsToExpand.map(s => s.applyChange(undoChanges));
-	const snippetChangeSpecs = newSnippets.map(s => s.toChangeSpec());
 	
 	const finalChanges = undoChanges.compose(ChangeSet.of(snippetChangeSpecs, undoChanges.newLength));
 

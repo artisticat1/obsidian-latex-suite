@@ -124,7 +124,7 @@ const RawSnippetSchema = object({
 			array(instance(BaseNode)),
 			transform((nodes) => new ArrayNode(nodes)),
 		),
-		custom<AnyFunction>((x) => typeof x === "function"),
+		custom<UnknownFunction>((x) => typeof x === "function"),
 	]),
 	options: string_(),
 	flags: optional(string_(), ""),
@@ -352,7 +352,4 @@ function normalizeKeyName(name: string) {
 	return result;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Fn<Args extends readonly any[], Ret> = (...args: Args) => Ret;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyFunction = Fn<any, any>;
+type UnknownFunction = (arg: unknown) => unknown

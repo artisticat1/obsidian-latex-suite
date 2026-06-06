@@ -146,6 +146,7 @@ export const autoEnlargeBrackets = (view: EditorView) => {
 				bracketContents.contains(word)
 			);
 			if (!containsTrigger) break;
+
 			const space = settings.autoEnlargeBracketsSpace ? " " : "";
 			const leftNode = new TextNode(left + openToken + space);
 			const rightNode = new TextNode(space + right + token);

@@ -1,7 +1,7 @@
 import { SelectionRange } from "@codemirror/state";
 import { Options } from "./options";
 import { Environment } from "./environment";
-import { BaseNode, ResultInsert, ArrayNode, SnippetTabstopOnlyNode, Options as InsertOptions } from "./luasnip_api/node";
+import { BaseNode, ResultInsert, ArrayNode, SnippetTabstopOnlyNode, Options as InsertOptions, emptyInsertOptions } from "./luasnip_api/node";
 import * as v from "valibot";
 
 /**
@@ -221,17 +221,20 @@ export class StringSnippet extends Snippet<"string"> {
 		const triggerEndPos = this.data.triggerAfter !== undefined
 			? effectiveLine.length + this.data.triggerAfter.length
 			: undefined;
-		const replacement = this.replacement instanceof ArrayNode
-			? this.replacement.applyInsert({ captures: { match: [], groups: {} } })
-			: {insert: this.replacement(this.trigger), tabstops: []}
+		let replacement: ResultInsert;
+		if (this.replacement instanceof ArrayNode) {
+			replacement = this.replacement.applyInsert(emptyInsertOptions)
+		} else {
+			const replacementTemp = convertOutputToNode(this.replacement(this.trigger))
 
-		// sanity check - if replacement was a function,
-		// we have no way to validate beforehand that it really does return a string
-		const {insert, tabstops} = replacement;
-		if (typeof insert !== "string") { return null; }
+			// sanity check - if replacement was a function,
+			// we have no way to validate beforehand that it really does return a string
+			if (replacementTemp === null) { return null; }
+			replacement = replacementTemp.applyInsert(emptyInsertOptions)
+		}
 
-		const verifiedReplacement: ResultInsert = { insert, tabstops };
-		return { triggerPos, replacement: verifiedReplacement, triggerEndPos };
+
+		return { triggerPos, replacement, triggerEndPos };
 	}
 }
 
