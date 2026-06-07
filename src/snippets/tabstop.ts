@@ -7,9 +7,16 @@ import { createElement } from "src/editor_extensions/obsidian_utils";
 const LATEX_SUITE_TABSTOP_DECO_CLASS = "latex-suite-snippet-placeholder";
 
 export interface TabstopSpec {
-    index: number,
+	/** index is an array such that tabstops can have "children" allowing for easier management when creating. */
+    index: number[],
     from: number,
     to: number,
+}
+
+type TabstopGroupSpec = {
+	index: number,
+	from: number,
+	to: number
 }
 
 function getMarkerDecoration(from: number, to: number, color: number) {
@@ -30,7 +37,7 @@ export class TabstopGroup {
     color: number;
     hidden: boolean;
 
-    constructor(tabstopSpecs: TabstopSpec[], color: number) {
+    constructor(tabstopSpecs: TabstopGroupSpec[], color: number) {
         const decos = tabstopSpecs.map(spec => getMarkerDecoration(spec.from, spec.to, color));
         this.decos = Decoration.set(decos, true);
         this.color = color;
@@ -123,10 +130,29 @@ export class TabstopGroup {
 }
 
 export function tabstopSpecsToTabstopGroups(tabstops: TabstopSpec[], color: number):TabstopGroup[] {
-    const tabstopsByNumber: {[n: string]: TabstopSpec[]} = {};
-
-    for (const tabstop of tabstops) {
-        const n = String(tabstop.index);
+    const tabstopsByNumber: TabstopGroupSpec[][] = [];
+	let currentIndex = 0;
+	// normalize indexes first
+	const sortedTabstops = tabstops.slice().sort((a,b) => {
+		for (let i = 0; i < Math.min(a.index.length, b.index.length); i++) {
+			if (a.index[i] != b.index[i]) {
+				return a.index[i] - b.index[i];
+			}
+		}
+		return a.index.length - b.index.length;
+	}).map((ts, i, arr) => {
+		if (i === 0) {
+			return {...ts, index: currentIndex};
+		}
+		const isEqualIndex =
+			ts.index.length === arr[i - 1].index.length &&
+			ts.index.every((value, index) => value === arr[i - 1].index[index]);
+		currentIndex += isEqualIndex ? 0 : 1;
+		return {...ts, index: currentIndex};
+	})
+	
+    for (const tabstop of sortedTabstops) {
+		const n = tabstop.index;
 
         if (tabstopsByNumber[n]) {
             tabstopsByNumber[n].push(tabstop);
@@ -137,10 +163,8 @@ export function tabstopSpecsToTabstopGroups(tabstops: TabstopSpec[], color: numb
 	}
 
     const result = [];
-    const numbers = Object.keys(tabstopsByNumber);
-    numbers.sort((a,b) => parseInt(a) - parseInt(b));
 
-    for (const number of numbers) {
+    for (let number = 0; number < tabstopsByNumber.length; number++) {
         const grp = new TabstopGroup(tabstopsByNumber[number], color);
         result.push(grp);
     }

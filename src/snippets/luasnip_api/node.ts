@@ -68,7 +68,7 @@ export class TextNode extends BaseNode {
 
 export class TabstopNode extends BaseNode {
 	constructor(index: number, insert: string = "") {
-		super(insert, [{index, from: 0, to: insert.length}]);
+		super(insert, [{index: [index], from: 0, to: insert.length}]);
 	}
 }
 
@@ -108,16 +108,14 @@ export class SnippetNode extends BaseNode {
 	
 	override applyInsert(options: Options): ResultInsert {
 		const result = new ArrayNode(this.nodes).applyInsert(options);
-		const super_tabstop = {index: this.index, from: 0, to: result.insert.length}
-		const normalizedTabstops = normalizeTabstops(result.tabstops.slice());
-		const max_index = normalizedTabstops.slice(-1)[0]?.index ?? 0;
-		const final_result = {
+		const super_tabstop = {index: [this.index], from: 0, to: result.insert.length}
+		const final_result: ResultInsert = {
 			insert: result.insert,
 			tabstops: [
 				super_tabstop,
-				...normalizedTabstops.map((ts) => ({
+				...result.tabstops.map((ts) => ({
 					...ts,
-					index: (ts.index + 1) / (max_index + 1) + this.index,
+					index: [this.index, ...ts.index],
 				})),
 			],
 		};
@@ -205,28 +203,7 @@ export class ArrayNode {
 	constructor(private children: BaseNode[]) {}
 
 	applyInsert(options: Options): ResultInsert {
-		const result = new BaseNode(() => this.children).applyInsert(options);
-		return {
-			insert: result.insert,
-			tabstops: normalizeTabstops(result.tabstops.slice()),
-		}
+		return new BaseNode(() => this.children).applyInsert(options);
 	}
 
-}
-
-
-function normalizeTabstops(tabstops: TabstopSpec[]): TabstopSpec[] {
-	tabstops.sort((a, b) => a.index - b.index);
-	let currentIndex = 0;
-	return tabstops.map((ts, i, arr) => {
-		if (i === 0) {
-			currentIndex = 0;
-			return { ...ts, index: currentIndex };
-		} else if (ts.index === arr[i - 1].index) {
-			return { ...ts, index: currentIndex };
-		} else {
-			currentIndex += 1;
-			return { ...ts, index: currentIndex };
-		}
-	});
 }
