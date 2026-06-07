@@ -165,7 +165,7 @@ Snippets can be edited in the plugin settings. The structure of a snippet is as 
 ```typescript
 {
   trigger: string | RegExp,
-  replacement: string,
+  replacement: string | BaseNode[],
   options: string,
   priority?: number,
   description?: string,
@@ -179,7 +179,7 @@ Snippets can be edited in the plugin settings. The structure of a snippet is as 
 - `trigger` : The text that triggers this snippet.
   - Triggers can also be regular expressions. [See here for more info.](./DOCS.md#regex-snippets)
 - `replacement` : The text to replace the `trigger` with.
-  - Replacements can also be JavaScript functions. [See here for more info.](./DOCS.md#function-snippets)
+  - Replacements can also be [JavaScript functions](./DOCS.md#function-snippets) or [Nodes](./DOCS.md#Nodes).
 - `options` : See below.
 - `priority` (optional): This snippet's priority. Snippets with higher priority are run first. Can be negative. Defaults to 0.
 - `description` (optional): A description for this snippet.

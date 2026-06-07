@@ -18,8 +18,8 @@ function text_node(text: string) {
  * @param captureName key or number
  * @returns node that inserts the captured node
  */
-function capture_node(captureName: string | number) {
-	return new CaptureNode(captureName);
+function capture_node(captureName: string | number, defaultValue: string="") {
+	return new CaptureNode(captureName, defaultValue);
 }
 
 export const api = (snippetVariables: SnippetVariables) => {

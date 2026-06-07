@@ -8,12 +8,15 @@ import { clearSnippetQueue, getSnippetQueue } from "./codemirror/snippet_queue_s
 import { SnippetChangeSpec } from "./codemirror/snippet_change_spec";
 import { resetCursorBlink } from "src/utils/editor_utils";
 
+// this function and the functions it calls are a bit too statefull
+// its use as few dispatches as possible, but probably can be simplified.
 export function expandSnippets(view: EditorView):boolean {
 	const snippetsToExpand = getSnippetQueue(view).snippetQueueValue;
 	if (snippetsToExpand.length === 0) return false;
 
 	// Try to apply changes all at once, because `view.dispatch` gets expensive for large documents
 	const undoChanges = handleUndoKeypresses(view, snippetsToExpand);
+	// apply the changes to the changespec and the tabstops before retrieving
 	const snippetChangeSpecs = snippetsToExpand.map(s => s.toChangeSpec());
 	const newSnippets = snippetsToExpand.map(s => s.applyChange(undoChanges));
 	

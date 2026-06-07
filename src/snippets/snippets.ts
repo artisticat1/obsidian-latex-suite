@@ -221,18 +221,18 @@ export class StringSnippet extends Snippet<"string"> {
 		const triggerEndPos = this.data.triggerAfter !== undefined
 			? effectiveLine.length + this.data.triggerAfter.length
 			: undefined;
+		const options: InsertOptions = { captures: { match: [this.trigger], groups: {} } };
 		let replacement: ResultInsert;
 		if (this.replacement instanceof ArrayNode) {
-			replacement = this.replacement.applyInsert(emptyInsertOptions)
+			replacement = this.replacement.applyInsert(options)
 		} else {
 			const replacementTemp = convertOutputToNode(this.replacement(this.trigger))
 
 			// sanity check - if replacement was a function,
 			// we have no way to validate beforehand that it really does return a string
 			if (replacementTemp === null) { return null; }
-			replacement = replacementTemp.applyInsert(emptyInsertOptions)
+			replacement = replacementTemp.applyInsert(options)
 		}
-
 
 		return { triggerPos, replacement, triggerEndPos };
 	}

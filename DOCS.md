@@ -5,7 +5,7 @@
 ```typescript
 {
   trigger: string | RegExp,
-  replacement: string,
+  replacement: string | BaseNode[],
   options: string,
   priority?: number = 0,
   description?: string = "no description provided",
@@ -19,7 +19,7 @@
 - `trigger` : The text that triggers this snippet.
   - Triggers can also be regular expressions. See [regex snippets](#regex-snippets).
 - `replacement` : The text to replace the `trigger` with.
-  - Replacements can also be JavaScript functions. See [function snippets](#function-snippets).
+  - Replacements can also be JavaScript functions. See [function snippets](#function-snippets). Or created programmatically, see [nodes](#nodes).
 - `options` : See below.
 - `priority` (optional): This snippet's priority. Snippets with higher priority are run first. Can be negative. Defaults to 0.
 - `description` (optional): A description for this snippet.
@@ -240,6 +240,60 @@ In general, **function snippets** take the form
 based on which type of snippet the replacement applies to.
 
 If a snippet replacement function returns a non-string value, the snippet is ignored and will not expand.
+
+### Nodes
+
+Taking inspiration from [LuaSnip](https://github.com/L3MON4D3/LuaSnip) you can also create replacements programmaticaly with nodes.
+These functions can be imported as the following:
+
+```js
+const ls = require("latex-suite") // can also be used to import libraries like @codemirror/state 
+```
+
+where `ls` is of the following type:
+
+```ts
+type api = {
+	snippetVariables: Record<string,string>,
+	// if insert is empty then its just like $X otherwise ${X:insert}
+	tabstop_node: (index: number, insert: string="") => BaseNode,
+	text_node: (text: string) => BaseNode,
+	// The key to extract regex groups or named groups, replaces [[X]].
+	// ${VISUAL} is used for the selection in visual snippets and 0 for the trigger in normal snippets
+	// default is used, if the key isn't defiend.
+	capture_node: (key: string | number, defaultValue: string = "") => BaseNode,
+}
+```
+
+#### Example
+
+To turn a simple equation from `1+1` to `$1+1=2$`, you can create the following snippet
+
+```ts
+const ls = require("latex-suite")
+const snippet = {
+	trigger: /(\d+)\+(\d+)/, 
+	replacement: (match) => [ls.text_node(`$${match[0]}+${match[1]}=${parseInt(match[0]) + parseInt(match[1])}$`)],
+	options: "t",
+}
+```
+
+Or when the visual selection should be copied as is
+
+```ts
+const ls = require("latex-suite")
+const fraction = {
+	trigger: "/",
+	replacement: [
+		ls.text_node("\\frac{"),
+		ls.capture_node("${VISUAL}"),
+		ls.text_node("}{"),
+		ls.tabstop_node(0),
+		ls.text_node("}")
+	],
+	options: "mv",
+}
+```
 
 ### IME keyboards
 By defaults snippets won't automatically expand for [Input Method Editor](https://en.wikipedia.org/wiki/Input_method)(IME) keyboards when they are in the middle of a composition because of `Advanced Settings > Don't trigger snippets when IME is active`. Keyboards like gboard are almost always in composition, making automatic unusable. Currently there is only support for keyboards like gboard, so turning that setting off will enable all automatic snippets. But due to the way french/german/chinese keyboards behave, there will still be automatic snippets that don't work (like `trigger: "^"`) when this setting is turned off. 

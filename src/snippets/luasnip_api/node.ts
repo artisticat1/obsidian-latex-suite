@@ -1,4 +1,5 @@
 import { VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER } from "../snippets"
+import { TabstopSpec } from "../tabstop"
 
 type Captures = {match: string[], groups: Record<string, string>}
 
@@ -9,16 +10,15 @@ export const emptyInsertOptions: Options = {
 	captures: {match: [], groups: {}},
 }
 
-type Tabstop = {index: number, from: number, to: number}
 export type ResultInsert = {
 	insert: string;
-	tabstops: readonly Tabstop[]
+	tabstops: readonly TabstopSpec[]
 }
 
 export class BaseNode {
 	constructor(
 		public insert: string | ((context: Options) => string | BaseNode[]),
-		public tabstops: readonly Tabstop[] = [],
+		public tabstops: readonly TabstopSpec[] = [],
 	) {}
 	
 
@@ -57,6 +57,7 @@ export class BaseNode {
 		const tabstops = tabstopResults.flatMap((r) => r.tabstops);
 		return { insert, tabstops };
 	}
+	
 }
 
 export class TextNode extends BaseNode {
@@ -72,11 +73,11 @@ export class TabstopNode extends BaseNode {
 }
 
 export class CaptureNode extends BaseNode {
-	constructor(key: number | string) {
+	constructor(key: number | string, defaultValue: string = "") {
 		if (typeof key === "number") {
-			super(({captures}) => captures.match[key]);
+			super(({captures}) => captures.match[key] ?? defaultValue);
 		} else if (typeof key === "string") {
-			super(({captures}) => captures.groups[key]);
+			super(({captures}) => captures.groups[key] ?? defaultValue);
 		}
 	}
 }
@@ -108,14 +109,18 @@ export class SnippetNode extends BaseNode {
 	override applyInsert(options: Options): ResultInsert {
 		const result = new ArrayNode(this.nodes).applyInsert(options);
 		const super_tabstop = {index: this.index, from: 0, to: result.insert.length}
+		const normalizedTabstops = normalizeTabstops(result.tabstops.slice());
+		const max_index = normalizedTabstops.slice(-1)[0]?.index ?? 0;
 		const final_result = {
 			insert: result.insert,
-			tabstops: [super_tabstop, ...result.tabstops.map((ts) => ({
-				...ts,
-				index: (ts.index+1)/10 + this.index,
-			}))],
-		}
-		console.debug("115",final_result.tabstops.map(ts => ts.index))
+			tabstops: [
+				super_tabstop,
+				...normalizedTabstops.map((ts) => ({
+					...ts,
+					index: (ts.index + 1) / (max_index + 1) + this.index,
+				})),
+			],
+		};
 		return final_result
 	}
 }
@@ -195,46 +200,33 @@ export class SnippetTabstopOnlyNode extends BaseNode {
 	}
 }
 
+// Discourage to nest array nodes this way and a way to normalize tabstops indexes at the end.
 export class ArrayNode {
-	constructor(private children: BaseNode[]) {
-	}
-	
+	constructor(private children: BaseNode[]) {}
+
 	applyInsert(options: Options): ResultInsert {
-		let offset = 0;
-		const childrenResults = this.children.map((node) => {
-			const rawResult = node.applyInsert(options);
-			const offsetTabstops = rawResult.tabstops.map((ts) => ({
-				...ts,
-				from: ts.from + offset,
-				to: ts.to + offset,
-			}));
-			offset += rawResult.insert.length;
-			return {
-				insert: rawResult.insert,
-				tabstops: offsetTabstops,
-			}
-		});
-		let current = 0;
-		const normalizedTabstops = childrenResults
-			.flatMap((r) => r.tabstops)
-			.sort((a, b) => a.index - b.index)
-			.map((ts, i, arr) => {
-				if (i === 0) {
-					current = 0
-					return {...ts, index: current};
-				} else if (ts.index === arr[i-1].index) {
-					return {...ts, index: current};
-				} else {
-					current += 1;
-					return {...ts, index: current};
-				}
-			})
-		
-		console.debug(normalizedTabstops.map(ts => ts.index))
+		const result = new BaseNode(() => this.children).applyInsert(options);
 		return {
-			insert: childrenResults.map((r) => r.insert).join(""),
-			tabstops: normalizedTabstops,
+			insert: result.insert,
+			tabstops: normalizeTabstops(result.tabstops.slice()),
 		}
 	}
+
 }
 
+
+function normalizeTabstops(tabstops: TabstopSpec[]): TabstopSpec[] {
+	tabstops.sort((a, b) => a.index - b.index);
+	let currentIndex = 0;
+	return tabstops.map((ts, i, arr) => {
+		if (i === 0) {
+			currentIndex = 0;
+			return { ...ts, index: currentIndex };
+		} else if (ts.index === arr[i - 1].index) {
+			return { ...ts, index: currentIndex };
+		} else {
+			currentIndex += 1;
+			return { ...ts, index: currentIndex };
+		}
+	});
+}
