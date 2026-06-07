@@ -1,4 +1,4 @@
-import { ChangeDesc, EditorSelection, SelectionRange } from "@codemirror/state";
+import { ChangeDesc, EditorSelection, SelectionRange, Range } from "@codemirror/state";
 import { Decoration, DecorationSet, EditorView, WidgetType } from "@codemirror/view";
 import { resetCursorBlink } from "src/utils/editor_utils";
 import { endSnippet } from "./codemirror/history";
@@ -22,7 +22,14 @@ type TabstopGroupSpec = {
 function getMarkerDecoration(from: number, to: number, color: number) {
     const className = `${LATEX_SUITE_TABSTOP_DECO_CLASS} ${LATEX_SUITE_TABSTOP_DECO_CLASS}-${color}`;
 	if (from === to) {
-		return FieldMarker.range(from, to);
+		const marker = Decoration.mark({
+			inclusive: true,
+			color: color,
+			class: className,
+		})
+		// technically this is a widget decoration but the range should be behaving like a mark 
+		// and thus increase in size when text is inserted
+		return Decoration.prototype.range.call(marker, from, to) as Range<Decoration>
 	} else {
 		return Decoration.mark({
 			inclusive: true,
@@ -179,6 +186,7 @@ export function getEditorSelectionEndpoints(sel: EditorSelection) {
 }
 
 const FieldMarker = Decoration.widget({widget: new class extends WidgetType {
+
 		toDOM() {
 			const span = createElement("span");
 			span.className = "cm-snippetFieldPosition";
