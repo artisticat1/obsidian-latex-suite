@@ -19,7 +19,7 @@ function importModule(source: string, identifier: string): Promise<object> {
 	return result;
 }
 
-async function importRaw(module: string, identifier: string): Promise<unknown> {
+export async function importRaw(module: string, identifier: string): Promise<unknown> {
 	let data: object;
 	try {
 		data = await importModule(module, identifier);

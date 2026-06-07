@@ -183,6 +183,33 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					}
 				})
 			);
+		
+		const concealMappingFileLocDesc = new DocumentFragment();
+		concealMappingFileLocDesc.createDiv({}, (div) => {
+			div.appendText("The file or folder to load snippet variables from. The file or folder must be within your vault, and not within a hidden folder (such as ")
+			div.createEl("code", { text: `.obsidian${""}/` });
+			div.appendText(").")
+		});
+
+		const concealMappingFileLoc = new Setting(containerEl)
+			.setName("Snippet variables file or folder location")
+			.setDesc(concealMappingFileLocDesc);
+
+
+		concealMappingFileLoc.addSearch(component => {
+			component
+				.setPlaceholder(DEFAULT_SETTINGS.concealMappingFileLocation)
+				.setValue(this.plugin.settings.concealMappingFileLocation)
+				.onChange(debounce(async (value) => {
+					this.plugin.settings.concealMappingFileLocation = value;
+					await this.plugin.saveSettings(true);
+				}, 500, true));
+
+			const inputVariablesEl = component.inputEl;
+			inputVariablesEl.addClass("latex-suite-location-input-el");
+			new FileSuggest(this.app, inputVariablesEl);
+		}
+		);
 
 	}
 
