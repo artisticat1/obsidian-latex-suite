@@ -405,10 +405,6 @@ export const specializeCtrlSeq = (name: string, terms: string) => {
 }
 
 const tabularEnvNames = new Set([
-  'tabular',
-  'xltabular',
-  'tabularx',
-  'longtable',
 ])
 
 const equationEnvNames = new Set([
@@ -421,7 +417,6 @@ const equationEnvNames = new Set([
   'multline',
   'multline*',
   'matrix',
-  'tikzcd',
 ])
 
 const equationArrayEnvNames = new Set([
@@ -462,22 +457,11 @@ const equationArrayEnvNames = new Set([
   'dcases*',
   'rcases',
   'rcases*',
-  'IEEEeqnarray',
   'IEEEeqnarray*',
-  'subeqnarray',
   'subeqnarray*',
 ])
 
 const verbatimEnvNames = new Set([
-  'verbatim',
-  'boxedverbatim',
-  'lstlisting',
-  'minted',
-  'Verbatim',
-  'lstlisting',
-  'tcblisting',
-  'codeexample',
-  'comment',
 ])
 
 const otherKnownEnvNames = {
