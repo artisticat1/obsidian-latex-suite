@@ -36,18 +36,14 @@ import {
   EquationEnvName,
   EquationArrayEnvName,
   VerbatimEnvName,
-  TikzPictureEnvName,
-  FigureEnvName,
   OpenParenCtrlSym,
   CloseParenCtrlSym,
   OpenBracketCtrlSym,
   CloseBracketCtrlSym,
   LineBreakCtrlSym,
-  ListEnvName,
   TextColorCtrlSeq,
   ColorBoxCtrlSeq,
   HLineCtrlSeq,
-  TableEnvName,
   ParBoxCtrlSeq,
   // Marker for end of argument lists
   endOfArguments,
@@ -411,9 +407,7 @@ const equationEnvNames = new Set([
   'equation',
   'equation*',
   'displaymath',
-  'displaymath*',
   'math',
-  'math*',
   'multline',
   'multline*',
   'matrix',
@@ -444,36 +438,21 @@ const equationArrayEnvNames = new Set([
   'smallmatrix',
   'smallmatrix*',
   'split',
-  'split*',
   'gathered',
-  'gathered*',
   'aligned',
-  'aligned*',
   'alignedat',
-  'alignedat*',
   'cases',
   'cases*',
   'dcases',
   'dcases*',
   'rcases',
   'rcases*',
-  'IEEEeqnarray*',
-  'subeqnarray*',
 ])
 
 const verbatimEnvNames = new Set([
 ])
 
 const otherKnownEnvNames = {
-  document: DocumentEnvName,
-  tikzpicture: TikzPictureEnvName,
-  figure: FigureEnvName,
-  'figure*': FigureEnvName,
-  subfigure: FigureEnvName,
-  enumerate: ListEnvName,
-  itemize: ListEnvName,
-  table: TableEnvName,
-  description: ListEnvName,
 }
 
 export const specializeEnvName = (name: string, terms: string) => {
