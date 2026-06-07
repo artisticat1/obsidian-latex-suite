@@ -101,7 +101,7 @@ const runSnippetCursor = (view: EditorView, ctx: Context, snippetInfo: SnippetIn
 
 		// When in inline math, remove any spaces at the end of the replacement
 		if (ctx.mode.inlineMath && settings.removeSnippetWhitespace) {
-			replacement = trimWhitespace(replacement, ctx);
+			replacement.insert = trimWhitespace(replacement.insert, ctx);
 		}
 
 		// Expand the snippet
@@ -112,9 +112,9 @@ const runSnippetCursor = (view: EditorView, ctx: Context, snippetInfo: SnippetIn
 				: undefined;
 		queueSnippet(view, start, triggerEndPos, replacement, triggerKey, to);
 
-		const containsTrigger = settings.autoEnlargeBracketsTriggers.some(word => replacement.contains(word));
+		const containsTrigger = settings.autoEnlargeBracketsTriggers.some(word => replacement.insert.contains(word));
 		if (debug === "info" || debug === "verbose") {
-			showSnippetInfo(snippet, replacement, containsTrigger);
+			showSnippetInfo(snippet, replacement.insert, containsTrigger);
 		}
 		if (debug === "verbose") {
 			console.debug({

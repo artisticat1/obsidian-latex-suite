@@ -1,6 +1,8 @@
 import { SelectionRange } from "@codemirror/state";
 import { Options } from "./options";
 import { Environment } from "./environment";
+import { BaseNode, ResultInsert, ArrayNode, SnippetTabstopOnlyNode, Options as InsertOptions, emptyInsertOptions } from "./luasnip_api/node";
+import * as v from "valibot";
 
 /**
  * in visual snippets, if the replacement is a string, this is the magic substring to indicate the selection.
@@ -25,25 +27,51 @@ export type SnippetType =
 	| "regex"
 	| "string"
 
+const ReplacementOutputSchema = v.union([
+	v.literal(false),
+	v.string(),
+	v.array(v.instance(BaseNode))
+])
+function convertOutputToNode(rawReplacement: unknown): ArrayNode | null {
+	const parseResult = v.safeParse(ReplacementOutputSchema, rawReplacement);
+	if (!parseResult.success) {
+		console.error("Invalid replacement output:", parseResult.issues);
+		return null;
+	}
+	if (parseResult.output === false) {
+		return null;
+	} else if (typeof parseResult.output === "string") { 
+		const snippet = new SnippetTabstopOnlyNode(parseResult.output);
+		return new ArrayNode([snippet]);
+	} else if (Array.isArray(parseResult.output)){
+		return new ArrayNode(parseResult.output);
+	} 
+
+	// never happens but ts can't figure that out without a return
+	return parseResult.output
+}
+
+// output of replacement functions should be the output fo ReplacementOutputSchema,
+// but this would lead to false confidence as user might return something else.
 export type SnippetData<T extends SnippetType> = {
 	visual: {
 		trigger: string;
-		replacement: string | ((selection: string) => string | false);
+		replacement: ArrayNode | ((selection: string) => unknown);
 	};
 	regex: {
 		trigger: RegExp;
-		replacement: string | ((match: RegExpExecArray) => string | false);
+		replacement: ArrayNode | ((match: RegExpExecArray) => unknown);
 		triggerAfter?: RegExp;
 	};
 	string: {
 		trigger: string;
-		replacement: string | ((match: string) => string | false);
+		replacement: ArrayNode | ((match: string) => unknown);
 		triggerAfter?: string;
 	};
 }[T]
 
 export type ProcessSnippetResult =
-	| { triggerPos: number, replacement: string, triggerEndPos?: number }
+	| { triggerPos: number, replacement: ResultInsert, triggerEndPos?: number }
 	| null
 
 /**
@@ -114,15 +142,18 @@ export class VisualSnippet extends Snippet<"visual"> {
 		if (!(effectiveLine.endsWith(this.trigger))) { return null; }
 
 		const triggerPos = range.from;
-		let replacement;
-		if (typeof this.replacement === "string") {
-			replacement = this.replacement.replace(VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER, sel);
+		let replacement: ResultInsert;
+		const captures = { match: [], groups: { [VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER]: sel } };
+		const options: InsertOptions = { captures };
+		if (this.replacement instanceof ArrayNode) {
+			replacement = this.replacement.applyInsert(options);
 		} else {
-			replacement = this.replacement(sel);
+			const replacementTemp = convertOutputToNode(this.replacement(sel))
 
 			// sanity check - if this.replacement was a function,
-			// we have no way to validate beforehand that it really does return a string
-			if (typeof replacement !== "string") { return null; }
+			// we have no way to validate beforehand that it really does returns a valid output.
+			if (replacementTemp === null) { return null; }
+			replacement = replacementTemp.applyInsert(options);
 		}
 
 		return { triggerPos, replacement };
@@ -150,24 +181,19 @@ export class RegexSnippet extends Snippet<"regex"> {
 			? effectiveLine.length + afterResult[0].length
 			: undefined;
 
-		let replacement;
-		if (typeof this.replacement === "string") {
+		let replacement: ResultInsert;
+		const options: InsertOptions = { captures: { match: result.slice(1), groups: result.groups ?? {} } };
+		if (this.replacement instanceof ArrayNode) {
 			// Compute the replacement string
 			// result.length - 1 = the number of capturing groups
-
-			const nCaptureGroups = result.length - 1;
-			replacement = Array.from({ length: nCaptureGroups })
-				.map((_, i) => i + 1)
-				.reduce(
-					(replacement, i) => replacement.replaceAll(`[[${i - 1}]]`, result[i]),
-					this.replacement
-				);
+			replacement = this.replacement.applyInsert(options);
 		} else {
-			replacement = this.replacement(result);
+			const replacementTemp = convertOutputToNode(this.replacement(result));
 
 			// sanity check - if this.replacement was a function,
-			// we have no way to validate beforehand that it really does return a string
-			if (typeof replacement !== "string") { return null; }
+			// we have no way to validate beforehand that it really does return a valid output.
+			if (replacementTemp === null) { return null; }
+			replacement = replacementTemp.applyInsert(options);
 		}
 
 		return { triggerPos, replacement, triggerEndPos };
@@ -195,13 +221,18 @@ export class StringSnippet extends Snippet<"string"> {
 		const triggerEndPos = this.data.triggerAfter !== undefined
 			? effectiveLine.length + this.data.triggerAfter.length
 			: undefined;
-		const replacement = typeof this.replacement === "string"
-			? this.replacement
-			: this.replacement(this.trigger);
+		const options: InsertOptions = { captures: { match: [this.trigger], groups: {} } };
+		let replacement: ResultInsert;
+		if (this.replacement instanceof ArrayNode) {
+			replacement = this.replacement.applyInsert(options)
+		} else {
+			const replacementTemp = convertOutputToNode(this.replacement(this.trigger))
 
-		// sanity check - if replacement was a function,
-		// we have no way to validate beforehand that it really does return a string
-		if (typeof replacement !== "string") { return null; }
+			// sanity check - if replacement was a function,
+			// we have no way to validate beforehand that it really does return a string
+			if (replacementTemp === null) { return null; }
+			replacement = replacementTemp.applyInsert(options)
+		}
 
 		return { triggerPos, replacement, triggerEndPos };
 	}

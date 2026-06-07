@@ -4,6 +4,8 @@ import { Options } from "./options";
 import { sortSnippets } from "./sort";
 import { EXCLUSIONS, Environment } from "./environment";
 import { Platform } from "obsidian";
+import { api } from "./luasnip_api";
+import { ArrayNode, BaseNode, SnippetStringNode, SnippetTabstopOnlyNode, VisualSnippetNode } from "./luasnip_api/node";
 
 export type SnippetVariables = Record<string, string>;
 
@@ -59,9 +61,34 @@ export async function parseSnippetVariables(snippetVariablesStr: string, identif
 	}
 	return snippetVariables;
 }
+const preamble = String.raw`
+var __latex_suite_require = window.__latex_suite_require;
+function require(module) {
+	if (!__latex_suite_require) {
+		__latex_suite_require = window.__latex_suite_require;
+	}
+	return __latex_suite_require(module);
+}
+`
+
+function latex_suite_require(default_snippets: SnippetVariables) {
+	const parsed_api = api(default_snippets);
+	return (module: string): unknown => {
+		if (module === "latex-suite") {
+			return parsed_api
+		} else {
+			return require(module)
+		}
+	}
+}
+
+declare global {
+	var __latex_suite_require: ReturnType<typeof latex_suite_require>;
+}
 
 export async function parseSnippets(snippetsStr: string, snippetVariables: SnippetVariables, identifier: string) {
-	const rawSnippets = await importRaw(snippetsStr, identifier);
+	window.__latex_suite_require = latex_suite_require(snippetVariables);
+	const rawSnippets = await importRaw(snippetsStr + preamble, identifier);
 
 	let parsedSnippets;
 	try {
@@ -91,7 +118,14 @@ export async function parseSnippets(snippetsStr: string, snippetVariables: Snipp
 const RawSnippetSchema = object({
 	trigger: union([string_(), instance(RegExp)]),
 	triggerAfter: optional(union([string_(), instance(RegExp)])),
-	replacement: union([string_(), custom<AnyFunction>(x => typeof x === "function")]),
+	replacement: union([
+		string_(),
+		pipe(
+			array(instance(BaseNode)),
+			transform((nodes) => new ArrayNode(nodes)),
+		),
+		custom<UnknownFunction>((x) => typeof x === "function"),
+	]),
 	options: string_(),
 	flags: optional(string_(), ""),
 	priority: optional(number(), 0),
@@ -144,12 +178,16 @@ function validateRawSnippets(snippets: unknown): RawSnippet[] {
  * - if it is a regex snippet, the trigger is represented as a RegExp instance with flags set
  */
 function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snippet {
-	const { replacement, priority, description, excludedEnvs: userExcludedEnvironments } = raw;
+	const { replacement: replacementRaw, priority, description, excludedEnvs: userExcludedEnvironments } = raw;
 	const options = Options.fromSource(raw.options, raw.language);
 	const triggerKey = parseKeyName(raw.triggerKey);
 
 	// we have a regex snippet
 	if (options.regex || raw.trigger instanceof RegExp) {
+		const replacement =
+			typeof raw.replacement === "string"
+				? new ArrayNode([new SnippetStringNode(raw.replacement)])
+				: raw.replacement;
 		let triggerStr: string;
 		let triggerAfterStr: string | undefined;
 		// normalize flags to a string
@@ -227,16 +265,25 @@ function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snip
 		const excludedEnvironments = [...getExcludedEnvironments(trigger), ...userExcludedEnvironments];
 
 		// normalize visual replacements
-		if (typeof replacement === "string" && replacement.includes(VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER)) {
+		if (typeof replacementRaw === "string" && replacementRaw.includes(VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER)) {
 			options.visual = true;
 		}
 
-		const normalised = { trigger, replacement, options, priority, description, excludedEnvironments, triggerKey, triggerAfter };
 
 		if (options.visual) {
+			const replacement =
+				typeof raw.replacement === "string"
+					? new ArrayNode([new VisualSnippetNode(raw.replacement)])
+					: raw.replacement;
+			const normalised = { trigger, replacement, options, priority, description, excludedEnvironments, triggerKey, triggerAfter };
 			return new VisualSnippet(normalised);
 		}
 		else {
+			const replacement =
+				typeof raw.replacement === "string"
+					? new ArrayNode([new SnippetTabstopOnlyNode(raw.replacement)])
+					: raw.replacement;
+			const normalised = { trigger, replacement, options, priority, description, excludedEnvironments, triggerKey, triggerAfter };
 			return new StringSnippet(normalised);
 		}
 	}
@@ -305,7 +352,4 @@ function normalizeKeyName(name: string) {
 	return result;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Fn<Args extends readonly any[], Ret> = (...args: Args) => Ret;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyFunction = Fn<any, any>;
+type UnknownFunction = (arg: unknown) => unknown
