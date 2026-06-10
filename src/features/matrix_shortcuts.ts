@@ -6,9 +6,8 @@ import { queueSnippet } from "src/snippets/codemirror/snippet_queue_state_field"
 import { expandSnippets } from "src/snippets/snippet_management";
 import { taboutByEnclosedBrackets } from "./tabout";
 import { ArrayNode, emptyInsertOptions, TabstopNode, TextNode } from "src/snippets/luasnip_api/node";
-import { parser } from "src/parser/latex-parser";
+import { parser } from "src/parser/latex-parser.js";
 import { NodeIterator, SyntaxNode, Tree } from "@lezer/common";
-import * as v from "valibot"
 
 const newlineMatrixShortcutCallback = (view: EditorView): boolean => {
 	const ctx = getContextPlugin(view);
@@ -64,12 +63,10 @@ const addCellMatrixShortcutCallback = (view: EditorView): boolean => {
 
 function getEnvName(tree: Tree, pos: number, doc: string): StackOutput | null {
 	let stack: NodeIterator | null = tree.resolveStack(pos, 0)
-	const result: [string, number, number][] = []
 	while (stack) {
 		const node = stack.node
 		stack = stack.next;
-		const res = walkStack(node, doc, pos)
-		result.push([node.name, node.from, node.to])
+		const res = getEnvNameFromNode(node, doc)
 		if (!res) {
 			continue
 		}
@@ -78,12 +75,39 @@ function getEnvName(tree: Tree, pos: number, doc: string): StackOutput | null {
 	return null
 }
 
-const matrixNodeNamesSchema = v.union([
-	v.literal("Environment"),
-	v.literal("KnownEnvironment"),
-	v.literal("MathArgument"),
-	// v.literal("MathUnknownCommand"),
-]);
+// for debugging the tree
+function _printNode(node: SyntaxNode, doc: string) {
+	const result = [
+		{
+			name: node.name,
+			id: node.type.id,
+			from: node.from,
+			to: node.to,
+			indent: 0,
+		},
+	];
+	function walk(node: SyntaxNode, indent: number) {
+		let child = node.firstChild;
+		while (child) {
+			result.push({
+				name: child.name,
+				id: child.type.id,
+				from: child.from,
+				to: child.to,
+				indent,
+			});
+			walk(child, indent + 1);
+			child = child.nextSibling;
+		}
+	}
+	walk(node, 1)	
+	console.debug(
+		result.map(
+			({ name, from, to, indent, id }) =>
+				`${"  ".repeat(indent)}${name}: ${id}(${from}, ${to}): ` + JSON.stringify(doc.slice(from, to))
+		).join("\n")
+	);
+}
 
 type StackOutput = (
 	| {
@@ -96,13 +120,13 @@ type StackOutput = (
 	name: string;
 } & Bounds
 
-function walkStack(node: SyntaxNode, doc: string, pos: number): null | StackOutput {
-	const name = node.name
-	const parsedName = v.safeParse(matrixNodeNamesSchema, name)
-	if (!parsedName.success) {
-		return null
-	}
-	const value = parsedName.output
+/**
+ * See latex.grammar for reference of the the nodes structure
+ * tries to get the name of the current environment/macro
+ * and finds the inner bounds of the environment/macro argument and the end of the environment/macro.
+ */
+function getEnvNameFromNode(node: SyntaxNode, doc: string): null | StackOutput {
+	const value = node.name
 	function createEnvironment(envNode: SyntaxNode | null): null | StackOutput {
 		const beginNode = envNode?.getChild("BeginEnv")
 		const envNameNode = beginNode?.getChild("EnvNameGroup")
@@ -120,31 +144,28 @@ function walkStack(node: SyntaxNode, doc: string, pos: number): null | StackOutp
 		}
 	}
 	
-	switch (value) {
-		case "Environment": {
-			return createEnvironment(node)
+	if (value === "Environment") {
+		return createEnvironment(node)
+	} else if (value === "KnownEnvironment") {
+		return createEnvironment(node.firstChild)
+	} else if (value.endsWith("Argument")) {
+		const parent = node.parent
+		const command = parent?.firstChild
+		const openBraced = node?.firstChild
+		const closeBraced = node?.lastChild
+		if (!command || !openBraced || !closeBraced) {
+			return null
 		}
-		case "KnownEnvironment": {
-			return createEnvironment(node.firstChild)
-		}
-		case "MathArgument": {
-			const parent = node.parent
-			const command = parent?.firstChild
-			const openBraced = node?.firstChild
-			const closeBraced = node?.lastChild
-			if (!command || !openBraced || !closeBraced) {
-				return null
-			}
-			return {
-				kind: "command",
-				name: doc.slice(command.from + 1, command.to),
-				inner_start: openBraced.to,
-				inner_end: closeBraced.from,
-				outer_start: node.from,
-				outer_end: closeBraced.to,
-			}
+		return {
+			kind: "command",
+			name: doc.slice(command.from + 1, command.to),
+			inner_start: openBraced.to,
+			inner_end: closeBraced.from,
+			outer_start: node.from,
+			outer_end: closeBraced.to,
 		}
 	}
+	return null
 }
 
 const matrixShortcutsRunner = (shortcut: (view: EditorView, bounds?: Bounds) => boolean) => (view: EditorView): boolean => {
@@ -153,7 +174,7 @@ const matrixShortcutsRunner = (shortcut: (view: EditorView, bounds?: Bounds) => 
 	const bounds = ctx.getBounds();
 	if (!bounds) return false;
 	const equation = view.state.sliceDoc(bounds.inner_start, bounds.inner_end);
-	const tree = parser.parse(equation);
+	const tree: Tree = parser.parse(equation);
 	const envName = getEnvName(tree, ctx.pos - bounds.inner_start, equation);
 	if (!envName) return false;
 
