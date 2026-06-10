@@ -16,7 +16,8 @@
 		"lint": "npm run tsc && npm run eslint",
 		"tsc": "tsc --noEmit -skipLibCheck",
 		"eslint": "eslint --fix",
-		"generator": "lezer-generator src/parser/latex.grammar -o src/parser/latex-parser.ts --typeScript"
+		"generator": "lezer-generator src/parser/latex.grammar -o src/parser/latex-parser.js",
+		"postinstall": "npm run generator"
 	},
 	"keywords": [],
 	"author": "",

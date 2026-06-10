@@ -110,7 +110,7 @@ class ElementContext {
 
 export const elementContext = new ContextTracker<ElementContext | null>({
   start: null,
-  shift(context, term, stack, input) {
+  shift(context, term, _stack, input) {
     return term === Begin
       ? new ElementContext(envNameAfter(input, "\\begin".length) || "", context)
       : context
@@ -132,7 +132,7 @@ export const elementContext = new ContextTracker<ElementContext | null>({
 
 // tokenizer for \verb|...| commands
 export const verbTokenizer = new ExternalTokenizer(
-  (input, stack) => {
+  (input, _stack) => {
     if (input.next === "*".charCodeAt(0)) input.advance()
     const delimiter = input.next
     if (delimiter === -1) return // hit end of file
@@ -211,7 +211,7 @@ export const argumentListWithOptionalTokenizer = lookaheadTokenizer(next => {
 
 const CHAR_AT_SYMBOL = _char("@")
 
-export const csnameTokenizer = new ExternalTokenizer((input, stack) => {
+export const csnameTokenizer = new ExternalTokenizer((input, _stack) => {
   let offset = 0
   let end = -1
   // look at the first character, we are looking for acceptable control sequence names
@@ -287,7 +287,7 @@ const otherKnowncommands = {
 }
 // specializer for control sequences
 // return new tokens for specific control sequences
-export const specializeCtrlSeq = (name: string, terms: string) => {
+export const specializeCtrlSeq = (name: string, _terms: string) => {
   if (name === "\\begin") return Begin
   if (name === "\\end") return End
   if (refCommands.has(name)) {
@@ -351,7 +351,7 @@ const equationArrayEnvNames = new Set([
   "rcases*",
 ])
 
-export const specializeEnvName = (name: string, terms: string) => {
+export const specializeEnvName = (name: string, _terms: string) => {
   if (equationEnvNames.has(name)) {
     return EquationEnvName
   }
@@ -369,6 +369,6 @@ const otherKnownCtrlSyms = {
   "\\\\": LineBreakCtrlSym,
 }
 
-export const specializeCtrlSym = (name: string, terms: string) => {
+export const specializeCtrlSym = (name: string, _terms: string) => {
   return otherKnownCtrlSyms[name as keyof typeof otherKnownCtrlSyms] || -1
 }
