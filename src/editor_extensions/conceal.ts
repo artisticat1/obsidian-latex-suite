@@ -305,6 +305,8 @@ export const mkConcealPlugin = (revealTimeout: number) => ViewPlugin.fromClass(c
 		if (!(update.docChanged || update.viewportChanged || update.selectionSet))
 			return;
 		if (update.transactions.some(tr => tr.annotation(tempKeyPress))) {
+			this.decorations = this.decorations.map(update.changes);
+			this.atomicRanges = this.atomicRanges.map(update.changes);
 			return;
 		}
 

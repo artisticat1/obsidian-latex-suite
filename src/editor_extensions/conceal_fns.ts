@@ -139,18 +139,18 @@ function concealSupSub(eqn: string, superscript: boolean, symbolMap: {[key: stri
 
 	const specs: ConcealSpec[] = [];
 
+	// Conceal super/subscript symbols as well
+	const symbolNames = Object.keys(symbolMap);
+	const symbolRegexStr = "\\\\(" + escapeRegex(symbolNames.join("|")) + ")";
+	const symbolRegex = new RegExp(symbolRegexStr, "g");
 	for (const match of matches) {
 
 		const exponent = match[1];
 		const elementType = superscript ? "sup" : "sub";
 
 
-		// Conceal super/subscript symbols as well
-		const symbolNames = Object.keys(symbolMap);
 
-		const symbolRegexStr = "\\\\(" + escapeRegex(symbolNames.join("|")) + ")";
-		const symbolRegex = new RegExp(symbolRegexStr, "g");
-
+		symbolRegex.lastIndex = 0;
 		const replacement = exponent.replace(symbolRegex, (_a, b: string) => {
 			return symbolMap[b];
 		});
@@ -481,7 +481,6 @@ export function conceal(
 			new_equations[eqn] = cached_equations[eqn];
 			continue;
 		}
-
 		const localSpecs = [
 			...concealSymbols(eqn, "\\^", "", map_super),
 			...concealSymbols(eqn, "_", "", map_sub),
