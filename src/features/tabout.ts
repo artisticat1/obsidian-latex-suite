@@ -95,7 +95,8 @@ export const tabout = (view: EditorView, ctx: Context): boolean => {
     const latexString = doc.sliceString(inner_start, inner_end);
     const tokens = tokenize(latexString);
 
-    const closingSymbols = getLatexSuiteConfig(view).taboutClosingSymbols;
+	const settings = getLatexSuiteConfig(view);
+    const closingSymbols = settings.taboutClosingSymbols;
 
 	const foundIndex = tokens.findIndex((token) => token.end > cursorRelativePos);
 	// If no token exists after the cursor, set start index to length to skip the loop entirely.
@@ -128,7 +129,7 @@ export const tabout = (view: EditorView, ctx: Context): boolean => {
 	const remainingText = doc.sliceString(cursorPos, inner_end);
 	const isAtEnd = remainingText.trim().length === 0;
 
-	if (!isAtEnd) return false;
+	if (!isAtEnd && settings.taboutExitEquationOnlyOnEOL) return false;
 
 	// Check whether we're in inline math or a block eqn
 	if (ctx.mode.inlineMath || ctx.mode.codeMath) {

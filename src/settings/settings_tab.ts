@@ -396,10 +396,12 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					this.plugin.settings.taboutEnabled = value;
 
 					taboutClosingBracketsSetting.settingEl.toggleClass("hidden", !value);
+					taboutExitEquationOnlyOnEOLSetting.settingEl.toggleClass("hidden", !value);
+					taboutTriggerSetting.settingEl.toggleClass("hidden", !value);
 
 					await this.plugin.saveSettings();
 				}));
-		this.createTriggerSetting(containerEl, "tabout", "taboutTrigger")
+		const taboutTriggerSetting = this.createTriggerSetting(containerEl, "tabout", "taboutTrigger")
 			
 		const taboutClosingBracketsSetting =  new Setting(containerEl)
 			.setName("Closing brackets")
@@ -413,7 +415,19 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
+		const taboutExitEquationOnlyOnEOLSetting = new Setting(containerEl)
+			.setName("Exit equation only on EOL")
+			.setDesc("Whether to exit the equation only when the cursor is at the end of the line.")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.taboutExitEquationOnlyOnEOL)
+				.onChange(async (value) => {
+					this.plugin.settings.taboutExitEquationOnlyOnEOL = value;
+					await this.plugin.saveSettings();
+				}));
+
 		taboutClosingBracketsSetting.settingEl.toggleClass("hidden", !this.plugin.settings.taboutEnabled);
+		taboutExitEquationOnlyOnEOLSetting.settingEl.toggleClass("hidden", !this.plugin.settings.taboutEnabled);
+		taboutTriggerSetting.settingEl.toggleClass("hidden", !this.plugin.settings.taboutEnabled);
 	}
 
 	private displayAutoEnlargeBracketsSettings() {
