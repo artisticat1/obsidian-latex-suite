@@ -21,8 +21,6 @@ const textArea = [
 	"mbox",
 	"fbox",
 	"framebox",
-	"colorbox",
-	"fcolorbox", // has two inputs \fcolorbox{color}{background}{text} needs seperate handling
 ] as const;
 
 /**
@@ -35,6 +33,10 @@ export const snippetLessArea =[
 	"end",
 	"mmlToken", // MathML token, also has two inputs
 	"unicode",
+	"textcolor",
+	"color",
+	"colorbox",
+	"fcolorbox", // has two inputs \fcolorbox{color}{background}{text} needs seperate handling
 ] as const
 
 export const textAreaEnvs: {
