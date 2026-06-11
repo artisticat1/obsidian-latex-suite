@@ -5,6 +5,7 @@ export class Options {
 	onWordBoundary: boolean;
 	visual: boolean;
 	undoKey: boolean;
+	folders: RegExp[]
 
 	constructor() {
 		this.mode = new Mode();
@@ -13,11 +14,13 @@ export class Options {
 		this.onWordBoundary = false;
 		this.visual = false;
 		this.undoKey = true;
+		this.folders = [];
 	}
 
-	static fromSource(source: string, language: string | undefined):Options {
+	static fromSource(source: string, language: string | undefined, folders: RegExp[] | undefined):Options {
 		const options = new Options();
 		options.mode = Mode.fromSource(source, language);
+		options.folders = folders ?? [];
 
 		for (const flag_char of source) {
 			switch (flag_char) {

@@ -1,6 +1,6 @@
 import { EditorView } from "@codemirror/view";
 import { EditorState, SelectionRange } from "@codemirror/state";
-import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
+import { getFileConfig, getLatexSuiteConfig } from "src/snippets/codemirror/config";
 import { queueSnippet } from "src/snippets/codemirror/snippet_queue_state_field";
 import { Mode, Options } from "src/snippets/options";
 import { expandSnippets } from "src/snippets/snippet_management";
@@ -9,6 +9,7 @@ import { autoEnlargeBrackets } from "./auto_enlarge_brackets";
 import { snippetDebugLevel } from "src/settings/settings";
 import { Snippet, SnippetType } from "src/snippets/snippets";
 import { showSnippetInfo } from "src/editor_extensions/obsidian_utils";
+import { TFile } from "obsidian";
 
 type SnippetInfo = {
 	snippets: Snippet<SnippetType>[];
@@ -20,12 +21,13 @@ type RunSnippetsOptions = {
 }
 export const runSnippets = (view: EditorView, snippetInfo: SnippetInfo, options: RunSnippetsOptions):boolean => {
 	let didExpand = false;
+	const file = getFileConfig(view).getFile();
 	for (let i=0; i <= options.recursive; i++) {
 		const ctx = getContextPlugin(view);
 		let shouldAutoEnlargeBrackets = false;
 
 		for (const range of ctx.ranges) {
-			const result = runSnippetCursor(view, ctx, snippetInfo, range, options.debug);
+			const result = runSnippetCursor(view, ctx, snippetInfo, range, options.debug, file);
 
 			if (result.shouldAutoEnlargeBrackets) shouldAutoEnlargeBrackets = true;
 		}
@@ -54,7 +56,7 @@ const getSliceAroundCursor = (view: EditorView, to: number) => {
 	return {line, effectiveLineAfter};
 }
 
-const runSnippetCursor = (view: EditorView, ctx: Context, snippetInfo: SnippetInfo, range: SelectionRange, debug: snippetDebugLevel):{success: boolean; shouldAutoEnlargeBrackets: boolean} => {
+const runSnippetCursor = (view: EditorView, ctx: Context, snippetInfo: SnippetInfo, range: SelectionRange, debug: snippetDebugLevel, file: TFile | null):{success: boolean; shouldAutoEnlargeBrackets: boolean} => {
 
 	const settings = getLatexSuiteConfig(view);
 	const {from, to} = range;
@@ -70,6 +72,9 @@ const runSnippetCursor = (view: EditorView, ctx: Context, snippetInfo: SnippetIn
 		const snippet = snippetInfo.snippets[i];
 
 		if (!snippetShouldRunInMode(snippet.options, ctx.mode)) {
+			continue;
+		}
+		if (!snippetShouldRunInFile(snippet.options, file)) {
 			continue;
 		}
 
@@ -197,4 +202,15 @@ const trimWhitespace = (replacement: string, _ctx: Context) => {
 	}
 
 	return replacement;
+}
+
+const snippetShouldRunInFile = (options: Options, file: TFile | null): boolean => {
+	if (options.folders.length === 0) {
+		return true;
+	}
+	const filePath = file?.path;
+	if (!filePath) {
+		return true;
+	}
+	return options.folders.some(folder => folder.test(filePath));
 }

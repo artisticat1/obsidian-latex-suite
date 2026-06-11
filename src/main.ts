@@ -6,7 +6,7 @@ import { isIMESupported, LatexSuiteSettingTab } from "./settings/settings_tab";
 import { ICONS } from "./settings/ui/icons";
 
 import { getEditorCommands, getVimEditorCommands } from "./features/editor_commands";
-import { getLatexSuiteConfigExtension } from "./snippets/codemirror/config";
+import { getFileConfigExtension, getLatexSuiteConfigExtension } from "./snippets/codemirror/config";
 import { SnippetVariables, parseSnippetVariables, parseSnippets } from "./snippets/parse";
 import { handleUpdate, onInput, keyboardEventPlugin, getKeymaps } from "./latex_suite";
 import { EditorView, keymap, tooltips } from "@codemirror/view";
@@ -190,6 +190,7 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 			Prec.highest(mathBoundsPlugin.extension),
 			Prec.highest(contextPlugin.extension),
 			getLatexSuiteConfigExtension(this.CMSettings),
+			getFileConfigExtension(() => this.app.workspace.getActiveFile() ?? null),
 			Prec.highest(keyboardEventPlugin.extension),
 			Prec.highest(EditorView.inputHandler.of(onInput)),
 			EditorView.updateListener.of(handleUpdate),

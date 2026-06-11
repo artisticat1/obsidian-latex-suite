@@ -1,4 +1,4 @@
-import { optional, object, string as string_, union, parse, number, InferOutput as Output, custom, instance } from "valibot";
+import { optional, object, string as string_, union, parse, number, InferOutput as Output, custom, instance, array, transform, pipe } from "valibot";
 import { RegexSnippet, serializeSnippetLike, Snippet, StringSnippet, VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER, VisualSnippet } from "./snippets";
 import { Options } from "./options";
 import { sortSnippets } from "./sort";
@@ -91,13 +91,25 @@ export async function parseSnippets(snippetsStr: string, snippetVariables: Snipp
 const RawSnippetSchema = object({
 	trigger: union([string_(), instance(RegExp)]),
 	triggerAfter: optional(union([string_(), instance(RegExp)])),
-	replacement: union([string_(), custom<AnyFunction>(x => typeof x === "function")]),
+	replacement: union([
+		string_(),
+		custom<AnyFunction>((x) => typeof x === "function"),
+	]),
 	options: string_(),
 	flags: optional(string_(), ""),
 	priority: optional(number(), 0),
 	description: optional(string_(), "no description provided"),
 	triggerKey: optional(string_(), ""),
 	language: optional(string_()),
+	folders: optional(
+		array(
+			pipe(
+				string_(),
+				transform((string) => globToRegex(string)),
+			),
+		),
+		[],
+	),
 });
 
 type RawSnippet = Output<typeof RawSnippetSchema>;
@@ -126,7 +138,7 @@ function validateRawSnippets(snippets: unknown): RawSnippet[] {
  */
 function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snippet {
 	const { replacement, priority, description } = raw;
-	const options = Options.fromSource(raw.options, raw.language);
+	const options = Options.fromSource(raw.options, raw.language, raw.folders);
 	let excludedEnvironments;
 	const triggerKey = parseKeyName(raw.triggerKey);
 
@@ -291,3 +303,49 @@ function normalizeKeyName(name: string) {
 type Fn<Args extends readonly any[], Ret> = (...args: Args) => Ret;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyFunction = Fn<any, any>;
+
+/**
+ * special chars /,*,?,**,{},[],[!...]. see https://code.visualstudio.com/docs/editor/glob-patterns.
+ */
+function globToRegex(glob: string): RegExp {
+	function escapeRegex(str: string): string {
+		return str.replace(/[-/\\^$+?.()|[\]{}]/g, "\\$&");
+	}
+	const pattern = /(\{[^}]*\})|(\[[^\]*])|(\\)|(\*)|(\?)|(\*\*)/
+	const matches = glob.matchAll(pattern);
+	const result: string[] = [];
+	let lastIndex = 0;
+	for (const match of matches) {
+		const [
+			fullMatch,
+			pathSegment,
+			singleWildcard,
+			singleCharWildcard,
+			doubleWildcard,
+			curly,
+			square,
+		] = match;
+		result.push(escapeRegex(glob.slice(lastIndex, match.index)));
+		lastIndex = match.index + fullMatch.length;
+		if (pathSegment) {
+			result.push("\\\\");	
+		} else if (singleWildcard) {
+			result.push("[^\\\\/]*");
+		} else if (singleCharWildcard) {
+			result.push("[^\\\\/]");
+		} else if (doubleWildcard) {
+			result.push(".*");
+		} else if (curly) {
+			const list = curly.slice(1, -1).split(",");
+			result.push("(?:" + list.map(item => globToRegex(item).source.slice(1,-1)).join("|") + ")");
+		} else if (square) {
+			const content = square.slice(1, -1);
+			if (content.startsWith("!")) {
+				result.push("[^" + content + "]");
+			} else {
+				result.push(square);
+			}
+		}
+	}
+	return new RegExp("^" + result.join("") + "$");
+}
