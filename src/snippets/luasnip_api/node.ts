@@ -189,7 +189,7 @@ export class VisualSnippetNode extends BaseNode {
 		if (!captures.groups[pattern]) {
 			throw new Error(`VisualSnippetNode requires the presence of a capture group named ${pattern} to indicate the position of the visual selection`);
 		}
-		return this.snippet.replace(pattern, captures.groups[pattern])
+		return this.snippet.replaceAll(pattern, captures.groups[pattern])
 	}
 }
 export class SnippetTabstopOnlyNode extends BaseNode {
