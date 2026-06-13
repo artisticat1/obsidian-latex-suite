@@ -117,9 +117,7 @@ export const contextPlugin = ViewPlugin.fromClass(
 			if (textEnv === "text") {
 				this.mode.textEnv = true;
 			} else if (textEnv === "none") {
-				this.mode.inlineMath = false;
-				this.mode.blockMath = false;
-				this.mode.codeMath = false;
+				this.mode.snippetlessEnv = true;
 			}
 		}
 

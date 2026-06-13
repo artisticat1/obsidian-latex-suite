@@ -1,5 +1,5 @@
 import { EditorView } from "@codemirror/view";
-import { setCursor } from "src/utils/editor_utils";
+import { isBoundMultiline, setCursor } from "src/utils/editor_utils";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
 import { Bounds, getContextPlugin } from "src/utils/context";
 import { queueSnippet } from "src/snippets/codemirror/snippet_queue_state_field";
@@ -7,12 +7,12 @@ import { expandSnippets } from "src/snippets/snippet_management";
 import { taboutByEnclosedBrackets } from "./tabout";
 import { ArrayNode, emptyInsertOptions, TabstopNode, TextNode } from "src/snippets/luasnip_api/node";
 
-const newlineMatrixShortcutCallback = (view: EditorView): boolean => {
+const newlineMatrixShortcutCallback = (view: EditorView, bounds: Bounds): boolean => {
 	const ctx = getContextPlugin(view);
 	const cur_line = view.state.doc.lineAt(ctx.pos);
 	const current_matrix_line = cur_line.text.match(/(\\begin{[^]]*}|\\\\|^)((?:\s|&)+)/);
 	const added_cells = current_matrix_line?.[2].trimStart() ?? ""
-	if (ctx.mode.blockMath) {
+	if (isBoundMultiline(view, bounds)) {
 		const snippet = new ArrayNode([new TextNode(" \\\\\n" + added_cells), new TabstopNode(0,"")]);
 		// Keep current indentation and callout characters
 		queueSnippet(view, ctx.pos, ctx.pos, snippet.applyInsert(emptyInsertOptions));
@@ -25,7 +25,7 @@ const newlineMatrixShortcutCallback = (view: EditorView): boolean => {
 
 const taboutMatrixShortcutCallback = (view: EditorView, bounds: Bounds): boolean => {
 	const ctx = getContextPlugin(view);
-	if (ctx.mode.blockMath) {
+	if (isBoundMultiline(view, bounds)) {
 		// Move cursor to end of next line
 		const d = view.state.doc;
 
@@ -34,7 +34,7 @@ const taboutMatrixShortcutCallback = (view: EditorView, bounds: Bounds): boolean
 
 		setCursor(view, nextLine.to);
 	}
-	else if (ctx.mode.inlineMath) {
+	else {
 		setCursor(view, bounds.outer_end);
 	}	
 	return true;

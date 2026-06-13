@@ -5,6 +5,7 @@ import { Bounds, Context, getContextPlugin } from "src/utils/context";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
 import { syntaxTree } from "@codemirror/language";
 import { createElement } from "./obsidian_utils";
+import { isBoundMultiline } from "src/utils/editor_utils";
 
 type MathTooltip = {
 	equation: string,
@@ -126,6 +127,7 @@ export function handleMathTooltip(update: ViewUpdate) {
 	) {
 		return;
 	}
+	const isEqnMultiline = isBoundMultiline(update.view, eqnBounds);
 
 	const above = settings.mathPreviewPositionIsAbove;
 	const create = () => {
@@ -145,7 +147,7 @@ export function handleMathTooltip(update: ViewUpdate) {
 			}
 		}
 		try {
-			const renderedEqn = renderMath(eqnWithDecorations, ctx.mode.blockMath || ctx.mode.codeMath);
+			const renderedEqn = renderMath(eqnWithDecorations, ctx.mode.inDisplayMath());
 			const highlight = renderedEqn.querySelector(
 				"[style*=\"background-color: var(--latex-suite-math-preview-highlight)\"]",
 			) as HTMLElement;
@@ -163,7 +165,7 @@ export function handleMathTooltip(update: ViewUpdate) {
 
 	let newTooltips: Tooltip[] = [];
 
-	if (ctx.mode.blockMath || ctx.mode.codeMath) {
+	if (isEqnMultiline) {
 		newTooltips = [{
 			pos: above ? eqnBounds.inner_start : eqnBounds.inner_end,
 			above: above,
@@ -171,7 +173,7 @@ export function handleMathTooltip(update: ViewUpdate) {
 			arrow: true,
 			create: create,
 		}];
-	} else if (ctx.mode.inlineMath && above) {
+	} else if (!isEqnMultiline && above) {
 		newTooltips = [{
 			pos: eqnBounds.inner_start,
 			above: true,
@@ -179,7 +181,7 @@ export function handleMathTooltip(update: ViewUpdate) {
 			arrow: true,
 			create: create,
 		}];
-	} else if (ctx.mode.inlineMath && !above) {
+	} else if (!isEqnMultiline && !above) {
 		const endRange = EditorSelection.range(eqnBounds.inner_end, eqnBounds.inner_end);
 
 		newTooltips = [{
@@ -216,7 +218,6 @@ function shouldShowTooltip(state: EditorState, ctx: Context): Bounds | null {
 	const isLivePreview = state.field(editorLivePreviewField);
 	if (ctx.mode.blockMath && isLivePreview) return null;
 
-	// FIXME: eqnBounds can be null
 	const eqnBounds = ctx.getBounds();
 	if (!eqnBounds) return null;
 

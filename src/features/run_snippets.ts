@@ -69,7 +69,7 @@ const runSnippetCursor = (view: EditorView, ctx: Context, snippetInfo: SnippetIn
 	for (let i=0; i < snippetInfo.snippets.length; i++) {
 		const snippet = snippetInfo.snippets[i];
 
-		if (!snippetShouldRunInMode(snippet.options, ctx.mode)) {
+		if (!snippet.options.snippetShouldRunInMode(ctx.mode)) {
 			continue;
 		}
 
@@ -135,36 +135,6 @@ const runSnippetCursor = (view: EditorView, ctx: Context, snippetInfo: SnippetIn
 
 
 	return {success: false, shouldAutoEnlargeBrackets: false};
-}
-
-const snippetShouldRunInMode = (options: Options, mode: Mode) => {
-	if (
-		options.mode.inlineMath && mode.inlineMath ||
-		options.mode.blockMath && mode.blockMath ||
-		(options.mode.inlineMath || options.mode.blockMath) && mode.codeMath
-	) {
-		if (!mode.textEnv) {
-			return true;
-		}
-	}
-
-	if (mode.inMath() && mode.textEnv && options.mode.text) {
-		return true;
-	}
-
-	if (options.mode.text && mode.text) {
-		return true;
-	}
-	if (
-		(options.mode.codeBlock === mode.codeBlock && mode.codeBlock !== false) ||
-		(options.mode.codeBlock === true && mode.codeBlock !== false)
-	) {
-		return true;
-	}
-	
-	if (options.mode.code && mode.code) {
-		return true;
-	}
 }
 
 const isOnWordBoundary = (state: EditorState, triggerPos: number, to: number, wordDelimiters: string) => {

@@ -3,7 +3,7 @@ import { EditorView } from "@codemirror/view";
 import { intersection } from "src/utils/prototype_utils";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
 import { Context } from "src/utils/context";
-import { setCursor, getCharacterAtPos } from "src/utils/editor_utils";
+import { setCursor, getCharacterAtPos, isBoundMultiline } from "src/utils/editor_utils";
 import { Token, tokenize } from "src/utils/tokenizer";
 
 
@@ -130,8 +130,8 @@ export const tabout = (view: EditorView, ctx: Context): boolean => {
 
 	if (!isAtEnd) return false;
 
-	// Check whether we're in inline math or a block eqn
-	if (ctx.mode.inlineMath || ctx.mode.codeMath) {
+	// Only create a new line if the equation is multiline.
+	if (isBoundMultiline(view, bounds)) {
 		setCursor(view, outer_end);
 	}
 	else {

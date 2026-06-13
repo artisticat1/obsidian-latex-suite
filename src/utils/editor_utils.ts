@@ -2,6 +2,7 @@ import { Platform } from "obsidian";
 import { EditorView } from "@codemirror/view";
 import { SyntaxNode, TreeCursor } from "@lezer/common";
 import { EditorState } from "@codemirror/state";
+import { Bounds } from "./context";
 
 export function replaceRange(view: EditorView, start: number, end: number, replacement: string) {
 	view.dispatch({
@@ -174,4 +175,12 @@ export function forceEndComposition(view: EditorView) {
 	}
 	view.focus();
 	view.contentDOM.dispatchEvent(new CustomEvent("compositionend"));
+}
+
+export function isBoundMultiline(view: EditorView, bounds: Bounds): boolean {
+	const doc = view.state.doc;
+	const startLine = doc.lineAt(bounds.outer_start);
+	const endLine = doc.lineAt(bounds.outer_end);
+
+	return startLine.number !== endLine.number;
 }

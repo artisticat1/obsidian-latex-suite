@@ -15,7 +15,7 @@ export class Options {
 		this.undoKey = true;
 	}
 
-	static fromSource(source: string, language: string | undefined):Options {
+	static fromSource(source: string, language: string | undefined): Options {
 		const options = new Options();
 		options.mode = Mode.fromSource(source, language);
 
@@ -35,13 +35,48 @@ export class Options {
 					break;
 				case "U":
 					options.undoKey = false;
-				break;
+					break;
 			}
 		}
 
 		return options;
 	}
+
+	snippetShouldRunInMode(mode: Mode) {
+		if (mode.snippetlessEnv) {
+			return false
+		}
+		if (
+			(this.mode.inlineMath && mode.inlineMath) ||
+			(this.mode.blockMath && mode.blockMath) ||
+			((this.mode.inlineMath || this.mode.blockMath) && mode.codeMath)
+		) {
+			if (!mode.textEnv) {
+				return true;
+			}
+		}
+
+		if (mode.inMath() && mode.textEnv && this.mode.text) {
+			return true;
+		}
+
+		if (this.mode.text && mode.text) {
+			return true;
+		}
+		if (
+			(this.mode.codeBlock === mode.codeBlock &&
+				mode.codeBlock !== false) ||
+			(this.mode.codeBlock === true && mode.codeBlock !== false)
+		) {
+			return true;
+		}
+
+		if (this.mode.code && mode.code) {
+			return true;
+		}
+	}
 }
+
 
 export class Mode {
 	text: boolean = false;
@@ -51,6 +86,7 @@ export class Mode {
 	codeBlock: string | boolean = false;
 	code: boolean = false;
 	textEnv: boolean = false;
+	snippetlessEnv: boolean = false;
 
 	/**
 	 * Whether the state is inside an equation bounded by $ or $$ delimeters.
@@ -67,6 +103,10 @@ export class Mode {
 	inMath():boolean {
 		return this.inlineMath || this.blockMath || this.codeMath;
 	}
+	
+	inDisplayMath():boolean {
+		return this.blockMath || this.codeMath;
+	}
 
 	/**
 	 * Whether the state is strictly in math mode.
@@ -74,7 +114,7 @@ export class Mode {
 	 * Returns false when the state is within math, but inside a text environment, such as \text{}.
 	 */
 	strictlyInMath():boolean {
-		return this.inMath() && !this.textEnv;
+		return this.inMath() && !this.textEnv && !this.snippetlessEnv;
 	}
 
 	invert() {
@@ -85,6 +125,7 @@ export class Mode {
 		this.codeBlock = this.codeBlock === false ? true : false;
 		this.code = !this.code;
 		this.textEnv = !this.textEnv;
+		this.snippetlessEnv = !this.snippetlessEnv;
 	}
 
 	static fromSource(source: string, language: string | undefined): Mode {
