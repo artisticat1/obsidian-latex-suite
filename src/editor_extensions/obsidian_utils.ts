@@ -1,3 +1,4 @@
+import { EditorState, StateField } from "@codemirror/state";
 import { Notice } from "obsidian";
 import { Snippet, SnippetType } from "src/snippets/snippets";
 
@@ -5,17 +6,32 @@ import { Snippet, SnippetType } from "src/snippets/snippets";
 export function createElement(tagName: Parameters<Document["createElement"]>[0]) {
 	return createEl(tagName as Parameters<typeof createEl>[0]);
 }
-const createNoticeManager = () => {
-	let lastNotice: Notice | null = null;
-	
-	const lastNoticeFunc = (content: string | DocumentFragment, timeout: number) => {
+
+abstract class NoticeLike {
+	abstract hide(): void;
+}
+
+
+type NoticeCallback = (content: string | DocumentFragment, timeout: number) => void;
+function createNoticeManager(): NoticeCallback {
+	let lastNotice: NoticeLike | null = null;
+
+	const lastNoticeFunc = (
+		content: string | DocumentFragment,
+		timeout: number,
+	) => {
 		lastNotice?.hide();
 		lastNotice = new Notice(content, timeout);
 	};
 	return lastNoticeFunc;
 };
-const notice = createNoticeManager();
-export function showSnippetInfo(snippet: Snippet<SnippetType>, replacement: string, containsTrigger: boolean) {
+
+const notice = StateField.define<NoticeCallback>({
+	create: () => createNoticeManager(),
+	update: (value) => value,
+});
+
+export function showSnippetInfo(state: EditorState,snippet: Snippet<SnippetType>, replacement: string, containsTrigger: boolean) {
 	const fragment = new DocumentFragment();
 	const message_items: (HTMLElement | string)[][] = [
 		[`Description: ${snippet.description}`],
@@ -40,7 +56,7 @@ export function showSnippetInfo(snippet: Snippet<SnippetType>, replacement: stri
 			}
 		}
 	});
-	notice(fragment, 5000);
+	state.field(notice)(fragment, 5000);
 	console.debug(div.textContent);
 }
 

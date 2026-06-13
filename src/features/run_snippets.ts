@@ -114,7 +114,7 @@ const runSnippetCursor = (view: EditorView, ctx: Context, snippetInfo: SnippetIn
 
 		const containsTrigger = settings.autoEnlargeBracketsTriggers.some(word => replacement.insert.contains(word));
 		if (debug === "info" || debug === "verbose") {
-			showSnippetInfo(snippet, replacement.insert, containsTrigger);
+			showSnippetInfo(view.state, snippet, replacement.insert, containsTrigger);
 		}
 		if (debug === "verbose") {
 			console.debug({
