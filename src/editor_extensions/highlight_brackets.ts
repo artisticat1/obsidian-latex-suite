@@ -1,61 +1,76 @@
 import { EditorView, ViewUpdate, Decoration, DecorationSet, ViewPlugin } from "@codemirror/view";
 import { Prec, Range } from "@codemirror/state";
-import { findMatchingBracket, getOpenBracket, getCloseBracket } from "../utils/editor_utils";
-import { Context, getContextPlugin, getMathBoundsPlugin } from "src/utils/context";
+import { getContextPlugin, getMathBoundsPlugin } from "src/utils/context";
 import { tempKeyPress } from "src/snippets/snippet_management";
+import { tokenize_brackets, walkTokens, Region } from "src/utils/tokenizer";
 
 const Ncolors = 3;
 
-function getHighlightBracketMark(pos: number, className: string):Range<Decoration> {
+function getHighlightBracketMark(pos: number, className: string, char: string):Range<Decoration> {
 	return Decoration.mark({
 		inclusive: true,
 		attributes: {},
 		class: className
-	}).range(pos, pos+1);
+	}).range(pos, pos + (char.length || 1));
 }
 
 type BracketConcealment = {
 	pos: number,
 	className: string,
+	char: string,
 };
+
+const bracket_delimiters = [
+	["{","}"],
+	["[","]"],
+	["(",")"],
+	["\\left<","\\right>"],
+	["\\langle ", "\\rangle"],
+	["\\lvert", "\\rvert"],
+	["\\lVert", "\\rVert"],
+	["\\right\\lt", "\\right\\gt"],	
+	["\\lbrace", "\\rbrace"],
+	["\\lbrack", "\\rbrack"],
+	["\\lceil", "\\rceil"],
+	["\\lfloor", "\\rfloor"],
+	["\\lgroup", "\\rgroup"],
+	["\\llcorner", "\\lrcorner"],
+	["\\lmoustache", "\\rmoustache"],
+	["\\lparen", "\\rparen"],
+] as const
 
 type ColorBracketsCachedEquations = Record<string, BracketConcealment[]>;
 function colorPairedBrackets(view: EditorView, cached_equations: ColorBracketsCachedEquations) {
 	const equations = getMathBoundsPlugin(view).getEquations(view.state);
 	const new_equations: typeof cached_equations = {};
-	for (const eqn of equations.values()) {
+	for (const [start, eqn] of equations.entries()) {
 		if (eqn in cached_equations) {
 			new_equations[eqn] = cached_equations[eqn];
 			continue
 		}
-
-
-		const openBrackets = ["{", "[", "("];
-		const closeBrackets = ["}", "]", ")"];
-
-		const bracketsStack: { char: string, pos: number }[] = [];
+		const tokens = tokenize_brackets(eqn, bracket_delimiters, view.state, start)
 		const localSpecs: BracketConcealment[] = [];
-
-		for (let i = 0; i < eqn.length; i++) {
-			const char = eqn.charAt(i);
-
-			if (openBrackets.contains(char)) {
-				bracketsStack.push({ char, pos: i });
+		for (const {region: token, depth} of walkTokens(tokens)) {
+			if (token.kind === "error_close" || token.kind === "error_open") {
+				const pos = token.kind === "error_open" ? token.outer_start : token.inner_end;
+				localSpecs.push({
+					pos,
+					className: "latex-suite-mismatched-bracket",
+					char: token.kind === "error_open" ? token.open : token.close
+				});
+				continue;
 			}
-			else if (closeBrackets.contains(char)) {
-				const lastBracket = bracketsStack.at(-1);
-
-				if (lastBracket && getCloseBracket(lastBracket.char) === char) {
-					bracketsStack.pop();
-					const lastBracketPos = lastBracket.pos;
-					const depth = bracketsStack.length % Ncolors;
-
-					const className = "latex-suite-color-bracket-" + depth;
-
-					localSpecs.push({ pos: lastBracketPos, className });
-					localSpecs.push({ pos: i, className });
-				}
-			}
+			const colorIndex = depth % Ncolors;
+			localSpecs.push({
+				pos: token.outer_start,
+				className: `latex-suite-color-bracket-${colorIndex}`,
+				char: token.open
+			});
+			localSpecs.push({
+				pos: token.inner_end,
+				className: `latex-suite-color-bracket-${colorIndex}`,
+				char: token.close
+			});
 		}
 		new_equations[eqn] = localSpecs;
 	}
@@ -66,51 +81,12 @@ function colorPairedBrackets(view: EditorView, cached_equations: ColorBracketsCa
 		const localSpecs = new_equations[eqn];
 		if (!localSpecs) continue;
 		for (const spec of localSpecs) {
-			widgets.push(getHighlightBracketMark(start + spec.pos, spec.className));
+			widgets.push(getHighlightBracketMark(start + spec.pos, spec.className, spec.char));
 		}
 	}
 	
 	const decorations = Decoration.set(widgets, true);
 	return { decorations, cached_equations  };
-}
-
-function getEnclosingBracketsPos(view: EditorView, pos: number, ctx: Context) {
-
-	const result = ctx.getBounds(pos);
-	if (!result) return -1;
-	const {inner_start: start, inner_end: end} = result;
-	const text = view.state.doc.sliceString(start, end);
-
-
-	for (let i = pos-start; i > 0; i--) {
-		let curChar = text.charAt(i);
-
-
-		if ([")", "]", "}"].contains(curChar)) {
-			const closeBracket = curChar;
-			const openBracket = getOpenBracket(closeBracket);
-
-			const j = findMatchingBracket(text, i, openBracket, closeBracket, true);
-
-			if (j === -1) return -1;
-
-			// Skip to the beginnning of the bracket
-			i = j;
-			curChar = text.charAt(i);
-		}
-		else {
-
-			if (!["{", "(", "["].contains(curChar)) continue;
-
-			const j = findMatchingBracket(text, i, curChar, getCloseBracket(curChar), false);
-			if (j === -1) continue;
-
-			return {left: i + start, right: j + start};
-
-		}
-	}
-
-	return -1;
 }
 
 function highlightCursorBrackets(view: EditorView) {
@@ -124,10 +100,10 @@ function highlightCursorBrackets(view: EditorView) {
 		return Decoration.none;
 	}
 
-	const openBrackets = ["{", "[", "("];
-	const brackets = ["{", "[", "(", "}", "]", ")"];
+	// const openBrackets = ["{", "[", "("];
+	// const brackets = ["{", "[", "(", "}", "]", ")"];
 
-	outer_loop: for (const range of ranges) {
+	for (const range of ranges) {
 		const bounds = ctx.getBounds(range.to);
 		if (!bounds) {
 			continue;
@@ -136,44 +112,55 @@ function highlightCursorBrackets(view: EditorView) {
 			bounds.inner_start,
 			bounds.inner_end,
 		);
-		for (let i = range.to; i > range.from - 2; i--) {
-			const char = eqn.charAt(i - bounds.inner_start);
-			if (!brackets.contains(char)) continue;
-
-			let openBracket, closeBracket;
-			let backwards = false;
-
-			if (openBrackets.contains(char)) {
-				openBracket = char;
-				closeBracket = getCloseBracket(openBracket);
+		const tokens = tokenize_brackets(eqn, bracket_delimiters, view.state, bounds.inner_start);
+		let prev_token: null | {
+			region: Region<string, string> & { kind: "bracket" };
+			depth: number;
+		} = null;
+		const eqn_range = {from: range.from - bounds.inner_start, to: range.to - bounds.inner_start, empty: range.empty}
+		for (const {region: token, depth} of walkTokens(tokens)) {
+			if (token.kind !== "bracket") {
+				continue;
 			}
-			else {
-				closeBracket = char;
-				openBracket = getOpenBracket(char);
-				backwards = true;
+			// highlight closest matching brackets inside the selection where the ends are included
+			if (
+				!eqn_range.empty &&
+				((token.outer_end <= eqn_range.to &&
+					token.outer_end >= eqn_range.from) ||
+					(token.outer_start >= eqn_range.to &&
+						token.outer_start <= eqn_range.from))
+			) {
+				prev_token = {
+					region: token,
+					depth: depth,
+				};
+				break;
 			}
-
-			let j = findMatchingBracket(eqn, i - bounds.inner_start, openBracket, closeBracket, backwards);
-
-			if (j === -1) continue;
-			j = j + bounds.inner_start;
-
-
-			widgets.push(getHighlightBracketMark(i, "latex-suite-highlighted-bracket"));
-			widgets.push(getHighlightBracketMark(j, "latex-suite-highlighted-bracket"));
-			continue outer_loop;
+			// highlight the innermost enclosing matching brackets if the selection is empty
+			if (token.outer_start <= eqn_range.to && token.outer_end >= eqn_range.to) {
+				prev_token = {
+					region: token,
+					depth: depth,
+				};
+				continue;
+			} 
+			if (token.outer_start > eqn_range.to) {
+				break
+			}
 		}
-
-		// Highlight brackets enclosing the cursor
-		if (range.empty) {
-			const pos = range.from - 1;
-
-			const result = getEnclosingBracketsPos(view, pos, ctx);
-			if (result === -1) continue;
-
-			widgets.push(getHighlightBracketMark(result.left, "latex-suite-highlighted-bracket"));
-			widgets.push(getHighlightBracketMark(result.right, "latex-suite-highlighted-bracket"));
-		}
+		if (!prev_token) continue
+		widgets.push(
+			getHighlightBracketMark(
+				prev_token.region.outer_start + bounds.inner_start,
+				"latex-suite-highlighted-bracket",
+				prev_token.region.open,
+			),
+			getHighlightBracketMark(
+				prev_token.region.inner_end + bounds.inner_start,
+				"latex-suite-highlighted-bracket",
+				prev_token.region.close,
+			),
+		);
 	}
 
 	return Decoration.set(widgets, true);

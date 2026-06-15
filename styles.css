@@ -251,6 +251,14 @@ and limit the height.
     color: #73ff63;
 }
 
+.theme-light .latex-suite-mismatched-bracket, .theme-light .latex-suite-mismatched-bracket .cm-bracket {
+	color: rgb(255,18,18, 0.8);
+
+}
+.theme-dark .latex-suite-mismatched-bracket, .theme-dark .latex-suite-mismatched-bracket .cm-bracket {
+	color: rgb(255,18,18, 0.8);
+}
+
 /* .latex-suite-color-bracket-3 {
     color: #8de15c;
 } */
