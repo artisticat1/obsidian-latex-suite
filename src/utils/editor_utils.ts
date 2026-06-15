@@ -52,11 +52,11 @@ export function reverse(s: string){
 }
 
 
-export function findMatchingBracket(text: string, start: number, openBracket: string, closeBracket: string, searchBackwards: boolean, end?: number):number {
+export function findMatchingBracket(text: string, start: number, openBracket: string, closeBracket: string, searchBackwards: boolean, end?: number):number | null {
 	if (searchBackwards) {
 		const reversedIndex = findMatchingBracket(reverse(text), text.length - (start + closeBracket.length), reverse(closeBracket), reverse(openBracket), false);
 
-		if (reversedIndex === -1) return -1;
+		if (reversedIndex === null) return null;
 
 		return text.length - (reversedIndex + openBracket.length)
 	}
@@ -65,10 +65,10 @@ export function findMatchingBracket(text: string, start: number, openBracket: st
 	const stop = end ? end : text.length;
 
 	for (let i = start; i < stop; i++) {
-		if (text.slice(i, i + openBracket.length) === openBracket) {
+		if (text.startsWith(openBracket, i)) {
 			brackets++;
 		}
-		else if (text.slice(i, i + closeBracket.length) === closeBracket) {
+		else if (text.startsWith(closeBracket, i)) {
 			brackets--;
 
 			if (brackets === 0) {
@@ -77,7 +77,7 @@ export function findMatchingBracket(text: string, start: number, openBracket: st
 		}
 	}
 
-	return -1;
+	return null;
 }
 
 

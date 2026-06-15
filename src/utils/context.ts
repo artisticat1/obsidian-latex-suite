@@ -172,7 +172,7 @@ export const contextPlugin = ViewPlugin.fromClass(
 					false,
 				);
 
-				if (right === -1) continue outer_loop;
+				if (right === null) continue outer_loop;
 
 				// Check whether the cursor lies inside the environment symbols
 				if (right >= pos && pos >= left + env.openSymbol.length) {

@@ -358,7 +358,7 @@ function concealBraKet(eqn: string): ConcealSpec[] {
 	for (const match of eqn.matchAll(/\\(braket|bra|ket){/g)) {
 		// index of the "}"
 		const contentEnd = findMatchingBracket(eqn, match.index, "{", "}", false);
-		if (contentEnd === -1) continue;
+		if (contentEnd === null) continue;
 
 		const commandStart = match.index;
 		// index of the "{"
@@ -391,7 +391,7 @@ function concealSet(eqn: string): ConcealSpec[] {
 
 		// index of the "}"
 		const contentEnd = findMatchingBracket(eqn, commandStart, "{", "}", false);
-		if (contentEnd === -1) continue;
+		if (contentEnd === null) continue;
 
 		specs.push(mkConcealSpec(
 			// Hide "\set"
@@ -412,7 +412,7 @@ function concealFraction(eqn: string): ConcealSpec[] {
 	for (const match of eqn.matchAll(/\n?\\(frac|dfrac|tfrac|gfrac){/g)) {
 		// index of the closing bracket of the numerator
 		const numeratorEnd = findMatchingBracket(eqn, match.index, "{", "}", false);
-		if (numeratorEnd === -1) continue;
+		if (numeratorEnd === null) continue;
 
 		// Expect there are no spaces between the closing bracket of the numerator
 		// and the opening bracket of the denominator
@@ -420,7 +420,7 @@ function concealFraction(eqn: string): ConcealSpec[] {
 
 		// index of the closing bracket of the denominator
 		const denominatorEnd = findMatchingBracket(eqn, numeratorEnd + 1, "{", "}", false);
-		if (denominatorEnd === -1) continue;
+		if (denominatorEnd === null) continue;
 
 		const commandStart = match.index + +(match[0][0] === "\n");
 		// The home key needs some **visually** to grab onto, so if the \frac is at the start of a line,
