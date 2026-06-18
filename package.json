@@ -40,7 +40,7 @@
 		"esbuild": "^0.20.2",
 		"esbuild-plugin-inline-import": "^1.0.2",
 		"eslint": "^9.39.2",
-		"eslint-plugin-obsidianmd": "~0.2.9",
+		"eslint-plugin-obsidianmd": "^0.3.0",
 		"globals": "^17.3.0",
 		"jiti": "^2.7.0",
 		"obsidian": "^1.12.3",

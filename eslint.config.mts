@@ -3,7 +3,7 @@ import { defineConfig, globalIgnores } from "eslint/config";
 import globals from "globals";
 import tsParser from "@typescript-eslint/parser";
 import obsidianmd from "eslint-plugin-obsidianmd";
-import {ParserOptions} from "@typescript-eslint/parser";
+import { ParserOptions } from "@typescript-eslint/parser";
 export default defineConfig([
 	globalIgnores([
 		"**/node_modules",
@@ -14,22 +14,20 @@ export default defineConfig([
 		"version-bump.mjs",
 		"tests/**",
 	]),
-	...obsidianmd.configs.recommended,
 	{
 		files: ["src/**/*.ts"],
 
+		extends: [obsidianmd.configs.recommended],
 		languageOptions: {
 			globals: {
 				...globals.browser,
 			},
 
-			parser: tsParser,
 			parserOptions: {
 				projectService: {
 					allowDefaultProject: ["eslint.config.mts", "manifest.json"],
 				},
-				tsconfigRootDir: __dirname,
-				extraFileExtensions: [".json"]
+				extraFileExtensions: [".json"],
 			} satisfies ParserOptions,
 			ecmaVersion: 2016,
 			sourceType: "module",
