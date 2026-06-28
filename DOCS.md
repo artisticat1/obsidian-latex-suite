@@ -454,6 +454,24 @@ You can [view snippets written by others and share your own snippets here](https
 > Snippet files are interpreted as JavaScript and can execute arbitrary code.
 > Always be careful with snippets shared from others to avoid running malicious code.
 
+## Keymap order
+
+When 2 or more keymaps have the same key, the following order will be used
+
+- Auto delete `$`
+- Expand snippets automatic snippets
+- Expand manual snippets (using `triggerKey` or the default `triggerKey`)
+- Select the next tabstop
+- Select the previous tabstop
+- Auto fraction
+- Priority tabout, e.g. only tabout when the cursor is inside brackets.
+- Add `\\` and a newline in a matrix
+- Add a new cell/ ` & ` in a matrix
+- Go to the next line in a matrix
+- Tabout to the next closing bracket or exit the equation
+- Tabout if you type a closing delimiter (e.g. `}`,`]`,`)`)
+
+If the feature is disabled, the keymap will be skipped.
 
 ## Vim
 
