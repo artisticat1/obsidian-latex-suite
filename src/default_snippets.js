@@ -166,6 +166,7 @@ export default [
 	{trigger: "xx", replacement: "\\times", options: "mA"},
     {trigger: "**", replacement: "\\cdot", options: "mA"},
     {trigger: "para", replacement: "\\parallel", options: "mA"},
+	{trigger: "deg", replacement: "\\degree", options: "mA"},
 
 	{trigger: "===", replacement: "\\equiv", options: "mA"},
     {trigger: "!=", replacement: "\\neq", options: "mA"},
@@ -259,8 +260,6 @@ export default [
 
 
     // Trigonometry
-	{trigger: "deg", replacement: "°", options: "mA"}, // Degree symbol. The following trig snippets are linked to sine, cosine & tangent
-	
     {trigger: /([^\\])(arcsin|sin|arccos|cos|arctan|tan|csc|sec|cot)/, replacement: "[[0]]\\[[1]]", options: "rmA", description: "Add backslash before trig funcs"},
 
     {trigger: /\\(arcsin|sin|arccos|cos|arctan|tan|csc|sec|cot)([A-Za-gi-z])/,
