@@ -4,20 +4,26 @@ import { EditorView } from "@codemirror/view";
 import { getMathBoundsPlugin } from "src/utils/context";
 import { findMatchingBracket } from "src/utils/editor_utils";
 import { ConcealSpec, mkConcealSpec } from "./conceal";
-import { greek, cmd_symbols, map_super, map_sub, fractions, brackets, mathscrcal, mathbb, operators, not_remap as raw_not_remap } from "./conceal_maps";
+// import { greek, cmd_symbols, map_super, map_sub, fractions, brackets, mathscrcal, mathbb, operators, not_remap as raw_not_remap } from "./conceal_maps";
+import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
 
 
 
-/**
- *sort by length. This is a workaround for ios devices < 16.4 where lookbehind is not supported.
- * This is to ensure regex preferes "top" over "to" for the string "\\top" since top is earlier as on of the options in the regex.
- */
-const ALL_SYMBOLS: Record<string,string> = Object.fromEntries(
-	Object.entries({...greek, ...cmd_symbols}).sort((a,b) => b[0].length - a[0].length)
-)
-const not_remap: Record<string,string> = Object.fromEntries([
-	...Object.entries(raw_not_remap).sort((a,b) => b[0].length - a[0].length)
-]);
+function getSymbols(view: EditorView) {
+	const settings = getLatexSuiteConfig(view.state);
+	const symbols = settings.concealMapping;
+	return symbols;
+}
+// /**
+//  *sort by length. This is a workaround for ios devices < 16.4 where lookbehind is not supported.
+//  * This is to ensure regex preferes "top" over "to" for the string "\\top" since top is earlier as on of the options in the regex.
+//  */
+// const ALL_SYMBOLS: Record<string,string> = Object.fromEntries(
+// 	Object.entries({...greek, ...cmd_symbols}).sort((a,b) => b[0].length - a[0].length)
+// )
+// const not_remap: Record<string,string> = Object.fromEntries([
+// 	...Object.entries(raw_not_remap).sort((a,b) => b[0].length - a[0].length)
+// ]);
 
 export function escapeRegex(regex: string) {
 	const escapeChars = ["\\", "(", ")", "+", "-", "[", "]", "{", "}", "."];
@@ -475,6 +481,19 @@ export function conceal(
 ): { specs: ConcealSpec[]; cached_equations: ConcealCachedEquations } {
 	const equations = getMathBoundsPlugin(view).getEquations(view.state);
 	const new_equations: typeof cached_equations = {};
+	const {
+		ALL_SYMBOLS,
+		not_remap,
+		map_sub,
+		map_super,
+		fractions,
+		brackets,
+		mathscrcal,
+		mathbb,
+		greek,
+		operators,
+	} = getSymbols(view);
+	console.debug (ALL_SYMBOLS)
 
 	for (const eqn of equations.values()) {
 		if (eqn in cached_equations) {

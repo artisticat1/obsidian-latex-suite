@@ -3,6 +3,7 @@ import { Environment } from "../snippets/environment";
 import { DEFAULT_SNIPPETS } from "src/utils/default_snippets";
 import { DEFAULT_SNIPPET_VARIABLES } from "src/utils/default_snippet_variables";
 import * as v from "valibot"
+import { ConcealMapping as ConcealMapping, fullMappingSchema, RawConcealMapping } from "src/editor_extensions/conceal_maps";
 
 export type snippetDebugLevel = "off" | "info" | "verbose";
 
@@ -22,6 +23,7 @@ export interface LatexSuiteBasicSettings {
 	autofractionEnabled: boolean;
 	concealEnabled: boolean;
 	concealRevealTimeout: number;
+	concealMappingFileLocation: string;
 	colorPairedBracketsEnabled: boolean;
 	highlightCursorBracketsEnabled: boolean;
 	mathPreviewEnabled: boolean;
@@ -75,7 +77,7 @@ interface LatexSuiteParsedSettings {
 }
 
 export type LatexSuitePluginSettings = {snippets: string, snippetVariables: string} & LatexSuiteBasicSettings & LatexSuiteRawSettings & LatexSuiteCMKeymapSettings;
-export type LatexSuiteCMSettings = {snippets: Snippet[]} & LatexSuiteBasicSettings & LatexSuiteParsedSettings & LatexSuiteCMKeymapSettings;
+export type LatexSuiteCMSettings = {snippets: Snippet[], concealMapping: ConcealMapping} & LatexSuiteBasicSettings & LatexSuiteParsedSettings & LatexSuiteCMKeymapSettings;
 
 export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
 	snippets: DEFAULT_SNIPPETS,
@@ -96,6 +98,7 @@ export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
 	snippetVariablesFileLocation: "",
 	concealEnabled: false,
 	concealRevealTimeout: 0,
+	concealMappingFileLocation: "",
 	colorPairedBracketsEnabled: true,
 	highlightCursorBracketsEnabled: true,
 	mathPreviewEnabled: true,
@@ -139,7 +142,7 @@ const EnvironmentSchema = v.pipe(
 	v.mapItems(([openSymbol, closeSymbol]) => ({ openSymbol, closeSymbol })),
 );
 
-export function processLatexSuiteSettings(snippets: Snippet[], settings: LatexSuitePluginSettings):LatexSuiteCMSettings {
+export function processLatexSuiteSettings(snippets: Snippet[], settings: LatexSuitePluginSettings, concealMap: RawConcealMapping[]):LatexSuiteCMSettings {
 
 	function strToArray(str: string) {
 		return str.replace(/\s/g,"").split(",");
@@ -171,5 +174,6 @@ export function processLatexSuiteSettings(snippets: Snippet[], settings: LatexSu
 		autoEnlargeBracketsTriggers: strToArray(settings.autoEnlargeBracketsTriggers)
 			.map(trigger => /[A-Za-z]+/.test(trigger) ? `\\${trigger}` : trigger), 
 		forceMathLanguages: strToArray(settings.forceMathLanguages),
+		concealMapping: fullMappingSchema(concealMap),
 	}
 }

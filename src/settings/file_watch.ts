@@ -1,9 +1,11 @@
 import LatexSuitePlugin from "../main";
 import { Vault, TFile, TFolder, TAbstractFile, Notice, debounce } from "obsidian";
 import { Snippet } from "../snippets/snippets";
-import { parseSnippets, parseSnippetVariables, type SnippetVariables } from "../snippets/parse";
+import { importRaw, parseSnippets, parseSnippetVariables, type SnippetVariables } from "../snippets/parse";
 import { sortSnippets } from "src/snippets/sort";
 import { difference, intersection } from "src/utils/prototype_utils";
+import { MappingSchema, RawConcealMapping } from "src/editor_extensions/conceal_maps";
+import * as v from "valibot";
 
 function isInFolder(file: TFile, dir: TFolder) {
 	let cur = file.parent;
@@ -28,7 +30,7 @@ function fileIsInFolder(plugin: LatexSuitePlugin, folderPath: string, file: TFil
 }
 
 const refreshFromFiles = debounce(async (plugin: LatexSuitePlugin) => {
-	if (!(plugin.settings.loadSnippetVariablesFromFile || plugin.settings.loadSnippetsFromFile)) {
+	if (!(plugin.settings.loadSnippetVariablesFromFile || plugin.settings.loadSnippetsFromFile || plugin.settings.concealMappingFileLocation)) {
 		return;
 	}
 
@@ -41,8 +43,10 @@ export const onFileChange = async (plugin: LatexSuitePlugin, file: TAbstractFile
 
 	if (plugin.settings.loadSnippetVariablesFromFile && file.path === plugin.settings.snippetVariablesFileLocation
 		|| plugin.settings.loadSnippetsFromFile && file.path === plugin.settings.snippetsFileLocation
+		|| plugin.settings.concealMappingFileLocation && file.path === plugin.settings.concealMappingFileLocation
 		|| fileIsInFolder(plugin, plugin.settings.snippetVariablesFileLocation, file)
 		|| fileIsInFolder(plugin, plugin.settings.snippetsFileLocation, file)
+		|| fileIsInFolder(plugin, plugin.settings.concealMappingFileLocation, file)
 	) {
 		refreshFromFiles(plugin);
 	}
@@ -53,6 +57,7 @@ export const onFileCreate = (plugin: LatexSuitePlugin, file: TAbstractFile) => {
 
 	if (plugin.settings.loadSnippetVariablesFromFile && fileIsInFolder(plugin,plugin.settings.snippetVariablesFileLocation, file)
 		|| plugin.settings.loadSnippetsFromFile && fileIsInFolder(plugin,plugin.settings.snippetsFileLocation, file)
+		|| plugin.settings.concealMappingFileLocation && fileIsInFolder(plugin, plugin.settings.concealMappingFileLocation, file)
 	) {
 		refreshFromFiles(plugin);
 	}
@@ -169,4 +174,20 @@ export async function getSnippetsFromFiles(
 	}
 
 	return sortSnippets(snippets);
+}
+
+export async function getConcealMappingsFromFiles(
+	plugin: LatexSuitePlugin,
+): Promise<RawConcealMapping[]> {
+	const files = plugin.settings.concealMappingFileLocation ? getFilesWithin(plugin.app.vault, plugin.settings.concealMappingFileLocation)
+		: new Set<TFile>();
+
+	const rawMappings: RawConcealMapping[] = [];
+	for (const file of files) {
+		const content = await plugin.app.vault.read(file);
+		const parsedContent = await importRaw(content, file.path);
+		const parsedMapping = v.parse(MappingSchema, parsedContent);
+		rawMappings.push(parsedMapping);
+	}
+	return rawMappings;
 }
