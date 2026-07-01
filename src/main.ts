@@ -1,6 +1,6 @@
 import { Extension, Prec } from "@codemirror/state";
-import { Plugin, Notice, loadMathJax, addIcon } from "obsidian";
-import { onFileCreate, onFileChange, onFileDelete, getSnippetsFromFiles, getFileSets, getVariablesFromFiles, tryGetVariablesFromUnknownFiles } from "./settings/file_watch";
+import { Plugin, Notice, loadMathJax, addIcon, debounce } from "obsidian";
+import { getSnippetsFromFiles, getFileSets, getVariablesFromFiles, tryGetVariablesFromUnknownFiles, fileWatch } from "./settings/file_watch";
 import { LatexSuitePluginSettings, DEFAULT_SETTINGS, LatexSuiteCMSettings, processLatexSuiteSettings, LatexSuiteBasicSettings, LatexSuiteRawSettings } from "./settings/settings";
 import { isIMESupported, LatexSuiteSettingTab } from "./settings/settings_tab";
 import { ICONS } from "./settings/ui/icons";
@@ -22,6 +22,7 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 	settings: LatexSuitePluginSettings;
 	CMSettings: LatexSuiteCMSettings;
 	editorExtensions: Extension[] = [];
+	watcherCloser?: () => void;
 	disableMath = (view: EditorView) => {
 		try {
 			getContextPlugin(view, false).disableMath();
@@ -147,15 +148,15 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 	async getSnippets(becauseFileLocationUpdated: boolean, becauseFileUpdated: boolean) {
 		// Get files in snippet/variable folders.
 		// If either is set to be loaded from settings the set will just be empty.
-		const files = getFileSets(this);
+		const files = await getFileSets(this);
 
 		const snippetVariables =
 			this.settings.loadSnippetVariablesFromFile
-				? await getVariablesFromFiles(this, files)
+				? await getVariablesFromFiles(files)
 				: await this.getSettingsSnippetVariables();
 
 		// This must be done in either case, because it also updates the set of snippet files
-		const unknownFileVariables = await tryGetVariablesFromUnknownFiles(this, files);
+		const unknownFileVariables = await tryGetVariablesFromUnknownFiles(files);
 		if (this.settings.loadSnippetVariablesFromFile) {
 			// But we only use the values if the user wants them
 			Object.assign(snippetVariables, unknownFileVariables);
@@ -163,7 +164,7 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 
 		const snippets =
 			this.settings.loadSnippetsFromFile
-				? await getSnippetsFromFiles(this, files, snippetVariables)
+				? await getSnippetsFromFiles(files, snippetVariables)
 				: await this.getSettingsSnippets(snippetVariables);
 
 		this.showSnippetsLoadedNotice(snippets.length, Object.keys(snippetVariables).length,  becauseFileLocationUpdated, becauseFileUpdated);
@@ -172,6 +173,9 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 	}
 
 	async processSettings(becauseFileLocationUpdated = false, becauseFileUpdated = false) {
+		if (becauseFileLocationUpdated) {
+			this.watchFiles();
+		}
 		this.CMSettings = processLatexSuiteSettings(await this.getSnippets(becauseFileLocationUpdated, becauseFileUpdated), this.settings);
 		this.setEditorExtensions();
 		// Request Obsidian to reconfigure CM extensions
@@ -248,25 +252,22 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 		}
 		
 	}
+	
+	createWatcherCloser = debounce(async () => {
+		this.watcherCloser?.();
+		const newWatcherCloser = await fileWatch(this);
+		this.register(() => {
+			newWatcherCloser();
+		});
+		this.watcherCloser = newWatcherCloser ?? undefined;
+	}, 3000, true);
 
 	watchFiles() {
 		// Only begin watching files once the layout is ready
 		// Otherwise, we'll be unnecessarily reacting to many onFileCreate events of snippet files
 		// that occur when Obsidian first loads
 
-		this.app.workspace.onLayoutReady(() => {
-
-			const eventsAndCallbacks = {
-				"modify": onFileChange,
-				"delete": onFileDelete,
-				"create": onFileCreate
-			};
-
-			for (const [key, value] of Object.entries(eventsAndCallbacks)) {
-				// @ts-expect-error
-				this.registerEvent(this.app.vault.on(key, (file) => value(this, file)));
-			}
-		});
+		this.app.workspace.onLayoutReady(this.createWatcherCloser);
 	}
 
 	loadIcons() {

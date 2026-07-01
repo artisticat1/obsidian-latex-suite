@@ -95,9 +95,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 		const snippetsFileLocDesc = new DocumentFragment();
 		snippetsFileLocDesc.createDiv({}, div => {
-			div.appendText("The file or folder to load snippets from. The file or folder must be within your vault, and not within a hidden folder (such as ")
-			div.createEl("code", { text: `.obsidian${""}/` });
-			div.appendText(").")
+			div.appendText("The file or folder to load snippets from. On desktop you can use ~/ or an absolute path. Files outside your vault or in hidden folders may not be watched for changes depending on your os.")
 		});
 
 		const snippetsFileLoc = new Setting(containerEl)
@@ -501,9 +499,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 		const snippetVariablesFileLocDesc = new DocumentFragment();
 		snippetVariablesFileLocDesc.createDiv({}, (div) => {
-			div.appendText("The file or folder to load snippet variables from. The file or folder must be within your vault, and not within a hidden folder (such as ")
-			div.createEl("code", { text: `.obsidian${""}/` });
-			div.appendText(").")
+			div.appendText("The file or folder to load snippets from. On desktop you can use ~/ or an absolute path. Files outside your vault or in hidden folders may not be watched for changes depending on your os.")
 		});
 
 		const snippetVariablesFileLoc = new Setting(containerEl)

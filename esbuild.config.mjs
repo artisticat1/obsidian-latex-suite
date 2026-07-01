@@ -42,7 +42,10 @@ const args = {
 		"@codemirror/view",
 		"@lezer/highlight",
 		"@lezer/common",
-		"@lezer/lr"
+		"@lezer/lr",
+		"fs",
+		"path",
+		"os",
 		],
 	format: "cjs",
 	target: "es2016",
