@@ -132,24 +132,23 @@ const RawSnippetSchema = object({
 	description: optional(string_(), "no description provided"),
 	triggerKey: optional(string_(), ""),
 	language: optional(string_()),
-	excludedEnvs: pipe(
-		optional(
-			object({
-				matrix: optional(array(string_()), []),
-				macros: optional(array(string_()), []),
-			}),
-			{},
-		),
-		transform(({ matrix, macros }): Environment[] => [
-			...matrix.map((env) => ({
-				openSymbol: `\\begin{${env}}`,
-				closeSymbol: `\\end{${env}}`,
-			})),
-			...macros.map((env) => ({
+	excludedMacros: pipe(
+		optional(array(string_()), []),
+		transform((macros): Environment[] =>
+			macros.map((env) => ({
 				openSymbol: `\\${env}{`,
 				closeSymbol: "}",
 			})),
-		]),
+		),
+	),
+	excludedEnvironments: pipe(
+		optional(array(string_()), []),
+		transform((environments): Environment[] =>
+			environments.map((env) => ({
+				openSymbol: `\\begin{${env}}`,
+				closeSymbol: `\\end{${env}}`,
+			})),
+		),
 	),
 });
 
@@ -178,7 +177,8 @@ function validateRawSnippets(snippets: unknown): RawSnippet[] {
  * - if it is a regex snippet, the trigger is represented as a RegExp instance with flags set
  */
 function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snippet {
-	const { replacement: replacementRaw, priority, description, excludedEnvs: userExcludedEnvironments } = raw;
+	const { replacement: replacementRaw, priority, description, excludedEnvironments, excludedMacros } = raw;
+	const userExcludedEnvironments = [...excludedEnvironments, ...excludedMacros];
 	const options = Options.fromSource(raw.options, raw.language);
 	const triggerKey = parseKeyName(raw.triggerKey);
 
