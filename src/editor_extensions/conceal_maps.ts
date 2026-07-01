@@ -190,7 +190,7 @@ export const cmd_symbols:{[name:string]: string} =
 	"jmath": "ȷ",
 	"Join": "⋈",
 	"land": "∧",
-	"lceil": "⌈",
+	// "lceil": "⌈",
 	"ldotp": ".",
 	"ldots": "…",
 	"le": "≤",
@@ -330,7 +330,7 @@ export const cmd_symbols:{[name:string]: string} =
 	"propto": "∝",
 	"qquad": " ",
 	"quad": " ",
-	"rceil": "⌉",
+	// "rceil": "⌉",
 	"Re": "ℜ",
 	"real": "ℜ",
 	"restriction": "↾",
@@ -993,6 +993,7 @@ export const hat = {
 
 
 
+// brackets also highlighted further by highlight_brackets.ts
 export const brackets = {
 	// "left(": "(",
 	// "left[": "[",
@@ -1028,7 +1029,7 @@ export const brackets = {
 	"right\\gt": "⟩",
 	"lbrace": "{",
 	"lbrack": "[",
-	// "lceil": "⌈",
+	"lceil": "⌈",
 	"lfloor": "⌊",
 	"lgroup": "⟮",
 	"llcorner": "⌞",
@@ -1039,7 +1040,7 @@ export const brackets = {
 	"right\\lt": "⟨",
 	"rbrace": "}",
 	"rbrack": "]",
-	// "rceil": "⌉",
+	"rceil": "⌉",
 	"rfloor": "⌋",
 	"rgroup": "⟯",
 	"rmoustache": "⎱",
