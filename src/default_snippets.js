@@ -114,7 +114,7 @@ export default [
 
 	// \dot{x}3 -> \dot{x}_{3}, \dot{\alpha}3 -> \dot{\alpha}_{3}
 	{
-		trigger: "\\\\(${ACCENT})\\{(\\\\${GREEK}|[A-Za-z])\\}(\\d)",
+	  trigger: "\\\\(${ACCENT})\\{(\\\\${GREEK}|[A-Za-z])\\}(\\d)",
 	  replacement: "\\[[0]]{[[1]]}_{[[2]]}",
 	  options: "rmA",
 	  priority: -1,
@@ -122,7 +122,7 @@ export default [
 	
 	// \dot{x}_{3}4 -> \dot{x}_{34}
 	{
-		trigger: "\\\\(${ACCENT})\\{(\\\\${GREEK}|[A-Za-z])\\}_\\{(\\d+)\\}(\\d)",
+	  trigger: "\\\\(${ACCENT})\\{(\\\\${GREEK}|[A-Za-z])\\}_\\{(\\d+)\\}(\\d)",
 	  replacement: "\\[[0]]{[[1]]}_{[[2]][[3]]}",
 	  options: "rmA",
 	  priority: -1,
@@ -136,7 +136,7 @@ export default [
 	},
 	// \dot{\vec{a}}_{3}4 -> \dot{\vec{a}}_{34}
 	{
-		trigger: "\\\\(${ACCENT})\\{\\\\(${ACCENT})\\{(\\\\${GREEK}|[A-Za-z])\\}\\}_\\{(\\d+)\\}(\\d)",
+	  trigger: "\\\\(${ACCENT})\\{\\\\(${ACCENT})\\{(\\\\${GREEK}|[A-Za-z])\\}\\}_\\{(\\d+)\\}(\\d)",
 	  replacement: "\\[[0]]{\\[[1]]{[[2]]}}_{[[3]][[4]]}",
 	  options: "rmA",
 	  priority: -1,
@@ -227,6 +227,14 @@ export default [
 		},
 		options: "rmA",
 		priority: 2
+	},
+
+	// Avoid Auto letter subscript
+	{
+		trigger: "\\\\(${SYMBOLS}|${MORE_SYMBOLS})([0-9])",
+		replacement: "\\[[0]] [[1]]",
+		options: "mA",
+		description: "Add space after symbols when followed by a number.",
 	},
 
 	{trigger: "\\\\(${GREEK}|${SYMBOL}) sr", replacement: "\\[[0]]^{2}", options: "rmA"},
