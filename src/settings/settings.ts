@@ -32,6 +32,7 @@ export interface LatexSuiteBasicSettings {
 	autofractionBreakingChars: string;
 	matrixShortcutsEnabled: boolean;
 	taboutEnabled: boolean;
+	taboutExitEquationOnlyOnEOL: boolean;
 	autoEnlargeBrackets: boolean;
 	autoEnlargeBracketsSpace: boolean;
 	wordDelimiters: string;
@@ -107,6 +108,7 @@ export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
 	autofractionBreakingChars: "+-=\t",
 	matrixShortcutsEnabled: true,
 	taboutEnabled: true,
+	taboutExitEquationOnlyOnEOL: true,
 	taboutTrigger: "Tab",
 	autoEnlargeBrackets: true,
 	autoEnlargeBracketsSpace: true,
