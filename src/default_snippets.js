@@ -50,7 +50,7 @@ export default [
 	{trigger: "sts", replacement: "_\\text{$0}", options: "mA"},
 	{trigger: "sq", replacement: "\\sqrt{ $0 }$1", options: "mA"},
 	{trigger: "//", replacement: "\\frac{$0}{$1}$2", options: "mA"},
-	{trigger: "ee", replacement: "e^{ $0 }$1", options: "mA"},
+	{trigger: /\bee/, replacement: "e^{ $0 }$1", options: "mA"},
     {trigger: "invs", replacement: "^{-1}", options: "mA"},
 
     {trigger: /([^\\])(exp|log|ln)/, replacement: "[[0]]\\[[1]]", options: "rmA"},
@@ -103,6 +103,7 @@ export default [
 	  replacement: "[[0]]_{[[1]]}",
 	  options: "rmA",
 	  priority: -1,
+	  excludedMacros: ["pu", "ce"]
 	},
 	// x_{3}4 -> x_{34}, \alpha_{3}4 -> \alpha_{34}
 	{
@@ -180,7 +181,7 @@ export default [
 
 
     {trigger: "<->", replacement: "\\leftrightarrow ", options: "mA"},
-	{trigger: "->", replacement: "\\to", options: "mA"},
+	{trigger: "->", replacement: "\\to", options: "mA", excludedMacros: ["ce"]},
 	{trigger: "!>", replacement: "\\mapsto", options: "mA"},
     {trigger: "=>", replacement: "\\implies", options: "mA"},
 	{trigger: "=<", replacement: "\\impliedby", options: "mA"},
