@@ -25,9 +25,10 @@ const sizeControls = [
 	"\\right",
 ] as const;
 
+// math delimiters can't be enlarged, but \[\] is not valid in mathjax so only match \(\).
 const mathDelimiters = {
 	"\\(": "\\)",
-	"\\[": "\\]",
+	// "\\[": "\\]",
 } as const;
 
 const nestingBrackets = ["{", "}"] as const;
