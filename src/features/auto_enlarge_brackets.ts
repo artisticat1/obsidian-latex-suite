@@ -24,6 +24,13 @@ const sizeControls = [
 	"\\left",
 	"\\right",
 ] as const;
+
+// math delimiters can't be enlarged, but \[\] is not valid in mathjax so only match \(\).
+const mathDelimiters = {
+	"\\(": "\\)",
+	// "\\[": "\\]",
+} as const;
+
 const nestingBrackets = ["{", "}"] as const;
 const brackets = {
 	"(": ")",
@@ -35,8 +42,11 @@ const brackets = {
 	"\\lceil": "\\rceil",
 	"\\lfloor": "\\rfloor",
 } as const;
+
 const delimiters = [
 	...sizeControls,
+	...Object.keys(mathDelimiters) as (keyof typeof mathDelimiters)[],
+	...Object.values(mathDelimiters),
 	...Object.keys(brackets) as (keyof typeof brackets)[],
 	...Object.values(brackets),
 ] as const
@@ -67,7 +77,13 @@ type CloseToOpen = {[K in keyof typeof brackets as (typeof brackets)[K]]: K};
 const closeToOpen: CloseToOpen = Object.fromEntries(
 	Object.entries(brackets).map(([open, close]) => [close, open])
 ) as CloseToOpen;
-type ParserResult = typeof delimiters[number] | typeof nestingBrackets[number];
+
+type ReverseMathDelimiters = {[K in keyof typeof mathDelimiters as (typeof mathDelimiters)[K]]: K};
+const reverseMathDelimiters: ReverseMathDelimiters = Object.fromEntries(
+	Object.entries(mathDelimiters).map(([open, close]) => [close, open])
+) as ReverseMathDelimiters;
+
+type ParserResult = typeof delimiters[number] | typeof nestingBrackets[number]
 	
 
 
@@ -98,11 +114,10 @@ export const autoEnlargeBrackets = (view: EditorView) => {
 	// Grouping as `0{1{2}1{3}1}0{4}0` as latex only allows `\left ... \right` within the same scope like this.
 	let nextGroupId = 0;
 	const scopeStack: number[] = [nextGroupId];
-
 	while ((match = parser.exec(text)) !== null) {
 		const token = match[0] as ParserResult;
 		const index = match.index;
-		if (isContains(sizeControls, token)) {
+		if (isContains(sizeControls, token) || inObject(mathDelimiters, token) || inObject(reverseMathDelimiters, token)) {
 			skipNext = index + token.length;
 			continue
 		} else if (isContains(nestingBrackets, token)) {

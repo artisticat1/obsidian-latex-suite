@@ -31,6 +31,7 @@ const bracket_delimiters = [
 	["{","}"],
 	["[","]"],
 	["(",")"],
+	["\\(", "\\)"],
 	// these don't neccessarily have to be paired, but they often do so we treat them like a pair.
 	["\\left<","\\right>"],
 	["\\langle ", "\\rangle"],
