@@ -1,0 +1,540 @@
+// Track environments
+@top LaTeX {
+	Math
+}
+
+@context elementContext from "./tokens"
+
+// External tokens must be defined before normal @tokens to take precedence
+// over them.
+
+@external tokens verbTokenizer from "./tokens" {
+    VerbContent
+}
+
+@external tokens literalArgTokenizer from "./tokens" {
+    LiteralArgContent
+}
+
+
+// external tokenizer to read control sequence names including @ signs
+// (which are often used in TeX definitions).
+@external tokens csnameTokenizer from "./tokens" {
+    Csname
+}
+
+
+
+// It doesn't seem to be possible to access specialized tokens in the context tracker.
+// They have id's which are not exported in the latex.terms.js file.
+// This is a workaround:  use an external specializer to explicitly choose the terms
+// to use for the specialized tokens.
+@external specialize {CtrlSeq} specializeCtrlSeq from "./tokens" {
+    Begin,
+    End,
+    RefCtrlSeq,
+    RefStarrableCtrlSeq,
+    LabelCtrlSeq,
+    MathTextCtrlSeq,
+    HboxCtrlSeq,
+    HrefCtrlSeq,
+    VerbCtrlSeq,
+    DefCtrlSeq,
+    LetCtrlSeq,
+    LeftCtrlSeq,
+    RightCtrlSeq,
+    NewCommandCtrlSeq,
+    RenewCommandCtrlSeq,
+    NewEnvironmentCtrlSeq,
+    RenewEnvironmentCtrlSeq,
+    // services/web/frontend/js/features/outline/outline-parser.js
+    TextColorCtrlSeq,
+    ColorBoxCtrlSeq,
+	HLineCtrlSeq,
+	TopRuleCtrlSeq,
+	MidRuleCtrlSeq,
+    BottomRuleCtrlSeq,
+    ParBoxCtrlSeq,
+    TextBoldCtrlSeq,
+    TextItalicCtrlSeq,
+    TextTeletypeCtrlSeq,
+    TextSansSerifCtrlSeq,
+    EmphasisCtrlSeq,
+    UnderlineCtrlSeq
+}
+
+@external specialize {EnvName} specializeEnvName from "./tokens" {
+    EquationEnvName,
+    EquationArrayEnvName
+}
+
+@external specialize {CtrlSym} specializeCtrlSym from "./tokens" {
+    OpenParenCtrlSym,
+    CloseParenCtrlSym,
+    OpenBracketCtrlSym,
+    CloseBracketCtrlSym,
+    LineBreakCtrlSym
+}
+
+@tokens {
+    CtrlSeq { "\\" $[a-zA-Z]+ }
+    CtrlSym { "\\" ![a-zA-Z] }
+
+    // tokens for paragraphs
+    Whitespace { $[ \t]+ }
+    NewLine { "\n" }
+    BlankLine { "\n" "\n"+ }
+    Normal { ![\\{}\[\]$&~#^_% \t\n] ![\\{}\[\]$&~#^_%\t\n]* }  // everything is normal text, except these characters
+    @precedence { CtrlSeq, CtrlSym, BlankLine, NewLine, Whitespace, Normal }
+
+    OpenBrace[closedBy=CloseBrace] { "{" }
+    CloseBrace[openedBy=OpenBrace] { "}" }
+    OpenBracket[closedBy=CloseBracket] { "[" }
+    CloseBracket[openedBy=OpenBracket] { "]" }
+
+    Comment { "%" ![\n]* "\n"? }
+
+    Dollar { "$" }
+
+    Number { $[0-9]+ ("." $[0-9]*)? }
+    MathSpecialChar { $[^_=<>()\-+/*]+ }  // FIXME not all of these are special
+    MathChar { ![0-9^_=<>()\-+/*\\{}\[\]$%&~ \t\n]+ }
+
+    @precedence { Number, MathSpecialChar, MathChar }
+
+    Ampersand { "&" }
+    Tilde { "~" }
+
+    EnvName {  $[a-zA-Z]+ $[*]? }
+}
+
+
+@skip { Comment }
+
+// TEXT MODE
+
+optionalWhitespace {
+    !argument Whitespace
+}
+
+OptionalArgument {
+    !argument OpenBracket ShortOptionalArg CloseBracket
+}
+
+newCommandOptionalArguments {
+	OptionalArgument OptionalArgument?
+}
+
+TextArgument {
+    !argument OpenBrace LongArg CloseBrace
+}
+
+
+LabelArgument {
+    !argument ShortTextArgument
+}
+
+RefArgument {
+    !argument ShortTextArgument
+}
+
+
+UrlArgument {
+    OpenBrace LiteralArgContent CloseBrace
+}
+
+DefinitionArgument {
+    !argument NewLine? Whitespace* OpenBrace DefinitionFragment? CloseBrace
+}
+
+MacroParameter {
+    "#" ("1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9")
+}
+
+OptionalMacroParameter {
+    OpenBracket MacroParameter CloseBracket
+}
+
+// The autocompletion code in services/web/frontend/js/features/source-editor/utils/tree-operations/commands.ts
+// depends on following the `KnownCommand { Command { CommandCtrlSeq [args] } }`
+// structure
+KnownCommand<ArgumentType> {
+    TextColorCommand {
+        TextColorCtrlSeq optionalWhitespace? ShortTextArgument optionalWhitespace? ArgumentType
+    } |
+    ColorBoxCommand {
+        ColorBoxCtrlSeq optionalWhitespace? ShortTextArgument optionalWhitespace? ArgumentType
+    } |
+    HrefCommand {
+        HrefCtrlSeq optionalWhitespace? UrlArgument ShortTextArgument
+    } |
+    VerbCommand {
+        VerbCtrlSeq VerbContent
+    } |
+    Label {
+        LabelCtrlSeq optionalWhitespace? LabelArgument
+    } |
+    Ref {
+        (RefCtrlSeq | RefStarrableCtrlSeq "*"?) optionalWhitespace? OptionalArgument? optionalWhitespace? OptionalArgument? optionalWhitespace? RefArgument
+    } |
+    Def {
+        // allow more general Csname argument to \def commands, since other symbols such as '@' are often used in definitions
+        DefCtrlSeq optionalWhitespace? (Csname | CtrlSym) optionalWhitespace? (MacroParameter | OptionalMacroParameter)* optionalWhitespace? DefinitionArgument
+    } |
+    Let {
+        LetCtrlSeq Csname optionalWhitespace? "="? optionalWhitespace? Csname
+    } |
+    Hbox {
+        HboxCtrlSeq optionalWhitespace? TextArgument
+    } |
+    NewCommand {
+        NewCommandCtrlSeq optionalWhitespace?
+        (Csname | OpenBrace LiteralArgContent CloseBrace)
+		(newCommandOptionalArguments)?
+        DefinitionArgument
+    } |
+    RenewCommand {
+        RenewCommandCtrlSeq optionalWhitespace?
+        (Csname | OpenBrace LiteralArgContent CloseBrace)
+		(newCommandOptionalArguments)?
+        DefinitionArgument
+    } |
+    NewEnvironment {
+        NewEnvironmentCtrlSeq optionalWhitespace?
+        (OpenBrace LiteralArgContent CloseBrace)
+		(newCommandOptionalArguments)?
+        DefinitionArgument
+        DefinitionArgument
+    } |
+    RenewEnvironment {
+        RenewEnvironmentCtrlSeq optionalWhitespace?
+        (Csname | OpenBrace LiteralArgContent CloseBrace)
+		(newCommandOptionalArguments)?
+        DefinitionArgument
+        DefinitionArgument
+    } |
+    MathTextCommand {
+        MathTextCtrlSeq optionalWhitespace? "*"? TextArgument
+    } |
+	HorizontalLine {
+        (HLineCtrlSeq | TopRuleCtrlSeq | MidRuleCtrlSeq | BottomRuleCtrlSeq) optionalWhitespace?
+    } |
+    ParBoxCommand {
+        ParBoxCtrlSeq
+            (optionalWhitespace? OptionalArgument)*
+            ShortTextArgument
+            optionalWhitespace? TextArgument
+    } |
+    TextBoldCommand {
+        TextBoldCtrlSeq TextArgument
+    } |
+    TextItalicCommand {
+        TextItalicCtrlSeq TextArgument
+    } |
+    TextTeletypeCommand {
+        TextTeletypeCtrlSeq TextArgument
+    } |
+	TextSansSerifCommand {
+        TextSansSerifCtrlSeq TextArgument
+    } |
+    EmphasisCommand {
+        EmphasisCtrlSeq ArgumentType
+    } |
+    UnderlineCommand {
+        UnderlineCtrlSeq ArgumentType
+    }
+}
+
+UnknownCommand {
+      (CtrlSeq !argument Whitespace (OptionalArgument | TextArgument)+)
+    | (CtrlSeq (OptionalArgument | TextArgument)+)
+    | CtrlSeq Whitespace?
+    | CtrlSym
+}
+
+Command {
+      KnownCommand<TextArgument>
+    | UnknownCommand
+    | KnownCtrlSym
+    // Not technically allowed in normal mode, but not worth failing the parse over
+    | LeftCtrlSeq
+    | RightCtrlSeq
+
+}
+
+KnownCtrlSym {
+    LineBreak {
+        LineBreakCtrlSym OptionalArgument?
+    }
+}
+
+textBase {
+    ( Command
+    | DollarInlineMath
+    | ParenMath
+    | NewLine
+    | Normal
+    | Whitespace
+    | Ampersand
+    | Tilde
+    )
+}
+
+textWithBrackets {
+    ( textBase
+    | OpenBracket
+    | CloseBracket
+    )
+}
+
+Content<Element> {
+    Element
+}
+
+
+
+LongArg {
+    ( textWithBrackets
+    | NonEmptyGroup<LongArg>
+    | KnownEnvironment
+    | Environment
+    | BlankLine
+    | "#" // macro character
+    | "_" | "^" // other math chars
+    )*
+}
+
+ShortTextArgument {
+    OpenBrace ShortArg CloseBrace
+}
+
+ShortArg {
+    ( textWithBrackets
+    | NonEmptyGroup<ShortArg>
+    | "#" // macro character
+    | "_" | "^" // other math chars
+    )*
+}
+
+ShortOptionalArg {
+    ( textBase
+    | NonEmptyGroup<ShortOptionalArg>
+    | "#" // macro character
+    | "_" // underscore is used in some parameter names
+    )*
+}
+
+
+
+DefinitionFragment {
+    ( DefinitionFragmentCommand
+    | Begin
+    | End
+    | Group<DefinitionFragment>
+    | Dollar
+    | OpenParenCtrlSym
+    | CloseParenCtrlSym
+    | OpenBracketCtrlSym
+    | CloseBracketCtrlSym
+    | LeftCtrlSeq
+    | RightCtrlSeq
+    | BlankLine
+    | NewLine
+    | Normal
+    | Whitespace
+    | OpenBracket
+    | CloseBracket
+    | "#" // macro character
+    | Ampersand // for tables
+    | Tilde // unbreakable space
+    | "_" | "^" // other math chars
+    )+
+}
+
+DefinitionFragmentArgument {
+    OpenBrace DefinitionFragment? CloseBrace
+}
+
+DefinitionFragmentCommand {
+      KnownCommand<TextArgument>
+    | DefinitionFragmentUnknownCommand { genericUnknownCommandWithOptionalArguments<DefinitionFragmentArgument, OptionalArgument> }
+    | KnownCtrlSym
+}
+
+KnownEnvironment {
+    ( EquationEnvironment
+    | EquationArrayEnvironment
+    )
+}
+
+BeginEnv<name> {
+  Begin
+  EnvNameGroup<name>
+  OptionalArgument?
+  (!argument TextArgument)*
+}
+
+EndEnv<name> {
+  End
+  EnvNameGroup<name>
+}
+
+
+
+
+EquationEnvironment[@isGroup="$Environment"] {
+    BeginEnv<EquationEnvName>
+    Content<Math?>
+    EndEnv<EquationEnvName>
+}
+
+EquationArrayEnvironment[@isGroup="$Environment"] {
+    BeginEnv<EquationArrayEnvName>
+    Content<Math?>
+    EndEnv<EquationArrayEnvName>
+}
+
+EnvNameGroup<name> {
+    OpenBrace name CloseBrace
+}
+
+Environment[@isGroup="$Environment"] {
+    BeginEnv<EnvName?>
+    Content<Math>
+    EndEnv<EnvName?>
+}
+
+Group<GroupContent> {
+    OpenBrace GroupContent? CloseBrace
+}
+
+NonEmptyGroup<GroupContent> {
+    OpenBrace GroupContent CloseBrace
+}
+
+///  MATH MODE
+
+// DollarMath[@isGroup="$MathContainer"] {
+//   Dollar (InlineMath | DisplayMath) Dollar
+// }
+
+DollarInlineMath[@isGroup="$MathContainer"] {
+	Dollar InlineMath? Dollar
+}
+
+InlineMath {
+    Math
+}
+
+// DisplayMath {
+//     Dollar Math? Dollar
+// }
+
+
+OpenParenMath[closedBy=CloseParenMath] {
+    OpenParenCtrlSym
+}
+
+CloseParenMath[openedBy=OpenParenMath] {
+    CloseParenCtrlSym
+}
+
+// alternative syntax \( math \) for inline math, it is the same as $ math $
+ParenMath[@isGroup="$MathContainer"] {
+    OpenParenMath
+    Math?
+    CloseParenMath
+}
+
+// FIXME: we should have separate math modes for inline and display math,
+// because display math can contain blank lines while inline math cannot.
+
+Math {
+    ( MathCommand
+    | Group<Math>
+    | MathDelimitedGroup
+    | MathSpecialChar
+    | Number
+    | NewLine
+    | Whitespace
+    | KnownEnvironment
+    | Environment
+    | MathChar
+    | OpenBracket
+    | CloseBracket
+    | Ampersand
+    | Tilde
+    )+
+}
+
+
+MathCommand {
+    KnownCommand<MathArgument>
+  | MathUnknownCommand { genericUnknownCommand<MathArgument> }
+  | KnownCtrlSym
+}
+
+@external tokens argumentListTokenizer from "./tokens" {
+    hasMoreArguments,
+    endOfArguments
+}
+
+@external tokens argumentListWithOptionalTokenizer from "./tokens" {
+    hasMoreArgumentsOrOptionals,
+    endOfArgumentsAndOptionals
+}
+
+genericUnknownCommand<ArgumentType> {
+    CtrlSeq (hasMoreArguments optionalWhitespace? ArgumentType)* endOfArguments
+  | CtrlSym
+}
+
+genericUnknownCommandWithOptionalArguments<ArgumentType, OptionalArgumentType> {
+    CtrlSeq (hasMoreArgumentsOrOptionals optionalWhitespace? (ArgumentType | OptionalArgumentType))* endOfArgumentsAndOptionals
+  | CtrlSym
+}
+
+MathArgument {
+    OpenBrace Math? CloseBrace
+}
+
+MathDelimitedGroup {
+    MathOpening Math? MathClosing
+}
+
+// FIXME: we have the same problem with specialize on \left,\right as the delimiters
+MathOpening {
+    LeftCtrlSeq optionalWhitespace? MathDelimiter
+}
+
+MathClosing {
+    RightCtrlSeq optionalWhitespace? MathDelimiter
+}
+
+MathDelimiter {
+    // Allowed delimiters, from the LaTeX manual, table 3.10
+    "/" | "|" | "(" | ")" | "[" | "]" |
+   "\\{" | "\\}" | "\\|" |
+    "\\lfloor" | "\\rfloor" |
+    "\\lceil" | "\\rceil" |
+    "\\langle" | "\\rangle" |
+    "\\backslash" | "\\uparrow" |
+    "\\Uparrow" | "\\Downarrow" |
+    "\\updownarrow" | "\\Updownarrow" |
+    "\\downarrow" | "\\lvert" |
+    "\\lVert" | "\\rVert" |
+    "\\rvert" | "\\vert" | "\\Vert" |
+    "\\lbrace" | "\\rbrace" |
+    "\\lbrack" | "\\rbrack" |
+    // Also allow the empty match
+    "."
+}
+
+// NOTE: precedence works differently for rules and token, in the rule
+// you have to give a specifier !foo which is defined in the @precedence
+// block here.
+
+@precedence {
+    section @left,
+    argument @left  // make CtrlSeq arguments left associative
+}
