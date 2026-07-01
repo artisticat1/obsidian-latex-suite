@@ -12,7 +12,8 @@
   flags?: string = "",
   triggerKey?: string = "",
   language?: string,
-  excludedEnvs?: { matrix?: string[], macros?: string[] }
+  excludedMacros?: string[],
+  excludedEnvironments: string[],
 }
 ```
 
@@ -31,7 +32,8 @@
   - Empty strings are ignored and both the `triggerKey` and `trigger` need to match (`trigger` can be an empty string making it a hotkey). See #439 for examples and a snippet to add a snippet as an hotkey.
   - No other shortcut such as obsidians hotkeys, vims keymaps or other plugins can have used the shortcut before this plugin. For example `Ctrl-o` by default will open quick switcher and thus won't as a `triggerKey`.
 - `language` (optional): Which code language to expand this in. Needs to match the text after <code>```</code> exactly.
-- `excludedEnvs` (optional): Which macros\commands names and matrix names to skip expansion in. Could be usefull for commands such as `ce` and `pu`.
+- `excludedMacros` (optional): Which macros\commands name to skip expansion in. Could be usefull for commands such as `ce` and `pu`.
+- `excludedEnvironments` (optional): Which environment names such as `pmatrix` to skip expansion in.
 
 ### Options
 - `t` : Text mode. Only run this snippet outside math
