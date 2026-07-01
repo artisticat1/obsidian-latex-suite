@@ -993,6 +993,7 @@ export const hat = {
 
 
 
+// brackets also highlighted further by highlight_brackets.ts
 export const brackets = {
 	// "left(": "(",
 	// "left[": "[",

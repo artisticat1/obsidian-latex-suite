@@ -103,6 +103,16 @@ const readSingleCharacterToken = (latexString: string, start: number): { token: 
 type OpenRegion<T> = {outer_start: number, inner_start: number, open: T}
 type CloseRegion<U> = {outer_end: number, inner_end: number, close: U}
 
+/**
+ * Tokenizes brackets in the given text, ignoring brackets inside comments. It returns a hierarchical structure of bracket regions, including their positions and types (open, close, or error).
+ * @param text text to parse and tokenize
+ * @param brackets brackets to parse
+ * @param state current editor state, needed to get the syntax tree for comment detection
+ * @param pos start position of the text in the document needed for syntax tree.
+ * @param start starting position of parsing
+ * @param end ending position of parsing
+ * @returns tokenized brackets with their positions and hierarchy
+ */
 export function tokenize_brackets<T extends string, U extends string>(
 	text: string,
 	brackets: ReadonlyArray<readonly [T, U]>,
@@ -217,6 +227,10 @@ export function findIndexReverse<T>(array: T[], predicate: (value: T, index: num
 }
 
 
+/**
+ * helper function to walk through the brackets sorted from left to right with the given depth.
+ * @param tokens bracket tokens from tokenize_brackets
+ */
 export function* walkTokens<T,U>(tokens: Region<T,U>[]): Generator<{region: Region<T,U>, depth: number}> {
 	function* walkTokensInner(tokens: Region<T,U>[], currentDepth: number): Generator<{region: Region<T,U>, depth: number}> {
 		for (const token of tokens) {

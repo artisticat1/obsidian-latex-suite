@@ -6,24 +6,32 @@ import { tokenize_brackets, walkTokens, Region } from "src/utils/tokenizer";
 
 const Ncolors = 3;
 
-function getHighlightBracketMark(pos: number, className: string, char: string):Range<Decoration> {
+/**
+ * Helper function to create a decoration to highlight a bracket at a given position
+ * @param pos the start position of the bracket in the document
+ * @param className Css class to apply to the decoration
+ * @param bracket the bracket character(s) to highlight
+ * @returns 
+ */
+function getHighlightBracketMark(pos: number, className: string, bracket: string):Range<Decoration> {
 	return Decoration.mark({
 		inclusive: true,
 		attributes: {},
 		class: className
-	}).range(pos, pos + (char.length || 1));
+	}).range(pos, pos + (bracket.length || 1));
 }
 
 type BracketConcealment = {
 	pos: number,
 	className: string,
-	char: string,
+	bracket: string,
 };
 
 const bracket_delimiters = [
 	["{","}"],
 	["[","]"],
 	["(",")"],
+	// these don't neccessarily have to be paired, but they often do so we treat them like a pair.
 	["\\left<","\\right>"],
 	["\\langle ", "\\rangle"],
 	["\\lvert", "\\rvert"],
@@ -40,6 +48,13 @@ const bracket_delimiters = [
 ] as const
 
 type ColorBracketsCachedEquations = Record<string, BracketConcealment[]>;
+/**
+ * Colorizes paired brackets just like in VSCode. Mismatched brackets are highlighted in red,
+ * this includes macros that act like brackets excluding \left and \right.
+ * @param view current editor view
+ * @param cached_equations previously cached equations to avoid re-tokenizing them
+ * @returns new decorations and the updated cached equations
+ */
 function colorPairedBrackets(view: EditorView, cached_equations: ColorBracketsCachedEquations) {
 	const equations = getMathBoundsPlugin(view).getEquations(view.state);
 	const new_equations: typeof cached_equations = {};
@@ -56,7 +71,7 @@ function colorPairedBrackets(view: EditorView, cached_equations: ColorBracketsCa
 				localSpecs.push({
 					pos,
 					className: "latex-suite-mismatched-bracket",
-					char: token.kind === "error_open" ? token.open : token.close
+					bracket: token.kind === "error_open" ? token.open : token.close
 				});
 				continue;
 			}
@@ -64,12 +79,12 @@ function colorPairedBrackets(view: EditorView, cached_equations: ColorBracketsCa
 			localSpecs.push({
 				pos: token.outer_start,
 				className: `latex-suite-color-bracket-${colorIndex}`,
-				char: token.open
+				bracket: token.open
 			});
 			localSpecs.push({
 				pos: token.inner_end,
 				className: `latex-suite-color-bracket-${colorIndex}`,
-				char: token.close
+				bracket: token.close
 			});
 		}
 		new_equations[eqn] = localSpecs;
@@ -81,7 +96,7 @@ function colorPairedBrackets(view: EditorView, cached_equations: ColorBracketsCa
 		const localSpecs = new_equations[eqn];
 		if (!localSpecs) continue;
 		for (const spec of localSpecs) {
-			widgets.push(getHighlightBracketMark(start + spec.pos, spec.className, spec.char));
+			widgets.push(getHighlightBracketMark(start + spec.pos, spec.className, spec.bracket));
 		}
 	}
 	
