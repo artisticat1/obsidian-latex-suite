@@ -211,6 +211,7 @@ You can [view snippets written by others and share your own snippets here](https
 > [!WARNING]
 > Snippet files are interpreted as JavaScript and can execute arbitrary code.
 > Always be careful with snippets shared from others to avoid running malicious code.
+> Or when sharing the vault with others (files can be placed in places ignored by sync).
 
 
 ## Cheatsheet
