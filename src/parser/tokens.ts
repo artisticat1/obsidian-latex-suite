@@ -1,6 +1,7 @@
 /* Hand-written tokenizer for LaTeX. */
 
-import { ExternalTokenizer, ContextTracker, InputStream } from "@lezer/lr"
+import { ExternalTokenizer, ContextTracker, InputStream, Stack } from "@lezer/lr"
+import { cmd_symbols, greek } from "src/editor_extensions/conceal_maps"
 
 import {
   LiteralArgContent,
@@ -13,7 +14,7 @@ import {
   RefStarrableCtrlSeq,
   LabelCtrlSeq,
   MathTextCtrlSeq,
-  HboxCtrlSeq,
+//   HboxCtrlSeq,
   HrefCtrlSeq,
   VerbCtrlSeq,
   DefCtrlSeq,
@@ -32,24 +33,47 @@ import {
   CloseBracketCtrlSym,
   LineBreakCtrlSym,
   TextColorCtrlSeq,
-  ColorBoxCtrlSeq,
+//   ColorBoxCtrlSeq,
   HLineCtrlSeq,
   TopRuleCtrlSeq,
   MidRuleCtrlSeq,
   BottomRuleCtrlSeq,
-  ParBoxCtrlSeq,
+//   ParBoxCtrlSeq,
   // Marker for end of argument lists
   endOfArguments,
   hasMoreArguments,
   hasMoreArgumentsOrOptionals,
   endOfArgumentsAndOptionals,
-  TextBoldCtrlSeq,
-  TextItalicCtrlSeq,
-  TextTeletypeCtrlSeq,
-  TextSansSerifCtrlSeq,
+//   TextBoldCtrlSeq,
+//   TextItalicCtrlSeq,
+//   TextTeletypeCtrlSeq,
+//   TextSansSerifCtrlSeq,
   EmphasisCtrlSeq,
   UnderlineCtrlSeq,
+  SymbolCtrlSeq,
+
 } from "./latex-parser.terms"
+
+// text ctrl sequences
+import {
+	TextCtrlSeq,
+	TextRomanCtrlSeq,
+	TextUprightCtrlSeq,
+	TextItalicCtrlSeq,
+	TextBoldCtrlSeq,
+	TextSansSerifCtrlSeq,
+	TextTeletypeCtrlSeq,
+	TextNormalCtrlSeq,
+	TextClapCtrlSeq,
+	TextLLapCtrlSeq,
+	TextRLapCtrlSeq,
+	HboxCtrlSeq,
+	MboxCtrlSeq,
+	FboxCtrlSeq,
+	FrameBoxCtrlSeq,
+	ColorBoxCtrlSeq,
+	FColorBoxCtrlSeq, // has two inputs \fcolorbox{color}{background}{text} needs seperate handling
+} from "./latex-parser.terms";
 
 const MAX_ARGUMENT_LOOKAHEAD = 100
 
@@ -151,7 +175,7 @@ export const verbTokenizer = new ExternalTokenizer(
 
 // tokenizer for \href{...} and similar commands
 export const literalArgTokenizer = new ExternalTokenizer(
-  input => {
+  (input: InputStream) => {
     for (let offset = 0; ; offset++) {
       const next = input.peek(offset)
       if (next === -1 || next === CHAR_CLOSE_BRACE) {
@@ -260,7 +284,7 @@ const mathTextCommands = new Set([
 ]);
 
 const otherKnowncommands = {
-  "\\hbox": HboxCtrlSeq,
+//   "\\hbox": HboxCtrlSeq,
   "\\href": HrefCtrlSeq,
   "\\verb": VerbCtrlSeq,
   "\\def": DefCtrlSeq,
@@ -272,22 +296,44 @@ const otherKnowncommands = {
   "\\newenvironment": NewEnvironmentCtrlSeq,
   "\\renewenvironment": RenewEnvironmentCtrlSeq,
   "\\textcolor": TextColorCtrlSeq,
-  "\\colorbox": ColorBoxCtrlSeq,
+//   "\\colorbox": ColorBoxCtrlSeq,
   "\\hline": HLineCtrlSeq,
   "\\toprule": TopRuleCtrlSeq,
   "\\midrule": MidRuleCtrlSeq,
   "\\bottomrule": BottomRuleCtrlSeq,
-  "\\parbox": ParBoxCtrlSeq,
-  "\\textbf": TextBoldCtrlSeq,
-  "\\textit": TextItalicCtrlSeq,
-  "\\texttt": TextTeletypeCtrlSeq,
-  "\\textsf": TextSansSerifCtrlSeq,
+//   "\\parbox": ParBoxCtrlSeq,
+//   "\\textbf": TextBoldCtrlSeq,
+//   "\\textit": TextItalicCtrlSeq,
+//   "\\texttt": TextTeletypeCtrlSeq,
+//   "\\textsf": TextSansSerifCtrlSeq,
   "\\emph": EmphasisCtrlSeq,
   "\\underline": UnderlineCtrlSeq,
 }
+
+const textCommands = {
+	"text": TextCtrlSeq,
+	"textrm": TextRomanCtrlSeq,
+	"textup": TextUprightCtrlSeq,
+	"textit": TextItalicCtrlSeq,
+	"textbf": TextBoldCtrlSeq,
+	"textsf": TextSansSerifCtrlSeq,
+	"texttt": TextTeletypeCtrlSeq,
+	"textnormal": TextNormalCtrlSeq,
+	"clap": TextClapCtrlSeq,
+	"textllap": TextLLapCtrlSeq,
+	"textrlap": TextRLapCtrlSeq,
+	"textclap": TextClapCtrlSeq,
+	"hbox": HboxCtrlSeq,
+	"mbox": MboxCtrlSeq,
+	"fbox": FboxCtrlSeq,
+	"framebox": FrameBoxCtrlSeq,
+	"colorbox": ColorBoxCtrlSeq,
+	"fcolorbox": FColorBoxCtrlSeq, // has two inputs \fcolorbox{color}{background}{text} needs seperate handling
+};
+
 // specializer for control sequences
 // return new tokens for specific control sequences
-export const specializeCtrlSeq = (name: string, _terms: string) => {
+export const specializeCtrlSeq = (name: string, _stack: Stack) => {
   if (name === "\\begin") return Begin
   if (name === "\\end") return End
   if (refCommands.has(name)) {
@@ -302,7 +348,21 @@ export const specializeCtrlSeq = (name: string, _terms: string) => {
   if (mathTextCommands.has(name)) {
     return MathTextCtrlSeq
   }
-  return otherKnowncommands[name as keyof typeof otherKnowncommands] || -1
+  const textCommand = textCommands[name as keyof typeof textCommands]
+  if (textCommand !== undefined) {
+	return textCommand
+  }
+
+  const otherKnownCommand = otherKnowncommands[name as keyof typeof otherKnowncommands]  
+  if (otherKnownCommand !== undefined) {
+	return otherKnownCommand
+  }
+  const command_name = name.slice(1)
+  const symbol = cmd_symbols[command_name] || greek[command_name]
+  if (symbol !== undefined) {
+	return SymbolCtrlSeq
+  }
+  return -1
 }
 
 const equationEnvNames = new Set([
@@ -351,7 +411,7 @@ const equationArrayEnvNames = new Set([
   "rcases*",
 ])
 
-export const specializeEnvName = (name: string, _terms: string) => {
+export const specializeEnvName = (name: string, _stack: Stack) => {
   if (equationEnvNames.has(name)) {
     return EquationEnvName
   }
@@ -369,6 +429,6 @@ const otherKnownCtrlSyms = {
   "\\\\": LineBreakCtrlSym,
 }
 
-export const specializeCtrlSym = (name: string, _terms: string) => {
+export const specializeCtrlSym = (name: string, _stack: Stack) => {
   return otherKnownCtrlSyms[name as keyof typeof otherKnownCtrlSyms] || -1
 }

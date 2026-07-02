@@ -16,7 +16,9 @@
 		"lint": "npm run tsc && npm run eslint",
 		"tsc": "tsc --noEmit -skipLibCheck",
 		"eslint": "eslint --fix",
-		"generator": "lezer-generator src/parser/latex.grammar -o src/parser/latex-parser.js",
+		"generator": "npm run generator:math && npm run generator:latex",
+		"generator:math": "lezer-generator src/parser/math.grammar -o src/parser/math-parser.ts",
+		"generator:latex": "lezer-generator src/parser/latex.grammar -o src/parser/latex-parser.ts",
 		"postinstall": "npm run generator"
 	},
 	"keywords": [],
@@ -52,6 +54,7 @@
 	},
 	"dependencies": {
 		"@lezer/lr": "^1.4.10",
+		"@lezer/markdown": "^1.6.4",
 		"@popperjs/core": "2.11.5",
 		"valibot": "^1.3.1"
 	}

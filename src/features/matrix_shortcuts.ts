@@ -62,6 +62,7 @@ const addCellMatrixShortcutCallback = (view: EditorView): boolean => {
 }
 
 function getEnvName(tree: Tree, pos: number, doc: string): StackOutput | null {
+	_printNode(tree.topNode, doc);
 	let stack: NodeIterator | null = tree.resolveStack(pos, 0)
 	while (stack) {
 		const node = stack.node
@@ -76,7 +77,7 @@ function getEnvName(tree: Tree, pos: number, doc: string): StackOutput | null {
 }
 
 // for debugging the tree
-function _printNode(node: SyntaxNode, doc: string) {
+export function _printNode(node: SyntaxNode, doc: string) {
 	const result = [
 		{
 			name: node.name,

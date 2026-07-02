@@ -410,6 +410,70 @@ export const mathBoundsPlugin = ViewPlugin.fromClass(
 		}
 
 		updateMathBounds(view: EditorView) {
+			this.updateMathBoundsRunner(view)
+			// const runs = 1;
+			// const start = performance.now();
+			// Array(runs).fill(0).forEach(() => {
+			// 	this.updateMathBoundsRunner(view);
+			// })
+			// const end = performance.now();
+			// console.debug(`Updated math bounds ${runs} times in ${end - start}ms and on average ${((end - start) / runs).toFixed(5)}ms per run`);
+		}
+
+		updateMathBoundsRunnerV2(view: EditorView) {
+			const tree = syntaxTree(view.state);
+			const ranges: MathBounds[] = [];
+			type Kind = null | {kind: "math_display" | "math_inline" | "codeblock", node: SyntaxNode};
+			let mode: Kind = null;
+			const nodes_to_check = new Set([...open_math_nodes, ...close_math_nodes, OPEN_CODEBLOCK_NODE, CLOSE_CODEBLOCK_NODE]);
+			tree.iterate({
+				enter: (node: SyntaxNodeRef) => {
+					if (!nodes_to_check.has(node.name)) return;
+
+					// if (node.name === OPEN_DISPLAY_MATH_NODE) {
+					// 	mode = {kind: "math_display", node: node.node};
+					// 	return
+					// } else if (node.name === OPEN_INLINE_MATH_NODE) {
+					// 	mode = {kind: "math_inline", node: node.node};
+					// 	return
+					// } else if (node.name === OPEN_CODEBLOCK_NODE) {
+					// 	mode = {kind: "codeblock", node: node.node};
+					// 	return
+					// }
+					// const has_closing_node = close_math_nodes.has(node.name) || node.name === CLOSE_CODEBLOCK_NODE;
+					// if (!has_closing_node) return;
+					// if (mode === null) return;
+					// if (mode.kind === "math_display") {
+					// 	ranges.push({
+					// 		inner_start: mode.node.from,
+					// 		inner_end: node.from,
+					// 		outer_start: mode.node.from,
+					// 		outer_end: node.to,
+					// 		mode: MathMode.BlockMath,
+					// 	})
+					// } else if (mode.kind === "math_inline") {
+					// 	ranges.push({
+					// 		inner_start: mode?.node.from ?? node.from,
+					// 		inner_end: node.from,
+					// 		outer_start: mode?.node.from ?? node.from,
+					// 		outer_end: node.to,
+					// 		mode: MathMode.InlineMath,
+					// 	})
+					// } else if (mode.kind === "codeblock") {
+					// 	ranges.push({
+					// 		inner_start: mode.node.from,
+					// 		inner_end: node.from,
+					// 		outer_start: mode.node.from,
+					// 		outer_end: node.to,
+					// 		mode: MathMode.BlockMath,
+					// 	})
+					// }
+					// mode = null;
+				}
+			})
+			this.mathBounds = ranges;
+		}
+		updateMathBoundsRunner(view: EditorView) {
 			const tree = syntaxTree(view.state);
 			const math_nodes_viewports: SyntaxNode[][] = [];
 			view.visibleRanges.forEach(({ from, to }, i) => {

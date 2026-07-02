@@ -36,7 +36,7 @@
     RefStarrableCtrlSeq,
     LabelCtrlSeq,
     MathTextCtrlSeq,
-    HboxCtrlSeq,
+    // HboxCtrlSeq,
     HrefCtrlSeq,
     VerbCtrlSeq,
     DefCtrlSeq,
@@ -49,18 +49,39 @@
     RenewEnvironmentCtrlSeq,
     // services/web/frontend/js/features/outline/outline-parser.js
     TextColorCtrlSeq,
-    ColorBoxCtrlSeq,
+    // ColorBoxCtrlSeq,
 	HLineCtrlSeq,
 	TopRuleCtrlSeq,
 	MidRuleCtrlSeq,
     BottomRuleCtrlSeq,
-    ParBoxCtrlSeq,
-    TextBoldCtrlSeq,
-    TextItalicCtrlSeq,
-    TextTeletypeCtrlSeq,
-    TextSansSerifCtrlSeq,
+    // ParBoxCtrlSeq,
+    // TextBoldCtrlSeq,
+    // TextItalicCtrlSeq,
+    // TextTeletypeCtrlSeq,
+    // TextSansSerifCtrlSeq,
     EmphasisCtrlSeq,
-    UnderlineCtrlSeq
+    UnderlineCtrlSeq,
+
+	SymbolCtrlSeq	
+
+	// text control sequences
+	TextCtrlSeq,
+	TextRomanCtrlSeq,
+	TextUprightCtrlSeq,
+	TextItalicCtrlSeq,
+	TextBoldCtrlSeq,
+	TextSansSerifCtrlSeq,
+	TextTeletypeCtrlSeq,
+	TextNormalCtrlSeq,
+	TextClapCtrlSeq,
+	TextLLapCtrlSeq,
+	TextRLapCtrlSeq,
+	HboxCtrlSeq,
+	MboxCtrlSeq,
+	FboxCtrlSeq,
+	FrameBoxCtrlSeq,
+	ColorBoxCtrlSeq,
+	FColorBoxCtrlSeq // has two inputs \fcolorbox{color}{background}{text} needs seperate handling
 }
 
 @external specialize {EnvName} specializeEnvName from "./tokens" {
@@ -184,9 +205,6 @@ KnownCommand<ArgumentType> {
     Let {
         LetCtrlSeq Csname optionalWhitespace? "="? optionalWhitespace? Csname
     } |
-    Hbox {
-        HboxCtrlSeq optionalWhitespace? TextArgument
-    } |
     NewCommand {
         NewCommandCtrlSeq optionalWhitespace?
         (Csname | OpenBrace LiteralArgContent CloseBrace)
@@ -219,12 +237,23 @@ KnownCommand<ArgumentType> {
 	HorizontalLine {
         (HLineCtrlSeq | TopRuleCtrlSeq | MidRuleCtrlSeq | BottomRuleCtrlSeq) optionalWhitespace?
     } |
-    ParBoxCommand {
-        ParBoxCtrlSeq
-            (optionalWhitespace? OptionalArgument)*
-            ShortTextArgument
-            optionalWhitespace? TextArgument
+    // ParBoxCommand {
+    //     ParBoxCtrlSeq
+    //         (optionalWhitespace? OptionalArgument)*
+    //         ShortTextArgument
+    //         optionalWhitespace? TextArgument
+    // } |
+    EmphasisCommand {
+        EmphasisCtrlSeq ArgumentType
     } |
+    UnderlineCommand {
+        UnderlineCtrlSeq ArgumentType
+    } |
+	textCommands |
+	SymbolCommand { SymbolCtrlSeq }
+}
+
+textCommands {
     TextBoldCommand {
         TextBoldCtrlSeq TextArgument
     } |
@@ -237,12 +266,42 @@ KnownCommand<ArgumentType> {
 	TextSansSerifCommand {
         TextSansSerifCtrlSeq TextArgument
     } |
-    EmphasisCommand {
-        EmphasisCtrlSeq ArgumentType
+    Hbox {
+        HboxCtrlSeq optionalWhitespace? TextArgument
     } |
-    UnderlineCommand {
-        UnderlineCtrlSeq ArgumentType
-    }
+	Text {
+		TextCtrlSeq TextArgument 
+	} |
+	TextRoman {
+		TextRomanCtrlSeq TextArgument 
+	} |
+	TextUpright {
+		TextUprightCtrlSeq TextArgument 
+	} |
+	TextNormal {
+		TextNormalCtrlSeq TextArgument 
+	} |
+	TextClap {
+		TextClapCtrlSeq TextArgument 
+	} |
+	TextLLap {
+		TextLLapCtrlSeq TextArgument 
+	} |
+	TextRLap {
+		TextRLapCtrlSeq TextArgument 
+	} |
+	Mbox {
+		MboxCtrlSeq TextArgument 
+	} |
+	Fbox {
+		FboxCtrlSeq TextArgument 
+	} |
+	FrameBox {
+		FrameBoxCtrlSeq TextArgument 
+	} |
+	FColorBox {
+		FColorBoxCtrlSeq TextArgument 
+	}
 }
 
 UnknownCommand {

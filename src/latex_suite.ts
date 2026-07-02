@@ -15,6 +15,7 @@ import { handleUndoRedo } from "./snippets/codemirror/history";
 import { handleMathTooltip } from "./editor_extensions/math_tooltip";
 import { isComposing, forceEndComposition } from "./utils/editor_utils";
 import { LatexSuiteCMSettings } from "./settings/settings";
+import { syntaxTree } from "@codemirror/language";
 
 export const handleUpdate = (update: ViewUpdate) => {
 	const settings = getLatexSuiteConfig(update.state);
