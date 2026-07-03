@@ -35,15 +35,15 @@ export class Work {
 
 
 interface ParserContext extends ParseContext {
-	create: (parser: Parser, state: EditorState, viewport: {from: number, to: number}) => ParserContext;
-	work: (until: number | (() => boolean), upto?: number) => boolean;
-	takeTree: () => void;
-	tree: Tree;
-	changes(changes: ChangeSet, state: EditorState): ParserContext;
-	isDone(docLen: number): boolean;
-	treeLen: number;
-	scheduleOn: Promise<void> | null;
-	updateViewport(viewport: {from: number, to: number}): boolean;
+	create?: (parser: Parser, state: EditorState, viewport: {from: number, to: number}) => ParserContext;
+	work?: (until: number | (() => boolean), upto?: number) => boolean;
+	takeTree?: () => void;
+	tree?: Tree;
+	changes?(changes: ChangeSet, state: EditorState): ParserContext;
+	isDone?(docLen: number): boolean;
+	treeLen?: number;
+	scheduleOn?: Promise<void> | null;
+	updateViewport?(viewport: {from: number, to: number}): boolean;
 }
 const TypedParseContext = ParseContext as unknown as ParserContext;
 
@@ -83,12 +83,17 @@ class LanguageState {
 	static init(parser: Parser) {
 		return (state: EditorState) => {
 			const vpTo = Math.min(Work.InitViewport, state.doc.length);
-			const parseState = TypedParseContext.create(parser, state, {
+			const parseState = TypedParseContext.create?.(parser, state, {
 				from: 0,
 				to: vpTo,
 			});
+			if (!parseState) throw new Error("Failed to create parse state");
 			console.debug(parseState, parser)
-			if (!parseState.work(Work.Apply, vpTo)) parseState.takeTree();
+			const work = parseState.work?.(Work.Apply, vpTo);
+			if (work === undefined) throw new Error("Failed to work on parse state");
+			if (work) {
+				parseState.takeTree?.();
+			}
 			return new LanguageState(parseState);
 		};
 	}

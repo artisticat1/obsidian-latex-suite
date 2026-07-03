@@ -8,10 +8,8 @@ export const mathParserPlugin = ViewPlugin.fromClass(
 		update(update: ViewUpdate) {
 			if (!update.docChanged) return;
 			try {
-				// const tree = modifiedSyntaxTree(update.state);
+				const tree = modifiedSyntaxTree(update.state);
 				const docString = update.state.doc.toString();
-				console.log(docString)
-				const tree = fullMathParser.parse(docString);
 				_printNode2(tree.topNode, docString);
 			} catch (e) {
 				console.error(e)

@@ -62,7 +62,7 @@ export interface Bounds {
 
 type MathBounds = Bounds & {mode: MathMode};
 
-class Context implements PluginValue {
+export class Context implements PluginValue {
 	view: EditorView;
 	state: EditorState;
 	mode: Mode;
@@ -552,7 +552,6 @@ export const mathBoundsPlugin = ViewPlugin.fromClass(
 		updateMathBoundsRunnerV3(view: EditorView) {
 			const tree = modifiedSyntaxTree(view.state);
 			const ranges: MathBounds[] = [];
-			console.debug("Updating math bounds");
 			for (const { from, to } of view.visibleRanges) {
 				tree.iterate({
 					from,
@@ -583,7 +582,6 @@ export const mathBoundsPlugin = ViewPlugin.fromClass(
 			// 		view.state.sliceDoc(range.inner_start, range.inner_end),
 			// 	);
 			// });
-			console.debug(ranges)
 			this.mathBounds = ranges;
 		}
 
@@ -770,6 +768,7 @@ export const mathBoundsPlugin = ViewPlugin.fromClass(
 				pos < bounds[0]?.outer_start ||
 				pos > bounds[bounds.length - 1]?.outer_end
 			) {
+				return null;
 				return this.getEquationBounds(state, pos);
 			}
 			// Use binary search to efficiently find if pos is within any math bound
@@ -788,6 +787,7 @@ export const mathBoundsPlugin = ViewPlugin.fromClass(
 					return bound;
 				}
 			}
+			return null;
 			return this.getEquationBounds(state, pos);
 		};
 
