@@ -13,7 +13,7 @@ function importModule(source: string, identifier: string): Promise<object> {
 	const sourceWithSourceURL = `${source}\n//# sourceURL=latex-suite:${identifier}`;
 	const blob = new Blob([sourceWithSourceURL], { type: "text/javascript" });
 	const url = URL.createObjectURL(blob);
-	// eslint-disable-next-line no-unsanitized/method
+	// eslint-disable-next-line no-unsanitized/method --- user snippets are javascript
 	const result = import(url);
 	URL.revokeObjectURL(url);
 	return result;
@@ -71,19 +71,21 @@ function require(module) {
 }
 `
 
-function latex_suite_require(default_snippets: SnippetVariables) {
+function latex_suite_require(default_snippets: SnippetVariables, original_require: (module: string) => unknown = require) {
 	const parsed_api = api(default_snippets);
 	return (module: string): unknown => {
 		if (module === "latex-suite") {
 			return parsed_api
 		} else {
-			return require(module)
+			return original_require(module)
 		}
 	}
 }
 
 declare global {
 	var __latex_suite_require: ReturnType<typeof latex_suite_require>;
+	//@ts-ignore
+	var require2: (module: string) => unknown;
 }
 
 export async function parseSnippets(snippetsStr: string, snippetVariables: SnippetVariables, identifier: string) {

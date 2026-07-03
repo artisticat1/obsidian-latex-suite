@@ -1,7 +1,7 @@
 import { SelectionRange } from "@codemirror/state";
 import { Options } from "./options";
 import { Environment } from "./environment";
-import { BaseNode, ResultInsert, ArrayNode, SnippetTabstopOnlyNode, Options as InsertOptions, emptyInsertOptions } from "./luasnip_api/node";
+import { BaseNode, ResultInsert, ArrayNode, SnippetTabstopOnlyNode, Options as InsertOptions } from "./luasnip_api/node";
 import * as v from "valibot";
 
 /**
