@@ -311,24 +311,24 @@ const otherKnowncommands = {
 }
 
 const textCommands = {
-	"text": TextCtrlSeq,
-	"textrm": TextRomanCtrlSeq,
-	"textup": TextUprightCtrlSeq,
-	"textit": TextItalicCtrlSeq,
-	"textbf": TextBoldCtrlSeq,
-	"textsf": TextSansSerifCtrlSeq,
-	"texttt": TextTeletypeCtrlSeq,
-	"textnormal": TextNormalCtrlSeq,
-	"clap": TextClapCtrlSeq,
-	"textllap": TextLLapCtrlSeq,
-	"textrlap": TextRLapCtrlSeq,
-	"textclap": TextClapCtrlSeq,
-	"hbox": HboxCtrlSeq,
-	"mbox": MboxCtrlSeq,
-	"fbox": FboxCtrlSeq,
-	"framebox": FrameBoxCtrlSeq,
-	"colorbox": ColorBoxCtrlSeq,
-	"fcolorbox": FColorBoxCtrlSeq, // has two inputs \fcolorbox{color}{background}{text} needs seperate handling
+	"\\text": TextCtrlSeq,
+	"\\textrm": TextRomanCtrlSeq,
+	"\\textup": TextUprightCtrlSeq,
+	"\\textit": TextItalicCtrlSeq,
+	"\\textbf": TextBoldCtrlSeq,
+	"\\textsf": TextSansSerifCtrlSeq,
+	"\\texttt": TextTeletypeCtrlSeq,
+	"\\textnormal": TextNormalCtrlSeq,
+	"\\clap": TextClapCtrlSeq,
+	"\\textllap": TextLLapCtrlSeq,
+	"\\textrlap": TextRLapCtrlSeq,
+	"\\textclap": TextClapCtrlSeq,
+	"\\hbox": HboxCtrlSeq,
+	"\\mbox": MboxCtrlSeq,
+	"\\fbox": FboxCtrlSeq,
+	"\\framebox": FrameBoxCtrlSeq,
+	"\\colorbox": ColorBoxCtrlSeq,
+	"\\fcolorbox": FColorBoxCtrlSeq, // has two inputs \fcolorbox{color}{background}{text} needs seperate handling
 };
 
 // specializer for control sequences

@@ -3,23 +3,23 @@
 	Math
 }
 
-@context elementContext from "./tokens"
+@context elementContext from "./latex_tokens"
 
 // External tokens must be defined before normal @tokens to take precedence
 // over them.
 
-@external tokens verbTokenizer from "./tokens" {
+@external tokens verbTokenizer from "./latex_tokens" {
     VerbContent
 }
 
-@external tokens literalArgTokenizer from "./tokens" {
+@external tokens literalArgTokenizer from "./latex_tokens" {
     LiteralArgContent
 }
 
 
 // external tokenizer to read control sequence names including @ signs
 // (which are often used in TeX definitions).
-@external tokens csnameTokenizer from "./tokens" {
+@external tokens csnameTokenizer from "./latex_tokens" {
     Csname
 }
 
@@ -29,7 +29,7 @@
 // They have id's which are not exported in the latex.terms.js file.
 // This is a workaround:  use an external specializer to explicitly choose the terms
 // to use for the specialized tokens.
-@external specialize {CtrlSeq} specializeCtrlSeq from "./tokens" {
+@external specialize {CtrlSeq} specializeCtrlSeq from "./latex_tokens" {
     Begin,
     End,
     RefCtrlSeq,
@@ -84,12 +84,12 @@
 	FColorBoxCtrlSeq // has two inputs \fcolorbox{color}{background}{text} needs seperate handling
 }
 
-@external specialize {EnvName} specializeEnvName from "./tokens" {
+@external specialize {EnvName} specializeEnvName from "./latex_tokens" {
     EquationEnvName,
     EquationArrayEnvName
 }
 
-@external specialize {CtrlSym} specializeCtrlSym from "./tokens" {
+@external specialize {CtrlSym} specializeCtrlSym from "./latex_tokens" {
     OpenParenCtrlSym,
     CloseParenCtrlSym,
     OpenBracketCtrlSym,
@@ -533,12 +533,12 @@ MathCommand {
   | KnownCtrlSym
 }
 
-@external tokens argumentListTokenizer from "./tokens" {
+@external tokens argumentListTokenizer from "./latex_tokens" {
     hasMoreArguments,
     endOfArguments
 }
 
-@external tokens argumentListWithOptionalTokenizer from "./tokens" {
+@external tokens argumentListWithOptionalTokenizer from "./latex_tokens" {
     hasMoreArgumentsOrOptionals,
     endOfArgumentsAndOptionals
 }

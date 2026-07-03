@@ -22,3 +22,7 @@ data.json
 .DS_Store
 src/parser/latex-parser.terms.js
 src/parser/latex-parser.js
+
+**/*html-parser*.js
+**/*math-parser*.js
+**/*latex-parser*.js

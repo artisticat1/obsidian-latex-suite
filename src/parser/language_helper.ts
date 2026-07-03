@@ -1,1 +1,0 @@
-export {modifiedSyntaxTree} from "./language";

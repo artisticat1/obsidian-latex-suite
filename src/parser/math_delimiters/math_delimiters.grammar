@@ -9,11 +9,11 @@ expression { escapedChar | Dollar | Text
 }
 
 DollarInlineMath {
-  InlineStart InlineMath InlineEnd
+  InlineStart InlineMath? InlineEnd
 }
 
 DollarDisplayMath {
-  DisplayStart DisplayMath DisplayEnd
+  DisplayStart DisplayMath? DisplayEnd
 }
 
 // Internal token for text inside the math block
@@ -28,7 +28,7 @@ DollarDisplayMath {
   Text { (escapedChar |![$])+ }
 }
 
-@external tokens mathTokens from "./math_tokens" {
+@external tokens mathTokens from "./math_delimiters_tokens" {
   InlineStart,
   InlineEnd,
   DisplayStart,

@@ -6,7 +6,7 @@ import { queueSnippet } from "src/snippets/codemirror/snippet_queue_state_field"
 import { expandSnippets } from "src/snippets/snippet_management";
 import { taboutByEnclosedBrackets } from "./tabout";
 import { ArrayNode, emptyInsertOptions, TabstopNode, TextNode } from "src/snippets/luasnip_api/node";
-import { parser } from "src/parser/latex-parser.js";
+import { parser } from "src/parser/mathjax/latex-parser.js";
 import { NodeIterator, SyntaxNode, Tree } from "@lezer/common";
 
 const newlineMatrixShortcutCallback = (view: EditorView, bounds: Bounds): boolean => {

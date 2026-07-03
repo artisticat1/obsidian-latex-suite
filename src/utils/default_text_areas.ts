@@ -4,7 +4,7 @@
  * and \textrm{#1} computes #1 as text.
  * All of these follow the same pattern of \command{#1} where #1 is the input. In rare cases it can be \command{#1}{#2}{#3}. These need to be handled seperately. So the Environment would be {openSymbol: `\command{`, closeSymbol: "}"}
  */
-const textArea = [
+export const textArea = [
 	"text",
 	"textrm",
 	"textup",
@@ -38,6 +38,8 @@ export const snippetLessArea =[
 	"colorbox",
 	"fcolorbox", // has two inputs \fcolorbox{color}{background}{text} needs seperate handling
 ] as const
+
+export const allTextAreas = [...textArea, ...snippetLessArea] as const;
 
 export const textAreaEnvs: {
 	openSymbol: `\\${(typeof textArea)[number] | (typeof snippetLessArea)[number]}{`;

@@ -232,7 +232,7 @@ const parseWorker = ViewPlugin.fromClass(
 	},
 );
 
-const create = LanguageState.init(fullMathParser());
+const create = LanguageState.init(fullMathParser);
 const update = function languageUpdate(value: LanguageState, tr: Transaction) { 
 	for (let e of tr.effects) if (e.is(LanguageSetStateEffect)) return e.value
 	return value.apply(tr);

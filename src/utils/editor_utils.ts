@@ -1,6 +1,6 @@
 import { Platform } from "obsidian";
 import { EditorView } from "@codemirror/view";
-import { SyntaxNode, TreeCursor } from "@lezer/common";
+import { NodeIterator, SyntaxNode, Tree, TreeCursor } from "@lezer/common";
 import { EditorState } from "@codemirror/state";
 import { Bounds } from "./context";
 
@@ -183,4 +183,12 @@ export function isBoundMultiline(view: EditorView, bounds: Bounds): boolean {
 	const endLine = doc.lineAt(bounds.outer_end);
 
 	return startLine.number !== endLine.number;
+}
+
+export function* stackResolveIterate(tree: Tree, pos: number, side: -1 | 0 | 1) {
+	let nodeRef: NodeIterator | null = tree.resolveStack(pos, side);
+	while (nodeRef) {
+		yield nodeRef.node;
+		nodeRef = nodeRef.next;
+	}
 }
