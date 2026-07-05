@@ -5,10 +5,13 @@ import {
 	BlockParser,
 	Element,
 	InlineParser,
+	LeafBlock,
+	LeafBlockParser,
 	Line,
 	MarkdownConfig,
 	parser as baseParser,
 } from "@lezer/markdown";
+import { Dollar } from "./mathjax/latex-parser.terms";
 
 declare module "@lezer/markdown" {
 	interface Line {
@@ -187,12 +190,90 @@ const blockParserDisplayMath: BlockParser = {
 		cx.addElement(element);
 		return true;
 	},
-	after: "OrderedList",
 
 	endLeaf(_cx, line) {
 		return isDisplayBlockStart(line) >= 0
 	},
+
 };
+
+const leafParser: BlockParser = {
+	name: "math3",
+	endLeaf(_cx, line) {
+		return isDisplayBlockStart(line) >= 0
+	},
+
+	leaf(cx, leaf) {
+		return new DisplayMathBlockParser()
+	},
+	before: "Blockquote",
+}
+
+class DisplayMathBlockParser implements LeafBlockParser {
+	nextLine(cx: BlockContext, line: Line, leaf: LeafBlock): boolean {
+		const toStartLine = isDisplayBlockStart(line)
+		console.debug(line.text)
+		if (toStartLine === -1) return false;
+
+		const fromStart = line.pos + cx.lineStart
+		const toStart = cx.lineStart + toStartLine
+
+		const openDollarMark = cx.elt(Type.Dollar, fromStart, toStart)
+		const delimiterLength = toStart - fromStart
+		const firstEqChar = line.skipSpace(toStartLine)
+		const markers: CustomElement[] = [openDollarMark]
+		if (firstEqChar < line.text.length) {
+			const from = cx.lineStart + firstEqChar
+			const to = cx.lineStart + line.text.length + 1;
+			addDisplayMath(markers, from, to, cx)
+		}
+		let endline = line.text.length + cx.lineStart
+		while (cx.nextLine()) {
+			console.debug(line.text)
+			endline = line.text.length + cx.lineStart
+			const endDollar = isDisplayBlockEnd(line, delimiterLength)
+			console.debug(
+				cx.parser.parseInline(leaf.content, leaf.start), [leaf.content, leaf.start,leaf]
+			)
+			if (endDollar !== null) {
+				const endFrom = cx.lineStart + endDollar[0];
+				const endTo = cx.lineStart + endDollar[1];
+				if (cx.lineStart + line.pos < endFrom) {
+					addDisplayMath(
+						markers,
+						cx.lineStart + line.pos,
+						endFrom,
+						cx,
+					);
+				}
+				markers.push(cx.elt(Type.Dollar, endFrom, endTo));
+				cx.nextLine();
+				break
+			}
+			const from = line.pos + cx.lineStart
+			const to  = cx.lineStart + line.text.length + 1
+			addDisplayMath(markers, from, to, cx)
+		}
+
+		const InBetweenElements = markers.map((marker) =>
+			marker instanceof Element
+				? marker
+				: cx.elt(Type.DisplayMath, marker.from, marker.to),
+		);
+		const element = cx.elt(
+			Type.DollarDisplayBlockMath,
+			fromStart,
+			endline,
+			InBetweenElements,
+		);
+		cx.addLeafElement(leaf, element);
+		return true;
+	}
+	finish(cx: BlockContext, leaf: LeafBlock): boolean {
+		//
+		return false
+	}
+}
 
 
 export const MathParser: MarkdownConfig = {
@@ -206,7 +287,7 @@ export const MathParser: MarkdownConfig = {
 		{ name: Type.DollarDisplayBlockMath },
 	],
 	parseInline: [inlineParserDisplayAndInlineMath],
-	parseBlock: [blockParserDisplayMath],
+	parseBlock: [leafParser],
 	wrap: parseMixed((node) => {
 		if (node.name === Type.InlineMath) {
 			return { parser: mathJaxParser, bracketed: true };
