@@ -1,8 +1,9 @@
 import { SelectionRange } from "@codemirror/state";
 import { Options } from "./options";
-import { Environment } from "./environment";
 import { BaseNode, ResultInsert, ArrayNode, SnippetTabstopOnlyNode, Options as InsertOptions, emptyInsertOptions } from "./luasnip_api/node";
 import * as v from "valibot";
+import { MacroArea } from "src/utils/default_text_areas";
+import { isMacroArgumentCount, StackOutput } from "src/utils/context";
 
 /**
  * in visual snippets, if the replacement is a string, this is the magic substring to indicate the selection.
@@ -86,7 +87,8 @@ export abstract class Snippet<T extends SnippetType = SnippetType> {
 	description: string;
 	triggerKey: string;
 
-	excludedEnvironments: Environment[];
+	excludedEnvironments: string[];
+	excludedMacros: MacroArea[] = [];
 
 	constructor(
 		type: T,
@@ -95,7 +97,8 @@ export abstract class Snippet<T extends SnippetType = SnippetType> {
 		options: Options,
 		priority: number = 0,
 		description: string = "no description provided",
-		excludedEnvironments: Environment[] = [],
+		excludedEnvironments: string[] = [],
+		excludedMacros: MacroArea[] = [],
 		triggerKey: string = "",
 	) {
 		this.type = type;
@@ -105,6 +108,7 @@ export abstract class Snippet<T extends SnippetType = SnippetType> {
 		this.priority = priority;
 		this.description = description;
 		this.excludedEnvironments = excludedEnvironments;
+		this.excludedMacros = excludedMacros;
 		this.triggerKey = triggerKey;
 	}
 
@@ -114,6 +118,24 @@ export abstract class Snippet<T extends SnippetType = SnippetType> {
 	get replacement(): SnippetData<T>["replacement"] { return this.data.replacement; }
 
 	abstract process(effectiveLine: string, range: SelectionRange, sel: string, effectiveLineAfter: () => string): ProcessSnippetResult;
+	
+	isWithinExcludedScope(stack: StackOutput[]): boolean {
+		if (this.excludedEnvironments.length === 0 && this.excludedMacros.length === 0) return false;
+		for (const envName of stack) {
+			if (envName.kind === "environment" && this.excludedEnvironments.includes(envName.name)) {
+				return true;
+			} else if (envName.kind === "math") {
+				return false;
+				// environments always override the scope whereas macros can sometimes take scope from outer macro
+				// like \textcolor is math or text depending if its inside a \text macro or not.
+			} else if (envName.kind === "environment") {
+				return false;
+			} else if (isMacroArgumentCount(envName, this.excludedMacros)) {
+				return true;
+			}
+		}
+		return false;
+	}
 
 	toString() {
 		return serializeSnippetLike({
@@ -124,13 +146,14 @@ export abstract class Snippet<T extends SnippetType = SnippetType> {
 			priority: this.priority,
 			description: this.description,
 			excludedEnvironments: this.excludedEnvironments,
+			excludedMacros: this.excludedMacros,
 		});
 	}
 }
 
 export class VisualSnippet extends Snippet<"visual"> {
-	constructor({ trigger, replacement, options, priority, description, excludedEnvironments, triggerKey }: CreateSnippet<"visual">) {
-		super("visual", trigger, replacement, options, priority, description, excludedEnvironments, triggerKey);
+	constructor({ trigger, replacement, options, priority, description, excludedEnvironments, excludedMacros, triggerKey }: CreateSnippet<"visual">) {
+		super("visual", trigger, replacement, options, priority, description, excludedEnvironments, excludedMacros, triggerKey);
 	}
 
 	process(effectiveLine: string, range: SelectionRange, sel: string): ProcessSnippetResult {
@@ -162,8 +185,8 @@ export class VisualSnippet extends Snippet<"visual"> {
 
 export class RegexSnippet extends Snippet<"regex"> {
 
-	constructor({ trigger, replacement, options, priority, description, excludedEnvironments , triggerKey, triggerAfter}: CreateSnippet<"regex">) {
-		super("regex", trigger, replacement, options, priority, description, excludedEnvironments, triggerKey);
+	constructor({ trigger, replacement, options, priority, description, excludedEnvironments, excludedMacros, triggerKey, triggerAfter}: CreateSnippet<"regex">) {
+		super("regex", trigger, replacement, options, priority, description, excludedEnvironments, excludedMacros, triggerKey);
 		this.data.triggerAfter = triggerAfter;
 	}
 
@@ -203,8 +226,8 @@ export class RegexSnippet extends Snippet<"regex"> {
 export class StringSnippet extends Snippet<"string"> {
 	data: SnippetData<"string">;
 
-	constructor({ trigger, replacement, options, priority, description, excludedEnvironments: excludeIn, triggerKey, triggerAfter }: CreateSnippet<"string">) {
-		super("string", trigger, replacement, options, priority, description, excludeIn, triggerKey);
+	constructor({ trigger, replacement, options, priority, description, excludedEnvironments: excludeIn, excludedMacros, triggerKey, triggerAfter }: CreateSnippet<"string">) {
+		super("string", trigger, replacement, options, priority, description, excludeIn, excludedMacros, triggerKey);
 		this.data.triggerAfter = triggerAfter;
 	}
 
@@ -254,7 +277,8 @@ type CreateSnippet<T extends SnippetType> = {
 	options: Options;
 	priority?: number;
 	description?: string;
-	excludedEnvironments?: Environment[];
+	excludedEnvironments?: string[];
+	excludedMacros?: MacroArea[];
 	triggerKey?: string;
 } & SnippetData<T>
 

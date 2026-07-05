@@ -1,3 +1,5 @@
+import { MacroArea } from "src/utils/default_text_areas";
+
 /**
  * defines a math environment, where semantics for snippets may change from how they'd usually behave in math mode
  */
@@ -9,10 +11,10 @@ export interface Environment {
 /**
  * a mapping of triggers to environments where they should not run
  */
-export const EXCLUSIONS: { [trigger: string]: Environment[] } = {
+export const EXCLUSIONS: { [trigger: string]: MacroArea[] } = {
 	"([A-Za-z])(\\d)": [
-		{ openSymbol: "\\pu{", closeSymbol: "}" },
-		{ openSymbol: "\\ce{", closeSymbol: "}" },
+		{ name: "ce" },
+		{ name: "pu" },
 	],
-	"->": [{ openSymbol: "\\ce{", closeSymbol: "}" }],
+	"->": [{ name: "ce" }],
 };

@@ -192,3 +192,11 @@ export function* stackResolveIterate(tree: Tree, pos: number, side: -1 | 0 | 1) 
 		nodeRef = nodeRef.next;
 	}
 }
+
+export function* getChildren(node: SyntaxNode) {
+	let child = node.firstChild;
+	while (child) {
+		yield child;
+		child = child.nextSibling;
+	}
+}

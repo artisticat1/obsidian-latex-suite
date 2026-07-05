@@ -118,8 +118,10 @@
     Dollar { "$" }
 
     Number { $[0-9]+ ("." $[0-9]*)? }
-    MathSpecialChar { $[^_=<>()\-+/*]+ }  // FIXME not all of these are special
+    MathSpecialChar { $[=<>()\-+/*]+ }  // FIXME not all of these are special
     MathChar { ![0-9^_=<>()\-+/*\\{}\[\]$%&~ \t\n]+ }
+	SubScriptSeq { "_" }
+	SuperScriptSeq { "^" }
 
     @precedence { Number, MathSpecialChar, MathChar }
 
@@ -127,6 +129,14 @@
     Tilde { "~" }
 
     EnvName {  $[a-zA-Z]+ $[*]? }
+}
+
+SuperScript {
+	SuperScriptSeq MathArgument
+}
+
+SubScript {
+	SubScriptSeq MathArgument
 }
 
 
@@ -336,6 +346,8 @@ textBase {
     | Whitespace
     | Ampersand
     | Tilde
+	| SubScript
+	| SuperScript
     )
 }
 
@@ -359,7 +371,7 @@ LongArg {
     | Environment
     | BlankLine
     | "#" // macro character
-    | "_" | "^" // other math chars
+    // | "_" | "^" // other math chars
     )*
 }
 
@@ -371,7 +383,7 @@ ShortArg {
     ( textWithBrackets
     | NonEmptyGroup<ShortArg>
     | "#" // macro character
-    | "_" | "^" // other math chars
+    // | "_" | "^" // other math chars
     )*
 }
 
@@ -379,7 +391,7 @@ ShortOptionalArg {
     ( textBase
     | NonEmptyGroup<ShortOptionalArg>
     | "#" // macro character
-    | "_" // underscore is used in some parameter names
+    // | "_" // underscore is used in some parameter names
     )*
 }
 
@@ -406,7 +418,7 @@ DefinitionFragment {
     | "#" // macro character
     | Ampersand // for tables
     | Tilde // unbreakable space
-    | "_" | "^" // other math chars
+    // | "_" | "^" // other math chars
     )+
 }
 
@@ -418,6 +430,8 @@ DefinitionFragmentCommand {
       KnownCommand<TextArgument>
     | DefinitionFragmentUnknownCommand { genericUnknownCommandWithOptionalArguments<DefinitionFragmentArgument, OptionalArgument> }
     | KnownCtrlSym
+	| SubScript
+	| SuperScript
 }
 
 KnownEnvironment {
@@ -523,6 +537,8 @@ Math {
     | CloseBracket
     | Ampersand
     | Tilde
+	| SubScript
+	| SuperScript
     )+
 }
 
@@ -554,7 +570,7 @@ genericUnknownCommandWithOptionalArguments<ArgumentType, OptionalArgumentType> {
 }
 
 MathArgument {
-    OpenBrace Math? CloseBrace
+    (OpenBrace Math? CloseBrace) | Command | Number
 }
 
 MathDelimitedGroup {

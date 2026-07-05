@@ -14,9 +14,11 @@ import { Mode } from "../snippets/options";
 import { Environment } from "../snippets/environment";
 import { getLatexSuiteConfig } from "../snippets/codemirror/config";
 import { syntaxTree } from "@codemirror/language";
-import { NodeIterator, SyntaxNode, SyntaxNodeRef } from "@lezer/common";
-import { allTextAreas, snippetLessArea, textArea, textAreaEnvs } from "./default_text_areas";
+import { SyntaxNode, SyntaxNodeRef } from "@lezer/common";
+import { allTextAreas, MacroArea, snippetLessArea } from "./default_text_areas";
 import { modifiedSyntaxTree } from "src/parser/language";
+import { Type } from "src/parser/mathjax-parser";
+import { _printNode2 } from "src/parser/parser_printer";
 
 const OPEN_INLINE_MATH_NODE =
 	"formatting_formatting-math_formatting-math-begin_keyword_math";
@@ -41,7 +43,7 @@ const CLOSE_CODEBLOCK_NODE =
 	"HyperMD-codeblock_HyperMD-codeblock-bg_HyperMD-codeblock-end_HyperMD-codeblock-end-bg";
 const CODE_NODE = "inline-code";
 
-type StackOutput = (
+export type StackOutput = (
 	| {
 			kind: "command";
 			name: string;
@@ -52,7 +54,9 @@ type StackOutput = (
 	  }
 	| { kind: "math" }
 ) &
-	Bounds;
+	Bounds & { node: SyntaxNode };
+
+type MacroStackOutput = StackOutput & { kind: "command" };
 export interface Bounds {
 	inner_start: number;
 	inner_end: number;
@@ -60,7 +64,7 @@ export interface Bounds {
 	outer_end: number;
 }
 
-type MathBounds = Bounds & {mode: MathMode};
+type MathBounds = Bounds & {mode: MathMode, nodes: SyntaxNode[]};
 
 export class Context implements PluginValue {
 	view: EditorView;
@@ -72,9 +76,9 @@ export class Context implements PluginValue {
 	boundsCache: Map<number, Bounds | null>;
 	innerBoundsCache: Map<number, Bounds | null>;
 	shouldUpdate: boolean = false;
-	
+
 	constructor(view: EditorView) {
-		this.updateFromView(view);	
+		this.updateFromView(view);
 	}
 
 	disableMath() {
@@ -134,7 +138,7 @@ export class Context implements PluginValue {
 		// first, check if math mode should be "generally" on
 		const mathBoundsCache = getMathBoundsPlugin(view);
 		const inMath = forceMath || mathBoundsCache.inMathBound(state, this.pos);
-		
+
 		if (inMath !== true && inMath !== null) {
 			const inInlineEquation = inMath.mode === MathMode.InlineMath;
 			this.mode.blockMath = !inInlineEquation;
@@ -155,17 +159,28 @@ export class Context implements PluginValue {
 
 	}
 
-	isWithinMacros(pos: number, macros: readonly string[]): StackOutput & { kind: "command" } | null {
-		if (!this.mode.inMath()) return null;
+	*getEnvNames(pos: number = this.pos): Generator<StackOutput, void, unknown> {
+		if (!this.mode.inMath()) return;
 		const boundsPlugin = getMathBoundsPlugin(this.view);
 		const tree = boundsPlugin.getTree(this.state);
 		for (const node of stackResolveIterate(tree, pos, 0)) {
+			// console.debug(node.name, node.from, node.to, Array.from(getChildren(node)).map(n => n.name))
+			if (node.name === "LaTeX") {
+				// _printNode2(node, this.state.doc.toString())
+			}
 			const result = this.getEnvNameFromNode(node, this.state.doc);
-			if (result) {
-				if (result.kind === "command" && macros.includes(result.name)) {
-					return result;
-				}
-				return null;
+			if (!result) continue;
+			yield result;
+		}
+	}
+
+	isWithinMacros(pos: number, macros: readonly MacroArea[]): StackOutput & { kind: "command" } | null {
+		for (const result of this.getEnvNames(pos)) {
+			if (result.kind=== "environment") continue;
+			if (result.kind === "math") return null;
+			const verifiedResult = isMacroArgumentCount(result, macros);
+			if (verifiedResult) {
+				return verifiedResult;
 			}
 		}
 		return null;
@@ -191,6 +206,7 @@ export class Context implements PluginValue {
 				inner_end: contentNode.to,
 				outer_start: envNode.from,
 				outer_end: envNode.to,
+				node,
 			};
 		}
 
@@ -213,6 +229,7 @@ export class Context implements PluginValue {
 				inner_end: closeBraced.from,
 				outer_start: node.from,
 				outer_end: closeBraced.to,
+				node,
 			};
 		} else if (value === "ParenMath" || value === "DollarInlineMath") {
 			value satisfies "ParenMath" | "DollarInlineMath";
@@ -235,6 +252,7 @@ export class Context implements PluginValue {
 				inner_start: openNode.to,
 				outer_start: node.from,
 				outer_end: node.to,
+				node,
 			}
 		}
 		return null;
@@ -314,7 +332,7 @@ export class Context implements PluginValue {
 		const result = this.isWithinMacros(this.pos, allTextAreas)
 		if (!result) return null;
 		const openSymbol = result.name;
-		if (snippetLessArea.includes(openSymbol as (typeof snippetLessArea)[number])) {
+		if (snippetLessArea.some(macro => macro.name === openSymbol)) {
 			return "none"
 		} else {
 			return "text"
@@ -370,6 +388,24 @@ export const getContextPlugin = (view: EditorView, init: boolean = true): Contex
 	return init ? plugin.init(view) : plugin;
 }
 
+
+export function isMacroArgumentCount(stack: Readonly<MacroStackOutput>, macros: readonly MacroArea[]): null | MacroStackOutput {
+	const macro = macros.find((macro) => macro.name === stack.name);
+	if (!macro) return null;
+	if (!macro.arguments) return stack;
+
+	let sibling_count: number = 0;
+	let sibling: SyntaxNode | null = stack.node
+	while ((sibling = sibling.prevSibling) !== null) {
+		if (sibling.name.endsWith("Argument")) {
+			sibling_count++;
+		}
+	}
+	if (!macro.arguments.includes(sibling_count)) {
+		return null
+	}
+	return stack
+}
 
 enum MathMode {
 	InlineMath,
@@ -502,7 +538,8 @@ const withingCode = (state: EditorState): boolean => {
 export const mathBoundsPlugin = ViewPlugin.fromClass(
 	class MathBoundsPlugin implements PluginValue {
 		protected mathBounds: MathBounds[] = [];
-		equations: Map<number, string> | null = null;
+		private equations: Map<number, string> | null = null;
+		private rangesMap: Map<number, MathBounds> | null = null;
 		shouldUpdate: boolean = false;
 
 		constructor(view: EditorView) {
@@ -512,6 +549,7 @@ export const mathBoundsPlugin = ViewPlugin.fromClass(
 		reset() {
 			this.mathBounds = [];
 			this.equations = null;
+			this.rangesMap = null;
 			this.shouldUpdate = false;
 		}
 
@@ -522,6 +560,7 @@ export const mathBoundsPlugin = ViewPlugin.fromClass(
 		init(view: EditorView) {
 			if (this.shouldUpdate) {
 				this.equations = null;
+				this.rangesMap = null;
 				this.updateMathBounds(view);
 				this.shouldUpdate = false;
 			}
@@ -535,18 +574,7 @@ export const mathBoundsPlugin = ViewPlugin.fromClass(
 		}
 
 		updateMathBounds(view: EditorView) {
-			// this.updateMathBoundsRunner(view)
-			const runs = 1;
-			const start = performance.now();
-			Array(runs)
-				.fill(0)
-				.forEach(() => {
-					this.updateMathBoundsRunnerV3(view);
-				});
-			const end = performance.now();
-			// console.debug(
-			// 	`Updated math bounds ${runs} times in ${end - start}ms and on average ${((end - start) / runs).toFixed(5)}ms per run`,
-			// );
+			this.updateMathBoundsRunnerV3(view);
 		}
 
 		updateMathBoundsRunnerV3(view: EditorView) {
@@ -557,95 +585,33 @@ export const mathBoundsPlugin = ViewPlugin.fromClass(
 					from,
 					to,
 					enter: (node: SyntaxNodeRef) => {
-						if (node.name === "DollarDisplayMath") {
+						if (node.name === Type.DollarDisplayBlockMath) {
+							const children = node.node.getChildren("DisplayMath")
 							ranges.push({
 								inner_start: node.from + 2,
 								inner_end: node.to - 2,
 								outer_start: node.from,
 								outer_end: node.to,
 								mode: MathMode.BlockMath,
+								nodes: children,
 							});
-						} else if (node.name === "DollarInlineMath") {
+						} else if (node.name === Type.DollarInlineMath) {
+							const children = node.node.getChildren("InlineMath")
 							ranges.push({
 								inner_start: node.from + 1,
 								inner_end: node.to - 1,
 								outer_start: node.from,
 								outer_end: node.to,
 								mode: MathMode.InlineMath,
+								nodes: children,
 							});
 						}
 					},
 				});
 			}
-			// ranges.forEach((range, i) => {
-			// 	console.debug(
-			// 		view.state.sliceDoc(range.inner_start, range.inner_end),
-			// 	);
-			// });
 			this.mathBounds = ranges;
 		}
 
-		updateMathBoundsRunnerV2(view: EditorView) {
-			const tree = syntaxTree(view.state);
-			const ranges: MathBounds[] = [];
-			type Kind = null | {
-				kind: "math_display" | "math_inline" | "codeblock";
-				node: SyntaxNode;
-			};
-			let mode: Kind = null;
-			const nodes_to_check = new Set([
-				...open_math_nodes,
-				...close_math_nodes,
-				OPEN_CODEBLOCK_NODE,
-				CLOSE_CODEBLOCK_NODE,
-			]);
-			tree.iterate({
-				enter: (node: SyntaxNodeRef) => {
-					if (!nodes_to_check.has(node.name)) return;
-
-					// if (node.name === OPEN_DISPLAY_MATH_NODE) {
-					// 	mode = {kind: "math_display", node: node.node};
-					// 	return
-					// } else if (node.name === OPEN_INLINE_MATH_NODE) {
-					// 	mode = {kind: "math_inline", node: node.node};
-					// 	return
-					// } else if (node.name === OPEN_CODEBLOCK_NODE) {
-					// 	mode = {kind: "codeblock", node: node.node};
-					// 	return
-					// }
-					// const has_closing_node = close_math_nodes.has(node.name) || node.name === CLOSE_CODEBLOCK_NODE;
-					// if (!has_closing_node) return;
-					// if (mode === null) return;
-					// if (mode.kind === "math_display") {
-					// 	ranges.push({
-					// 		inner_start: mode.node.from,
-					// 		inner_end: node.from,
-					// 		outer_start: mode.node.from,
-					// 		outer_end: node.to,
-					// 		mode: MathMode.BlockMath,
-					// 	})
-					// } else if (mode.kind === "math_inline") {
-					// 	ranges.push({
-					// 		inner_start: mode?.node.from ?? node.from,
-					// 		inner_end: node.from,
-					// 		outer_start: mode?.node.from ?? node.from,
-					// 		outer_end: node.to,
-					// 		mode: MathMode.InlineMath,
-					// 	})
-					// } else if (mode.kind === "codeblock") {
-					// 	ranges.push({
-					// 		inner_start: mode.node.from,
-					// 		inner_end: node.from,
-					// 		outer_start: mode.node.from,
-					// 		outer_end: node.to,
-					// 		mode: MathMode.BlockMath,
-					// 	})
-					// }
-					// mode = null;
-				},
-			});
-			this.mathBounds = ranges;
-		}
 		updateMathBoundsRunner(view: EditorView) {
 			const tree = syntaxTree(view.state);
 			const math_nodes_viewports: SyntaxNode[][] = [];
@@ -709,6 +675,7 @@ export const mathBoundsPlugin = ViewPlugin.fromClass(
 								open_node.name === OPEN_INLINE_MATH_NODE
 									? MathMode.InlineMath
 									: MathMode.BlockMath,
+							nodes: [],
 						});
 					} else if (open_node.name === OPEN_CODEBLOCK_NODE) {
 						const lang = getLangFromCodeblockNode(
@@ -726,6 +693,7 @@ export const mathBoundsPlugin = ViewPlugin.fromClass(
 								outer_start: open_node.from,
 								outer_end: close_node.to,
 								mode: MathMode.CodeMath,
+								nodes: [],
 							});
 						}
 					}
@@ -913,14 +881,18 @@ export const mathBoundsPlugin = ViewPlugin.fromClass(
 		};
 
 		getEquations(state: EditorState) {
-			if (this.equations) return this.equations;
+			if (this.equations && this.rangesMap)
+				return [this.equations, this.rangesMap] as const;
 			this.equations = new Map(
 				this.mathBounds.map((bound) => [
 					bound.inner_start,
 					state.sliceDoc(bound.inner_start, bound.inner_end),
 				]),
 			);
-			return this.equations;
+			this.rangesMap = new Map(
+				this.mathBounds.map((bound) => [bound.inner_start, bound]),
+			);
+			return [this.equations, this.rangesMap] as const;
 		}
 	},
 );

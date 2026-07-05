@@ -1,5 +1,5 @@
 import { ViewPlugin, ViewUpdate } from "@codemirror/view";
-import { SyntaxNode } from "@lezer/common";
+import { IterMode, SyntaxNode, Tree } from "@lezer/common";
 import { modifiedSyntaxTree } from "./language";
 import { fullMathParser } from "./mathjax-parser";
 
@@ -19,7 +19,7 @@ export const mathParserPlugin = ViewPlugin.fromClass(
 );
 export function _printNode2(node: SyntaxNode, docString: string) {
 	const result: {
-		name: string; id: number; from: number; to: number; indent: number;
+		name: string; from: number; to: number; indent: number;
 	}[] = [
 		// {
 		// 	name: node.name,
@@ -29,27 +29,43 @@ export function _printNode2(node: SyntaxNode, docString: string) {
 		// 	indent: 0,
 		// },
 	];
-	function walk(node: SyntaxNode, indent: number) {
-		let child = node.firstChild;
+	function push_node(node: SyntaxNode, base_indent: number=0) {
+		const {name, from, to} = node;
+		let indent = base_indent;
+		let parent: SyntaxNode | null = node.node
+		while ((parent = parent.parent)){
+			indent++
+		}
+		result.push(
+			{name,from,to,indent}
+		)
+	}
+	function walk(node: SyntaxNode) {
+		let child = node.firstChild
 		while (child) {
-			result.push({
-				name: child.name,
-				id: child.type.id,
-				from: child.from,
-				to: child.to,
-				indent,
-			});
-			walk(child, indent + 1);
-			child = child.nextSibling;
+			push_node(child)
+			walk(child)
+			child = child.nextSibling
 		}
 	}
-	walk(node, 1)	
+	walk(node)
+	// tree.iterate({
+	// 	enter: (node) => {
+	// 		push_node(node.node)
+	// 		if (node.name === "DisplayMath"){
+	// 			const enter_node=node.node.enter((node.node.from + node.node.to)/2, 1, IterMode.IncludeAnonymous)
+	// 			console.debug(enter_node)
+	// 			if (enter_node) walk(enter_node)
+	// 		}
+	// 	}
+	// })
+
 	console.debug(
 		result
 			.map(
-				({ name, from, to, indent, id }) =>
+				({ name, from, to, indent }) =>
 					`${"  ".repeat(indent)}${name}: (${from}, ${to}): `
-				//  + docString.slice(from, to) 
+				 // + docString.slice(from, to)
 				 ,
 			)
 			.join("\n"),

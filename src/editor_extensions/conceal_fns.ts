@@ -2,7 +2,7 @@
 
 import { EditorView } from "@codemirror/view";
 import { getMathBoundsPlugin } from "src/utils/context";
-import { findMatchingBracket } from "src/utils/editor_utils";
+import { findMatchingBracket, stackResolveIterate } from "src/utils/editor_utils";
 import { ConcealSpec, mkConcealSpec } from "./conceal";
 import { greek, cmd_symbols, map_super, map_sub, fractions, brackets, mathscrcal, mathbb, operators, not_remap as raw_not_remap } from "./conceal_maps";
 
@@ -473,14 +473,19 @@ export function conceal(
 	view: EditorView,
 	cached_equations: ConcealCachedEquations,
 ): { specs: ConcealSpec[]; cached_equations: ConcealCachedEquations } {
-	const equations = getMathBoundsPlugin(view).getEquations(view.state);
+	const boundsPlugin = getMathBoundsPlugin(view);
+	const [equations, bounds] = boundsPlugin.getEquations(view.state);
 	const new_equations: typeof cached_equations = {};
+	const tree = boundsPlugin.getTree(view.state)
 
-	for (const eqn of equations.values()) {
+	for (const [start, eqn] of equations.entries()) {
 		if (eqn in cached_equations) {
 			new_equations[eqn] = cached_equations[eqn];
 			continue;
 		}
+		const bound = bounds.get(start)!;
+		const latex_node = stackResolveIterate(tree, bound.nodes[0].from, -1).next().value
+		console.debug(latex_node!.name)
 		const localSpecs = [
 			...concealSymbols(eqn, "\\^", "", map_super),
 			...concealSymbols(eqn, "_", "", map_sub),

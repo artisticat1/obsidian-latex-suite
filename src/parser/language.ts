@@ -38,8 +38,8 @@ interface ParserContext extends ParseContext {
 	create?: (parser: Parser, state: EditorState, viewport: {from: number, to: number}) => ParserContext;
 	work?: (until: number | (() => boolean), upto?: number) => boolean;
 	takeTree?: () => void;
-	tree?: Tree;
-	changes?(changes: ChangeSet, state: EditorState): ParserContext;
+	tree: Tree;
+	changes(changes: ChangeSet, state: EditorState): ParserContext;
 	isDone?(docLen: number): boolean;
 	treeLen?: number;
 	scheduleOn?: Promise<void> | null;
@@ -73,7 +73,7 @@ class LanguageState {
 			this.context.treeLen == tr.startState.doc.length
 				? undefined
 				: Math.max(
-						tr.changes.mapPos(this.context.treeLen),
+						tr.changes.mapPos(this.context.treeLen!),
 						newCx.viewport.to,
 					);
 		if (!newCx.work(Work.Apply, upto)) newCx.takeTree();
@@ -88,7 +88,6 @@ class LanguageState {
 				to: vpTo,
 			});
 			if (!parseState) throw new Error("Failed to create parse state");
-			console.debug(parseState, parser)
 			const work = parseState.work?.(Work.Apply, vpTo);
 			if (work === undefined) throw new Error("Failed to work on parse state");
 			if (work) {

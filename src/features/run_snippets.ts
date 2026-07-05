@@ -65,6 +65,7 @@ const runSnippetCursor = (view: EditorView, ctx: Context, snippetInfo: SnippetIn
 	if (snippetInfo.key && snippetInfo.key.length !== 1) {
 		return {success: false, shouldAutoEnlargeBrackets: false};
 	}
+	const envNames = Array.from(ctx.getEnvNames())
 	const updatedLine = line + key;
 	for (let i=0; i < snippetInfo.snippets.length; i++) {
 		const snippet = snippetInfo.snippets[i];
@@ -77,15 +78,9 @@ const runSnippetCursor = (view: EditorView, ctx: Context, snippetInfo: SnippetIn
 		if (result === null) continue;
 
 		// Check that this snippet is not excluded in a certain environment
-		let isExcluded = false;
-		// in practice, a snippet should have very few excluded environments, if any,
-		// so the cost of this check shouldn't be very high
-		for (const environment of snippet.excludedEnvironments) {
-			if (ctx.isWithinEnvironment(to, environment)) { isExcluded = true; }
+		if (snippet.isWithinExcludedScope(envNames)) {
+			continue
 		}
-		// we could've used a labelled outer for loop to `continue` from within the inner for loop,
-		// but labels are extremely rarely used, so we do this construction instead
-		if (isExcluded) { continue; }
 
 		const triggerPos = result.triggerPos;
 		const triggerEndPos = result.triggerEndPos

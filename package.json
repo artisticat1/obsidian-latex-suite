@@ -16,10 +16,8 @@
 		"lint": "npm run tsc && npm run eslint",
 		"tsc": "tsc --noEmit -skipLibCheck",
 		"eslint": "eslint --fix",
-		"generator": "npm run generator:math && npm run generator:latex && npm run generator:html",
-		"generator:math": "lezer-generator src/parser/math_delimiters/math_delimiters.grammar -o  src/parser/math_delimiters/math-parser",
+		"generator": "npm run generator:latex",
 		"generator:latex": "lezer-generator src/parser/mathjax/latex.grammar -o src/parser/mathjax/latex-parser",
-		"generator:html": "lezer-generator src/parser/html_math_delimiters/html-math.grammar -o src/parser/html_math_delimiters/html-parser",
 		"postinstall": "npm run generator"
 	},
 	"keywords": [],

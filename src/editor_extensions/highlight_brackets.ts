@@ -57,7 +57,7 @@ type ColorBracketsCachedEquations = Record<string, BracketConcealment[]>;
  * @returns new decorations and the updated cached equations
  */
 function colorPairedBrackets(view: EditorView, cached_equations: ColorBracketsCachedEquations) {
-	const equations = getMathBoundsPlugin(view).getEquations(view.state);
+	const [equations, ] = getMathBoundsPlugin(view).getEquations(view.state);
 	const new_equations: typeof cached_equations = {};
 	for (const [start, eqn] of equations.entries()) {
 		if (eqn in cached_equations) {
