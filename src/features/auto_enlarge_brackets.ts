@@ -3,7 +3,6 @@ import { queueSnippet } from "src/snippets/codemirror/snippet_queue_state_field"
 import { expandSnippets } from "src/snippets/snippet_management";
 import { getContextPlugin } from "src/utils/context";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
-import { escapeRegex } from "src/editor_extensions/conceal_fns";
 import { isContains, inObject } from "src/utils/type_utils";
 import { emptyInsertOptions, TextNode } from "src/snippets/luasnip_api/node";
 
@@ -51,6 +50,15 @@ const delimiters = [
 	...Object.values(brackets),
 ] as const
 
+function escapeRegex(regex: string) {
+	const escapeChars = ["\\", "(", ")", "+", "-", "[", "]", "{", "}", "."];
+
+	for (const escapeChar of escapeChars) {
+		regex = regex.replaceAll(escapeChar, "\\" + escapeChar);
+	}
+
+	return regex;
+}
 
 const rawParser = [
 	...delimiters

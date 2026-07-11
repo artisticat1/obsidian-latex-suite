@@ -118,12 +118,12 @@
     Dollar { "$" }
 
     Number { $[0-9]+ ("." $[0-9]*)? }
-    MathSpecialChar { $[=<>()\-+/*]+ }  // FIXME not all of these are special
+    MathSpecialChar { $[^_=<>()\-+/*]+ }  // FIXME not all of these are special
     MathChar { ![0-9^_=<>()\-+/*\\{}\[\]$%&~ \t\n]+ }
 	SubScriptSeq { "_" }
 	SuperScriptSeq { "^" }
 
-    @precedence { Number, MathSpecialChar, MathChar }
+    @precedence { Number, MathSpecialChar, MathChar, SubScriptSeq, SuperScriptSeq }
 
     Ampersand { "&" }
     Tilde { "~" }
@@ -346,8 +346,8 @@ textBase {
     | Whitespace
     | Ampersand
     | Tilde
-	| SubScript
-	| SuperScript
+	// | SubScript
+	// | SuperScript
     )
 }
 
@@ -371,7 +371,7 @@ LongArg {
     | Environment
     | BlankLine
     | "#" // macro character
-    // | "_" | "^" // other math chars
+    | "_" | "^" // other math chars
     )*
 }
 
@@ -383,7 +383,7 @@ ShortArg {
     ( textWithBrackets
     | NonEmptyGroup<ShortArg>
     | "#" // macro character
-    // | "_" | "^" // other math chars
+    | "_" | "^" // other math chars
     )*
 }
 
@@ -391,7 +391,7 @@ ShortOptionalArg {
     ( textBase
     | NonEmptyGroup<ShortOptionalArg>
     | "#" // macro character
-    // | "_" // underscore is used in some parameter names
+    | "_" // underscore is used in some parameter names
     )*
 }
 
@@ -418,7 +418,7 @@ DefinitionFragment {
     | "#" // macro character
     | Ampersand // for tables
     | Tilde // unbreakable space
-    // | "_" | "^" // other math chars
+    | "_" | "^" // other math chars
     )+
 }
 
@@ -430,8 +430,8 @@ DefinitionFragmentCommand {
       KnownCommand<TextArgument>
     | DefinitionFragmentUnknownCommand { genericUnknownCommandWithOptionalArguments<DefinitionFragmentArgument, OptionalArgument> }
     | KnownCtrlSym
-	| SubScript
-	| SuperScript
+	// | SubScript
+	// | SuperScript
 }
 
 KnownEnvironment {
@@ -537,8 +537,8 @@ Math {
     | CloseBracket
     | Ampersand
     | Tilde
-	| SubScript
-	| SuperScript
+	// | SubScript
+	// | SuperScript
     )+
 }
 
@@ -601,6 +601,9 @@ MathDelimiter {
     "\\rvert" | "\\vert" | "\\Vert" |
     "\\lbrace" | "\\rbrace" |
     "\\lbrack" | "\\rbrack" |
+	"<" | ">" |
+	// mathjax specific
+	"\\lt" | "\\gt"
     // Also allow the empty match
     "."
 }

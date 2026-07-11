@@ -19,6 +19,7 @@ import { LatexSuitePluginPublicApi } from "./api";
 import * as v from "valibot"
 import { languageExtension } from "./parser/language";
 import { mathParserPlugin } from "./parser/parser_printer";
+import { highlight_dollar } from "./editor_extensions/highlight_dollar";
 
 export default class LatexSuitePlugin extends Plugin implements LatexSuitePluginPublicApi {
 	settings: LatexSuitePluginSettings;
@@ -201,7 +202,8 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 			EditorView.updateListener.of(handleUpdate),
 			snippetExtensions,
 			mathParserPlugin,
-			languageExtension
+			languageExtension,
+			highlight_dollar,
 		]);
 		
 		const latexSuiteKeymaps = getKeymaps(this.CMSettings)

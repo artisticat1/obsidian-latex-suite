@@ -993,8 +993,16 @@ export const hat = {
 
 
 
+export const leftrightBrackets: Record<string, string> = {
+	"<": "⟨",
+	">": "⟩",
+	".": "",
+	"/": "/",
+	"\\gt": "⟩",
+	"\\lt": "⟨",
+}
 // brackets also highlighted further by highlight_brackets.ts
-export const brackets = {
+export const brackets: Record<string, string> = {
 	// "left(": "(",
 	// "left[": "[",
 	// "left\\{": "\\{",
@@ -1004,8 +1012,8 @@ export const brackets = {
 	// "left\\langle": "〈",
 	// "right\\rangle": "〉",
 
-	"left<": "⟨",
-	"right>": "⟩",
+	// "left<": "⟨",
+	// "right>": "⟩",
 	"langle": "⟨",
 	"rangle": "⟩",
 	"lvert": "|",
@@ -1014,8 +1022,6 @@ export const brackets = {
 	"rVert": "‖",
 	"vert": "|",
 	// "|": "‖",
-	".": "",
-	"/": "/",
 	"Arrowvert": "‖",
 	// "Downarrow": "⇓",
 	// "Uparrow": "⇑",
@@ -1025,8 +1031,6 @@ export const brackets = {
 	// "backslash": "\\",
 	"bracevert": "⎪",
 	// "downarrow": "↓",
-	"left\\gt": "⟩",
-	"right\\gt": "⟩",
 	"lbrace": "{",
 	"lbrack": "[",
 	"lceil": "⌈",
@@ -1036,8 +1040,6 @@ export const brackets = {
 	"lmoustache": "⎰",
 	"lparen": "(",
 	"lrcorner": "⌟",
-	"left\\lt": "⟨",
-	"right\\lt": "⟨",
 	"rbrace": "}",
 	"rbrack": "]",
 	"rceil": "⌉",
@@ -1053,7 +1055,7 @@ export const brackets = {
 
 
 
-export const mathbb = {
+export const mathbb: Record<string, string> = {
 	" ": " ",
 	"0": "𝟘",
 	"1": "𝟙",
@@ -1120,7 +1122,7 @@ export const mathbb = {
 }
 
 
-export const mathscrcal = {
+export const mathscrcal: Record<string,string | undefined> = {
 	"A": "𝓐",
 	"B": "𝓑",
 	"C": "𝓒",

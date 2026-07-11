@@ -1,17 +1,14 @@
-import { parseMixed, SyntaxNode } from "@lezer/common";
+import { parseMixed, SyntaxNodeRef } from "@lezer/common";
 import { parser as mathJaxParser } from "./mathjax/latex-parser";
 import {
 	BlockContext,
 	BlockParser,
 	Element,
 	InlineParser,
-	LeafBlock,
-	LeafBlockParser,
 	Line,
 	MarkdownConfig,
 	parser as baseParser,
 } from "@lezer/markdown";
-import { Dollar } from "./mathjax/latex-parser.terms";
 
 declare module "@lezer/markdown" {
 	interface Line {
@@ -24,15 +21,22 @@ export class Type {
 	static readonly Dollar = "Dollar";
 	static readonly DollarInlineMath = "DollarInlineMath";
 	static readonly DollarDisplayMath = "DollarDisplayMath";
-	static readonly DollarDisplayBlockMath = "DollarDisplayMath";
+	static readonly DollarDisplayBlockMath = "DollarDisplayBlockMath";
+}
+
+export function space(ch: number) {
+	return ch == 32 || ch == 9 || ch == 10 || ch == 13;
 }
 
 const inlineParserDisplayAndInlineMath: InlineParser = {
-	name: "Math",
+	name: "InlineMath",
 	parse(cx, next, pos) {
 		if (next !== 36 /* '$' */) return -1;
 
 		const isDisplay = cx.char(pos + 1) === 36 /* '$' */;
+		// inline can't have spaces at the ends.
+		if (!isDisplay && space(cx.char(pos + 1))) return -1;
+
 		const delimiterLength = isDisplay ? 2 : 1;
 		const nodeName = isDisplay ? Type.DollarDisplayMath : Type.DollarInlineMath
 		const innerName = isDisplay ? Type.DisplayMath : Type.InlineMath
@@ -52,9 +56,14 @@ const inlineParserDisplayAndInlineMath: InlineParser = {
 				continue;
 			}
 
+			const next_char = cx.char(i + 1);
 			if (isDisplay) {
 				// Display math needs to match a double dollar sign
-				if (cx.char(i + 1) !== 36 /* '$' */) continue;
+				if (next_char !== 36 /* '$' */) continue;
+			} else if (cx.skipSpace(i - 1) !== i - 1 || next_char >= 48 && next_char <= 57) {
+				// check for space and [0-9] after the closing $ for inline math as a number like $a$1 is not allowed/skipped.
+				// and $a $ is not allowed/skipped.
+				continue;
 			}
 			const closingStart = i;
 			const endPos = i + delimiterLength;
@@ -119,7 +128,7 @@ type CustomElement = Element | {
 	kind: string;
 }
 
-function addDisplayMath(markers: CustomElement[], from: number, to: number, cx: BlockContext) {
+function addDisplayMath(markers: CustomElement[], from: number, to: number) {
 	const last = markers.length - 1;
 	if (
 		last >= 0 &&
@@ -148,33 +157,48 @@ const blockParserDisplayMath: BlockParser = {
 		];
 		if (firstEqChar < line.text.length) {
 			const from = cx.lineStart + firstEqChar;
-			const to = cx.lineStart + line.text.length + 1;
-			addDisplayMath(markers, from, to, cx);
+			const to = cx.lineStart + line.text.length;
+			addDisplayMath(markers, from, to);
 		}
-
-		while (cx.nextLine()) {
-		    endLine = line.text.length + cx.lineStart
+		const depth = cx.depth
+		for (
+			let first = true, empty = true, hasLine = false;
+			cx.nextLine() &&
+			((line.pos !== line.text.length && depth >= 2) || depth < 2);
+			first = false
+		) {
+			endLine = line.text.length + cx.lineStart;
 			const endDollar = isDisplayBlockEnd(line, delimiterLength);
 			if (endDollar !== null) {
 				for (const m of line.markers ?? []) markers.push(m);
 				const endFrom = cx.lineStart + endDollar[0];
 				const endTo = cx.lineStart + endDollar[1];
+				if (empty && !hasLine) {
+					addDisplayMath(markers, cx.lineStart - 1, cx.lineStart);
+				}
 				if (cx.lineStart + line.pos < endFrom) {
 					addDisplayMath(
 						markers,
 						cx.lineStart + line.pos,
 						endFrom,
-						cx,
 					);
 				}
 				markers.push(cx.elt(Type.Dollar, endFrom, endTo));
 				cx.nextLine();
-				break
+				break;
 			}
-			const from = line.pos + cx.lineStart
-			const to  = cx.lineStart + line.text.length + 1
+			hasLine = true;
+			if (!first) {
+				addDisplayMath(markers, cx.lineStart - 1, cx.lineStart)
+				empty = false;
+			}
 			for (const m of line.markers ?? []) markers.push(m);
-			addDisplayMath(markers, from, to, cx)
+			const textStart = cx.lineStart + line.pos;
+			const textEnd = cx.lineStart + line.text.length;
+			if (textStart < textEnd) {
+				addDisplayMath(markers, textStart, textEnd);
+				empty = false;
+			}
 		}
 		const InBetweenElements = markers.map((marker) =>
 			marker instanceof Element
@@ -194,110 +218,35 @@ const blockParserDisplayMath: BlockParser = {
 	endLeaf(_cx, line) {
 		return isDisplayBlockStart(line) >= 0
 	},
-
+	after: "FencedCode"
 };
-
-const leafParser: BlockParser = {
-	name: "math3",
-	endLeaf(_cx, line) {
-		return isDisplayBlockStart(line) >= 0
-	},
-
-	leaf(cx, leaf) {
-		return new DisplayMathBlockParser()
-	},
-	before: "Blockquote",
-}
-
-class DisplayMathBlockParser implements LeafBlockParser {
-	nextLine(cx: BlockContext, line: Line, leaf: LeafBlock): boolean {
-		const toStartLine = isDisplayBlockStart(line)
-		console.debug(line.text)
-		if (toStartLine === -1) return false;
-
-		const fromStart = line.pos + cx.lineStart
-		const toStart = cx.lineStart + toStartLine
-
-		const openDollarMark = cx.elt(Type.Dollar, fromStart, toStart)
-		const delimiterLength = toStart - fromStart
-		const firstEqChar = line.skipSpace(toStartLine)
-		const markers: CustomElement[] = [openDollarMark]
-		if (firstEqChar < line.text.length) {
-			const from = cx.lineStart + firstEqChar
-			const to = cx.lineStart + line.text.length + 1;
-			addDisplayMath(markers, from, to, cx)
-		}
-		let endline = line.text.length + cx.lineStart
-		while (cx.nextLine()) {
-			console.debug(line.text)
-			endline = line.text.length + cx.lineStart
-			const endDollar = isDisplayBlockEnd(line, delimiterLength)
-			console.debug(
-				cx.parser.parseInline(leaf.content, leaf.start), [leaf.content, leaf.start,leaf]
-			)
-			if (endDollar !== null) {
-				const endFrom = cx.lineStart + endDollar[0];
-				const endTo = cx.lineStart + endDollar[1];
-				if (cx.lineStart + line.pos < endFrom) {
-					addDisplayMath(
-						markers,
-						cx.lineStart + line.pos,
-						endFrom,
-						cx,
-					);
-				}
-				markers.push(cx.elt(Type.Dollar, endFrom, endTo));
-				cx.nextLine();
-				break
-			}
-			const from = line.pos + cx.lineStart
-			const to  = cx.lineStart + line.text.length + 1
-			addDisplayMath(markers, from, to, cx)
-		}
-
-		const InBetweenElements = markers.map((marker) =>
-			marker instanceof Element
-				? marker
-				: cx.elt(Type.DisplayMath, marker.from, marker.to),
-		);
-		const element = cx.elt(
-			Type.DollarDisplayBlockMath,
-			fromStart,
-			endline,
-			InBetweenElements,
-		);
-		cx.addLeafElement(leaf, element);
-		return true;
-	}
-	finish(cx: BlockContext, leaf: LeafBlock): boolean {
-		//
-		return false
-	}
-}
-
 
 export const MathParser: MarkdownConfig = {
 	defineNodes: [
 		{ name: Type.InlineMath },
 		{ name: Type.DisplayMath },
-		{ name: Type.DollarDisplayMath },
 		{ name: Type.Dollar },
 		{ name: Type.DollarInlineMath },
 		{ name: Type.DollarDisplayMath },
-		{ name: Type.DollarDisplayBlockMath },
+		{ name: Type.DollarDisplayBlockMath, block: true },
 	],
 	parseInline: [inlineParserDisplayAndInlineMath],
-	parseBlock: [leafParser],
+	parseBlock: [blockParserDisplayMath],
 	wrap: parseMixed((node) => {
-		if (node.name === Type.InlineMath) {
-			return { parser: mathJaxParser, bracketed: true };
+		if (node.name === Type.DollarDisplayBlockMath) {
+			return {
+				parser: mathJaxParser,
+				overlay: (overlay_node: SyntaxNodeRef) =>
+					overlay_node.name === Type.DisplayMath,
+				bracketed: true,
+			};
 		} else if (
-			node.name === Type.DollarDisplayBlockMath ||
-			node.name === Type.DollarDisplayMath
+			node.name === Type.InlineMath ||
+			(node.name === Type.DisplayMath &&
+				node.node.parent!.name === Type.DollarDisplayMath)
 		) {
 			return {
 				parser: mathJaxParser,
-				overlay: (node: SyntaxNode) => node.name === Type.DisplayMath,
 				bracketed: true,
 			};
 		}
@@ -306,3 +255,15 @@ export const MathParser: MarkdownConfig = {
 };
 
 export const fullMathParser = baseParser.configure(MathParser);
+export const testBaseParser = baseParser.configure({
+	wrap: parseMixed((node) => {
+		if (node.name === "FencedCode") {
+			return {
+				parser: mathJaxParser,
+				overlay: (node2: SyntaxNodeRef) => node2.name === "CodeText",
+				bracketed: true,
+			};
+		}
+		return null;
+	})
+});
