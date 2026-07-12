@@ -274,3 +274,11 @@ and limit the height.
     margin: 0 -0.7px -.7em;
     border-left: 1.4px dotted #888;
   }
+
+.latex-suite-error-dollar {
+	color: red;
+}
+
+.latex-suite-highlighted-dollar {
+	color: green;
+}

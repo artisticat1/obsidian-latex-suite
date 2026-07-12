@@ -3,7 +3,7 @@
 import { ViewPlugin, ViewUpdate } from "@codemirror/view";
 import { IterMode, MountedTree, NodeProp, SyntaxNode, Tree } from "@lezer/common";
 import { modifiedSyntaxTree } from "./language";
-import { fullMathParser } from "./mathjax-parser";
+import { fullMathParser, Type } from "./mathjax-parser";
 import { EditorState } from "@codemirror/state";
 
 export const mathParserPlugin = ViewPlugin.fromClass(
@@ -11,8 +11,7 @@ export const mathParserPlugin = ViewPlugin.fromClass(
 		update(update: ViewUpdate) {
 			if (!update.docChanged) return;
 			try {
-				this.printMountedTrees(update.state)
-				return;
+				// this.printMountedTrees(update.state)
 				const tree = modifiedSyntaxTree(update.state);
 				const docString = update.state.doc.toString();
 				_printNode2(tree.topNode, docString);
@@ -26,18 +25,20 @@ export const mathParserPlugin = ViewPlugin.fromClass(
 			const mountedTrees: SyntaxNode[] = []
 			tree.iterate({
 				enter: (node) => {
-					const mounted = node.type.prop(NodeProp.mounted)
-					if (mounted) {
-						mountedTrees.push(node.node)
+					if (node.name === Type.DollarDisplayBlockMath) {
+						const children = node.node.getChildren(Type.DisplayMath);
+						const last = children.last();
+						if (last) {
+							const tree = node.node.enter(last.to, -1)
+							if (!tree) return
+							mountedTrees.push(tree)
+						}
 					}
 				}
 			})	
 			mountedTrees.forEach((node) => {
-				const tree = node.prop(NodeProp.mounted) as MountedTree
 				const equation = state.doc.sliceString(0, state.doc.length)
-				const latexnode = node.enter(tree.overlay!.last().to, -1)!
-				console.log(latexnode.name)
-				_printNode2(node.enter(tree.overlay!.last().to, -1)!, equation)
+				_printNode2(node, equation)
 			})
 		}
 	},

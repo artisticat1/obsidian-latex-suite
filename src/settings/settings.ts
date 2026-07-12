@@ -43,7 +43,7 @@ export interface LatexSuiteBasicSettings {
 	vimMatrixEnter: VimKeyMap;
 	snippetRecursion: number;
 	snippetIMEVersion: boolean;
-
+	highlightDollarEnabled: boolean;
 }
 
 /** triggers following the same format as https://codemirror.net/docs/ref/#view.KeyBinding */
@@ -132,6 +132,7 @@ export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
 	vimMatrixEnter: "o",
 	snippetRecursion: 0,
 	snippetIMEVersion: false,
+	highlightDollarEnabled: false,
 }
 
 const EnvironmentSchema = v.pipe(

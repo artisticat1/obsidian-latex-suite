@@ -2,7 +2,6 @@ import { EditorView } from "@codemirror/view";
 import { EditorState, SelectionRange } from "@codemirror/state";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
 import { queueSnippet } from "src/snippets/codemirror/snippet_queue_state_field";
-import { Mode, Options } from "src/snippets/options";
 import { expandSnippets } from "src/snippets/snippet_management";
 import { Context, getContextPlugin } from "src/utils/context";
 import { autoEnlargeBrackets } from "./auto_enlarge_brackets";

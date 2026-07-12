@@ -8,6 +8,8 @@ import {
 	Line,
 	MarkdownConfig,
 	parser as baseParser,
+	GFM,
+	DelimiterType,
 } from "@lezer/markdown";
 
 declare module "@lezer/markdown" {
@@ -22,6 +24,11 @@ export class Type {
 	static readonly DollarInlineMath = "DollarInlineMath";
 	static readonly DollarDisplayMath = "DollarDisplayMath";
 	static readonly DollarDisplayBlockMath = "DollarDisplayBlockMath";
+	static readonly Highlight = "Highlight";
+	static readonly HighlightEqual = "HighlightEqual";
+	static readonly Wikilink = "Wikilink";
+	static readonly ObsidianComment = "ObsidianComment";
+	static readonly ObsidianCommentPercentage = "ObsidianCommentPercentage";
 }
 
 export function space(ch: number) {
@@ -164,7 +171,7 @@ const blockParserDisplayMath: BlockParser = {
 		for (
 			let first = true, empty = true, hasLine = false;
 			cx.nextLine() &&
-			((line.pos !== line.text.length && depth >= 2) || depth < 2);
+			((line.text !== "" && depth >= 2) || depth < 2);
 			first = false
 		) {
 			endLine = line.text.length + cx.lineStart;
@@ -254,7 +261,112 @@ export const MathParser: MarkdownConfig = {
 	}),
 };
 
-export const fullMathParser = baseParser.configure(MathParser);
+const highlightDelimiter: DelimiterType = {
+	mark: Type.HighlightEqual,
+	resolve: Type.Highlight,
+};
+
+const highlightParser: MarkdownConfig = {
+	defineNodes: [{ name: Type.Highlight }, { name: Type.HighlightEqual }],
+	parseInline: [
+		{
+			name: Type.Highlight,
+			parse(cx, next, pos) {
+				if (next !== 61 /* '=' */) return -1;
+				if (cx.char(pos + 1) !== 61 /* '=' */) return -1;
+				return cx.addDelimiter(
+					highlightDelimiter,
+					pos,
+					pos + 2,
+					true,
+					true,
+				);
+			},
+		},
+	],
+};
+
+const wikilinkParser: MarkdownConfig = {
+	defineNodes: [{ name: Type.Wikilink }],
+	parseInline: [{
+		name: Type.Wikilink,
+		parse(cx, next, pos) {
+			const wikiLink = next === 91 /* '[' */ && cx.char(pos + 1) === 91 /* '[' */;
+			const embedFile = !wikiLink && next === 33 /* '!' */ && cx.char(pos + 1) === 91 /* '[' */ && cx.char(pos + 2) === 91 /* '[' */;
+			if (!wikiLink && !embedFile) return -1;
+			const startPos = pos
+			if (embedFile) {
+				pos += 1; // Skip the '!' character
+			}
+			for (let i = pos + 2; i < cx.end; i++) {
+				if (cx.char(i) === 93 /* ']' */ && cx.char(i + 1) === 93 /* ']' */) {
+					return cx.addElement(cx.elt(Type.Wikilink, startPos, i+2))
+				}
+			}
+			return -1
+		},
+		before: "Link"
+	}]
+}
+
+
+function isCommentEnd(line: Line): number {
+	let startPos = line.pos
+	while ( startPos < line.text.length) {
+		if (line.text.charCodeAt(startPos) === 37 /* '%' */ && line.text.charCodeAt(startPos + 1) === 37 /* '%' */) {
+			return startPos
+		}
+		startPos++;
+	}
+	return -1	
+}
+
+const obsidianCommentParser: MarkdownConfig = {
+	defineNodes: [
+		{ name: Type.ObsidianComment },
+	],
+	parseInline: [
+		{
+			name: Type.ObsidianComment,
+			parse(cx, next, pos) {
+				if (!(next !== 37 /* '%' */ && cx.char(pos+1) === 37 /* '%' */)) return -1;
+				const startPos = pos;
+				for (let i = pos + 2; i < cx.end; i++) {
+					if (cx.char(i) === 37 /* '%' */ && cx.char(i + 1) === 37 /* '%' */) {
+						return cx.addElement(cx.elt(Type.ObsidianComment, startPos, i+2))
+					}
+				}
+				return -1
+			},
+		},
+	],
+	parseBlock: [
+		{
+			name: Type.ObsidianComment,
+			parse(cx, line) {
+				if (!(line.next === 37 /* '%' */ && line.text.charCodeAt(line.pos+1) === 37 /* '%' */)) return false;
+				const startPos = cx.lineStart + line.pos;
+				while (cx.nextLine()) {
+					const end = isCommentEnd(line);
+					if (end === -1) {
+						continue;
+					}
+					const endPos = cx.lineStart + end + 2
+					cx.addElement(cx.elt(Type.ObsidianComment, startPos, endPos));
+					cx.parser.parseInline(line.text.slice(end + 2), endPos).map(marker => cx.addElement(marker));
+					return true;
+				}
+				return false;
+			},
+			endLeaf(_cx, line) {
+				const res = line.next === 37 /* '%' */ && line.text.charCodeAt(line.pos+1) === 37 /* '%' */;
+				return res;
+			},
+		}
+	]
+};
+
+export const fullMathParser = baseParser.configure(GFM).configure(highlightParser).configure(wikilinkParser).configure(obsidianCommentParser).configure(MathParser)
 export const testBaseParser = baseParser.configure({
 	wrap: parseMixed((node) => {
 		if (node.name === "FencedCode") {

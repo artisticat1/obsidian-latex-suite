@@ -2,9 +2,8 @@ import { EditorView, ViewUpdate, Decoration, DecorationSet, ViewPlugin } from "@
 import { Prec, Range } from "@codemirror/state";
 import { CMBound, getContextPlugin, getMathBoundsPlugin } from "src/utils/context";
 import { tempKeyPress } from "src/snippets/snippet_management";
-import { findIndexReverse } from "src/utils/tokenizer";
-import { iterateTreeCursor } from "src/utils/editor_utils";
-import { EquationText } from "src/utils/editor_utils";
+import { EquationText, findIndexReverse, iterateTreeCursor } from "src/utils/tokenizer";
+import { walkPairedBrackets } from "src/utils/tokenizer";
 import { SyntaxNode, TreeCursor } from "@lezer/common";
 import * as latex from "src/parser/mathjax/latex-parser.terms";
 
@@ -35,7 +34,7 @@ const bracket_delimiters = {
 	"{": "}",
 	"[": "}",
 	"(": ")",
-	"\\(": "\\)",
+	"\\{": "\\}",
 	// these don't neccessarily have to be paired: but they often do so we treat them like a pair.
 	"\\left<": "\\right>",
 	"\\langle ": "\\rangle",
@@ -60,15 +59,23 @@ function handleDelimitedGroup(cursor: TreeCursor, doc: EquationText): BracketRes
 	const open = cursor.node.getChild(latex.MathOpening);
 	const close = cursor.node.getChild(latex.MathClosing);
 	const mathNode = cursor.node.getChild(latex.Math)
-	const newDoc = new EquationText(doc.eqn, doc.from, doc.to, doc.offset);
-	const mathDelimiters = mathNode ? traverseTree(mathNode, newDoc) : [];
-
+	const mathDelimiters = mathNode
+		? traverseTree(
+				mathNode,
+				new EquationText(
+					doc.eqn,
+					mathNode.from,
+					mathNode.to,
+					doc.offset,
+				),
+			)
+		: [];
 	if (!open || !close) {
 		return []
 	}
 	const to = close?.to ?? open.to;
 	if (to) {
-		cursor.enter(to, -1)
+		cursor.moveTo(to, -1)
 	}
 	let bracket: BracketResult
 	if (open && close) {
@@ -121,22 +128,23 @@ type BracketPair = {
 
 type BracketResult = BracketPair | BracketOpen | BracketClose; 
 	
-function handleCtrlSeq(bound: CMBound, doc: EquationText): BracketResult[] {
-	const macro = doc.slice(bound.from, bound.to);	
+function handleCtrlSeq(cursor: TreeCursor, doc: EquationText): BracketResult[] {
+	const node = cursor.node
+	const macro = doc.slice(node.from, node.to);	
 	const isOpen = macro in bracket_delimiters;
 	const isClose = macro in reverse_bracket_delimiters;
 	let bracket: BracketResult;
 	if (isOpen) {
 		bracket = {
 			kind: "error_open",
-			open: bound,
-			bracket: doc.slice(bound.from, bound.to),
+			open: node,
+			bracket: doc.slice(node.from, node.to),
 		}
 	} else if (isClose) {
 		bracket = {
 			kind: "error_close",
-			close: bound,
-			bracket: doc.slice(bound.from, bound.to),
+			close: node,
+			bracket: doc.slice(node.from, node.to),
 		}
 	} else {
 		return [];
@@ -147,6 +155,7 @@ function handleCtrlSeq(bound: CMBound, doc: EquationText): BracketResult[] {
 const openBraceMap = {
 	"OpenBrace": "CloseBrace",
 	"OpenBracket": "CloseBracket",
+	"OpenParenMath": "CloseParenMath"
 }
 
 function handleOpenBrace(cursor: TreeCursor, doc: EquationText): BracketResult[] {
@@ -203,7 +212,7 @@ function handleMathSpecialChar(cursor: TreeCursor, doc: EquationText): BracketRe
 
 type Handler = (cursor: TreeCursor, doc: EquationText) => BracketResult[];
 
-function traverseTree(topNode: SyntaxNode, doc: EquationText): BracketResult[] {
+export function traverseTree(topNode: SyntaxNode, doc: EquationText): BracketResult[] {
 	const specs: BracketResult[] = [];
 	const nameMap: Record<number, Handler> = {
 		[latex.MathDelimitedGroup]: handleDelimitedGroup
@@ -214,13 +223,14 @@ function traverseTree(topNode: SyntaxNode, doc: EquationText): BracketResult[] {
 		if (handler) {
 			const region = handler(cursor, doc);
 			specs.push(...region);
-		} else if (node.name.endsWith("CtrlSeq")) {
+		} else if (node.name.endsWith("CtrlSeq") || node.type.is(latex.CtrlSym)) {
 			specs.push(...handleCtrlSeq(cursor, doc));
 		} else if (node.type.is(latex.MathSpecialChar)) {
 			specs.push(...handleMathSpecialChar(cursor, doc))
 		} else if (
 			node.type.is(latex.OpenBrace) ||
-			node.type.is(latex.OpenBracket)
+			node.type.is(latex.OpenBracket) ||
+			node.type.is(latex.OpenParenMath)
 		) {
 			specs.push(...handleOpenBrace(cursor, doc));
 		} else if (
@@ -238,14 +248,14 @@ function traverseTree(topNode: SyntaxNode, doc: EquationText): BracketResult[] {
 }
 
 type PairedBracketParent = PairedBrackets & {kind: "error_open" | "bracket"} | null;
-type PairedBrackets = BracketResult & {
+export type PairedBrackets = BracketResult & {
 	parent: PairedBracketParent;
 	children: PairedBrackets[];
 }
 
 // syntax brackets like \left...\right and {} have priority over normal brackets like () or \lvert \rvert.
 // This does make parsing a bit awkward.
-function pairBrackets(specs: BracketResult[]) {
+export function pairBrackets(specs: BracketResult[]) {
 	const paired: PairedBrackets[] = [];
 	let parent: PairedBracketParent = null;
 	const openStack: (PairedBrackets & {kind: "error_open"})[] = [];
@@ -288,14 +298,6 @@ function pairBrackets(specs: BracketResult[]) {
 		}
 	}
 	return paired 
-}
-
-function* walkPairedBrackets(tokens: PairedBrackets[], depth: number = 0): Generator<{region: PairedBrackets, depth: number}> {
-	for (const token of tokens) {
-		yield {region: token, depth};
-		const newDepth = token.kind === "bracket" ? depth + 1 : depth;
-		yield* walkPairedBrackets(token.children, newDepth);
-	}
 }
 
 type ColorBracketsCachedEquations = Record<string, BracketConcealment[]>;

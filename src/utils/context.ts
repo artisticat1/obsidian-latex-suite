@@ -543,192 +543,196 @@ const withingCode = (state: EditorState): boolean => {
 
 type EquationInfo = { text: string; bound: MathBoundWithTree, overlay: CMBound };
 
-export const mathBoundsPlugin = ViewPlugin.fromClass(
-	class MathBoundsPlugin implements PluginValue {
-		protected mathBounds: MathBounds[] = [];
-		private equationsOverlays: EquationInfo[] | null = null;
-		shouldUpdate: boolean = false;
+class MathBoundsPlugin implements PluginValue {
+	private _mathBounds: MathBounds[] = [];
+	private equationsOverlays: EquationInfo[] | null = null;
+	shouldUpdate: boolean = false;
 
-		constructor(view: EditorView) {
-			this.updateMathBounds(view);
-		}
+	get mathBounds() {
+		return this._mathBounds
+	}
 
-		reset() {
-			this.mathBounds = [];
+	constructor(view: EditorView) {
+		this.updateMathBounds(view);
+	}
+
+	reset() {
+		this._mathBounds = [];
+		this.equationsOverlays = null;
+		this.shouldUpdate = false;
+	}
+
+	getTree(state: EditorState) {
+		return modifiedSyntaxTree(state);
+	}
+
+	init(view: EditorView) {
+		if (this.shouldUpdate) {
 			this.equationsOverlays = null;
+			this.updateMathBounds(view);
 			this.shouldUpdate = false;
 		}
+		return this;
+	}
 
-		getTree(state: EditorState) {
-			return modifiedSyntaxTree(state);
+	update(update: ViewUpdate) {
+		if (update.docChanged || update.viewportChanged) {
+			this.shouldUpdate = true;
 		}
+	}
 
-		init(view: EditorView) {
-			if (this.shouldUpdate) {
-				this.equationsOverlays = null;
-				this.updateMathBounds(view);
-				this.shouldUpdate = false;
-			}
-			return this;
+	getDollarBounds(node: SyntaxNode): {open: CMBound, close: CMBound} {
+		const open = node.firstChild!;
+		const close =
+			node.lastChild!.name === "Dollar"
+				? node.lastChild!
+				: { from: node.to, to: node.to };
+		return {
+			open,
+			close
 		}
+	}
 
-		update(update: ViewUpdate) {
-			if (update.docChanged || update.viewportChanged) {
-				this.shouldUpdate = true;
-			}
-		}
-
-		getDollarBounds(node: SyntaxNode): {open: CMBound, close: CMBound} {
-			const open = node.firstChild!;
-			const close =
-				node.lastChild!.name === "Dollar"
-					? node.lastChild!
-					: { from: node.to, to: node.to };
-			return {
-				open,
-				close
-			}
-		}
-
-		updateMathBounds(view: EditorView) {
-			const tree = modifiedSyntaxTree(view.state);
-			const ranges: MathBounds[] = [];
-			for (const { from, to } of view.visibleRanges) {
-				tree.iterate({
-					from,
-					to,
-					enter: (nodeRef: SyntaxNodeRef) => {
-						if (
-							nodeRef.name === Type.DollarDisplayBlockMath &&
-							nodeRef.to - nodeRef.from >= 4
-						) {
-							const { open, close } = this.getDollarBounds(nodeRef.node);
-							const children = nodeRef.node.getChildren("DisplayMath")
-							if (children.length === 0) {
-								ranges.push({
-									inner_start: open.to,
-									inner_end: close.from,
-									outer_start: open.from,
-									outer_end: close.to,
-									mode: MathMode.BlockMath,
-									tree: null,
-									overlay: [],
-								})
-								return;
-							}
-
-							const tree = nodeRef.node.enter(children[children.length - 1].to, -1);
-							if (!tree) {
-								return;
-							}
-
+	updateMathBounds(view: EditorView) {
+		const tree = modifiedSyntaxTree(view.state);
+		const ranges: MathBounds[] = [];
+		for (const { from, to } of view.visibleRanges) {
+			tree.iterate({
+				from,
+				to,
+				enter: (nodeRef: SyntaxNodeRef) => {
+					if (
+						nodeRef.name === Type.DollarDisplayBlockMath &&
+						nodeRef.to - nodeRef.from >= 4
+					) {
+						const { open, close } = this.getDollarBounds(nodeRef.node);
+						const children = nodeRef.node.getChildren("DisplayMath")
+						if (children.length === 0) {
 							ranges.push({
 								inner_start: open.to,
 								inner_end: close.from,
 								outer_start: open.from,
 								outer_end: close.to,
 								mode: MathMode.BlockMath,
-								tree,
-								overlay: children,
-							});
-						} else if (
-							nodeRef.name === Type.DollarInlineMath ||
-							nodeRef.name === Type.DollarDisplayMath
-						) {
-							const { open, close } = this.getDollarBounds(nodeRef.node);
-							const tree = nodeRef.node.getChild("LaTeX");
-							if (!tree) {
-								return
-							}
-							ranges.push({
-								inner_start: open.to,
-								inner_end: close.from,
-								outer_start: open.from,
-								outer_end: close.to,
-								mode: MathMode.InlineMath,
-								tree,
-								overlay: [tree],
-							});
+								tree: null,
+								overlay: [],
+							})
+							return;
 						}
-					},
-				});
-			}
-			this.mathBounds = ranges;
-		}
 
-		inMathBound(state: EditorState, pos: number): MathBounds | null {
-			const bound = this.inMathBoundT(state, pos);
-			return bound;
+						const tree = nodeRef.node.enter(children[children.length - 1].to, -1);
+						if (!tree) {
+							return;
+						}
+
+						ranges.push({
+							inner_start: open.to,
+							inner_end: close.from,
+							outer_start: open.from,
+							outer_end: close.to,
+							mode: MathMode.BlockMath,
+							tree,
+							overlay: children,
+						});
+					} else if (
+						nodeRef.name === Type.DollarInlineMath ||
+						nodeRef.name === Type.DollarDisplayMath
+					) {
+						const { open, close } = this.getDollarBounds(nodeRef.node);
+						const tree = nodeRef.node.getChild("LaTeX");
+						if (!tree) {
+							return
+						}
+						ranges.push({
+							inner_start: open.to,
+							inner_end: close.from,
+							outer_start: open.from,
+							outer_end: close.to,
+							mode: MathMode.InlineMath,
+							tree,
+							overlay: [tree],
+						});
+					}
+				},
+			});
 		}
-		inMathBoundT(state: EditorState, pos: number): MathBounds | null {
-			const bounds = this.mathBounds;
-			if (
-				pos < bounds[0]?.outer_start ||
-				pos > bounds[bounds.length - 1]?.outer_end
-			) {
-				return null;
+		this._mathBounds = ranges;
+	}
+
+	inMathBound(state: EditorState, pos: number): MathBounds | null {
+		const bound = this.inMathBoundT(state, pos);
+		return bound;
+	}
+	inMathBoundT(state: EditorState, pos: number): MathBounds | null {
+		const bounds = this._mathBounds;
+		if (
+			pos < bounds[0]?.outer_start ||
+			pos > bounds[bounds.length - 1]?.outer_end
+		) {
+			return null;
+		}
+		// Use binary search to efficiently find if pos is within any math bound
+		let left = 0,
+			right = bounds.length - 1;
+		while (left <= right) {
+			const mid = (left + right) >> 1;
+			const bound = bounds[mid];
+			if (pos < bound.outer_start) {
+				right = mid - 1;
+			} else if (pos >= bound.outer_end) {
+				left = mid + 1;
+			} else if (pos < bound.inner_start || pos > bound.inner_end) {
+				break;
+			} else {
+				return bound;
 			}
-			// Use binary search to efficiently find if pos is within any math bound
+		}
+		return null;
+	};
+
+	private addMathBound = (bound: MathBounds) => {
+		if (this._mathBounds.length === 0) {
+			this._mathBounds.push(bound);
+		} else if (bound.outer_end <= this._mathBounds[0].outer_start) {
+			this._mathBounds.unshift(bound);
+		} else if (
+			bound.outer_start >=
+			this._mathBounds[this._mathBounds.length - 1].outer_end
+		) {
+			this._mathBounds.push(bound);
+		} else {
+			// Binary search for insertion point
 			let left = 0,
-				right = bounds.length - 1;
+				right = this._mathBounds.length - 1;
 			while (left <= right) {
 				const mid = (left + right) >> 1;
-				const bound = bounds[mid];
-				if (pos < bound.outer_start) {
+				if (bound.outer_start < this._mathBounds[mid].outer_start) {
 					right = mid - 1;
-				} else if (pos >= bound.outer_end) {
-					left = mid + 1;
-				} else if (pos < bound.inner_start || pos > bound.inner_end) {
-					break;
 				} else {
-					return bound;
+					left = mid + 1;
 				}
 			}
-			return null;
-		};
-
-		private addMathBound = (bound: MathBounds) => {
-			if (this.mathBounds.length === 0) {
-				this.mathBounds.push(bound);
-			} else if (bound.outer_end <= this.mathBounds[0].outer_start) {
-				this.mathBounds.unshift(bound);
-			} else if (
-				bound.outer_start >=
-				this.mathBounds[this.mathBounds.length - 1].outer_end
-			) {
-				this.mathBounds.push(bound);
-			} else {
-				// Binary search for insertion point
-				let left = 0,
-					right = this.mathBounds.length - 1;
-				while (left <= right) {
-					const mid = (left + right) >> 1;
-					if (bound.outer_start < this.mathBounds[mid].outer_start) {
-						right = mid - 1;
-					} else {
-						left = mid + 1;
-					}
-				}
-				this.mathBounds.splice(left, 0, bound);
-			}
-			return bound;
-		};
-
-		getEquationOverlays(state: EditorState) {
-			if (this.equationsOverlays)
-				return this.equationsOverlays;
-			this.equationsOverlays = this.mathBounds.map((bound) =>
-				bound.overlay.length === 0 || bound.tree === null ? null :
-				{
-					bound,
-					overlay: {from: bound.overlay[0].from, to: bound.overlay[bound.overlay.length - 1].to},
-					text: state.sliceDoc(bound.overlay[0].from, bound.overlay[bound.overlay.length - 1].to),
-				}		
-			).filter((x): x is EquationInfo => x !== null);
-			return this.equationsOverlays;
+			this._mathBounds.splice(left, 0, bound);
 		}
-	},
-);
+		return bound;
+	};
+
+	getEquationOverlays(state: EditorState) {
+		if (this.equationsOverlays)
+			return this.equationsOverlays;
+		this.equationsOverlays = this._mathBounds.map((bound) =>
+			bound.overlay.length === 0 || bound.tree === null ? null :
+			{
+				bound,
+				overlay: {from: bound.overlay[0].from, to: bound.overlay[bound.overlay.length - 1].to},
+				text: state.sliceDoc(bound.overlay[0].from, bound.overlay[bound.overlay.length - 1].to),
+			}		
+		).filter((x): x is EquationInfo => x !== null);
+		return this.equationsOverlays;
+	}
+}
+
+export const mathBoundsPlugin = ViewPlugin.fromClass(MathBoundsPlugin);
 
 export const getMathBoundsPlugin = (view: EditorView, init: boolean = true) => {
 	const plugin = view.plugin(mathBoundsPlugin);

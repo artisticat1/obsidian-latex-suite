@@ -211,32 +211,3 @@ export function cumulativeSum(arr: number[]) {
 	}
 	return result;
 }
-
-export function* iterateTreeCursor(topNode: SyntaxNode, doc: EquationText) {
-	const cursor = topNode.cursor();
-	cursor.enter(doc.from, 1);
-	while (cursor.to > doc.to) { 
-		if (!cursor.next() || cursor.from > doc.to) {
-			return;
-		}
-	}
-	
-	do {
-		doc.skipCursorMove = false;
-		yield cursor;	
-	} while ((doc.skipCursorMove || cursor.next()) && cursor.to <= doc.to);
-}
-export class EquationText {
-	public skipCursorMove: boolean = false;
-
-	constructor(
-		public readonly eqn: string,
-		public readonly from: number,
-		public readonly to: number,
-		public readonly offset: number = from
-	) { }
-
-	slice(from: number, to: number) {
-		return this.eqn.slice(from - this.offset, to - this.offset);
-	}
-}

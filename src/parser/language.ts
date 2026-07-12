@@ -65,18 +65,18 @@ class LanguageState {
 
 	apply(tr: Transaction) {
 		if (!tr.docChanged && this.tree == this.context.tree) return this;
-		let newCx = this.context.changes(tr.changes, tr.state);
+		const newCx = this.context.changes(tr.changes, tr.state);
 		// If the previous parse wasn't done, go forward only up to its
 		// end position or the end of the viewport, to avoid slowing down
 		// state updates with parse work beyond the viewport.
-		let upto =
+		const upto =
 			this.context.treeLen == tr.startState.doc.length
 				? undefined
 				: Math.max(
 						tr.changes.mapPos(this.context.treeLen!),
 						newCx.viewport.to,
 					);
-		if (!newCx.work(Work.Apply, upto)) newCx.takeTree();
+		if (!newCx.work?.(Work.Apply, upto)) newCx?.takeTree?.();
 		return new LanguageState(newCx);
 	}
 
@@ -130,8 +130,8 @@ const parseWorker = ViewPlugin.fromClass(
 		update(update: ViewUpdate) {
 			const cx = this.view.state.field(languageStateField).context;
 			if (
-				cx.updateViewport(update.view.viewport) ||
-				this.view.viewport.to > cx.treeLen
+				cx.updateViewport?.(update.view.viewport) ||
+				this.view.viewport.to > (cx?.treeLen ?? cx.tree.length)
 			)
 				this.scheduleWork();
 			if (update.docChanged || update.selectionSet) {
@@ -147,7 +147,7 @@ const parseWorker = ViewPlugin.fromClass(
 				field = state.field(languageStateField);
 			if (
 				field.tree != field.context.tree ||
-				!field.context.isDone(state.doc.length)
+				!field.context.isDone?.(state.doc.length)
 			)
 				this.working = requestIdle(this.workCallback);
 		}
@@ -173,7 +173,7 @@ const parseWorker = ViewPlugin.fromClass(
 				field = state.field(languageStateField);
 			if (
 				field.tree == field.context.tree &&
-				field.context.isDone(vpTo + Work.MaxParseAhead)
+				field.context.isDone?.(vpTo + Work.MaxParseAhead)
 			)
 				return;
 			let endTime =
@@ -186,8 +186,8 @@ const parseWorker = ViewPlugin.fromClass(
 						: 1e9,
 				);
 			let viewportFirst =
-				field.context.treeLen < vpTo && state.doc.length > vpTo + 1000;
-			let done = field.context.work(
+				(field.context.treeLen ?? field.context.tree.length) < vpTo && state.doc.length > vpTo + 1000;
+			let done = field.context.work?.(
 				() => {
 					return (
 						(isInputPending && isInputPending()) ||
@@ -198,7 +198,7 @@ const parseWorker = ViewPlugin.fromClass(
 			);
 			this.chunkBudget -= Date.now() - now;
 			if (done || this.chunkBudget <= 0) {
-				field.context.takeTree();
+				field.context.takeTree?.();
 				const languageField = this.view.state.field(languageStateField)
 				languageField.context = field.context;
 				languageField.tree = field.tree

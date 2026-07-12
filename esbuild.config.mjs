@@ -66,9 +66,7 @@ function debouncer(func, wait) {
 	let timeout;
 	return function(...args) {
 		const context = this;
-		// eslint-disable-next-line obsidianmd/prefer-active-window-timers
 		clearTimeout(timeout);
-		// eslint-disable-next-line obsidianmd/prefer-active-window-timers
 		timeout = setTimeout(() => func.apply(context, args), wait);
 	};
 }
@@ -88,5 +86,10 @@ if (!prod) {
 	fs.watch("src/parser", { recursive: true }, debouncedExec);	
 }
 else {
-	esbuild.build(args).catch(() => process.exit(1));
+	const meta_args = {...args, metafile: true };
+	esbuild.build(meta_args).catch(() => process.exit(1)).then((result) => {
+		esbuild.analyzeMetafile(result.metafile, { verbose: true }).then((analysis) => {
+			console.log(analysis);
+		});
+	})
 }

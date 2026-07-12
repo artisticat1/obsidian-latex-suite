@@ -119,7 +119,7 @@ const calloutText = (view: EditorView) => {
 	const cond = ctx.mode.text && !ctx.mode.inMath();
 	const state = view.state;
 	const plugin = getMathBoundsPlugin(view);
-	plugin.getEquationBounds(state, ctx.pos);
+	// plugin.getEquationBounds(state, ctx.pos);
 	console.assert(cond, "should not be in math mode", ctx.mode);	
 	return cond;
 }
@@ -138,7 +138,7 @@ const calloutDisplay = (view: EditorView) => {
 	const cond = ctx.mode.blockMath;
 	const state = view.state;
 	const plugin = getMathBoundsPlugin(view);
-	plugin.getEquationBounds(state, ctx.pos);
+	// plugin.getEquationBounds(state, ctx.pos);
 	console.assert(cond, "should not be in math mode", ctx.mode);	
 	return cond;
 }

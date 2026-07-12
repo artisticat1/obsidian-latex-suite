@@ -1,6 +1,6 @@
 import { SelectionRange } from "@codemirror/state";
 import { Options } from "./options";
-import { BaseNode, ResultInsert, ArrayNode, SnippetTabstopOnlyNode, Options as InsertOptions, emptyInsertOptions } from "./luasnip_api/node";
+import { BaseNode, ResultInsert, ArrayNode, SnippetTabstopOnlyNode, Options as InsertOptions } from "./luasnip_api/node";
 import * as v from "valibot";
 import { MacroArea } from "src/utils/default_text_areas";
 import { isMacroArgumentCount, StackOutput } from "src/utils/context";

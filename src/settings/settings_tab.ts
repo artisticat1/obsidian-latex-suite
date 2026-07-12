@@ -742,6 +742,16 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				})
 			);
+		new Setting(containerEl)
+			.setName("Highlight math delimiters")
+			.setDesc("Whether to highlight matched and mismatched math delimiters in the editor.")
+			.addToggle((toggle) => toggle
+				.setValue(this.plugin.settings.highlightDollarEnabled)
+				.onChange(async (value) => {
+					this.plugin.settings.highlightDollarEnabled = value;
+					await this.plugin.saveSettings();
+				})
+			);
 	}
 
 	createSnippetsEditor(snippetsSetting: Setting) {

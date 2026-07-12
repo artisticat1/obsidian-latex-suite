@@ -14,7 +14,8 @@ import {
 } from "./conceal_maps";
 import { SyntaxNode, TreeCursor } from "@lezer/common";
 import * as latex from "src/parser/mathjax/latex-parser.terms";
-import { cumulativeSum, EquationText, iterateTreeCursor } from "src/utils/editor_utils";
+import { cumulativeSum } from "src/utils/editor_utils";
+import { EquationText, iterateTreeCursor } from "src/utils/tokenizer";
 
 const ALL_SYMBOLS: Record<string, string> = Object.fromEntries(
 	Object.entries({ ...greek, ...cmd_symbols }).sort(
@@ -103,8 +104,7 @@ function handleFrac(cursor: TreeCursor, doc: EquationText): HandleConcealResult 
 	const denominatorClose = denominatorNode.closeBraceNode;
 	const fractionContent = doc.slice(nominatorOpen.from, denominatorClose.to);
 	if (fractions[fractionContent]) {
-		cursor.moveTo(node.to, 1);
-		doc.skipCursorMove = true;
+		cursor.moveTo(node.to, -1);
 		const spec = [
 			{
 				start: node.from,
@@ -539,7 +539,6 @@ for (const macro of operators) {
 function traverseTree(topNode: SyntaxNode, doc: EquationText): ConcealSpec[] {
 	const specs: ConcealSpec[] = [];
 	for (const cursor of iterateTreeCursor(topNode, doc)) {
-		doc.skipCursorMove = false;
 		const nodeRef = cursor.node;
 		if (nodeRef.name.endsWith("CtrlSeq")) {
 			const macro = doc.slice(nodeRef.from + 1, nodeRef.to);
