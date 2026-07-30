@@ -791,8 +791,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 		extensions.push(change);
 
-		this.snippetsEditor = createCMEditor(this.plugin.settings.snippets, extensions);
-		customCSSWrapper.appendChild(this.snippetsEditor.dom);
+		this.snippetsEditor = createCMEditor(this.plugin.settings.snippets, extensions, customCSSWrapper);
 
 
 		const buttonsDiv = snippetsFooter.createDiv("snippets-editor-buttons");
@@ -878,9 +877,10 @@ class ConfirmationModal extends Modal {
 	}
 }
 
-function createCMEditor(content: string, extensions: Extension[]) {
+function createCMEditor(content: string, extensions: Extension[], node: Element) {
 	const view = new EditorView({
 		state: EditorState.create({ doc: content, extensions }),
+		parent: node,
 	});
 
 	return view;
