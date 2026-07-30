@@ -8,14 +8,14 @@ import { syntaxTree } from "@codemirror/language";
 import { SyntaxNode, SyntaxNodeRef } from "@lezer/common";
 import { snippetLessArea, textAreaEnvs } from "./default_text_areas";
 
-const OPEN_INLINE_MATH_NODE = "formatting_formatting-math_formatting-math-begin_keyword_math";
+const OPEN_INLINE_MATH_NODE = "math-begin";
 const CLOSE_INLINE_MATH_NODE = "formatting_formatting-math_formatting-math-end_keyword_math_math-";
 
 
-const OPEN_DISPLAY_MATH_NODE = "formatting_formatting-math_formatting-math-begin_keyword_math_math-block";
-const CLOSE_DISPLAY_MATH_NODE = "formatting_formatting-math_formatting-math-end_keyword_math_math-";
-export const open_math_nodes = new Set([OPEN_INLINE_MATH_NODE, OPEN_DISPLAY_MATH_NODE]);
-export const close_math_nodes = new Set([CLOSE_INLINE_MATH_NODE, CLOSE_DISPLAY_MATH_NODE]);
+const OPEN_DISPLAY_MATH_NODE = "math-block";
+const CLOSE_DISPLAY_MATH_NODE = "math-end";
+const open_math_nodes = new Set([OPEN_INLINE_MATH_NODE, OPEN_DISPLAY_MATH_NODE]);
+const close_math_nodes = new Set([CLOSE_INLINE_MATH_NODE, CLOSE_DISPLAY_MATH_NODE]);
 const OPEN_CODEBLOCK_NODE =
 	"HyperMD-codeblock_HyperMD-codeblock-begin_HyperMD-codeblock-begin-bg_HyperMD-codeblock-bg";
 const CLOSE_CODEBLOCK_NODE =
@@ -395,8 +395,8 @@ export const mathBoundsPlugin = ViewPlugin.fromClass(
 					enter: (node: SyntaxNodeRef) => {
 						// Don't include math nodes at the boundaries as in livepreview it means they are not rendered.
 						if (
-							(open_math_nodes.has(node.name) && node.to < to) ||
-							(close_math_nodes.has(node.name) &&
+							((node.name.contains(OPEN_DISPLAY_MATH_NODE) || node.name.contains(OPEN_INLINE_MATH_NODE)) && node.to < to) ||
+							(node.name.contains(CLOSE_DISPLAY_MATH_NODE) &&
 								node.from > from)
 						) {
 							math_nodes_viewports[i].push(node.node);
@@ -408,13 +408,14 @@ export const mathBoundsPlugin = ViewPlugin.fromClass(
 			for (const math_nodes_viewport of math_nodes_viewports) {
 				// nodes could be unbalanced or unbalanced in the viewport
 				// - e.g., starting with a closing math node or ending with a opening math node
-				if (close_math_nodes.has(math_nodes_viewport[0]?.name)) {
+				const first_name = math_nodes_viewport[0]?.name;
+				if (first_name?.contains(CLOSE_DISPLAY_MATH_NODE)) {
 					const bounds = this.computeEquationBounds(view.state, math_nodes_viewport[0].from);
 					if (bounds) {
 						temp_math_bounds.push(bounds);
 					}
 				}
-				const start_i = open_math_nodes.has(math_nodes_viewport[0]?.name)
+				const start_i = first_name && (first_name.contains(OPEN_DISPLAY_MATH_NODE) || first_name.contains(OPEN_INLINE_MATH_NODE))
 					? 0
 					: 1;
 				for (let i = start_i; i < math_nodes_viewport.length - 1; i += 2) {
@@ -426,16 +427,14 @@ export const mathBoundsPlugin = ViewPlugin.fromClass(
 						outer_start: open_node.from,
 						outer_end: close_node.to,
 						mode:
-							open_node.name === OPEN_INLINE_MATH_NODE
+							!open_node.name.contains(OPEN_DISPLAY_MATH_NODE)
 								? MathMode.InlineMath
 								: MathMode.BlockMath,
 					});
 				}
-				
+				const last_name = math_nodes_viewport[math_nodes_viewport.length - 1]?.name;	
 				if (
-					open_math_nodes.has(
-						math_nodes_viewport[math_nodes_viewport.length - 1]?.name,
-					)
+					last_name?.contains(OPEN_DISPLAY_MATH_NODE) || last_name?.contains(OPEN_INLINE_MATH_NODE)
 				) {
 					const last_node = math_nodes_viewport[math_nodes_viewport.length - 1];
 					const bounds = this.computeEquationBounds(view.state, last_node.to);
@@ -522,12 +521,13 @@ export const mathBoundsPlugin = ViewPlugin.fromClass(
 			) {
 				return null;
 			}
-			if (close_math_nodes.has(cursor.name) && pos >= cursor.to) {
+			if (cursor.name.contains(CLOSE_DISPLAY_MATH_NODE) && pos >= cursor.to) {
 				// Cursor is after a closing math node, so no math mode
 				return null;
 			}
 			do {
-				if (open_math_nodes.has(cursor.name)) {
+				if (cursor.name.contains(OPEN_DISPLAY_MATH_NODE) || cursor.name.contains(OPEN_INLINE_MATH_NODE))
+					{
 					break;
 				}
 			} while (cursor.prev());
@@ -535,7 +535,7 @@ export const mathBoundsPlugin = ViewPlugin.fromClass(
 			if (!begin) return null;
 			cursor.childAfter(pos);
 			do {
-				if (close_math_nodes.has(cursor.name)) {
+				if (cursor.name.contains(CLOSE_DISPLAY_MATH_NODE)) {
 					break;
 				}
 			} while (cursor.next());
@@ -544,7 +544,7 @@ export const mathBoundsPlugin = ViewPlugin.fromClass(
 
 			// Deals with the case of $|$\n text and stuff $$equations and stuff\n$$
 			// where text and stuff is seen as blockmath instead of text
-			if (begin.to > pos && begin.from < pos && begin.name === OPEN_DISPLAY_MATH_NODE ) {
+			if (begin.to > pos && begin.from < pos && begin.name.contains(OPEN_DISPLAY_MATH_NODE)) {
 				return {
 					inner_start: pos,
 					inner_end: pos,
@@ -563,7 +563,7 @@ export const mathBoundsPlugin = ViewPlugin.fromClass(
 				outer_start: begin.from,
 				outer_end: end.to,
 				mode:
-					begin.name === OPEN_INLINE_MATH_NODE
+					!begin.name.contains(OPEN_DISPLAY_MATH_NODE)
 						? MathMode.InlineMath
 						: MathMode.BlockMath,
 			};
