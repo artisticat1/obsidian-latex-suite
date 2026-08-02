@@ -203,6 +203,7 @@ export default [
 	{trigger: "RR", replacement: "\\mathbb{R}", options: "mA"},
 	{trigger: "ZZ", replacement: "\\mathbb{Z}", options: "mA"},
 	{trigger: "NN", replacement: "\\mathbb{N}", options: "mA"},
+	{trigger: "QQ", replacement: "\\mathbb{Q}", options: "mA"},
 
     // Handle spaces and backslashes
 
