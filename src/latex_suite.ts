@@ -4,7 +4,7 @@ import { runAutoFraction } from "./features/autofraction";
 import { tabout, shouldTaboutByCloseBracket } from "./features/tabout";
 import { addCellMatrixShortcut, exitMatrixShortCut, newlineMatrixShortcut, priorityTaboutMatrixShortcut } from "./features/matrix_shortcuts";
 
-import { getContextPlugin } from "./utils/context";
+import { getContextPlugin, getMathBoundsPlugin } from "./utils/context";
 import { getCharacterAtPos, replaceRange } from "./utils/editor_utils";
 import { setSelectionToNextTabstop, tempKeyPress } from "./snippets/snippet_management";
 import { removeAllTabstops } from "./snippets/codemirror/tabstops_state_field";
@@ -15,6 +15,8 @@ import { handleUndoRedo } from "./snippets/codemirror/history";
 import { handleMathTooltip } from "./editor_extensions/math_tooltip";
 import { isComposing, forceEndComposition } from "./utils/editor_utils";
 import { LatexSuiteCMSettings } from "./settings/settings";
+import { modifiedSyntaxTree } from "./parser/language";
+import { Type } from "./parser/mathjax-parser";
 
 export const handleUpdate = (update: ViewUpdate) => {
 	const settings = getLatexSuiteConfig(update.state);
@@ -146,12 +148,19 @@ export function getKeymaps(settings: LatexSuiteCMSettings): LatexSuiteKeyBinding
 			key: "Backspace",
 			run: function autoDelete$(view: EditorView) {
 				if (!getLatexSuiteConfig(view).autoDelete$) return false;
-				const ctx = getContextPlugin(view);
-				if (!ctx.mode.strictlyInMath()) return false;
-				const charAtPos = getCharacterAtPos(view, ctx.pos);
-				const charAtPrevPos = getCharacterAtPos(view, ctx.pos - 1);
+				const boundPlugin = getMathBoundsPlugin(view)
+				const pos = view.state.selection.main.head
+				// check if the cursor is surrounded by Dollar Dollar or only one Dollar.
+				const tree = boundPlugin.getTree(view.state)
+				const node = tree.resolveInner(pos, -1)
+				if (node.name !== Type.Dollar) return false;
+				const prevSibling = node.prevSibling;
+				const nextSibling = node.nextSibling;
+				if (prevSibling || (nextSibling && nextSibling.name !== Type.Dollar)) return false;
+				const charAtPos = getCharacterAtPos(view, pos);
+				const charAtPrevPos = getCharacterAtPos(view, pos - 1);
 				if (charAtPos === "$" && charAtPrevPos === "$") {
-					replaceRange(view, ctx.pos - 1, ctx.pos + 1, "");
+					replaceRange(view, pos - 1, pos + 1, "");
 					// Note: not sure if removeAllTabstops is necessary
 					removeAllTabstops(view);
 					return true;

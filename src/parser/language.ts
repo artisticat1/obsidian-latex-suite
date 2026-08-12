@@ -1,3 +1,9 @@
+/**
+ * @license
+ * implementation of background lezer parser.
+ * MIT License
+ * Copyright (C) 2018-2021 by Marijn Haverbeke <marijnh@gmail.com> and others
+ */
 import { ParseContext } from "@codemirror/language";
 import { ChangeSet, EditorState, StateEffect, StateField, Transaction } from "@codemirror/state";
 import { EditorView, logException, ViewPlugin, ViewUpdate } from "@codemirror/view";

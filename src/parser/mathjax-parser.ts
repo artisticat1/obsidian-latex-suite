@@ -83,6 +83,15 @@ const inlineParserDisplayAndInlineMath: InlineParser = {
 				]),
 			);
 		}
+		if (isDisplay) {
+			return cx.addElement(
+				cx.elt(Type.DollarInlineMath, startPos, startPos + 2, [
+					cx.elt(Type.Dollar, startPos, startPos + 1),
+					cx.elt(Type.InlineMath, startPos + 1, startPos + 1),
+					cx.elt(Type.Dollar, startPos + 1, startPos + 2),
+				]),
+			)
+		}
 
 		return -1;
 	},

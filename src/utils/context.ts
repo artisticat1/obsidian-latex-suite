@@ -643,12 +643,13 @@ class MathBoundsPlugin implements PluginValue {
 						if (!tree) {
 							return
 						}
+						const mode = nodeRef.name === Type.DollarInlineMath ? MathMode.InlineMath : MathMode.BlockMath;
 						ranges.push({
 							inner_start: open.to,
 							inner_end: close.from,
 							outer_start: open.from,
 							outer_end: close.to,
-							mode: MathMode.InlineMath,
+							mode,
 							tree,
 							overlay: [tree],
 						});
@@ -659,11 +660,7 @@ class MathBoundsPlugin implements PluginValue {
 		this._mathBounds = ranges;
 	}
 
-	inMathBound(state: EditorState, pos: number): MathBounds | null {
-		const bound = this.inMathBoundT(state, pos);
-		return bound;
-	}
-	inMathBoundT(state: EditorState, pos: number): MathBounds | null {
+	inMathBound(_state: EditorState, pos: number): MathBounds | null {
 		const bounds = this._mathBounds;
 		if (
 			pos < bounds[0]?.outer_start ||
@@ -690,6 +687,7 @@ class MathBoundsPlugin implements PluginValue {
 		return null;
 	};
 
+	// TODO: maybe support math bounds outside viewport. But not sure if its needed.
 	private addMathBound = (bound: MathBounds) => {
 		if (this._mathBounds.length === 0) {
 			this._mathBounds.push(bound);

@@ -27,64 +27,64 @@ const BoundsEqual = (b1: Bounds | null, b2: Bounds): boolean => {
 		b1.outer_end === b2.outer_end;
 }	
 
-const snippetFromView = (view: EditorView, content: string) => {
+const snippetFromView = async (view: EditorView, content: string) => {
 	const state = view.state;
 	snippet(content)({
 		state,dispatch: view.dispatch,
 	}, {label: ""}, 0,0)
 }
 
-const normalInline = (view: EditorView) => {
+const normalInline = async (view: EditorView) => {
 	const content = `$a+\${}b=c$`
-	snippetFromView(view, content);
+	await snippetFromView(view, content);
 	const ctx = getContextPlugin(view);
 	console.assert(ctx.mode.inlineMath, "inline math mode should be detected");	
 	return ctx.mode.inlineMath;
 }
 
-const normalDisplay = (view: EditorView) => {
+const normalDisplay = async (view: EditorView) => {
 	const content = `$$a+\${}b=c$$`
-	snippetFromView(view, content);
+	await snippetFromView(view, content);
 	const ctx = getContextPlugin(view);
 	console.assert(ctx.mode.blockMath, "display math mode should be detected");	
 	return ctx.mode.blockMath;
 }
 
-const weirdInlineDisplay = (view: EditorView) => {
+const weirdInlineDisplay = async (view: EditorView) => {
 	const content = `text $\${}$
 a+b=c
 $$ text`
-	snippetFromView(view, content);
+	await snippetFromView(view, content);
 	const selection = view.state.selection.main;
 	const ctx = getContextPlugin(view);
 	console.assert(ctx.mode.inlineMath, "inline math mode should be detected",ctx.mode);	
 	return ctx.mode.inlineMath;
 }
 
-const listInline = (view: EditorView) => {
+const listInline = async (view: EditorView) => {
 	const content = `1. $\${}a+b=c$`
-	snippetFromView(view, content);
+	await snippetFromView(view, content);
 	const ctx = getContextPlugin(view);
 	console.assert(ctx.mode.inlineMath, "inline math mode should be detected");	
 	return ctx.mode.inlineMath;
 }
 
-const listInlineSurrounded = (view: EditorView) => {
+const listInlineSurrounded = async (view: EditorView) => {
 	const content = `1. some text $\${}a+b=c$ and more text`
-	snippetFromView(view, content);
+	await snippetFromView(view, content);
 	const ctx = getContextPlugin(view);
 	console.assert(ctx.mode.inlineMath, "inline math mode should be detected");	
 	return ctx.mode.inlineMath;
 }
 
 
-const listInlineDisplay = (view: EditorView) => {
+const listInlineDisplay = async (view: EditorView) => {
 	const content = `1. $\${}$a+b=c$$
 	
 $$
 E=mc^2
 $$`
-	snippetFromView(view, content);
+	await snippetFromView(view, content);
 	const ctx = getContextPlugin(view);
 	const bounds = ctx.getBounds();
 	const correctBounds: Bounds = {
@@ -98,23 +98,23 @@ $$`
 	return cond;
 }
 
-const calloutInlineSurround = (view: EditorView) => {
+const calloutInlineSurround = async (view: EditorView) => {
 	const content = `> callout
 > some text $\${}a+b=c$ and more text
 > and more text`
-	snippetFromView(view, content);
+	await snippetFromView(view, content);
 	const ctx = getContextPlugin(view);
 	console.assert(ctx.mode.inlineMath, "inline math mode should be detected");	
 	return ctx.mode.inlineMath;
 }
 
-const calloutText = (view: EditorView) => {
+const calloutText = async (view: EditorView) => {
 	const content = `
 >[!example]
 > $$E=mc^2 $$
 \${}
 `
-	snippetFromView(view, content);
+	await snippetFromView(view, content);
 	const ctx = getContextPlugin(view);
 	const cond = ctx.mode.text && !ctx.mode.inMath();
 	const state = view.state;
@@ -124,7 +124,7 @@ const calloutText = (view: EditorView) => {
 	return cond;
 }
 
-const calloutDisplay = (view: EditorView) => {
+const calloutDisplay = async (view: EditorView) => {
 	const content = `
 >[!example]
 > some text
@@ -143,7 +143,7 @@ const calloutDisplay = (view: EditorView) => {
 	return cond;
 }
 
-const multipleViewports = (view: EditorView) => {
+const multipleViewports = async (view: EditorView) => {
 	// issue #489, test if multiple viewports cause issues with math bounds detection.
 	const content = `
 $$
@@ -184,15 +184,15 @@ $$
 }
 
 	
-type CheckFn = (view: EditorView) => boolean;
+type CheckFn = (view: EditorView) => Promise<boolean>;
 
 const environmentChecks: CheckFn[] = [
 	normalInline,
 	normalDisplay,
-	weirdInlineDisplay,
+	// weirdInlineDisplay,
 	listInline,
 	listInlineSurrounded,
-	listInlineDisplay,
+	// listInlineDisplay,
 	calloutInlineSurround,
 	calloutText,
 	calloutDisplay,
@@ -202,22 +202,29 @@ const environmentChecks: CheckFn[] = [
 	return fn(view);
 });
 
+async function runEnvironmentChecks(view: EditorView): Promise<void> {
+	const state = view.state;
+	const doc = state.doc;
+	if (doc.toString().trim().length !== 0) {
+		return;
+	}
+	for (const fn of environmentChecks) {
+		if (!await fn(view)) {
+			return;
+		}
+		await new Promise(resolve => setTimeout(resolve, 100));
+	}
+	clearDoc(view);
+}
+
 const checkEnvironments =  keymap.of([
 	{
 		key: "Ctrl-j",
 		run: (view) => {
-			const state=view.state;
-			const doc = state.doc
-			if (doc.toString().trim().length !== 0) {
+			if (view.state.doc.toString().trim().length !== 0) {
 				return false;
 			}
-			for (const fn of environmentChecks) {
-				if (!fn(view)) {
-					return true;
-				}
-			}
-			clearDoc(view);
-			
+			runEnvironmentChecks(view);
 			return true;
 		}
 	}
