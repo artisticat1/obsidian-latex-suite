@@ -15,7 +15,6 @@ import { handleUndoRedo } from "./snippets/codemirror/history";
 import { handleMathTooltip } from "./editor_extensions/math_tooltip";
 import { isComposing, forceEndComposition } from "./utils/editor_utils";
 import { LatexSuiteCMSettings } from "./settings/settings";
-import { modifiedSyntaxTree } from "./parser/language";
 import { Type } from "./parser/mathjax-parser";
 
 export const handleUpdate = (update: ViewUpdate) => {
