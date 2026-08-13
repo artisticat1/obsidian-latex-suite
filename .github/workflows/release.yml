@@ -33,23 +33,12 @@ jobs:
 
       - name: Create Release
         id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ github.ref }}
+        uses: ncipollo/release-action@v1
         with:
-          tag_name: ${{ github.ref }}
-          release_name: ${{ github.ref }}
-          draft: false
+          tag: ${{ github.ref }}
+          name: ${{ github.ref }}
+          draft: true
           prerelease: false
-
-      - name: Upload Release Assets
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            ./main.js
-            ./manifest.json
-            ./styles.css
-            ./${{ env.PLUGIN_NAME }}.zip
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          makeLatest: true
+          immutableCreate: true
+          artifacts: "./main.js,.manifest.json,./styles.css,./${{ env.PLUGIN_NAME }}.zip"
