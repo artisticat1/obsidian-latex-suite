@@ -49,7 +49,7 @@ const inlineParserDisplayAndInlineMath: InlineParser = {
 		const innerName = isDisplay ? Type.DisplayMath : Type.InlineMath
 
 		const startPos = pos;
-		const contentStart = pos + delimiterLength;
+		let contentStart = pos + delimiterLength;
 
 		for (let i = contentStart; i < cx.end; i++) {
 			const ch = cx.char(i);
@@ -72,8 +72,20 @@ const inlineParserDisplayAndInlineMath: InlineParser = {
 				// and $a $ is not allowed/skipped.
 				continue;
 			}
-			const closingStart = i;
 			const endPos = i + delimiterLength;
+			let closingStart = i;
+			if (!isDisplay && endPos - startPos >= 6) {
+				// treat ${} {}$ as delimiters for inline math.
+				if (
+					cx.char(pos + 1) === 123 /* '{' */ &&
+					cx.char(pos + 2) === 125 /* '}' */ &&
+					cx.char(i - 2) === 123 /* '{' */ &&
+					cx.char(i - 1) === 125 /* '}' */
+				) {
+					contentStart += 2;
+					closingStart -= 2;
+				}
+			}
 
 			return cx.addElement(
 				cx.elt(nodeName, startPos, endPos, [
