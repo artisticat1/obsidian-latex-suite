@@ -1,9 +1,11 @@
+// Conceal functions
+
 import { EditorView } from "@codemirror/view";
 import { getMathBoundsPlugin } from "src/utils/context";
 import { ConcealSpec } from "./conceal";
 import {
 	fractions,
-	not_remap as raw_not_remap,
+	not_remap,
 	brackets,
 	mathscrcal,
 	greek,
@@ -17,14 +19,7 @@ import * as latex from "src/parser/mathjax/latex-parser.terms";
 import { cumulativeSum } from "src/utils/editor_utils";
 import { EquationText, iterateTreeCursor } from "src/utils/tokenizer";
 
-const ALL_SYMBOLS: Record<string, string> = Object.fromEntries(
-	Object.entries({ ...greek, ...cmd_symbols }).sort(
-		(a, b) => b[0].length - a[0].length,
-	),
-);
-const not_remap: Record<string, string> = Object.fromEntries([
-	...Object.entries(raw_not_remap).sort((a, b) => b[0].length - a[0].length),
-]);
+const ALL_SYMBOLS: Record<string, string> = {...greek, ...cmd_symbols}
 
 const textModifiers = {
 	mathbf: "cm-concealed-bold",

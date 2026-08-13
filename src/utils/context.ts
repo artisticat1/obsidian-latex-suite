@@ -173,6 +173,7 @@ export class Context implements PluginValue {
 		if (!treeNode) return
 	
 		for (const node of stackResolveNodeIterate(treeNode, pos, -1)) {
+			if (node.to <= pos) continue;
 			if (node.name === "LaTeX") {
 				// _printNode2(node, this.state.doc.toString())
 			}
@@ -701,32 +702,6 @@ class MathBoundsPlugin implements PluginValue {
 	};
 
 	// TODO: maybe support math bounds outside viewport. But not sure if its needed.
-	private addMathBound = (bound: MathBounds) => {
-		if (this._mathBounds.length === 0) {
-			this._mathBounds.push(bound);
-		} else if (bound.outer_end <= this._mathBounds[0].outer_start) {
-			this._mathBounds.unshift(bound);
-		} else if (
-			bound.outer_start >=
-			this._mathBounds[this._mathBounds.length - 1].outer_end
-		) {
-			this._mathBounds.push(bound);
-		} else {
-			// Binary search for insertion point
-			let left = 0,
-				right = this._mathBounds.length - 1;
-			while (left <= right) {
-				const mid = (left + right) >> 1;
-				if (bound.outer_start < this._mathBounds[mid].outer_start) {
-					right = mid - 1;
-				} else {
-					left = mid + 1;
-				}
-			}
-			this._mathBounds.splice(left, 0, bound);
-		}
-		return bound;
-	};
 
 	getEquationOverlays(state: EditorState) {
 		if (this.equationsOverlays)

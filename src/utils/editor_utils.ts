@@ -196,10 +196,7 @@ export function* stackResolveIterate(tree: Tree, pos: number, side: -1 | 0 | 1) 
 export function* stackResolveNodeIterate(node: SyntaxNode, pos: number, side: -1 | 0 | 1) {
 	const cursor = node.cursor()
 	cursor.moveTo(pos, side)
-	do {
-		yield cursor.node
-	} while (cursor.parent())
-	let parent = node.parent
+	let parent: SyntaxNode | null = cursor.node
 	while (parent) {
 		yield parent
 		parent = parent.parent

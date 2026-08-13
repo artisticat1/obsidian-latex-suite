@@ -77,8 +77,6 @@ export const autoEnlargeBrackets = (view: EditorView) => {
 		queueSnippet(view, bracket.open.from, bracket.open.to, leftNode.applyInsert(emptyInsertOptions));
 		queueSnippet(view, bracket.close.from, bracket.close.to, rightNode.applyInsert(emptyInsertOptions));
 
-		// stack.splice(i, 1);
-		// break;
 	}
 
 	expandSnippets(view);

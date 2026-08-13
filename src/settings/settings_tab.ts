@@ -744,7 +744,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			);
 		new Setting(containerEl)
 			.setName("Highlight math delimiters")
-			.setDesc("Whether to highlight matched and mismatched math delimiters in the editor.")
+			.setDesc("Whether to highlight matched and mismatched math delimiters in the editor according to latex suite parser. This parser behaves closer to the reading view parser than the editor/syntax highlighting parser.")
 			.addToggle((toggle) => toggle
 				.setValue(this.plugin.settings.highlightDollarEnabled)
 				.onChange(async (value) => {

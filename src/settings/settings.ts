@@ -132,7 +132,7 @@ export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
 	vimMatrixEnter: "o",
 	snippetRecursion: 0,
 	snippetIMEVersion: false,
-	highlightDollarEnabled: false,
+	highlightDollarEnabled: true,
 }
 
 const EnvironmentSchema = v.pipe(

@@ -86,10 +86,5 @@ if (!prod) {
 	fs.watch("src/parser", { recursive: true }, debouncedExec);	
 }
 else {
-	const meta_args = {...args, metafile: true };
-	esbuild.build(meta_args).catch(() => process.exit(1)).then((result) => {
-		esbuild.analyzeMetafile(result.metafile, { verbose: true }).then((analysis) => {
-			console.log(analysis);
-		});
-	})
+	esbuild.build(args).catch(() => process.exit(1));
 }

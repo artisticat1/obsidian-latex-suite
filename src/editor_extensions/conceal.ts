@@ -1,11 +1,11 @@
 // https://discuss.codemirror.net/t/concealing-syntax/3135
 
 import { ViewUpdate, Decoration, DecorationSet, WidgetType, ViewPlugin, EditorView } from "@codemirror/view";
-import { EditorSelection, Range, RangeSet, RangeSetBuilder, RangeValue } from "@codemirror/state";
+import { EditorSelection, Range, RangeSet, RangeSetBuilder, RangeValue, Transaction } from "@codemirror/state";
+import { conceal, ConcealCachedEquations } from "./conceal_fns";
 import { debounce, livePreviewState } from "obsidian";
 import { tempKeyPress } from "src/snippets/snippet_management";
 import { createElement } from "./obsidian_utils";
-import { conceal, ConcealCachedEquations } from "./conceal_fns";
 
 export type Replacement = {
 	start: number,
@@ -282,8 +282,8 @@ export const mkConcealPlugin = (revealTimeout: number) => ViewPlugin.fromClass(c
 			true,
 		);
 		// HACK: trigger an initial concealment calculation
-		// const transactions: readonly Transaction[] = [];
-		// this.update({view, state: view.state, docChanged: true, transactions} as ViewUpdate);
+		const transactions: readonly Transaction[] = [];
+		this.update({view, state: view.state, docChanged: true, transactions} as ViewUpdate);
 		this.mousedown = view.plugin(livePreviewState)?.mousedown ?? false;
 	}
 
@@ -323,7 +323,7 @@ export const mkConcealPlugin = (revealTimeout: number) => ViewPlugin.fromClass(c
 			this.updateFromConcealSpecs(concealSpecs, update);
 		}
 	}
-
+	
 	private updateFromConcealSpecs(concealSpecs: ConcealSpec[], update: ViewUpdate) {
 
 		const selection = update.state.selection;
@@ -361,8 +361,8 @@ export const mkConcealPlugin = (revealTimeout: number) => ViewPlugin.fromClass(c
 		}
 		// if it changes from mousedown to mouseup in livepreview, shuffle the selection to update the selection visually
 		if (revealed && previousMouseDown && !this.mousedown && update.view.state.selection.ranges.some(r => !r.empty)) {
-			updateSelection(update.view);
-		}
+			updateSelection(update.view);	
+		}		
 
 		if (delayedConcealments.length > 0) {
 			this.delayedReveal(delayedConcealments, update.view);
