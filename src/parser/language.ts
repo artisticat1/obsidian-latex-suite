@@ -9,6 +9,7 @@ import { ChangeSet, EditorState, StateEffect, StateField, Transaction } from "@c
 import { EditorView, logException, ViewPlugin, ViewUpdate } from "@codemirror/view";
 import { Parser, Tree } from "@lezer/common";
 import { fullMathParser } from "./mathjax-parser";
+import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
 
 export class Work {
 	// Milliseconds of work time to perform immediately for a state doc change
@@ -242,7 +243,10 @@ const parseWorker = ViewPlugin.fromClass(
 	},
 );
 
-const create = LanguageState.init(fullMathParser);
+const create = (state: EditorState) =>
+	LanguageState.init(
+		fullMathParser(getLatexSuiteConfig(state).forceMathLanguages),
+	)(state);
 const update = function languageUpdate(value: LanguageState, tr: Transaction) { 
 	for (let e of tr.effects) if (e.is(LanguageSetStateEffect)) return e.value
 	return value.apply(tr);

@@ -143,12 +143,11 @@ export class Context implements PluginValue {
 
 		// first, check if math mode should be "generally" on
 		const mathBoundsCache = getMathBoundsPlugin(view);
-		const inMath = forceMath || mathBoundsCache.inMathBound(state, this.pos);
+		const inMath = mathBoundsCache.inMathBound(state, this.pos);
 
-		if (inMath !== true && inMath !== null) {
-			const inInlineEquation = inMath.mode === MathMode.InlineMath;
-			this.mode.blockMath = !inInlineEquation;
-			this.mode.inlineMath = inInlineEquation;
+		if (inMath !== null) {
+			this.mode.blockMath = inMath.mode === MathMode.BlockMath;
+			this.mode.inlineMath = inMath.mode === MathMode.InlineMath;
 			this.boundsCache.set(this.pos, inMath);
 		}
 
@@ -599,6 +598,7 @@ class MathBoundsPlugin implements PluginValue {
 	updateMathBounds(view: EditorView) {
 		const tree = modifiedSyntaxTree(view.state);
 		const ranges: MathBounds[] = [];
+		const settings = getLatexSuiteConfig(view.state);
 		for (const { from, to } of view.visibleRanges) {
 			tree.iterate({
 				from,
@@ -652,6 +652,25 @@ class MathBoundsPlugin implements PluginValue {
 							mode,
 							tree,
 							overlay: [tree],
+						});
+					} else if (nodeRef.name === "FencedCode") {
+						const infoNode = nodeRef.node.getChild("CodeInfo");
+						if (!infoNode) return;
+						const language = view.state.sliceDoc(infoNode.from, infoNode.to)
+						if (!settings.forceMathLanguages.includes(language)) return;
+						const contentNodes = nodeRef.node.getChildren("CodeText");
+						const lastNode = contentNodes.last();
+						if (!lastNode) return;
+						const tree = nodeRef.node.enter(lastNode.to, -1);
+						if (tree === null || tree.name !== "LaTeX") return;
+						ranges.push({
+							inner_start: contentNodes[0].from,
+							inner_end: lastNode.to,
+							outer_start: nodeRef.node.from,
+							outer_end: nodeRef.node.to,
+							mode: MathMode.CodeMath,
+							tree,
+							overlay: contentNodes,
 						});
 					}
 				},

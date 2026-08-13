@@ -10,6 +10,7 @@ import {
 	parser as baseParser,
 	GFM,
 	DelimiterType,
+	parseCode,
 } from "@lezer/markdown";
 
 declare module "@lezer/markdown" {
@@ -387,7 +388,19 @@ const obsidianCommentParser: MarkdownConfig = {
 	]
 };
 
-export const fullMathParser = baseParser.configure(GFM).configure(highlightParser).configure(wikilinkParser).configure(obsidianCommentParser).configure(MathParser)
+export const fullMathParser = (mathLang: string[]) =>
+	baseParser
+		.configure(GFM)
+		.configure(highlightParser)
+		.configure(wikilinkParser)
+		.configure(obsidianCommentParser)
+		.configure(MathParser)
+		.configure(
+			parseCode({
+				codeParser: (lang: string) =>
+					mathLang.includes(lang) ? mathJaxParser : null,
+			}),
+		);
 export const testBaseParser = baseParser.configure({
 	wrap: parseMixed((node) => {
 		if (node.name === "FencedCode") {
