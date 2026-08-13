@@ -7,12 +7,12 @@ import {
 	ViewPlugin,
 	ViewUpdate,
 } from "@codemirror/view";
-import { Bounds, getMathBoundsPlugin } from "src/utils/context";
+import { Bounds, getMathBoundsPlugin, MathMode } from "src/utils/context";
 import * as latex from "src/parser/mathjax/latex-parser.terms";
 import { EquationText, iterateTreeCursor } from "src/utils/tokenizer";
 
 type DollarBounds =
-	| (Bounds & { kind: "pair" })
+	| (Bounds & { kind: "pair", mode: MathMode })
 	| { from: number; to: number; kind: "error" };
 class HighlightDollarPlugin implements PluginValue {
 	decorations: DecorationSet = Decoration.none;
@@ -38,6 +38,7 @@ class HighlightDollarPlugin implements PluginValue {
 			dollar_ranges.push({
 				...bound,
 				kind: "pair",
+				mode: bound.mode
 			});
 			if (!bound.tree) {
 				return;
@@ -66,6 +67,7 @@ class HighlightDollarPlugin implements PluginValue {
 							inner_end: dollars[1].from,
 							outer_end: dollars[1].to,
 							kind: "pair",
+							mode: MathMode.InlineMath,
 						});
 					}
 					const last = dollars.last();
@@ -91,12 +93,20 @@ class HighlightDollarPlugin implements PluginValue {
 					}).range(bounds.from, bounds.to),
 				);
 			} else {
+				let modeClass: "inline" | "block" | "code";
+				if (bounds.mode === MathMode.InlineMath || (bounds.mode === MathMode.BlockMath && bounds.outer_start - bounds.outer_end < 4)) {
+					modeClass = "inline";
+				} else if (bounds.mode === MathMode.BlockMath) {
+					modeClass = "block";
+				} else {
+					modeClass = "code";
+				}
 				widgets.push(
 					Decoration.mark({
-						class: "latex-suite-highlighted-dollar",
+						class: `latex-suite-highlighted-dollar-${modeClass}`,
 					}).range(bounds.outer_start, bounds.inner_start),
 					Decoration.mark({
-						class: "latex-suite-highlighted-dollar",
+						class: `latex-suite-highlighted-dollar-${modeClass}`,
 					}).range(bounds.inner_end, bounds.outer_end),
 				);
 			}

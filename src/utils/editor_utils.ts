@@ -38,7 +38,7 @@ export function setSelection(view: EditorView, start: number, end: number) {
 export function resetCursorBlink(view: EditorView) {
 	if (Platform.isMobile) return;
 
-	const cursorLayer = view.contentDOM.getElementsByClassName("cm-cursorLayer")[0] as HTMLElement;
+	const cursorLayer = view.dom.getElementsByClassName("cm-cursorLayer")[0] as HTMLElement;
 
 	if (cursorLayer) {
 		const curAnim = cursorLayer.style.animationName;
@@ -190,6 +190,19 @@ export function* stackResolveIterate(tree: Tree, pos: number, side: -1 | 0 | 1) 
 	while (nodeRef) {
 		yield nodeRef.node;
 		nodeRef = nodeRef.next;
+	}
+}
+
+export function* stackResolveNodeIterate(node: SyntaxNode, pos: number, side: -1 | 0 | 1) {
+	const cursor = node.cursor()
+	cursor.moveTo(pos, side)
+	do {
+		yield cursor.node
+	} while (cursor.parent())
+	let parent = node.parent
+	while (parent) {
+		yield parent
+		parent = parent.parent
 	}
 }
 

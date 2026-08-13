@@ -279,6 +279,14 @@ and limit the height.
 	color: red;
 }
 
-.latex-suite-highlighted-dollar {
-	color: green;
+.latex-suite-highlighted-dollar-inline {
+	color: #61ae08;
+}
+
+.latex-suite-highlighted-dollar-block {
+	color: #3e7202;
+}
+
+.latex-suite-highlighted-dollar-code {
+	color: #54940b;
 }

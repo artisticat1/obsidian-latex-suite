@@ -8,7 +8,7 @@ import {
 import {
 	findMatchingBracket,
 	getCloseBracket,
-	stackResolveIterate,
+	stackResolveNodeIterate,
 } from "src/utils/editor_utils";
 import { Mode } from "../snippets/options";
 import { Environment } from "../snippets/environment";
@@ -166,11 +166,13 @@ export class Context implements PluginValue {
 	}
 
 	*getEnvNames(pos: number = this.pos): Generator<StackOutput, void, unknown> {
-		if (!this.mode.inMath()) return;
 		const boundsPlugin = getMathBoundsPlugin(this.view);
-		const tree = boundsPlugin.getTree(this.state);
-		for (const node of stackResolveIterate(tree, pos, 0)) {
-			// console.debug(node.name, node.from, node.to, Array.from(getChildren(node)).map(n => n.name))
+		const bound = boundsPlugin.inMathBound(this.state, pos)
+		if (!bound) return
+		const treeNode = bound.tree
+		if (!treeNode) return
+	
+		for (const node of stackResolveNodeIterate(treeNode, pos, -1)) {
 			if (node.name === "LaTeX") {
 				// _printNode2(node, this.state.doc.toString())
 			}
@@ -413,7 +415,7 @@ export function isMacroArgumentCount(stack: Readonly<MacroStackOutput>, macros: 
 	return stack
 }
 
-enum MathMode {
+export enum MathMode {
 	InlineMath,
 	BlockMath,
 	CodeMath
@@ -601,10 +603,7 @@ class MathBoundsPlugin implements PluginValue {
 				from,
 				to,
 				enter: (nodeRef: SyntaxNodeRef) => {
-					if (
-						nodeRef.name === Type.DollarDisplayBlockMath &&
-						nodeRef.to - nodeRef.from >= 4
-					) {
+					if (nodeRef.name === Type.DollarDisplayBlockMath) {
 						const { open, close } = this.getDollarBounds(nodeRef.node);
 						const children = nodeRef.node.getChildren("DisplayMath")
 						if (children.length === 0) {
@@ -678,6 +677,20 @@ class MathBoundsPlugin implements PluginValue {
 				right = mid - 1;
 			} else if (pos >= bound.outer_end) {
 				left = mid + 1;
+			} else if (
+				pos < bound.inner_start &&
+				bound.mode == MathMode.BlockMath &&
+				bound.inner_start - bound.outer_start == 2
+			) {
+				return {
+					outer_start: bound.outer_start,
+					inner_start: bound.outer_start + 1,
+					inner_end: bound.outer_start + 1,
+					outer_end: bound.outer_start + 2,
+					mode: MathMode.InlineMath,
+					tree: null,
+					overlay: [],
+				};
 			} else if (pos < bound.inner_start || pos > bound.inner_end) {
 				break;
 			} else {
