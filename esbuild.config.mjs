@@ -1,6 +1,9 @@
+/// <reference types="node" />
 import esbuild from "esbuild";
 import process from "process";
 import inlineImportPlugin from "esbuild-plugin-inline-import";
+import fs from "fs"
+import { spawnSync } from "child_process";
 
 const banner =
 `/*
@@ -59,9 +62,28 @@ const args = {
 	]
 };
 
+function debouncer(func, wait) {
+	let timeout;
+	return function(...args) {
+		const context = this;
+		clearTimeout(timeout);
+		timeout = setTimeout(() => func.apply(context, args), wait);
+	};
+}
+
 if (!prod) {
 	const ctx = await esbuild.context(args);
 	ctx.watch().catch(() => process.exit(1));
+	const debouncedExec = debouncer((eventType, filename) => {
+		if (filename.endsWith(".grammar")) {
+			console.log(`Detected change in ${filename}, rebuilding...`);
+			const result = spawnSync("npm", ["run", "generator"], { shell: true, stdio: "inherit" });
+			if (result.toString().trim() !== "") {
+				console.log(result.toString());
+			}
+		}
+	}, 5000);
+	fs.watch("src/parser", { recursive: true }, debouncedExec);	
 }
 else {
 	esbuild.build(args).catch(() => process.exit(1));

@@ -14,9 +14,9 @@ export default defineConfig([
 		"version-bump.mjs",
 		"tests/**",
 	]),
-	...obsidianmd.configs.recommended,
 	{
 		files: ["src/**/*.ts"],
+		extends: [obsidianmd.configs.recommended],
 
 		languageOptions: {
 			globals: {

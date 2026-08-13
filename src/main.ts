@@ -17,6 +17,8 @@ import { cursorTooltipBaseTheme, cursorTooltipField } from "./editor_extensions/
 import { contextPlugin, getContextPlugin, mathBoundsPlugin } from "./utils/context";
 import { LatexSuitePluginPublicApi } from "./api";
 import * as v from "valibot"
+import { languageExtension } from "./parser/language";
+import { highlight_dollar } from "./editor_extensions/highlight_dollar";
 
 export default class LatexSuitePlugin extends Plugin implements LatexSuitePluginPublicApi {
 	settings: LatexSuitePluginSettings;
@@ -198,6 +200,7 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 			Prec.highest(EditorView.inputHandler.of(onInput)),
 			EditorView.updateListener.of(handleUpdate),
 			snippetExtensions,
+			languageExtension,
 		]);
 		
 		const latexSuiteKeymaps = getKeymaps(this.CMSettings)
@@ -217,6 +220,9 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 				cursorTooltipBaseTheme,
 				tooltips({ position: "absolute" }),
 			]);
+		if (this.CMSettings.highlightDollarEnabled) {
+			this.editorExtensions.push(highlight_dollar);
+		}
 	}
 
 	showSnippetsLoadedNotice(nSnippets: number, nSnippetVariables: number, becauseFileLocationUpdated: boolean, becauseFileUpdated: boolean) {

@@ -82,12 +82,12 @@ export class CaptureNode extends BaseNode {
 	}
 }
 
-type Replacement = {
+export type Replacement = {
 	start: number,
 	end: number,
 	replacement: string
 }
-function applyReplacements(str: string, replacements: Replacement[]): string {
+export function applyReplacements(str: string, replacements: Replacement[]): string {
 	replacements.sort((a, b) => a.start - b.start);
 	let offset = 0;
 	const str_arr: string[] = []

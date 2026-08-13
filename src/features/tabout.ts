@@ -132,7 +132,7 @@ export const tabout = (view: EditorView, ctx: Context): boolean => {
 	if (!isAtEnd && settings.taboutExitEquationOnlyOnEOL) return false;
 
 	// Only create a new line if the equation is multiline.
-	if (isBoundMultiline(view, bounds)) {
+	if (!isBoundMultiline(view, bounds)) {
 		setCursor(view, outer_end);
 	}
 	else {

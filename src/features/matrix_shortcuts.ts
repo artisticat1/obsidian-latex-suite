@@ -31,8 +31,19 @@ const taboutMatrixShortcutCallback = (view: EditorView, bounds: Bounds): boolean
 
 		const nextLineNo = d.lineAt(ctx.pos).number + 1;
 		const nextLine = d.line(nextLineNo);
+		const nextLineText = nextLine.text;
+		const potentialEndMatrix = /\\end{([^}]*)}/.exec(nextLineText)
 
-		setCursor(view, nextLine.to);
+		let to = nextLine.to;
+		if (potentialEndMatrix && potentialEndMatrix[1] && potentialEndMatrix.index !== undefined) {
+			const envName = potentialEndMatrix[1];
+			const settingsEnvNames = getLatexSuiteConfig(view).matrixShortcutsEnvNames;
+			if (settingsEnvNames.includes(envName)) {
+				to = nextLine.from + potentialEndMatrix.index + potentialEndMatrix[0].length;
+			}
+		}
+
+		setCursor(view, to);
 	}
 	else {
 		setCursor(view, bounds.outer_end);
@@ -51,20 +62,20 @@ const addCellMatrixShortcutCallback = (view: EditorView): boolean => {
 const matrixShortcutsRunner = (shortcut: (view: EditorView, bounds?: Bounds) => boolean) => (view: EditorView): boolean => {
 	const ctx = getContextPlugin(view);
 	if (!ctx.mode.strictlyInMath()) return false;
-	const settings = getLatexSuiteConfig(view);
+	const bounds = ctx.getBounds();
+	if (!bounds) return false;
+	const envName = ctx.getEnvNames(ctx.pos).next().value;
+	if (!envName) return false;
 
-	const envs = settings.matrixShortcutsEnvNames.map((envName) => ({
-		openSymbol: "\\begin{" + envName + "}",
-		closeSymbol: "\\end{" + envName + "}",
-	}));
-	const macros = settings.matrixShortcutsMacroNames.map((macroName) => ({
-		openSymbol: "\\" + macroName + "{",
-		closeSymbol: "}",
-	}));
-	// Check whether we are inside a matrix / align / case environment
-	const envBounds = ctx.isWithinEnvironment(ctx.pos, [...envs, ...macros]);
-	if (!envBounds) return false;
-	return shortcut(view, envBounds);
+	const { matrixShortcutsEnvNames, matrixShortcutsMacroNames } = getLatexSuiteConfig(view);
+	if (envName.kind === "environment" && !matrixShortcutsEnvNames.includes(envName.name)) {
+		return false;
+	} else if (envName.kind === "command" && !matrixShortcutsMacroNames.includes(envName.name)) {
+		return false;
+	} else if (envName.kind === "math") {
+		return false;
+	}
+	return shortcut(view, envName);
 }
 
 const priorityTaboutShortcutCallback = (view: EditorView): boolean => {

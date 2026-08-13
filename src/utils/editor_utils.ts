@@ -1,6 +1,6 @@
 import { Platform } from "obsidian";
 import { EditorView } from "@codemirror/view";
-import { SyntaxNode, TreeCursor } from "@lezer/common";
+import { NodeIterator, SyntaxNode, Tree, TreeCursor } from "@lezer/common";
 import { EditorState } from "@codemirror/state";
 import { Bounds } from "./context";
 
@@ -38,7 +38,7 @@ export function setSelection(view: EditorView, start: number, end: number) {
 export function resetCursorBlink(view: EditorView) {
 	if (Platform.isMobile) return;
 
-	const cursorLayer = view.contentDOM.getElementsByClassName("cm-cursorLayer")[0] as HTMLElement;
+	const cursorLayer = view.dom.getElementsByClassName("cm-cursorLayer")[0] as HTMLElement;
 
 	if (cursorLayer) {
 		const curAnim = cursorLayer.style.animationName;
@@ -183,4 +183,41 @@ export function isBoundMultiline(view: EditorView, bounds: Bounds): boolean {
 	const endLine = doc.lineAt(bounds.outer_end);
 
 	return startLine.number !== endLine.number;
+}
+
+export function* stackResolveIterate(tree: Tree, pos: number, side: -1 | 0 | 1) {
+	let nodeRef: NodeIterator | null = tree.resolveStack(pos, side);
+	while (nodeRef) {
+		yield nodeRef.node;
+		nodeRef = nodeRef.next;
+	}
+}
+
+export function* stackResolveNodeIterate(node: SyntaxNode, pos: number, side: -1 | 0 | 1) {
+	const cursor = node.cursor()
+	cursor.moveTo(pos, side)
+	let parent: SyntaxNode | null = cursor.node
+	while (parent) {
+		yield parent
+		parent = parent.parent
+	}
+}
+
+export function* getChildren(node: SyntaxNode) {
+	let child = node.firstChild;
+	while (child) {
+		yield child;
+		child = child.nextSibling;
+	}
+}
+
+
+export function cumulativeSum(arr: number[]) {
+	const result: number[] = [];
+	let sum = 0;
+	for (const num of arr) {
+		sum += num;
+		result.push(sum);
+	}
+	return result;
 }

@@ -1,11 +1,15 @@
 import { EditorView } from "@codemirror/view";
 import { queueSnippet } from "src/snippets/codemirror/snippet_queue_state_field";
 import { expandSnippets } from "src/snippets/snippet_management";
-import { getContextPlugin } from "src/utils/context";
+import { getMathBoundsPlugin } from "src/utils/context";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
-import { escapeRegex } from "src/editor_extensions/conceal_fns";
-import { isContains, inObject } from "src/utils/type_utils";
+import { isContains } from "src/utils/type_utils";
 import { emptyInsertOptions, TextNode } from "src/snippets/luasnip_api/node";
+import { pairBrackets, traverseTree } from "src/editor_extensions/highlight_brackets";
+import { EquationText } from "src/utils/tokenizer";
+import { walkPairedBrackets } from "src/utils/tokenizer";
+import { SyntaxNode } from "@lezer/common";
+import * as latex from "src/parser/mathjax/latex-parser.terms"
 
 
 const sizeControls = [
@@ -26,151 +30,53 @@ const sizeControls = [
 ] as const;
 
 // math delimiters can't be enlarged, but \[\] is not valid in mathjax so only match \(\).
-const mathDelimiters = {
-	"\\(": "\\)",
-	// "\\[": "\\]",
-} as const;
 
-const nestingBrackets = ["{", "}"] as const;
-const brackets = {
-	"(": ")",
-	"[": "]",
-	"\\{": "\\}",
-	"\\langle": "\\rangle",
-	"\\lvert": "\\rvert",
-	"\\lVert": "\\rVert",
-	"\\lceil": "\\rceil",
-	"\\lfloor": "\\rfloor",
-} as const;
-
-const delimiters = [
-	...sizeControls,
-	...Object.keys(mathDelimiters) as (keyof typeof mathDelimiters)[],
-	...Object.values(mathDelimiters),
-	...Object.keys(brackets) as (keyof typeof brackets)[],
-	...Object.values(brackets),
-] as const
-
-
-const rawParser = [
-	...delimiters
-	.map(escapeRegex)
-	.sort((a, b) => a.length - b.length),
-	...nestingBrackets.map(escapeRegex)
-].join("|")
-
-	;
-const parser = new RegExp(rawParser, "g");
-
-type OpenBracket = keyof typeof brackets;
-type OpenBracketInfo = {
-	index: number;
-	match: OpenBracket;
-	level: number;
-} | {
-	match: OpenBracket;
-	level: number;
-	ignore: true;
+function isSizeControl(tree: SyntaxNode, from: number, doc: EquationText) {
+	const node = tree.resolveInner(from, -1)
+	if (!node.type.is(latex.CtrlSeq)) {
+		return false
+	}
+	const token = doc.slice(node.from, node.to)
+	return isContains(sizeControls, token)
 }
-
-type CloseToOpen = {[K in keyof typeof brackets as (typeof brackets)[K]]: K};
-const closeToOpen: CloseToOpen = Object.fromEntries(
-	Object.entries(brackets).map(([open, close]) => [close, open])
-) as CloseToOpen;
-
-type ReverseMathDelimiters = {[K in keyof typeof mathDelimiters as (typeof mathDelimiters)[K]]: K};
-const reverseMathDelimiters: ReverseMathDelimiters = Object.fromEntries(
-	Object.entries(mathDelimiters).map(([open, close]) => [close, open])
-) as ReverseMathDelimiters;
-
-type ParserResult = typeof delimiters[number] | typeof nestingBrackets[number]
-	
-
 
 export const autoEnlargeBrackets = (view: EditorView) => {
 	const settings = getLatexSuiteConfig(view);
 	if (!settings.autoEnlargeBrackets) return;
+	const overlays = getMathBoundsPlugin(view).getEquationOverlays(view.state)
+	const pos = view.state.selection.main.head
+	const covered_overlay = overlays.filter(o => o.bound.inner_start <= pos && o.bound.inner_end >= pos)[0]
+	if (!covered_overlay) {
+		return
+	}
+	
+	const left = "\\left"
+	const right = "\\right"
 
-	const ctx = getContextPlugin(view);
-	const result = ctx.getBounds();
-	if (!result) return false;
-	const {inner_start: start, inner_end: end} = result;
-
-	const text = view.state.sliceDoc(start, end);
-	const left = "\\left";
-	const right = "\\right";
-
-	/**
-	 * Algorithm: 
-	 * Keep track of all open brackets and remove them once we see a close bracket that closes that bracket.
-	 * Ignoring brackets that have a size control already on either side
-	 * and ignoring brackets that are not on the same scope {}.
-	 */
-
-	const stack: OpenBracketInfo[] = [];
-	let match: RegExpExecArray | null;
-	let skipNext: number | null = null;
-	parser.lastIndex = 0;
-	// Grouping as `0{1{2}1{3}1}0{4}0` as latex only allows `\left ... \right` within the same scope like this.
-	let nextGroupId = 0;
-	const scopeStack: number[] = [nextGroupId];
-	while ((match = parser.exec(text)) !== null) {
-		const token = match[0] as ParserResult;
-		const index = match.index;
-		if (isContains(sizeControls, token) || inObject(mathDelimiters, token) || inObject(reverseMathDelimiters, token)) {
-			skipNext = index + token.length;
-			continue
-		} else if (isContains(nestingBrackets, token)) {
-			if (token === "{") {
-				scopeStack.push(++nextGroupId);	
-			} else if (scopeStack.length > 1){
-				scopeStack.pop();
-			}
-			continue
-		} else if (inObject(brackets, token)) {
-			if (skipNext === null || /\S/.test(text.slice(skipNext, index))) {
-				stack.push({index, match: token, level: scopeStack[scopeStack.length - 1]});
-			} else if (skipNext !== null) {
-				stack.push({match: token, ignore: true, level: scopeStack[scopeStack.length - 1]});
-			}
-			skipNext = null;
+	const doc = new EquationText(covered_overlay.text, covered_overlay.overlay.from, covered_overlay.overlay.to)
+	const tokens = pairBrackets(traverseTree(covered_overlay.bound.tree, doc))
+	for (const {region: bracket} of walkPairedBrackets(tokens)) {
+		if (bracket.kind !== "bracket") {
 			continue
 		}
-		const skipCurrent = skipNext !== null && !/\S/.test(text.slice(skipNext, index));
-		skipNext = null;
-		const expectedOpen = closeToOpen[token];
-		for (let i = stack.length - 1; i >= 0; i--) {
-			const openMatch = stack[i];
-			if (openMatch.match === expectedOpen && ("ignore" in openMatch || skipCurrent)) {
-				stack.splice(i, 1);
-				break;
-			}
-			// Same nesting level because ({[)})-> `\left({[\right)})` is invalid latex.
-			if ("ignore" in openMatch) continue;
-			if (openMatch.level !== scopeStack[scopeStack.length - 1]) continue;
-			if (openMatch.match !== expectedOpen) continue;
-
-			const openStart = openMatch.index;
-			const openToken = openMatch.match;
-			const openEnd = openStart + openToken.length;
-			const closeStart = match.index;
-
-			const bracketContents = text.slice(openEnd, closeStart);
-
-			const containsTrigger = settings.autoEnlargeBracketsTriggers.some(word =>
-				bracketContents.contains(word)
-			);
-			if (!containsTrigger) break;
-
-			const space = settings.autoEnlargeBracketsSpace ? " " : "";
-			const leftNode = new TextNode(left + openToken + space);
-			const rightNode = new TextNode(space + right + token);
-			queueSnippet(view, start + openStart, start + openEnd, leftNode.applyInsert(emptyInsertOptions));
-			queueSnippet(view, start + closeStart, start + closeStart + token.length, rightNode.applyInsert(emptyInsertOptions));
-
-			stack.splice(i, 1);
-			break;
+		const openBracket = doc.slice(bracket.open.from, bracket.open.to)
+		const closeBracket = doc.slice(bracket.close.from, bracket.close.to)
+		if (openBracket === "{" || openBracket === "\\(" || openBracket.startsWith("\\left") || closeBracket.startsWith("\\right")) {
+			continue;
 		}
+		if (isSizeControl(covered_overlay.bound.tree, bracket.open.from, doc)) {
+			continue
+		}
+		const bracketContent = doc.slice(bracket.open.to, bracket.close.from)
+		if (settings.autoEnlargeBracketsTriggers.every(trigger => !bracketContent.includes(trigger))) {
+			continue
+		}
+		const space = settings.autoEnlargeBracketsSpace ? " " : "";
+		const leftNode = new TextNode(left + openBracket + space);
+		const rightNode = new TextNode(space + right + closeBracket);
+		queueSnippet(view, bracket.open.from, bracket.open.to, leftNode.applyInsert(emptyInsertOptions));
+		queueSnippet(view, bracket.close.from, bracket.close.to, rightNode.applyInsert(emptyInsertOptions));
+
 	}
 
 	expandSnippets(view);
