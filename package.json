@@ -17,7 +17,8 @@
 		"tsc": "tsc --noEmit -skipLibCheck",
 		"eslint": "eslint --fix",
 		"generator": "npm run generator:latex",
-		"generator:latex": "lezer-generator src/parser/mathjax/latex.grammar -o src/parser/mathjax/latex-parser"
+		"generator:latex": "lezer-generator src/parser/mathjax/latex.grammar -o src/parser/mathjax/latex-parser",
+		"postinstall": "npm run generator:latex"
 	},
 	"keywords": [],
 	"author": "",
