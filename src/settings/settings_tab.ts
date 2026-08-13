@@ -206,6 +206,16 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					this.plugin.settings.highlightCursorBracketsEnabled = value;
 					await this.plugin.saveSettings();
 				}));
+		new Setting(containerEl)
+			.setName("Highlight math delimiters")
+			.setDesc("Whether to highlight matched and mismatched math delimiters in the editor according to latex suite parser. This parser behaves closer to the reading view parser than the editor/syntax highlighting parser.")
+			.addToggle((toggle) => toggle
+				.setValue(this.plugin.settings.highlightDollarEnabled)
+				.onChange(async (value) => {
+					this.plugin.settings.highlightDollarEnabled = value;
+					await this.plugin.saveSettings();
+				})
+			);
 	}
 
 	private displayPopupPreviewSettings() {
@@ -743,16 +753,6 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		// 			await this.plugin.saveSettings();
 		// 		})
 		// 	);
-		new Setting(containerEl)
-			.setName("Highlight math delimiters")
-			.setDesc("Whether to highlight matched and mismatched math delimiters in the editor according to latex suite parser. This parser behaves closer to the reading view parser than the editor/syntax highlighting parser.")
-			.addToggle((toggle) => toggle
-				.setValue(this.plugin.settings.highlightDollarEnabled)
-				.onChange(async (value) => {
-					this.plugin.settings.highlightDollarEnabled = value;
-					await this.plugin.saveSettings();
-				})
-			);
 	}
 
 	createSnippetsEditor(snippetsSetting: Setting) {
