@@ -41,4 +41,4 @@ jobs:
           prerelease: false
           makeLatest: true
           immutableCreate: true
-          artifacts: "./main.js,.manifest.json,./styles.css,./${{ env.PLUGIN_NAME }}.zip"
+          artifacts: "./main.js,./manifest.json,./styles.css,./${{ env.PLUGIN_NAME }}.zip"
