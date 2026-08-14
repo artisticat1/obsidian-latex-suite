@@ -23,3 +23,7 @@ labels: bug
 
 <!-- # Additional context -->
 <!-- Add any other context about the problem here. -->
+
+<!-- # Console errors/logs -- >
+<!-- Any errors in the dev console on desktop if they exist -->
+<!-- to open console, press `Cmd+shift+i` for mac and `Ctrl+shift+I` for windows/linux-->
