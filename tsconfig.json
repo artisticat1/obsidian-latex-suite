@@ -18,7 +18,10 @@
       "ES6",
       "ES7",
       "ES2021.String"
-    ]
+    ],
+	"types": [
+		"node",
+	]
   },
   "include": [
     "**/*.ts"

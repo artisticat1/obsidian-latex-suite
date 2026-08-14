@@ -1,9 +1,7 @@
-/* eslint-disable obsidianmd/rule-custom-message */
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { ViewPlugin, ViewUpdate } from "@codemirror/view";
-import { IterMode, MountedTree, NodeProp, SyntaxNode, Tree } from "@lezer/common";
+import { SyntaxNode } from "@lezer/common";
 import { modifiedSyntaxTree } from "./language";
-import { fullMathParser, Type } from "./mathjax-parser";
+import { Type } from "./mathjax-parser";
 import { EditorState } from "@codemirror/state";
 
 export const mathParserPlugin = ViewPlugin.fromClass(
@@ -86,7 +84,7 @@ export function _printNode2(node: SyntaxNode, docString: string) {
 	// 	}
 	// })
 
-	console.log(
+	console.debug(
 		result
 			.map(
 				({ name, from, to, indent }) =>

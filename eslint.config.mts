@@ -21,6 +21,7 @@ export default defineConfig([
 		languageOptions: {
 			globals: {
 				...globals.browser,
+				...globals.node,
 			},
 
 			parser: tsParser,
@@ -65,6 +66,11 @@ export default defineConfig([
 			// "@typescript-eslint/no-deprecated": "off",
 			// "no-unsanitized/method": "off",
 			"obsidianmd/prefer-abstract-input-suggest": "off",
+			"eslint-comments/no-restricted-disable": [
+				"error",
+				"!@typescript-eslint/no-deprecated"
+			],
+			"@typescript-eslint/no-require-imports": "off",
 		},
 	},
 ]);

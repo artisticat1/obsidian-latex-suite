@@ -115,8 +115,8 @@ const isInputPending = typeof navigator != "undefined" && (navigator as unknown 
 const LanguageSetStateEffect = StateEffect.define<LanguageState>();
 
 const requestIdle = (callback: (deadline?: IdleDeadline) => void) => {
-	let timeout = activeWindow.setTimeout(() => callback(), Work.MaxPause)
-	return () => activeWindow.clearTimeout(timeout)
+	let timeout = window.setTimeout(() => callback(), Work.MaxPause)
+	return () => window.clearTimeout(timeout)
 }
   
 const parseWorker = ViewPlugin.fromClass(
