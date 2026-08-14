@@ -273,7 +273,23 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					this.plugin.settings.mathPreviewBracketHighlighting = value;
 					await this.plugin.saveSettings();
 				}));
-		const mathPreviewDependentSettings = [positionSetting, cursorSetting, highlightSetting];
+		
+		const livePreviewDisplay = new Setting(containerEl)
+			.setName("Display live preview")
+			.setDesc(
+				"Whether to display the tooltip in live preview mode. " +
+					"The cursor and bracket highlighting will only be shown in this preview and not in obsidian's preview. ",
+			)
+			.addToggle((toggle) =>
+				toggle
+				.setValue(this.plugin.settings.mathPreviewLivePreviewDisplay)
+				.onChange(async (value) => {
+					this.plugin.settings.mathPreviewLivePreviewDisplay =
+						value;
+					await this.plugin.saveSettings();
+				}));
+			
+		const mathPreviewDependentSettings = [positionSetting, cursorSetting, highlightSetting, livePreviewDisplay];
 		mathPreviewDependentSettings.forEach((setting) =>
 			setting.settingEl.toggleClass(
 				"hidden",

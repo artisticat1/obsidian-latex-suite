@@ -214,9 +214,9 @@ export function handleMathTooltip(update: ViewUpdate) {
 
 function shouldShowTooltip(state: EditorState, ctx: Context): Bounds | null {
 	if (!ctx.mode.inMath()) return null;
-
+	const settings = getLatexSuiteConfig(state);
 	const isLivePreview = state.field(editorLivePreviewField);
-	if (ctx.mode.blockMath && isLivePreview) return null;
+	if (ctx.mode.blockMath && isLivePreview && !settings.mathPreviewLivePreviewDisplay) return null;
 
 	const eqnBounds = ctx.getBounds();
 	if (!eqnBounds) return null;
