@@ -36,7 +36,7 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           tag: ${{ github.ref }}
-          name: ${{ github.ref_name }}
+          name: ${{ steps.build.outputs.tag_name }}
           draft: true
           prerelease: false
           makeLatest: true
