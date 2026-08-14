@@ -26,17 +26,24 @@ async function importRaw(module: string, identifier: string): Promise<unknown> {
 		data = await importModule(module, identifier);
 	} catch (e) {
 		console.error(e)
-		try {
-		data = await importModule("export default " + module, identifier);
-		} catch (e) {
-			console.error(e)
-			throw new Error("Invalid format");
-		}
+		throw new Error("Invalid format. Make sure its a valid javascript file and has a default export. See https://github.com/artisticat1/obsidian-latex-suite/blob/main/DOCS.md#snippet-files")
 	}
 	if ("default" in data) {
 		return data.default;
+	}
+	console.warn("No default export found. Please add `export default` to your snippet file. See https://github.com/artisticat1/obsidian-latex-suite/blob/main/DOCS.md#snippet-files.")
+
+	try {
+		data = await importModule("export default " + module, identifier);
+	} catch (e) {
+		console.error(e)
+		throw new Error("Invalid format (with `export default` added). Make sure its a valid javascript file and has a default export. See https://github.com/artisticat1/obsidian-latex-suite/blob/main/DOCS.md#snippet-files");
+	}
+
+	if ("default" in data) {
+		return data.default
 	} else {
-		throw new Error("No default export found");
+		throw new Error("No default export found (with `export default` added to the source). Make sure its a valid javascript file and has a default export. See https://github.com/artisticat1/obsidian-latex-suite/blob/main/DOCS.md#snippet-files");
 	}
 }
 
