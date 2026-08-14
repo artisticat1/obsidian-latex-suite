@@ -20,4 +20,5 @@ data.json
 
 # Exclude macOS Finder (System Explorer) View States
 .DS_Store
-**/*math-parser*.js
+**/parser/*/*-parser.js
+**/parser/*/*-parser.terms.js
