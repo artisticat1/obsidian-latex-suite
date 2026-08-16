@@ -19,10 +19,11 @@ import { LatexSuitePluginPublicApi } from "./api";
 import * as v from "valibot"
 import { languageExtension } from "./parser/language";
 import { highlight_dollar } from "./editor_extensions/highlight_dollar";
+import { EMPTY_SETTINGS } from "./settings/empty_settings";
 
 export default class LatexSuitePlugin extends Plugin implements LatexSuitePluginPublicApi {
-	settings: LatexSuitePluginSettings;
-	CMSettings: LatexSuiteCMSettings;
+	settings: LatexSuitePluginSettings = EMPTY_SETTINGS;
+	CMSettings: LatexSuiteCMSettings = processLatexSuiteSettings([], this.settings);
 	editorExtensions: Extension[] = [];
 	watcherCloser?: () => void;
 	disableMath = (view: EditorView) => {
@@ -108,11 +109,6 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 		}
 
 		if (this.settings.loadSnippetsFromFile || this.settings.loadSnippetVariablesFromFile) {
-			const tempSnippetVariables = await this.getSettingsSnippetVariables();
-			const tempSnippets = await this.getSettingsSnippets(tempSnippetVariables);
-
-			this.CMSettings = processLatexSuiteSettings(tempSnippets, this.settings);
-
 			// Use onLayoutReady so that we don't try to read the snippets file too early
 			this.app.workspace.onLayoutReady(() => {
 				void this.processSettings();
