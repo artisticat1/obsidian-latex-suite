@@ -20,13 +20,16 @@ function importModule(source: string, identifier: string): Promise<object> {
 	return result;
 }
 
-async function importRaw(module: string, identifier: string): Promise<unknown> {
+async function importRaw(module: string, identifier: string, catchDefaultExportError: boolean = false): Promise<unknown> {
 	let data: object;
 	try {
 		data = await importModule(module, identifier);
 	} catch (e) {
 		console.error(e)
-		throw new Error("Invalid format. Make sure its a valid javascript file and has a default export. See https://github.com/artisticat1/obsidian-latex-suite/blob/main/DOCS.md#snippet-files")
+		if (!catchDefaultExportError) {
+			throw new Error("Invalid format. Make sure its a valid javascript file and has a default export. See https://github.com/artisticat1/obsidian-latex-suite/blob/main/DOCS.md#snippet-files")
+		}
+		data = {}
 	}
 	if ("default" in data) {
 		return data.default;
@@ -48,7 +51,7 @@ async function importRaw(module: string, identifier: string): Promise<unknown> {
 }
 
 export async function parseSnippetVariables(snippetVariablesStr: string, identifier: string) {
-	const rawSnippetVariables = await importRaw(snippetVariablesStr, identifier) as SnippetVariables;
+	const rawSnippetVariables = await importRaw(snippetVariablesStr, identifier, true) as SnippetVariables;
 
 	if (Array.isArray(rawSnippetVariables))
 		throw new Error("Cannot parse an array as a variables object");
