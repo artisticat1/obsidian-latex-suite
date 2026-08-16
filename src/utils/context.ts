@@ -689,7 +689,6 @@ class MathBoundsPlugin implements PluginValue {
 				},
 			});
 		}
-		console.log(ranges)
 		this._mathBounds = ranges;
 	}
 
