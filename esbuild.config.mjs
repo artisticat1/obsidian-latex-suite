@@ -60,7 +60,6 @@ const args = {
 	plugins: [
 		inlineImportPlugin()
 	],
-	supported: { "dynamic-import": false },
 };
 
 function debouncer(func, wait) {

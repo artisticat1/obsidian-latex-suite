@@ -60,6 +60,7 @@ export default defineConfig([
 			// "@typescript-eslint/only-throw-error": "off",
 			// "@microsoft/sdl/no-inner-html": "off",
 			// "obsidianmd/prefer-active-doc": "off",
+			"@typescript-eslint/no-require-imports": "off",
 			// way too many false positives.
 			"obsidianmd/ui/sentence-case": "off",
 			// "no-restricted-globals": "off",
