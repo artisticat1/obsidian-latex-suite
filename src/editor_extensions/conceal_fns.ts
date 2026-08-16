@@ -511,7 +511,7 @@ const macroMap = {
 	"text": handleText,
 	"set": handleSet,
 	"operatorname": handleOperatorName,
-} as Record<string, (cursor: TreeCursor, doc: EquationText, macro?: string) => HandleConcealResult>;
+} as Record<string, (cursor: TreeCursor, doc: EquationText, macro: string) => HandleConcealResult>;
 for (const macro of Object.keys(modifiers)) {
 	macroMap[macro] = handleModifier;
 }
@@ -585,7 +585,7 @@ export function conceal(
 				bound: eqn.bound,
 				overlay: {
 					from: eqn.overlay.from + lines_lengths[i],
-					to: eqn.overlay.to + lines_lengths[i],
+					to: eqn.overlay.from + lines_lengths[i + 1],
 				},
 			}))
 			.filter((line) => line.text.trim() !== "");
