@@ -49,7 +49,7 @@ const args = {
 		"fs",
 		"path",
 		"os",
-		],
+	],
 	format: "cjs",
 	target: "es2016",
 	logLevel: "info",
@@ -59,7 +59,8 @@ const args = {
 	outfile: "main.js",
 	plugins: [
 		inlineImportPlugin()
-	]
+	],
+	supported: { "dynamic-import": false },
 };
 
 function debouncer(func, wait) {

@@ -84,11 +84,12 @@ function require(module) {
 
 function latex_suite_require(default_snippets: SnippetVariables) {
 	const parsed_api = api(default_snippets);
-	return (module: string): unknown => {
+	const original_require = require;
+	return function require(module: string): unknown {
 		if (module === "latex-suite") {
 			return parsed_api
 		} else {
-			return require(module)
+			return original_require(module)
 		}
 	}
 }

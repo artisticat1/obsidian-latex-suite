@@ -85,10 +85,10 @@ async function AbsolutePath(path: string) {
 	if (!Platform.isDesktop) {
 		return null
 	}
-	const fs = require("fs") as typeof import("fs");
-	const node_path = require("path") as typeof import("path");
+	const fs = await import("fs");
+	const node_path = await import("path");
 	if (path.slice(0, 2) === "~/") {
-		const os = require("os") as typeof import("os");
+		const os = await import("os")
 		const homeDir = os.homedir();
 		path = node_path.join(homeDir, path.slice(2));
 	}
