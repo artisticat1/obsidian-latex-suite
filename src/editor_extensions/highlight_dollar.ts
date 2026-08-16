@@ -86,6 +86,14 @@ class HighlightDollarPlugin implements PluginValue {
 
 		const widgets: Range<Decoration>[] = [];
 		for (const bounds of dollar_ranges) {
+			if (
+				(bounds.kind === "error" && bounds.from === bounds.to) ||
+				(bounds.kind === "pair" &&
+					bounds.outer_start === bounds.inner_start &&
+					bounds.inner_end === bounds.outer_end)
+			) {
+				continue;
+			}
 			if (bounds.kind === "error") {
 				widgets.push(
 					Decoration.mark({

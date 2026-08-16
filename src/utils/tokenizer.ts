@@ -130,7 +130,7 @@ export function* iterateTreeCursor(topNode: SyntaxNode, doc: EquationText) {
 		doc.skipCursorMove = false;
 		if (cursor.to > doc.to) continue
 		yield cursor;	
-	} while ((doc.skipCursorMove || cursor.next()) && cursor.from <= doc.to);
+	} while ((doc.skipCursorMove || cursor.next()) && cursor.from <= doc.to && cursor.node !== topNode);
 }
 export class EquationText {
 	public skipCursorMove: boolean = false;

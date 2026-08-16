@@ -4,12 +4,13 @@
  * MIT License
  * Copyright (C) 2018-2021 by Marijn Haverbeke <marijnh@gmail.com> and others
  */
-import { ParseContext } from "@codemirror/language";
+import { language, ParseContext } from "@codemirror/language";
 import { ChangeSet, EditorState, StateEffect, StateField, Transaction } from "@codemirror/state";
 import { EditorView, logException, ViewPlugin, ViewUpdate } from "@codemirror/view";
 import { Parser, Tree } from "@lezer/common";
 import { fullMathParser } from "./mathjax-parser";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
+import { parser } from "./mathjax/latex-parser";
 
 export class Work {
 	// Milliseconds of work time to perform immediately for a state doc change
@@ -243,10 +244,15 @@ const parseWorker = ViewPlugin.fromClass(
 	},
 );
 
-const create = (state: EditorState) =>
-	LanguageState.init(
-		fullMathParser(getLatexSuiteConfig(state).forceMathLanguages),
-	)(state);
+const create = (state: EditorState) => {
+	// doesn't exist in the obsidians types definition.
+	const languageFacet = state.facet(language) as null | {name?: string}
+	const fullParser =
+		languageFacet?.name === "hypermd"
+			? fullMathParser(getLatexSuiteConfig(state).forceMathLanguages)
+			: parser;
+	return LanguageState.init(fullParser)(state);
+}
 const update = function languageUpdate(value: LanguageState, tr: Transaction) { 
 	for (let e of tr.effects) if (e.is(LanguageSetStateEffect)) return e.value
 	return value.apply(tr);

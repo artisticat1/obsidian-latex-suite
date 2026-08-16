@@ -18,6 +18,7 @@ import { SyntaxNode, SyntaxNodeRef } from "@lezer/common";
 import { allTextAreas, MacroArea, snippetLessArea } from "./default_text_areas";
 import { modifiedSyntaxTree } from "src/parser/language";
 import { Type } from "src/parser/mathjax-parser";
+import * as latex from "src/parser/mathjax/latex-parser.terms";
 
 const OPEN_INLINE_MATH_NODE =
 	"formatting_formatting-math_formatting-math-begin_keyword_math";
@@ -662,7 +663,7 @@ class MathBoundsPlugin implements PluginValue {
 						const lastNode = contentNodes.last();
 						if (!lastNode) return;
 						const tree = nodeRef.node.enter(lastNode.to, -1);
-						if (tree === null || tree.name !== "LaTeX") return;
+						if (tree === null || !tree.type.is(latex.LaTeX)) return;
 						ranges.push({
 							inner_start: contentNodes[0].from,
 							inner_end: lastNode.to,
@@ -672,10 +673,23 @@ class MathBoundsPlugin implements PluginValue {
 							tree,
 							overlay: contentNodes,
 						});
+					// for excalidraw the topnode is LaTeX but it's also a topnode in the mounted tree
+					// thus check if it has a parent instead.
+					} else if (nodeRef.type.is(latex.LaTeX) && nodeRef.node.parent === null) {
+						ranges.push({
+							inner_start: nodeRef.node.from,
+							inner_end: nodeRef.node.to,
+							outer_start: nodeRef.node.from,
+							outer_end: nodeRef.node.to,
+							mode: MathMode.BlockMath,
+							tree: nodeRef.node,
+							overlay: [{ from: nodeRef.from, to: nodeRef.to }],
+						});
 					}
 				},
 			});
 		}
+		console.log(ranges)
 		this._mathBounds = ranges;
 	}
 
@@ -695,7 +709,8 @@ class MathBoundsPlugin implements PluginValue {
 			const bound = bounds[mid];
 			if (pos < bound.outer_start) {
 				right = mid - 1;
-			} else if (pos >= bound.outer_end) {
+			// excalidraw doesn't have delimiters thus they have 0 length and should be ignored for this check
+			} else if (pos >= bound.outer_end && bound.outer_end !== bound.inner_end) {
 				left = mid + 1;
 			} else if (
 				pos < bound.inner_start &&
