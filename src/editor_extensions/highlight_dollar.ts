@@ -27,10 +27,10 @@ class HighlightDollarPlugin implements PluginValue {
 		const dollar_ranges: DollarBounds[] = [];
 		const mathBounds = boundsPlugin.mathBounds;
 		mathBounds.forEach((bound) => {
-			if (bound.inner_end === bound.outer_end) {
+			if (bound.inner_end === bound.outer_end && bound.inner_start !== bound.outer_start) {
 				dollar_ranges.push({
 					from: bound.outer_start,
-					to: bound.outer_end,
+					to: bound.inner_start,
 					kind: "error",
 				});
 				return;
