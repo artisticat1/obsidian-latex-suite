@@ -11,7 +11,6 @@ import { Parser, Tree } from "@lezer/common";
 import { fullMathParser } from "./mathjax-parser";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
 import { parser } from "./mathjax/latex-parser";
-import { Notice } from "obsidian";
 
 export class Work {
 	// Milliseconds of work time to perform immediately for a state doc change
