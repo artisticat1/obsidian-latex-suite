@@ -4,13 +4,14 @@
  * MIT License
  * Copyright (C) 2018-2021 by Marijn Haverbeke <marijnh@gmail.com> and others
  */
-import { language, ParseContext } from "@codemirror/language";
+import { language, ParseContext, syntaxTree } from "@codemirror/language";
 import { ChangeSet, EditorState, StateEffect, StateField, Transaction } from "@codemirror/state";
 import { EditorView, logException, ViewPlugin, ViewUpdate } from "@codemirror/view";
 import { Parser, Tree } from "@lezer/common";
 import { fullMathParser } from "./mathjax-parser";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
 import { parser } from "./mathjax/latex-parser";
+import { Notice } from "obsidian";
 
 export class Work {
 	// Milliseconds of work time to perform immediately for a state doc change
@@ -244,26 +245,46 @@ const parseWorker = ViewPlugin.fromClass(
 	},
 );
 
-const create = (state: EditorState) => {
-	// doesn't exist in the obsidians types definition.
+const OPEN_DISPLAY_MATH_NODE = "formatting_formatting-math_formatting-math-begin_keyword_math_math-block"
+const CLOSE_DISPLAY_MATH_NODE = "formatting_formatting-math_formatting-math-end_keyword_math_math-"
+
+function isNotExcalidraw(state: EditorState): boolean {
 	const languageFacet = state.facet(language) as null | {name?: string}
-	const fullParser =
-		languageFacet?.name === "hypermd"
+	// other plugins like templater may override the language name (which they really shouldn't do but oh well)
+	// thus assuming the syntaxtree of excalidraw is constant
+	function checkSyntaxTree(): boolean {
+		const tree = syntaxTree(state)
+		const topNode = tree.topNode
+		const firstChild = topNode.firstChild
+		const secondChild = firstChild?.nextSibling
+		const lastChild = topNode.lastChild
+		return !(
+			firstChild &&
+			firstChild.name === OPEN_DISPLAY_MATH_NODE &&
+			firstChild.from === firstChild.to && firstChild.from === 0 &&
+			lastChild &&
+			lastChild.name === CLOSE_DISPLAY_MATH_NODE &&
+			lastChild.from === lastChild.to &&
+			secondChild &&
+			secondChild.name === "math"
+		);
+	}
+	return languageFacet?.name === "hypermd" || languageFacet?.name === "templater" || checkSyntaxTree()
+}
+
+const languageStateField = StateField.define({
+	create: (state: EditorState) => {
+		const fullParser = isNotExcalidraw(state)
 			? fullMathParser(getLatexSuiteConfig(state).forceMathLanguages)
 			: parser;
-	return LanguageState.init(fullParser)(state);
-}
-const update = function languageUpdate(value: LanguageState, tr: Transaction) { 
-	for (let e of tr.effects) if (e.is(LanguageSetStateEffect)) return e.value
-	return value.apply(tr);
-}
-const languageStateField = StateField.define({
-	// create: LanguageState.init(fullMathParser()),
-	// update: (value, tr) => {
-	// 	return value.apply(tr);
-	// }
-	create,update
-})
+		return LanguageState.init(fullParser)(state);
+	},
+	update: function languageUpdate(value: LanguageState, tr: Transaction) {
+		for (let e of tr.effects)
+			if (e.is(LanguageSetStateEffect)) return e.value;
+		return value.apply(tr);
+	},
+});
 
 export function modifiedSyntaxTree(state: EditorState) {
 	return state.field(languageStateField).tree;
