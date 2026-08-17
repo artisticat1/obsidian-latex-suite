@@ -36,7 +36,7 @@ const refreshFromFiles = debounce(async (plugin: LatexSuitePlugin) => {
 
 	await plugin.processSettings(false, true);
 
-}, 500, true);
+}, 7000, true);
 
 /**
  * Create a file watcher using either obsidian publics api, obsidians internal fs adapter for hidden files inside the vault
