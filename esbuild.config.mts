@@ -13,6 +13,8 @@ if you want to view the source, please visit the github repository of this plugi
 `;
 
 const prod = (process.argv[2] === "production");
+const test = (process.argv[2] === "test");
+const dev = !prod && !test;
 const args = {
 	banner: {
 		js: banner,
@@ -70,7 +72,7 @@ function debouncer<A, R>(func: (...args: A[]) => R, wait: number) {
 	};
 }
 
-if (!prod) {
+if (dev) {
 	const ctx = await esbuild.context(args);
 	ctx.watch().catch(() => process.exit(1));
 	const debouncedExec = debouncer((eventType, filename: string | null) => {
@@ -84,7 +86,9 @@ if (!prod) {
 		}
 	}, 5000);
 	fs.watch("src/parser", { recursive: true }, debouncedExec);	
-}
-else {
+} else if (prod) {
+	esbuild.build(args).catch(() => process.exit(1));
+} else if (test) {
+	args.outfile = "dist/dev"
 	esbuild.build(args).catch(() => process.exit(1));
 }

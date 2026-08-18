@@ -38,7 +38,7 @@
 		"@lezer/generator": "^1.8.0",
 		"@lezer/highlight": "^1.2.3",
 		"@lezer/lr": "^1.4.10",
-		"@types/node": "^16.18.126",
+		"@types/node": "^22.20.1",
 		"@typescript-eslint/eslint-plugin": "^8.55.0",
 		"@typescript-eslint/parser": "^8.55.0",
 		"codemirror": "^6.0.0",
@@ -49,8 +49,10 @@
 		"globals": "^17.3.0",
 		"jiti": "^2.7.0",
 		"obsidian": "^1.12.3",
+		"obsidian-integration-testing": "^10.3.2",
 		"tslib": "2.3.1",
-		"typescript": "^5.9.3"
+		"typescript": "^5.9.3",
+		"vitest": "^4.1.11"
 	},
 	"dependencies": {
 		"@lezer/markdown": "^1.6.4",
