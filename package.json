@@ -10,9 +10,9 @@
 		}
 	},
 	"scripts": {
-		"dev": "node esbuild.config.mjs",
-		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
-		"version": "npm run lint && npm run build && node version-bump.mjs && git add manifest.json versions.json",
+		"dev": "jiti esbuild.config.mjs",
+		"build": "tsc -noEmit -skipLibCheck && jiti esbuild.config.mjs production",
+		"version": "npm run lint && npm run build && jiti version-bump.mjs && git add manifest.json versions.json",
 		"lint": "tsc --noEmit -skipLibCheck && eslint",
 		"tsc": "tsc --noEmit -skipLibCheck",
 		"eslint": "eslint --fix",

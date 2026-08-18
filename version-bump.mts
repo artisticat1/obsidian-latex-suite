@@ -1,8 +1,12 @@
 import { readFileSync, writeFileSync } from "fs";
 
 const targetVersion = process.env.npm_package_version;
+if (!targetVersion) {
+	console.error("Error: target version not specified. Please set the npm_package_version environment variable.");
+	process.exit(1);
+}
 
-function version_larger_than(v1, v2) {
+function version_larger_than(v1: string, v2: string) {
 	const v1_parts = v1.split(".").map(Number);
 	const v2_parts = v2.split(".").map(Number);
 	for (let i = 0; i < Math.max(v1_parts.length, v2_parts.length); i++) {

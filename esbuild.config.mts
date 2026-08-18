@@ -53,31 +53,31 @@ const args = {
 	format: "cjs",
 	target: "es2016",
 	logLevel: "info",
-	sourcemap: prod ? false : "inline",
+	sourcemap: prod ? false : "inline" as const,
 	minify: prod,
 	treeShaking: true,
 	outfile: "main.js",
 	plugins: [
 		inlineImportPlugin()
 	],
-};
+} satisfies esbuild.BuildOptions;
 
-function debouncer(func, wait) {
-	let timeout;
-	return function(...args) {
-		const context = this;
+function debouncer<A, R>(func: (...args: A[]) => R, wait: number) {
+	let timeout: NodeJS.Timeout;
+	return function(...args: A[]) {
 		clearTimeout(timeout);
-		timeout = setTimeout(() => func.apply(context, args), wait);
+		timeout = setTimeout(() => func(...args), wait);
 	};
 }
 
 if (!prod) {
 	const ctx = await esbuild.context(args);
 	ctx.watch().catch(() => process.exit(1));
-	const debouncedExec = debouncer((eventType, filename) => {
+	const debouncedExec = debouncer((eventType, filename: string | null) => {
+		if (filename === null) return;
 		if (filename.endsWith(".grammar")) {
 			console.log(`Detected change in ${filename}, rebuilding...`);
-			const result = spawnSync("npm", ["run", "generator"], { shell: true, stdio: "inherit" });
+			const result = spawnSync("npm", ["run", "generator:latex"], { shell: true, stdio: "inherit" });
 			if (result.toString().trim() !== "") {
 				console.log(result.toString());
 			}
