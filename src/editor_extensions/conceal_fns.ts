@@ -187,7 +187,7 @@ function getLimitLength(cursor: TreeCursor, doc: EquationText) {
 	peekCursor.next();
 	const sibling = peekCursor.node;
 	if (
-		sibling.type.is(latex.CtrlSeq) &&
+		(sibling.type.is(latex.MathCommand)) &&
 		doc.slice(sibling.from + 1, sibling.to) === "limits"
 	) {
 		cursor.moveTo(sibling.to, 1);
@@ -575,21 +575,33 @@ export function conceal(
 ): { specs: ConcealSpec[]; cached_equations: ConcealCachedEquations } {
 	const boundsPlugin = getMathBoundsPlugin(view);
 	const overlays = boundsPlugin.getEquationOverlays(view.state);
-	const overlays_by_line = overlays.flatMap((eqn) => {
+	// get the all the lines from each overlay and their respective bounds, so that we can cache them separately
+	// as concealments happen on a per-line basis. Technically an overlay should only span a single line or the full equation.
+	// but on errorous syntax, the parser might not do that.
+	const overlays_by_line = overlays.map((eqn) => {
 		const lines = eqn.text.split("\n");
 		const lines_lengths = cumulativeSum(lines.map(l => l.length + 1))
 		lines_lengths.unshift(0)
-		return lines
-			.map((line, i) => ({
-				text: line,
-				bound: eqn.bound,
-				overlay: {
-					from: eqn.overlay.from + lines_lengths[i],
-					to: eqn.overlay.from + lines_lengths[i + 1],
-				},
-			}))
-			.filter((line) => line.text.trim() !== "");
-	});
+		let lines_start = 0;
+		return eqn.bound.overlay.map((overlay) => {
+			const arr = [];
+			for (;lines_start < lines_lengths.length - 1; lines_start++) {
+				if (lines_lengths[lines_start] + eqn.overlay.from >= overlay.to) break;
+				// substract newline character from the end of the line, as it is not part of the overlay
+				const line_end = Math.min(lines_lengths[lines_start + 1] + eqn.overlay.from - 1, overlay.to);
+				const start = Math.max(lines_lengths[lines_start] + eqn.overlay.from, overlay.from)
+				arr.push({
+					text: eqn.text.slice(start - eqn.overlay.from, line_end - eqn.overlay.from),
+					bound: eqn.bound,
+					overlay: {
+						from: start,
+						to: line_end,
+					},
+				})
+			}
+			return arr
+		})
+	}).flat(2);
 	const new_equations: typeof cached_equations = {};
 	const specs: ConcealSpec[] = [];
 
