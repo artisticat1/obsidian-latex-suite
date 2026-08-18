@@ -343,6 +343,14 @@ function isCommentEnd(line: Line): number {
 	return -1	
 }
 
+function isBlockCommentBegin(line: Line): boolean {
+	if (!(line.next === 37 /* '%' */ && line.text.charCodeAt(line.pos+1) === 37 /* '%' */)) return false;
+	for (let i = line.pos + 2; i < line.text.length - 1; i++) {
+		if (line.text.charCodeAt(i) === 37 /* '%' */ && line.text.charCodeAt(i + 1) === 37 /* '%' */) return false
+	}
+	return true
+}
+
 const obsidianCommentParser: MarkdownConfig = {
 	defineNodes: [
 		{ name: Type.ObsidianComment },
@@ -351,9 +359,9 @@ const obsidianCommentParser: MarkdownConfig = {
 		{
 			name: Type.ObsidianComment,
 			parse(cx, next, pos) {
-				if (!(next !== 37 /* '%' */ && cx.char(pos+1) === 37 /* '%' */)) return -1;
+				if (!(next === 37 /* '%' */ && cx.char(pos+1) === 37 /* '%' */)) return -1;
 				const startPos = pos;
-				for (let i = pos + 2; i < cx.end; i++) {
+				for (let i = pos + 2; i < cx.end - 1; i++) {
 					if (cx.char(i) === 37 /* '%' */ && cx.char(i + 1) === 37 /* '%' */) {
 						return cx.addElement(cx.elt(Type.ObsidianComment, startPos, i+2))
 					}
@@ -366,7 +374,7 @@ const obsidianCommentParser: MarkdownConfig = {
 		{
 			name: Type.ObsidianComment,
 			parse(cx, line) {
-				if (!(line.next === 37 /* '%' */ && line.text.charCodeAt(line.pos+1) === 37 /* '%' */)) return false;
+				if (!isBlockCommentBegin(line)) return false;
 				const startPos = cx.lineStart + line.pos;
 				while (cx.nextLine()) {
 					const end = isCommentEnd(line);
@@ -381,8 +389,7 @@ const obsidianCommentParser: MarkdownConfig = {
 				return false;
 			},
 			endLeaf(_cx, line) {
-				const res = line.next === 37 /* '%' */ && line.text.charCodeAt(line.pos+1) === 37 /* '%' */;
-				return res;
+				return isBlockCommentBegin(line)
 			},
 		}
 	]
