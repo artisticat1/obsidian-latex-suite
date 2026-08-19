@@ -1,9 +1,14 @@
 import * as v from "valibot"
-export const MacroAreaSchema = v.object({
+const MacroAreaSchema = v.object({
 	name: v.string(),
 	arguments: v.optional(v.array(v.number())),
 });
 export type MacroArea = v.InferOutput<typeof MacroAreaSchema>;
+
+export const MacroAreaPipeSchema = v.pipe(
+		v.optional(v.array(v.union([v.string(), MacroAreaSchema])), []),
+		v.mapItems((item) => (typeof item === "string" ? { name: item } : item)),
+)
 /**
  * List of environments where math commands are illegal to insert.
  * this is a mix of text and color environments where for example \color{#1} computes #1 as colorcode

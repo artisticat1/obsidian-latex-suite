@@ -13,7 +13,8 @@
   triggerKey?: string = "",
   language?: string,
   excludedMacros?: string[],
-  excludedEnvironments: string[],
+  excludedEnvironments?: string[],
+  includedMacros?: string[],
 }
 ```
 
@@ -34,6 +35,7 @@
 - `language` (optional): Which code language to expand this in. Needs to match the text after <code>```</code> exactly.
 - `excludedMacros` (optional): Which macros\commands name to skip expansion in. Could be usefull for commands such as `ce` and `pu`.
 - `excludedEnvironments` (optional): Which environment names such as `pmatrix` to skip expansion in.
+- `includedMacros` (optional): Which macros\commands name to only do expansion in. Could be useful for commands such as `color` and `unicode`.
 
 ### Options
 - `t` : Text mode. Only run this snippet outside math
@@ -49,6 +51,7 @@
 	- The `math` language from https://github.com/ocapraro/obsidian-math-plus doesn't trigger code mode, but block math mode instead
 - `U`: Skip undo. When an automatic snippet expands, undo returns the editor to the state before the triggering key was typed, instead of restoring that key.
 - `C` : Inline code mode. Only run this snippet inside a `` ` ... ` `` block
+- `T` : Math text mode. Only run this inside text macros such as `\text{}`
 
 Multiple options can be used at once. As an exception, regex and visual are mutually exclusive.
 

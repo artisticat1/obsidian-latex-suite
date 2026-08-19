@@ -42,8 +42,8 @@ export class Options {
 		return options;
 	}
 
-	snippetShouldRunInMode(mode: Mode) {
-		if (mode.snippetlessEnv) {
+	snippetShouldRunInMode(mode: Mode, ignoreSnippetLessEnv: boolean = false): boolean {
+		if (mode.snippetlessEnv && !ignoreSnippetLessEnv) {
 			return false
 		}
 		if (
@@ -74,6 +74,7 @@ export class Options {
 		if (this.mode.code && mode.code) {
 			return true;
 		}
+		return false;
 	}
 }
 
@@ -146,6 +147,9 @@ export class Mode {
 				case "t":
 					mode.text = true;
 					break;
+				case "T":
+					mode.textEnv = true;
+					break;
 				case "c":
 					mode.codeBlock = true;
 					break;
@@ -157,6 +161,11 @@ export class Mode {
 
 		if (language !== undefined) {
 			mode.codeBlock = language;
+		}
+		
+		if (mode.textEnv && !(mode.blockMath || mode.inlineMath)) {
+			mode.blockMath = true;
+			mode.inlineMath = true;
 		}
 
 		if (!(mode.text ||

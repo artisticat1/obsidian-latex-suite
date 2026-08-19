@@ -6,7 +6,7 @@ import { expandSnippets } from "src/snippets/snippet_management";
 import { Context, getContextPlugin } from "src/utils/context";
 import { autoEnlargeBrackets } from "./auto_enlarge_brackets";
 import { snippetDebugLevel } from "src/settings/settings";
-import { Snippet, SnippetType } from "src/snippets/snippets";
+import { IncludedEnvironmentResult, Snippet, SnippetType } from "src/snippets/snippets";
 import { showSnippetInfo } from "src/editor_extensions/obsidian_utils";
 
 type SnippetInfo = {
@@ -68,10 +68,14 @@ const runSnippetCursor = (view: EditorView, ctx: Context, snippetInfo: SnippetIn
 	const updatedLine = line + key;
 	for (let i=0; i < snippetInfo.snippets.length; i++) {
 		const snippet = snippetInfo.snippets[i];
-
-		if (!snippet.options.snippetShouldRunInMode(ctx.mode)) {
+		const inIncludedScope = snippet.isWithinIncludedScope(envNames);
+		if (!snippet.options.snippetShouldRunInMode(ctx.mode, inIncludedScope === IncludedEnvironmentResult.Included)) {
 			continue;
 		}
+		
+		if (inIncludedScope === IncludedEnvironmentResult.NotIncluded) {
+			continue;
+		}	
 
 		const result = snippet.process(updatedLine, range, sel, effectiveLineAfter);
 		if (result === null) continue;
