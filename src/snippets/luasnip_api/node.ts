@@ -140,12 +140,12 @@ export class SnippetStringNode extends BaseNode {
 		const replacements = []
 		for (const match of matches) {
 			const index = parseInt(match[1]);
-			if (captures.match[index] === undefined) {
+			if (index >= captures.match.length) {
 				continue;
 			}
 			const start = match.index;
 			const end = start + match[0].length;
-			const replacement = captures.match[index];
+			const replacement = captures.match[index] ?? "";
 			replacements.push({start, end, replacement})
 		}
 		return applyReplacements(this.snippet, replacements);
