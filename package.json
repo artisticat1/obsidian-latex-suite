@@ -10,15 +10,16 @@
 		}
 	},
 	"scripts": {
-		"dev": "jiti esbuild.config.mjs",
-		"build": "tsc -noEmit -skipLibCheck && jiti esbuild.config.mjs production",
-		"version": "npm run lint && npm run build && jiti version-bump.mjs && git add manifest.json versions.json",
+		"dev": "jiti esbuild.config.mts",
+		"build": "tsc -noEmit -skipLibCheck && jiti esbuild.config.mts production",
+		"version": "npm run lint && npm run build && jiti version-bump.mts && git add manifest.json versions.json",
 		"lint": "tsc --noEmit -skipLibCheck && eslint",
 		"tsc": "tsc --noEmit -skipLibCheck",
 		"eslint": "eslint --fix",
 		"generator": "npm run generator:latex",
 		"generator:latex": "lezer-generator src/parser/mathjax/latex.grammar -o src/parser/mathjax/latex-parser",
-		"postinstall": "npm run generator:latex"
+		"postinstall": "npm run generator:latex",
+		"test": "jiti esbuild.config.mts test & vitest"
 	},
 	"keywords": [],
 	"author": "",
@@ -50,6 +51,7 @@
 		"jiti": "^2.7.0",
 		"obsidian": "^1.12.3",
 		"obsidian-integration-testing": "^10.3.2",
+		"obsidian-typings": "^6.32.0",
 		"tslib": "2.3.1",
 		"typescript": "^5.9.3",
 		"vitest": "^4.1.11"

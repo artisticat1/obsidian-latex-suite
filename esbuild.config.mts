@@ -89,6 +89,9 @@ if (dev) {
 } else if (prod) {
 	esbuild.build(args).catch(() => process.exit(1));
 } else if (test) {
-	args.outfile = "dist/dev"
-	esbuild.build(args).catch(() => process.exit(1));
+	args.entryPoints = ["tests/main.ts"]
+	args.outfile = "dist/dev/main.js"
+	fs.copyFileSync("manifest.json", "dist/dev/manifest.json");
+	const context = await esbuild.context(args);
+	context.watch().catch(() => process.exit(1));
 }

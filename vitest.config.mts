@@ -1,8 +1,4 @@
 import { defineConfig } from 'vitest/config';
-import 'obsidian-integration-testing/vitest/typings';
-import "node"
-
-
 
 export default defineConfig({
   test: {

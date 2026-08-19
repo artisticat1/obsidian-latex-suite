@@ -253,9 +253,9 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 				vimObject.mapCommand(command.key, command.type, command.id, {}, { context: command.context });
 			}
 		}
-		
+
 	}
-	
+
 	createWatcherCloser = debounce(async () => {
 		this.watcherCloser?.();
 		const newWatcherCloser = await fileWatch(this);

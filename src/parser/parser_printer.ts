@@ -11,6 +11,7 @@ export const mathParserPlugin = ViewPlugin.fromClass(
 			try {
 				// this.printMountedTrees(update.state)
 				const tree = modifiedSyntaxTree(update.state);
+				console.debug("Syntax Tree:", tree.toString());
 				const docString = update.state.doc.toString();
 				_printNode2(tree.topNode, docString);
 			} catch (e) {

@@ -219,7 +219,7 @@ function handleBraKet(cursor: TreeCursor, _doc: EquationText, macro: string): Ha
 	if (!mathArgument) return { spec: [], kind: HandleResultKind.Handled };
 	const close = mathArgument.closeBraceNode;
 	const open = mathArgument.openBraceNode;
-	
+
 	const left = macro === "ket" ? vert : langle;
 	const right = macro === "bra" ? vert : rangle;
 
@@ -271,7 +271,7 @@ function handleLeftRight(cursor: TreeCursor, doc: EquationText): HandleConcealRe
 
 function handleSubSup(doc: EquationText, nodeRef: SyntaxNode, cursor: TreeCursor): HandleConcealResult {
 	const char = doc.slice(nodeRef.from, nodeRef.to);
-	if (char !== "_" && char !== "^") return { spec: [], kind: HandleResultKind.Handled };
+	if (char !== "_" && char !== "^") return { spec: [], kind: HandleResultKind.NotHandled };
 	const type = char === "_" ? "sub" : "sup";
 	const allowed_names = [
 		"MathCommand",
@@ -285,7 +285,7 @@ function handleSubSup(doc: EquationText, nodeRef: SyntaxNode, cursor: TreeCursor
 	if (!peekCursor.next()) return { spec: [], kind: HandleResultKind.Handled };
 	const nextNode = peekCursor.node;
 	if (!allowed_names.includes(nextNode.name)) {
-		return { spec: [], kind: HandleResultKind.Handled };
+		return { spec: [], kind: HandleResultKind.NotHandled };
 	}
 
 	const newDoc = new EquationText(
@@ -560,9 +560,8 @@ function traverseTree(topNode: SyntaxNode, doc: EquationText): ConcealSpec[] {
 			const subSupSpec = handleSubSup(doc, nodeRef, cursor);
 			if (subSupSpec.kind === HandleResultKind.Handled) {
 				specs.push(subSupSpec.spec);
+				continue;
 			}
-			continue;
-
 		}
 	}
 	return specs;
