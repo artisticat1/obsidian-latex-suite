@@ -27,6 +27,10 @@ export const textArea = [
 	{ name: "mbox" },
 	{ name: "fbox" },
 	{ name: "framebox" },
+	{ name: "textcolor", arguments: [0] }, // only the first argument is text/color, the second argument is math
+	{ name: "color" },
+	{ name: "colorbox" },
+	{ name: "fcolorbox" }, // has two inputs \fcolorbox{color}{background}{text} needs seperate handling
 ] as const satisfies readonly MacroArea[];
 
 /**
@@ -39,10 +43,6 @@ export const snippetLessArea = [
 	{ name: "end" },
 	{ name: "mmlToken" }, // MathML token, also has two inputs
 	{ name: "unicode" },
-	{ name: "textcolor", arguments: [0] }, // only the first argument is text/color, the second argument is math
-	{ name: "color" },
-	{ name: "colorbox" },
-	{ name: "fcolorbox" }, // has two inputs \fcolorbox{color}{background}{text} needs seperate handling
 ] as const satisfies readonly MacroArea[];
 
 export const allTextAreas = [...textArea, ...snippetLessArea] as const;
