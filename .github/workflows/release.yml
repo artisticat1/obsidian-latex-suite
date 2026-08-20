@@ -12,13 +12,17 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+        id-token: write
+        contents: write
+        attestations: write
 
     steps:
       - uses: actions/checkout@v4
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 24
 
       - name: Build
         id: build
@@ -42,3 +46,12 @@ jobs:
           makeLatest: true
           immutableCreate: true
           artifacts: "./main.js,./manifest.json,./styles.css,./${{ env.PLUGIN_NAME }}.zip"
+      - name: Attest
+        id: attest
+        uses: actions/attest@v4
+        with:
+          subject-path: |
+            ./main.js
+            ./manifest.json
+            ./styles.css
+            ./${{ env.PLUGIN_NAME }}.zip
