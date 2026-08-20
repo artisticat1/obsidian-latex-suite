@@ -27,3 +27,9 @@ declare module "@codemirror/view" {
 		cm?: CodeMirrorEditor
 	}
 }
+
+declare module "@lezer/common" {
+	interface Tree {
+		toString(): string
+	}	
+}

@@ -25,5 +25,8 @@
   },
   "include": [
     "**/*.ts"
+  ],
+  "exclude": [
+	"tests/**"
   ]
 }
