@@ -1,6 +1,7 @@
 export default [
     // Math mode
 	{trigger: "mk", replacement: "$$0$", options: "tA"},
+	{trigger: "mk", replacement: "\\($0\\)", options: "TA"},
     {trigger: "dm", replacement: "$$\n$0\n$$", options: "tAw"},
 	{trigger: /(\S\s*)dm/, replacement: "[[0]]\n$$\n$0\n$$", options: "tAw", priority: 1},
 

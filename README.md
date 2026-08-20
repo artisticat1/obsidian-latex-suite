@@ -174,6 +174,7 @@ Snippets can be edited in the plugin settings. The structure of a snippet is as 
   language?: string,
   excludedMacros?: string[],
   excludedEnvironments?: string[],
+  includedMacros?: string[],
 }
 ```
 
@@ -189,6 +190,7 @@ Snippets can be edited in the plugin settings. The structure of a snippet is as 
 - `language` (optional): Code language for snippets.
 - `excludedMacros` (optional): Macros to exclude this snippet.
 - `excludedEnvironments` (optional): Environments to exclude this snippet.
+- `includedMacros` (optional): Macros to include this snippet.
 
 
 #### Options
@@ -203,6 +205,7 @@ Snippets can be edited in the plugin settings. The structure of a snippet is as 
 - `c` : Code mode. Only run this snippet inside a ```` ``` ... ``` ```` block
 - `U`: Skip undo. When an automatic snippet expands, pressing undo returns to the state before the trigger key was typed, instead of first removing the snippet and reinserting that key.
 - `C` : Inline code mode. Only run this snippet inside a `` ` ... ` `` block
+- `T` : Math text mode. Only run this inside text macros such as `\text{}`
 
 Insert **tabstops** for the cursor to jump to by writing "$0", "$1", etc. in the `replacement`.
 

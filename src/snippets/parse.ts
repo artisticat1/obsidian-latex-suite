@@ -1,4 +1,4 @@
-import { optional, object, string as string_, union, parse, number, InferOutput as Output, custom, instance, array, pipe, transform, mapItems } from "valibot";
+import { optional, object, string as string_, union, parse, number, InferOutput as Output, custom, instance, array, pipe, transform } from "valibot";
 import { RegexSnippet, serializeSnippetLike, Snippet, StringSnippet, VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER, VisualSnippet } from "./snippets";
 import { Options } from "./options";
 import { sortSnippets } from "./sort";
@@ -6,7 +6,7 @@ import { EXCLUSIONS } from "./environment";
 import { Platform } from "obsidian";
 import { api } from "./luasnip_api";
 import { ArrayNode, BaseNode, SnippetStringNode, SnippetTabstopOnlyNode, VisualSnippetNode } from "./luasnip_api/node";
-import { MacroArea, MacroAreaSchema } from "src/utils/default_text_areas";
+import { MacroArea, MacroAreaPipeSchema } from "src/utils/default_text_areas";
 
 export type SnippetVariables = Record<string, string>;
 
@@ -144,11 +144,9 @@ const RawSnippetSchema = object({
 	description: optional(string_(), "no description provided"),
 	triggerKey: optional(string_(), ""),
 	language: optional(string_()),
-	excludedMacros: pipe(
-		optional(array(union([string_(), MacroAreaSchema])), []),
-		mapItems((item) => (typeof item === "string" ? { name: item } : item)),
-	),
+	excludedMacros: MacroAreaPipeSchema,
 	excludedEnvironments: optional(array(string_()), []),
+	includedMacros: MacroAreaPipeSchema,
 });
 
 type RawSnippet = Output<typeof RawSnippetSchema>;
@@ -176,7 +174,14 @@ function validateRawSnippets(snippets: unknown): RawSnippet[] {
  * - if it is a regex snippet, the trigger is represented as a RegExp instance with flags set
  */
 function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snippet {
-	const { replacement: replacementRaw, priority, description, excludedEnvironments: excludedEnvironments, excludedMacros: userExcludedMacros } = raw;
+	const {
+		replacement: replacementRaw,
+		priority,
+		description,
+		excludedEnvironments: excludedEnvironments,
+		excludedMacros: userExcludedMacros,
+		includedMacros
+	} = raw;
 	const options = Options.fromSource(raw.options, raw.language);
 	const triggerKey = parseKeyName(raw.triggerKey);
 
@@ -244,7 +249,7 @@ function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snip
 
 		options.regex = true;
 
-		const normalised = { trigger, replacement, options, priority, description, excludedMacros, triggerKey, triggerAfter, excludedEnvironments };
+		const normalised = { trigger, replacement, options, priority, description, excludedMacros, triggerKey, triggerAfter, excludedEnvironments, includedMacros };
 
 		return new RegexSnippet(normalised);
 	}
@@ -273,7 +278,7 @@ function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snip
 				typeof raw.replacement === "string"
 					? new ArrayNode([new VisualSnippetNode(raw.replacement)])
 					: raw.replacement;
-			const normalised = { trigger, replacement, options, priority, description, excludedEnvironments, excludedMacros, triggerKey, triggerAfter };
+			const normalised = { trigger, replacement, options, priority, description, excludedEnvironments, excludedMacros, includedMacros, triggerKey, triggerAfter };
 			return new VisualSnippet(normalised);
 		}
 		else {
@@ -281,7 +286,7 @@ function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snip
 				typeof raw.replacement === "string"
 					? new ArrayNode([new SnippetTabstopOnlyNode(raw.replacement)])
 					: raw.replacement;
-			const normalised = { trigger, replacement, options, priority, description, excludedEnvironments, excludedMacros, triggerKey, triggerAfter };
+			const normalised = { trigger, replacement, options, priority, description, excludedEnvironments, excludedMacros, includedMacros, triggerKey, triggerAfter };
 			return new StringSnippet(normalised);
 		}
 	}

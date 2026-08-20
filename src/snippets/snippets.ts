@@ -75,6 +75,12 @@ export type ProcessSnippetResult =
 	| { triggerPos: number, replacement: ResultInsert, triggerEndPos?: number }
 	| null
 
+export enum IncludedEnvironmentResult {
+	None,
+	Included,
+	NotIncluded
+}
+
 /**
  * a snippet instance contains all the information necessary to run a snippet.
  * snippet data specific to a certain type of snippet is in its `data` property.
@@ -89,6 +95,7 @@ export abstract class Snippet<T extends SnippetType = SnippetType> {
 
 	excludedEnvironments: string[];
 	excludedMacros: MacroArea[] = [];
+	includedMacros: MacroArea[] = [];
 
 	constructor(
 		type: T,
@@ -99,6 +106,7 @@ export abstract class Snippet<T extends SnippetType = SnippetType> {
 		description: string = "no description provided",
 		excludedEnvironments: string[] = [],
 		excludedMacros: MacroArea[] = [],
+		includedMacros: MacroArea[] = [],
 		triggerKey: string = "",
 	) {
 		this.type = type;
@@ -109,6 +117,7 @@ export abstract class Snippet<T extends SnippetType = SnippetType> {
 		this.description = description;
 		this.excludedEnvironments = excludedEnvironments;
 		this.excludedMacros = excludedMacros;
+		this.includedMacros = includedMacros;
 		this.triggerKey = triggerKey;
 	}
 
@@ -136,6 +145,17 @@ export abstract class Snippet<T extends SnippetType = SnippetType> {
 		}
 		return false;
 	}
+	
+	isWithinIncludedScope(stack: StackOutput[]): IncludedEnvironmentResult {
+		if (this.includedMacros.length === 0) return IncludedEnvironmentResult.None;
+		if (stack.length === 0) return IncludedEnvironmentResult.NotIncluded
+		const firstName = stack[0]
+		if (firstName.kind === "math" || firstName.kind === "environment")
+			return IncludedEnvironmentResult.NotIncluded;
+		if (isMacroArgumentCount(firstName, this.includedMacros))
+			return IncludedEnvironmentResult.Included;
+		return IncludedEnvironmentResult.NotIncluded;
+	}
 
 	toString() {
 		return serializeSnippetLike({
@@ -152,8 +172,8 @@ export abstract class Snippet<T extends SnippetType = SnippetType> {
 }
 
 export class VisualSnippet extends Snippet<"visual"> {
-	constructor({ trigger, replacement, options, priority, description, excludedEnvironments, excludedMacros, triggerKey }: CreateSnippet<"visual">) {
-		super("visual", trigger, replacement, options, priority, description, excludedEnvironments, excludedMacros, triggerKey);
+	constructor({ trigger, replacement, options, priority, description, excludedEnvironments, excludedMacros, includedMacros, triggerKey }: CreateSnippet<"visual">) {
+		super("visual", trigger, replacement, options, priority, description, excludedEnvironments, excludedMacros, includedMacros, triggerKey);
 	}
 
 	process(effectiveLine: string, range: SelectionRange, sel: string): ProcessSnippetResult {
@@ -185,8 +205,8 @@ export class VisualSnippet extends Snippet<"visual"> {
 
 export class RegexSnippet extends Snippet<"regex"> {
 
-	constructor({ trigger, replacement, options, priority, description, excludedEnvironments, excludedMacros, triggerKey, triggerAfter}: CreateSnippet<"regex">) {
-		super("regex", trigger, replacement, options, priority, description, excludedEnvironments, excludedMacros, triggerKey);
+	constructor({ trigger, replacement, options, priority, description, excludedEnvironments, excludedMacros, includedMacros, triggerKey, triggerAfter}: CreateSnippet<"regex">) {
+		super("regex", trigger, replacement, options, priority, description, excludedEnvironments, excludedMacros, includedMacros, triggerKey);
 		this.data.triggerAfter = triggerAfter;
 	}
 
@@ -226,8 +246,8 @@ export class RegexSnippet extends Snippet<"regex"> {
 export class StringSnippet extends Snippet<"string"> {
 	data: SnippetData<"string">;
 
-	constructor({ trigger, replacement, options, priority, description, excludedEnvironments: excludeIn, excludedMacros, triggerKey, triggerAfter }: CreateSnippet<"string">) {
-		super("string", trigger, replacement, options, priority, description, excludeIn, excludedMacros, triggerKey);
+	constructor({ trigger, replacement, options, priority, description, excludedEnvironments: excludeIn, excludedMacros, includedMacros, triggerKey, triggerAfter }: CreateSnippet<"string">) {
+		super("string", trigger, replacement, options, priority, description, excludeIn, excludedMacros, includedMacros, triggerKey);
 		this.data.triggerAfter = triggerAfter;
 	}
 
@@ -279,6 +299,7 @@ type CreateSnippet<T extends SnippetType> = {
 	description?: string;
 	excludedEnvironments?: string[];
 	excludedMacros?: MacroArea[];
+	includedMacros?: MacroArea[];
 	triggerKey?: string;
 } & SnippetData<T>
 
