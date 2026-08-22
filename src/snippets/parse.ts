@@ -127,7 +127,7 @@ export async function parseSnippets(snippetsStr: string, snippetVariables: Snipp
 
 /** raw snippet IR */
 
-const RawSnippetSchema = object({
+export const RawSnippetSchema = object({
 	trigger: union([string_(), instance(RegExp)]),
 	triggerAfter: optional(union([string_(), instance(RegExp)])),
 	replacement: union([

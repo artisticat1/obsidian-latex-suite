@@ -1,6 +1,16 @@
 {
 	"compilerOptions": {
-		"moduleResolution": "bundler",
-		"module": "esnext"
-	}
+		"noEmit": true,
+		"module": "nodenext",
+		"moduleResolution": "nodenext",
+		"allowJs": true,
+		"checkJs": true,
+		"rootDir": "..",
+		"types": [
+			"node",
+			"obsidian-typings"
+		]
+	},
+	"include": ["**/*.ts", "**/*.js"],
+	"exclude": []
 }

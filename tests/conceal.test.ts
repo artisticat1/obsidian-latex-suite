@@ -1,4 +1,3 @@
-/// <reference types="obsidian-typings" />
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { ContextId, evalInObsidian } from "obsidian-integration-testing";
 // import "obsidian-integration-testing/vitest/typings";

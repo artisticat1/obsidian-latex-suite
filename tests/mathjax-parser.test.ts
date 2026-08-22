@@ -1,4 +1,3 @@
-/// <reference types="obsidian-typings" />
 import { describe, expect, it } from "vitest";
 import { evalInObsidian } from "obsidian-integration-testing";
 // import "obsidian-integration-testing/vitest/typings";
