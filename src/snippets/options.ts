@@ -51,13 +51,10 @@ export class Options {
 			(this.mode.blockMath && mode.blockMath) ||
 			((this.mode.inlineMath || this.mode.blockMath) && mode.codeMath)
 		) {
-			if (!mode.textEnv) {
+			// only run when snippet doesn't run in `\text{}` and cursor not inside `\text{}` or they both are
+			if (mode.textEnv === this.mode.textEnv) {
 				return true;
 			}
-		}
-
-		if (mode.inMath() && mode.textEnv && this.mode.text) {
-			return true;
 		}
 
 		if (this.mode.text && mode.text) {
