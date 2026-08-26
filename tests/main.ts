@@ -39,6 +39,9 @@ export default class TestPlugin extends LatexSuitePlugin {
 		this.app.workspace.onLayoutReady(() => {
 			this.setLib();
 		})
+		this.registerEvent(this.app.workspace.on("active-leaf-change", () => {
+			this.setLib();
+		}))
 	}
 	
 	setLib() {

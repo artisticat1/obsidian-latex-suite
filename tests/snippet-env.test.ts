@@ -1,10 +1,11 @@
 import { beforeAll, describe, it } from "vitest";
 import { ContextId, evalInObsidian, registerLibResolver } from "obsidian-integration-testing";
-import TestPlugin from "./main";
-import { MarkdownView, TFile } from "obsidian";
-import { EditorView } from "@codemirror/view";
+import type TestPlugin from "./main";
+import { type MarkdownView, type TFile } from "obsidian";
+import { type EditorView } from "@codemirror/view";
 import { readFileSync } from "fs";
 import * as ts from "typescript"
+import { getTemporaryVault } from "obsidian-integration-testing/vitest-global-setup-plugin";
 
 interface FileContext {
 	file: TFile;
@@ -21,6 +22,7 @@ declare module "obsidian-integration-testing" {
 
 
 describe("snippet environment options", () => {
+	const vault = getTemporaryVault();
 	const contextId = new ContextId<FileContext>();
 	registerLibResolver(() => window.__latex_suite_test_library)
 	beforeAll(async () => {
