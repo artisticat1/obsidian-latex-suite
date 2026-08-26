@@ -119,12 +119,7 @@ export function* walkPairedBrackets(tokens: PairedBrackets[], depth: number = 0)
 
 export function* iterateTreeCursor(topNode: SyntaxNode, doc: EquationText) {
 	const cursor = topNode.cursor();
-	if (topNode.from !== doc.from || topNode.to !== doc.to) {
-		cursor.moveTo(doc.from, -1);
-		while (cursor.from < doc.from && cursor.next()) {
-			//
-		}
-	} 
+	cursor.moveTo(doc.from, 1);
 	
 	do {
 		doc.skipCursorMove = false;
