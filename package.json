@@ -48,12 +48,13 @@
 		"eslint": "^9.39.2",
 		"eslint-plugin-obsidianmd": "^0.4.1",
 		"globals": "^17.3.0",
+		"i18next": "^26.4.0",
 		"jiti": "^2.7.0",
-		"obsidian": "^1.12.3",
+		"obsidian": "^1.13.1",
 		"obsidian-integration-testing": "^10.3.2",
 		"obsidian-typings": "^6.32.0",
 		"tslib": "2.3.1",
-		"typescript": "^5.9.3",
+		"typescript": "^6.0.3",
 		"vitest": "^4.1.11"
 	},
 	"dependencies": {
