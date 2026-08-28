@@ -9,15 +9,15 @@
     display: inline-flex;
 }
 
-.setting-item.setting-item-heading:has(.latex-suite-settings-icon) {
+.setting-item.setting-item-heading.latex-suite-settings-heading {
     border-bottom: 1px solid var(--background-modifier-border);
 }
 
-.setting-item.setting-item-heading:has(.latex-suite-settings-icon) + .setting-item {
+.setting-item.setting-item-heading.latex-suite-settings-heading + .setting-item {
     border-top: none;
 }
 
-.setting-item.setting-item-heading:has(.latex-suite-settings-icon) ~ .setting-item:not(.setting-item-heading) {
+.setting-item.setting-item-heading.latex-suite-settings-heading ~ .setting-item:not(.setting-item-heading) {
     width: calc(100% - 26px);
     margin-left: 26px;
 }
@@ -46,7 +46,7 @@
     border-radius: 4px;
     font-size: var(--font-inputs);
     height: 20em;
-    outline: none !important;
+	outline: none;
     text-align: left;
 }
 
@@ -76,8 +76,8 @@
 }
 
 .snippets-editor-validity-indicator svg {
-    width: 16px !important;
-    height: 16px !important;
+    width: 16px;
+    height: 16px;
 }
 
 .snippets-editor-validity-indicator:hover {

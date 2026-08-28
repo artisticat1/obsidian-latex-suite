@@ -32,7 +32,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		await this.plugin.saveSettings();
 	}
 
-	getSettingDefinitions(): SettingDefinitionItem[] {
+	_getSettingDefinitions(): SettingDefinitionItem[] {
 		return new LatexSuiteSettingsTab2(this.app, this.plugin).getSettingDefinitions();
 	}
 
@@ -40,6 +40,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		const heading = new Setting(containerEl).setName(name).setHeading();
 
 		const parentEl = heading.settingEl;
+		parentEl.addClass("latex-suite-settings-heading");
 		const iconEl = parentEl.createDiv();
 		setIcon(iconEl, icon);
 		iconEl.addClass("latex-suite-settings-icon");
