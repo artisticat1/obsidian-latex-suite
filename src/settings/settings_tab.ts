@@ -32,7 +32,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		await this.plugin.saveSettings();
 	}
 
-	_getSettingDefinitions(): SettingDefinitionItem[] {
+	getSettingDefinitions(): SettingDefinitionItem[] {
 		return new LatexSuiteSettingsTab2(this.app, this.plugin).getSettingDefinitions();
 	}
 
