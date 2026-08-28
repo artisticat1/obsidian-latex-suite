@@ -1,6 +1,6 @@
 import { EditorState, Extension } from "@codemirror/state";
 import { EditorView, ViewUpdate } from "@codemirror/view";
-import { App, ButtonComponent, ExtraButtonComponent, Modal, Notice, Platform, PluginSettingTab, Setting, debounce, setIcon } from "obsidian";
+import { App, ButtonComponent, ExtraButtonComponent, Modal, Notice, Platform, PluginSettingTab, Setting, SettingDefinitionItem, debounce, setIcon } from "obsidian";
 import { parseKeyName, parseSnippetVariables, parseSnippets } from "src/snippets/parse";
 import { DEFAULT_SNIPPETS } from "src/utils/default_snippets";
 import LatexSuitePlugin from "../main";
@@ -8,6 +8,8 @@ import { DEFAULT_SETTINGS, LatexSuiteCMKeymapSettings } from "./settings";
 import { FileSuggest } from "./ui/file_suggest";
 import { basicSetup } from "./ui/snippets_editor/extensions";
 import { getVimSelectModeCommand, vimCommand, getVimVisualModeCommand, getVimEditorCommands, getVimRunMatrixEnterCommand } from "src/features/editor_commands";
+import { LatexSuiteSettingsTab2, renderMarkdown } from "./settings_tab2";
+import { settings_translation as t } from "../i18n/i18n"
 
 
 export class LatexSuiteSettingTab extends PluginSettingTab {
@@ -24,6 +26,15 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 	hide() {
 		this.snippetsEditor?.destroy();
 	}
+	async setControlValue(key: string, value: unknown): Promise<void> {
+		const settings = this.plugin.settings as unknown as Record<string, unknown>
+		settings[key] = value;
+		await this.plugin.saveSettings();
+	}
+
+	getSettingDefinitions(): SettingDefinitionItem[] {
+		return new LatexSuiteSettingsTab2(this.app, this.plugin).getSettingDefinitions();
+	}
 
 	addHeading(containerEl: HTMLElement, name: string, icon = "math") {
 		const heading = new Setting(containerEl).setName(name).setHeading();
@@ -36,6 +47,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		parentEl.prepend(iconEl);
 		return heading;
 	}
+
 
 	display(): void {
 		const { containerEl } = this;
@@ -135,19 +147,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		const containerEl = this.containerEl;
 		this.addHeading(containerEl, "Conceal", "math-integral-x");
 
-		const fragment = new DocumentFragment();
-		fragment.createDiv({}, div => div.setText("Make equations more readable by hiding LaTeX syntax and instead displaying it in a pretty format."));
-		fragment.createDiv({}, (div) => {
-			div.appendText("e.g. ")
-			div.createEl("code", { text: "\\dot{x}^{2} + \\dot{y}^{2}" });
-			div.appendText(" will display as ẋ² + ẏ², and ");
-			div.createEl("code", { text: "\\sqrt{ 1-\\beta^{2} }" });
-			div.appendText(" will display as √{ 1-β² }.");
-		});
-		fragment.createDiv({}, div => div.setText("LaTeX beneath the cursor will be revealed."));
-		fragment.createEl("br");
-		fragment.createDiv({}, div => div.setText("Disabled by default to not confuse new users. However, I recommend turning this on once you are comfortable with the plugin!"));
-
+		const fragment = renderMarkdown(this.app, t("conceal.enabled.desc"))
 		new Setting(containerEl)
 			.setName("Enabled")
 			.setDesc(fragment)
@@ -159,13 +159,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				})
 			);
 
-		const fragment2 = new DocumentFragment();
-		fragment2.createDiv({}, div => div.setText("How long to delay the reveal of LaTeX for, in milliseconds, when the cursor moves over LaTeX. Defaults to 0 (LaTeX under the cursor is revealed immediately)."));
-		fragment2.createEl("br");
-		fragment2.createDiv({}, div => div.setText("Can be set to a positive number, e.g. 300, to delay the reveal of LaTeX, making it much easier to navigate equations using arrow keys."));
-		fragment2.createEl("br");
-		fragment2.createDiv({}, div => div.setText("Must be an integer ≥ 0."));
-
+		const fragment2 = renderMarkdown(this.app, t("conceal.reveal-delay.desc"))
 		new Setting(containerEl)
 			.setName("Reveal delay (ms)")
 			.setDesc(fragment2)
@@ -263,7 +257,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				text.inputEl.setAttribute("list", "math-preview-cursor-list");
 				return text;
 			});
-		
+
 		const highlightSetting = new Setting(containerEl)
 			.setName("Highlight brackets in preview")
 			.setDesc("Whether to highlight the area within the nearest pair of brackets around the cursor in the popup preview.")
@@ -273,7 +267,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					this.plugin.settings.mathPreviewBracketHighlighting = value;
 					await this.plugin.saveSettings();
 				}));
-		
+
 		const livePreviewDisplay = new Setting(containerEl)
 			.setName("Display live preview")
 			.setDesc(
@@ -288,7 +282,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 						value;
 					await this.plugin.saveSettings();
 				}));
-			
+
 		const mathPreviewDependentSettings = [positionSetting, cursorSetting, highlightSetting, livePreviewDisplay];
 		mathPreviewDependentSettings.forEach((setting) =>
 			setting.settingEl.toggleClass(
@@ -297,7 +291,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			),
 		);
 
-		mathPreviewSetting.addToggle(toggle => 
+		mathPreviewSetting.addToggle(toggle =>
 			toggle
 				.setValue(this.plugin.settings.mathPreviewEnabled)
 				.onChange(async (value) => {
@@ -426,7 +420,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 		const taboutTriggerSetting = this.createTriggerSetting(containerEl, "tabout", "taboutTrigger")
-			
+
 		const taboutClosingBracketsSetting =  new Setting(containerEl)
 			.setName("Closing brackets")
 			.setDesc("A list of closing brackets for tabout, separated by commas.")
@@ -480,7 +474,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 					await this.plugin.saveSettings();
 				}));
-		
+
 		new Setting(containerEl)
 			.setName("Space")
 			.setDesc("Whether to add a space after \\left( and before \\right) or not")
@@ -623,7 +617,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 					await this.plugin.saveSettings();
 				}));
-		
+
 		new Setting(containerEl)
 			.setName("Snippet debug mode")
 			.setDesc("Set the level of debug information to log about snippet expansion. Set to \"info\" or \"verbose\" to help identify issues with snippet syntax or why a snippet is not expanding. Verbose mode will log most information to the developer console on debug level.")
@@ -654,7 +648,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				.onChange(async (value) => {
 					const oldValue: string = this.plugin.settings.vimSelectMode;
 				this.plugin.settings.vimSelectMode = value;
-				await this.plugin.saveSettings();	
+				await this.plugin.saveSettings();
 				const vimObject = window?.CodeMirrorAdapter?.Vim;
 				if (!vimObject) return;
 				const command: vimCommand = getVimSelectModeCommand(this.plugin.settings);
@@ -667,7 +661,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		vimSettings.push(selectMode);
 		const visualMode = new Setting(containerEl)
 			.setName("Vim: Switch from select mode to visual mode")
-			.setDesc(`maps the key to switch from select mode to visual mode. 
+			.setDesc(`maps the key to switch from select mode to visual mode.
 				 must be a vim keymap and can't contain any spaces. Example <C-g><C-A-i> = Ctrl-g + Ctrl-Alt-i.
 				 Please check the vim keybinding first on another command like w before reporting it. Some keybindings like shift don't work due to the original vim plugin. Use empty string to disable this feature.
 				  (select mode=insert keybindings)`)
@@ -677,7 +671,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				.onChange(async (value) => {
 					const oldvalue: string = this.plugin.settings.vimVisualMode;
 					this.plugin.settings.vimVisualMode = value;
-					await this.plugin.saveSettings();	
+					await this.plugin.saveSettings();
 					const command: vimCommand = getVimVisualModeCommand(this.plugin.settings);
 					const vimObject = window?.CodeMirrorAdapter?.Vim;
 					if (!vimObject) return;
@@ -727,7 +721,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				});
 		});
 	}
-	
+
 	private displayExperimentalSettings() {
 		const containerEl = this.containerEl;
 		this.addHeading(containerEl, "Experimental features", "experiment")

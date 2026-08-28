@@ -10,6 +10,8 @@
     "noImplicitAny": true,
 	"strictNullChecks": true,
     "moduleResolution": "node",
+	"ignoreDeprecations": "6.0",
+	"resolveJsonModule": true,
     "importHelpers": true,
     "isolatedModules": true,
     "lib": [

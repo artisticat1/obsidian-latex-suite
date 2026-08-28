@@ -20,6 +20,8 @@ import * as v from "valibot"
 import { languageExtension } from "./parser/language";
 import { highlight_dollar } from "./editor_extensions/highlight_dollar";
 import { EMPTY_SETTINGS } from "./settings/empty_settings";
+import i18next from "./i18n/i18n";
+import resources from "./i18n/resources";
 
 export default class LatexSuitePlugin extends Plugin implements LatexSuitePluginPublicApi {
 	settings: LatexSuitePluginSettings = EMPTY_SETTINGS;
@@ -35,6 +37,7 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 	};
 
 	async onload() {
+		i18next.addResourceBundle("en", "obsidian-latex-suite", resources.en)
 		await this.loadSettings();
 
 		this.loadIcons();

@@ -48,6 +48,7 @@ const args = {
 		"@lezer/highlight",
 		"@lezer/common",
 		"@lezer/lr",
+		"i18next",
 		"fs",
 		"path",
 		"os",

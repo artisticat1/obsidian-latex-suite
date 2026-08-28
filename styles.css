@@ -17,25 +17,17 @@
     border-top: none;
 }
 
-.setting-item.setting-item-heading:has(.latex-suite-settings-icon) ~ .setting-item:not(.setting-item-heading), .latex-suite-snippet-variables-setting + .setting-item-control {
+.setting-item.setting-item-heading:has(.latex-suite-settings-icon) ~ .setting-item:not(.setting-item-heading) {
     width: calc(100% - 26px);
     margin-left: 26px;
 }
 
-.latex-suite-snippet-variables-setting .setting-item-control {
-    height: 120px;
-}
-
-.latex-suite-snippet-variables-setting .setting-item-control textarea {
-    width: 100%;
-    height: 100%;
-}
-
-.snippets-text-area, .latex-suite-snippet-variables-setting {
+.snippets-text-area {
     display: inline-block;
+	width: 100%;
 }
 
-.snippets-text-area .setting-item-info, .latex-suite-snippet-variables-setting .setting-item-info {
+.snippets-text-area .setting-item-info {
     margin-bottom: 0.75rem;
 }
 
@@ -289,4 +281,12 @@ and limit the height.
 
 .latex-suite-highlighted-dollar-code {
 	color: #54940b;
+}
+
+p.latex-suite-markdown-p {
+	margin-block-end: 0px;
+}
+
+span > p.latex-suite-markdown-p:first-child {
+	margin-block-start: 0px;
 }

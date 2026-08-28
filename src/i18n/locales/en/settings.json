@@ -1,0 +1,225 @@
+{
+	"snippets": {
+		"heading": "Snippets",
+		"enabled": {
+			"name": "Enabled",
+			"desc": "Whether snippets are enabled. For more info on how to format snippets see the [documentation](https://github.com/artisticat1/obsidian-latex-suite/blob/main/DOCS.md#snippets)."
+		},
+		"snippets": {
+			"name": "Snippets",
+			"desc": "Enter snippets here. Remember to add a comma after each snippet, and escape all backslashes with an extra `\\`. Lines starting with `//` will be treated as comments and ignored."
+		},
+		"load-from-file": {
+			"name": "Load snippets from file or folder",
+			"desc": "Whether to load snippets from specified file, or from all files within a folder (instead of from the plugin settings)."
+		},
+		"file-path": {
+			"name": "Snippets file or folder location",
+			"desc": "The file or folder to load snippets from. On desktop you can use ~/ or an absolute path. Files outside your vault or in hidden folders may not be watched for changes depending on your OS."
+		}
+	},
+	"conceal": {
+		"heading": "Conceal",
+		"enabled": {
+			"name": "Enabled",
+			"desc": "Make equations more readable by hiding LaTeX syntax and instead displaying it in a pretty format.\ne.g.`\\dot{x}^{2} + \\dot{y}^{2}` will display as `ẋ² + ẏ²` and `\\sqrt{ 1-\\beta^{2} }` will display as `√(1-β²)`\nLaTeX beneath the cursor will be revealed.\n\nDisabled by default to not confuse new users. However, I recommend turning this on once you are comfortable with the plugin!."
+		},
+		"reveal-delay": {
+			"name": "Reveal delay (ms)",
+			"desc": "How long to delay the reveal of LaTeX for, in milliseconds, when the cursor moves over LaTeX. Defaults to 0 (LaTeX under the cursor is revealed immediately).\n\nCan be set to a positive number, e.g. 300, to delay the reveal of LaTeX, making it much easier to navigate equations using arrow keys.\n\nMust be an integer ≥ 0."
+		}
+	},
+	"highlight-brackets": {
+		"heading": "Highlight and color brackets",
+		"color-brackets": {
+			"name": "Color paired brackets",
+			"desc": "Whether to colorize matching brackets."
+		},
+		"highlight-brackets": {
+			"name": "Highlight matching bracket beneath cursor",
+			"desc": "When the cursor is adjacent to a bracket, highlight the matching bracket."
+		},
+		"color-math": {
+			"name": "Color math delimiters",
+			"desc": "Whether to colorize matched and mismatched math delimiters in the editor according to latex suite parser. This parser behaves closer to the reading view parser than the editor/syntax highlighting parser."
+		}
+	},
+	"math-preview": {
+		"heading": "Math popup preview",
+		"enabled": {
+			"name": "Enabled",
+			"desc": "When inside an equation, show a popup preview window of the rendered math.\n\nThe popup preview will be shown for all inline math equations, as well as for block math equations in Source mode."
+		},
+		"position": {
+			"name": "Position",
+			"desc": "Where to display the popup preview relative to the equation source.",
+			"options": {
+				"above": "Above",
+				"below": "Below"
+			}
+		},
+		"cursor-symbol": {
+			"name": "Cursor symbol",
+			"desc": "The symbol to use as the cursor in the popup preview such as {{cursor}}. Leave it blank to turn it off."
+		},
+		"highlight-brackets": {
+			"name": "Highlight brackets in preview",
+			"desc": "Whether to highlight the area within the nearest pair of brackets around the cursor in the popup preview."
+		},
+		"display-live-preview": {
+			"name": "Display live preview",
+			"desc": "Whether to display the tooltip in live preview mode. The cursor and bracket highlighting will only be shown in this preview and not in obsidian's preview"
+		}
+	},
+	"auto-fraction": {
+		"heading": "Auto-fraction",
+		"enabled": {
+			"name": "Enabled",
+			"desc": "Whether auto-fraction is enabled."
+		},
+		"fraction-symbol": {
+			"name": "Fraction symbol",
+			"desc": "The fraction symbol to use in the replacement. e.g. `\\frac`, `\\dfrac`, `\\tfrac`."
+		},
+		"excluded-environments": {
+			"name": "Excluded environments",
+			"desc": "A list of environments to exclude auto-fraction from running in. For example, to exclude auto-fraction from running while inside an exponent, such as `e^{...}`, use `[\"^{\", \"}\"]`"
+		},
+		"breaking-characters": {
+			"name": "Breaking characters",
+			"desc": "A list of characters that denote the start/end of a fraction. e.g. if `+` is included in the list, `a+b/c` will expand to `a+\\frac{b}{c}`. If `+` is not in the list, it will expand to `\\frac{a+b}{c}`."
+		}
+	},
+	"matrix-shortcuts": {
+		"heading": "Matrix shortcuts",
+		"enabled": {
+			"name": "Enabled",
+			"desc": "Whether matrix shortcuts are enabled."
+		},
+		"environments": {
+			"name": "Environments",
+			"desc": "A list of environment names to run the matrix shortcuts in, separated by commas."
+		},
+		"macros": {
+			"name": "Macros",
+			"desc": "A list of macros names to run the matrix shortcuts in, separated by commas."
+		}
+	},
+	"tabout": {
+		"heading": "Tabout",
+		"enabled": {
+			"name": "Enabled",
+			"desc": "Whether tabout is enabled."
+		},
+		"closing-brackets": {
+			"name": "Closing brackets",
+			"desc": "A list of closing brackets for tabout, separated by commas."
+		},
+		"exit-EOL": {
+			"name": "Exit equation only on EOL",
+			"desc": "Whether to exit the equation only when the cursor is at the end of line"
+		}
+	},
+	"auto-enlarge": {
+		"heading": "Auto-enlarge brackets",
+		"enabled": {
+			"name": "Enabled",
+			"desc": "Whether to automatically enlarge brackets containing e.g. sum, int, frac."
+		},
+		"triggers": {
+			"name": "Triggers",
+			"desc": "A list of symbols that should trigger auto-enlarge brackets, separated by commas."
+		},
+		"space": {
+			"name": "Space",
+			"desc": "Whether to add a space after `\\left(` and before `\\right)` or not"
+		}
+	},
+	"advanced-snippets": {
+		"heading": "Advanced snippets",
+		"variables": {
+			"name": "Snippet variables",
+			"desc": "Assign snippet variables that can be used as shortcuts when writing snippets"
+		},
+		"load-variables-from-file": {
+			"name": "Load snippet variables from file or folder",
+			"desc": "Whether to load snippet variables from a specified file, or from all files within a folder (instead of from the plugin settings)."
+		},
+		"variables-file-path": {
+			"name": "Snippet variables file or folder location",
+			"desc": "The file or folder to load snippet variables from. On desktop you can use ~/ or an absolute path. Files outside your vault or in hidden folders may not be watched for changes depending on your os."
+		},
+		"word-delimiters": {
+			"name": "Word delimiters",
+			"desc": "Symbols that will be treated as word delimiters, for use with the `w` snippet option"
+		},
+		"trailing-whitespace": {
+			"name": "Remove trailing whitespace in snippets in inline math",
+			"desc": "Whether to remove trailing whitespaces when expanding snippets at the end of inline math blocks."
+		},
+		"auto-delete$": {
+			"name": "Remove closing $ when backspacing inside blank inline math",
+			"desc": "Whether to also remove closing $ when you delete the opening $ symbol inside blank inline math."
+		},
+		"suppress-IME": {
+			"name": "Don't trigger snippets when IME is active",
+			"desc": "Whether to suppress snippets triggering when an IME is active."
+		},
+		"suppress-IME-warning": {
+			"name": "Suppress IME warning",
+			"desc": "Whether a warning is shown on startup if `$t(settings:advanced-snippets.suppress-IME.name)` is enabled. Disable that setting if you are aware of the IME limitations. Currently only ios and android touch/swipe keyboards like gboard have support for IME. See [here](https://github.com/artisticat1/obsidian-latex-suite/blob/main/DOCS.md#IME-keyboards) for more info."
+		},
+		"code-languages": {
+			"name": "Code languages to interpret as math mode",
+			"desc": "Codeblock languages where the whole code block should be treated like a math block separated by commas."
+		},
+		"snippet-debug-mode": {
+			"name": "Snippet debug mode",
+			"desc": "Set the level of debug information to log about snippet expansion. Set to `info` or `verbose` to help identify which and what snippet is expanding. Verbose mode will log most information to the developer console on debug level.",
+			"options": {
+				"off": "Off",
+				"info": "Info",
+				"verbose": "Verbose"
+			}
+		}
+	},
+	"vim": {
+		"enabled": {
+			"name": "Vim key bindings",
+			"desc": "Turn on/off vim keybindings. Note vim needs to be enabled in obsidian itself."
+		},
+		"select-mode": {
+			"name": "Vim: Switch from visual mode to select mode",
+			"desc": "Maps the key to switch from visual mode to select mode.Keymap must be vim keymap and can't contain any spaces. Use empty string to disable this feature. (select mode=insert keybindings)"
+		},
+		"visual-mode": {
+			"name": "Vim: Switch from select mode to visual mode",
+			"desc": "Maps the key to switch from select mode to visual mode. must be a vim keymap and can't contain any spaces. Example `<C-g><C-A-i>` = `Ctrl-g + Ctrl-Alt-i`. Please check the vim keybinding first on another command like w before reporting it. Some keybindings like shift don't work due to the original vim plugin. Use empty string to disable this feature. (select mode=insert keybindings)"
+		},
+		"matrix-enter": {
+			"name": "Vim: run matrix enter",
+			"desc": "Maps the key to the action of inserting a new line below while appending `\\\\` to the current line in a matrix environment. Use empty string to disable this feature."
+		}
+	},
+	"keymap": {
+		"desc": "What key to press to trigger the action. Should follow codemirror 6 keymap syntax such as `Ctrl-k Ctrl-a` For more info see [codemirror keymap](https://codemirror.net/6/docs/ref/#keymap)\n\nNote that some keymaps may not work due to conflicts with obsidian or other plugins.\n\nThe actions are expanded in the order that they are listed. Custom keymaps in snippets are on the same priority as `$t(settings:keymap.snippet)`.",
+		"heading": {
+			"name": "Keymap",
+			"desc": "codemirror 6 keymaps for snippets and tabout."
+		},
+		"snippet": "expand manual snippets",
+		"next-tabstop": "next tabstop",
+		"prev-tabstop": "previous tabstop",
+		"tabout": "tabout"
+	},
+	"experimental": {
+		"heading": {
+			"name": "Experimental features",
+			"desc": "Features that are still in testing and may need user feedback. Backwards compatibility may break for these features or these settings may be overridden."
+		},
+		"snippet-recursion": {
+			"name": "Snippet recursion",
+			"desc": "How many times to run snippets in a row. Set to 0 to disable recursion.\n\n[Related pr/feedback](https://github.com/artisticat1/obsidian-latex-suite/pull/536)"
+		}
+	}
+}
