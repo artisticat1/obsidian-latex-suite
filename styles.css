@@ -1,3 +1,5 @@
+/* stylelint-disable selector-class-pattern */
+
 /* Settings panel */
 
 .setting-item.hidden {
@@ -11,6 +13,10 @@
 
 .setting-item.setting-item-heading.latex-suite-settings-heading {
     border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.latex-suite-confirmation-modal .setting-item {
+    border: none;
 }
 
 .setting-item.setting-item-heading.latex-suite-settings-heading + .setting-item {
@@ -67,7 +73,7 @@
 }
 
 .snippets-editor-validity-indicator {
-    color: white;
+    color: #fff;
     display: inline-block;
     border-radius: 1em;
     margin-right: 10px;
@@ -81,7 +87,7 @@
 }
 
 .snippets-editor-validity-indicator:hover {
-    color: white;
+    color: #fff;
 }
 
 .snippets-editor-validity-indicator.valid {
@@ -101,10 +107,6 @@
 .snippets-editor-buttons {
     display: flex;
     flex-direction: row;
-}
-
-.latex-suite-confirmation-modal .setting-item {
-    border: none;
 }
 
 .search-input-container input.latex-suite-location-input-el {
@@ -143,7 +145,7 @@ nesting multiple decorations. */
 }
 
 .latex-suite-snippet-placeholder-2, span.latex-suite-snippet-placeholder-2 span {
-    --placeholder-bg: #00ff0022;
+    --placeholder-bg: #0f02;
     --placeholder-outline: #00ff0060;
 }
 
@@ -180,14 +182,15 @@ sup.cm-math, sub.cm-math {
 /* Inline math tooltip styling */
 
 .theme-light .cm-tooltip.cm-tooltip-cursor {
-    box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.028), 0px 3.4px 6.7px rgba(0, 0, 0, .042), 0px 5px 20px rgba(0, 0, 0, .07);
+    box-shadow: 0 1px 2px rgb(0 0 0 / 2.8%), 0 3.4px 6.7px rgb(0 0 0 / 4.2%), 0 5px 20px rgb(0 0 0 / 7%);
 }
 
 .theme-dark .cm-tooltip.cm-tooltip-cursor {
-    box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.1),
-    0px 3.4px 6.7px rgba(0, 0, 0, 0.15),
-    0px 0px 30px rgba(0, 0, 0, 0.27);
+    box-shadow: 0 1px 2px rgb(0 0 0 / 10%),
+    0 3.4px 6.7px rgb(0 0 0 / 15%),
+    0 0 30px rgb(0 0 0 / 27%);
 }
+
 /* CM6 puts the top of the tooltip higher than what's viewable (negative top value),
 so to compensate for this, we align the content to the bottom of the tooltip container,
 and limit the height.
@@ -207,13 +210,14 @@ and limit the height.
 	overflow-y: auto;
 	max-height: 90%;
 }
+
 /* Highlight brackets */
 .theme-light .latex-suite-highlighted-bracket, .theme-light .latex-suite-highlighted-bracket [class^="latex-suite-color-bracket-"] {
-    background-color: hsl(var(--accent-h), var(--accent-s), 40%, 0.3);
+    background-color: hsl(var(--accent-h) var(--accent-s) 40% / 30%);
 }
 
 .theme-dark .latex-suite-highlighted-bracket, .theme-dark .latex-suite-highlighted-bracket [class^="latex-suite-color-bracket-"] {
-    background-color: hsl(var(--accent-h), var(--accent-s), 70%, 0.6);
+    background-color: hsl(var(--accent-h) var(--accent-s) 70% / 60%);
 }
 
 
@@ -244,11 +248,12 @@ and limit the height.
 }
 
 .theme-light .latex-suite-mismatched-bracket, .theme-light .latex-suite-mismatched-bracket .cm-bracket {
-	color: rgb(255,18,18, 0.8);
+	color: rgb(255 18 18 / 80%);
 
 }
+
 .theme-dark .latex-suite-mismatched-bracket, .theme-dark .latex-suite-mismatched-bracket .cm-bracket {
-	color: rgb(255,18,18, 0.8);
+	color: rgb(255 18 18 / 80%);
 }
 
 /* .latex-suite-color-bracket-3 {
@@ -258,6 +263,7 @@ and limit the height.
 .latex-suite-math-preview-highlight {
 	background-color: var(--text-selection);
 }
+
 .cm-snippetFieldPosition {
     vertical-align: text-top;
     width: 0;
@@ -268,7 +274,7 @@ and limit the height.
   }
 
 .latex-suite-error-dollar {
-	color: red;
+	color: #f00;
 }
 
 .latex-suite-highlighted-dollar-inline {
@@ -284,9 +290,9 @@ and limit the height.
 }
 
 p.latex-suite-markdown-p {
-	margin-block-end: 0px;
+	margin-block-end: 0;
 }
 
 span > p.latex-suite-markdown-p:first-child {
-	margin-block-start: 0px;
+	margin-block-start: 0;
 }
