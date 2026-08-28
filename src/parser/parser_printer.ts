@@ -9,7 +9,7 @@ export const mathParserPlugin = ViewPlugin.fromClass(
 		update(update: ViewUpdate) {
 			if (!update.docChanged) return;
 			try {
-				// this.printMountedTrees(update.state)
+				this.printMountedTrees(update.state)
 				const tree = modifiedSyntaxTree(update.state);
 				console.debug("Syntax Tree:", tree.toString());
 				const docString = update.state.doc.toString();
@@ -18,7 +18,7 @@ export const mathParserPlugin = ViewPlugin.fromClass(
 				console.error(e)
 			}
 		}
-		
+
 		printMountedTrees(state: EditorState) {
 			const tree = modifiedSyntaxTree(state);
 			const mountedTrees: SyntaxNode[] = []
@@ -32,11 +32,19 @@ export const mathParserPlugin = ViewPlugin.fromClass(
 							if (!tree) return
 							mountedTrees.push(tree)
 						}
+					} else if (node.name === "FencedCode") {
+						const infoNode = node.node.getChild("CodeInfo");
+						if (!infoNode) return;
+						const contentNodes = node.node.getChildren("CodeText");
+						const lastNode = contentNodes.last();
+						if (!lastNode) return;
+						const tree = node.node.enter(lastNode.to, -1);
+						if (tree) mountedTrees.push(tree)
 					}
 				}
-			})	
+			})
+			const equation = state.doc.sliceString(0, state.doc.length)
 			mountedTrees.forEach((node) => {
-				const equation = state.doc.sliceString(0, state.doc.length)
 				_printNode2(node, equation)
 			})
 		}
