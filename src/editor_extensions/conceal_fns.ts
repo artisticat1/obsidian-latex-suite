@@ -617,6 +617,8 @@ export function conceal(
 				),
 			);
 			continue;
+		} else if (eqn.text.trim() === "") {
+			continue;
 		}
 		const bound = eqn.bound;
 		new_equations[eqn.text] = [];

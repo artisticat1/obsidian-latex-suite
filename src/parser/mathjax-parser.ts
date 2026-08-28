@@ -184,15 +184,15 @@ const blockParserDisplayMath: BlockParser = {
 		const markers: CustomElement[] = [
 			cx.elt(Type.Dollar, startPos, cx.lineStart + dollarEnd),
 		];
+		let first = true;
 		if (firstEqChar < line.text.length) {
 			const from = cx.lineStart + firstEqChar;
 			const to = cx.lineStart + line.text.length;
 			addDisplayMath(markers, from, to);
+			first = false;
 		}
 		const depth = cx.depth
-		for (
-			let first = true, empty = true, hasLine = false;
-			cx.nextLine() &&
+		for (; cx.nextLine() &&
 			((line.text !== "" && depth >= 2) || depth < 2);
 			first = false
 		) {
@@ -202,13 +202,11 @@ const blockParserDisplayMath: BlockParser = {
 				for (const m of line.markers ?? []) markers.push(m);
 				const endFrom = cx.lineStart + endDollar[0];
 				const endTo = cx.lineStart + endDollar[1];
-				if (empty && !hasLine) {
-					addDisplayMath(markers, cx.lineStart - 1, cx.lineStart);
-				}
-				if (cx.lineStart + line.pos < endFrom) {
+				if (cx.lineStart + line.basePos < endFrom) {
+					addDisplayMath(markers, cx.lineStart - 1, cx.lineStart)
 					addDisplayMath(
 						markers,
-						cx.lineStart + line.pos,
+						cx.lineStart + line.basePos,
 						endFrom,
 					);
 				}
@@ -216,17 +214,14 @@ const blockParserDisplayMath: BlockParser = {
 				cx.nextLine();
 				break;
 			}
-			hasLine = true;
 			if (!first) {
 				addDisplayMath(markers, cx.lineStart - 1, cx.lineStart)
-				empty = false;
 			}
 			for (const m of line.markers ?? []) markers.push(m);
-			const textStart = cx.lineStart + line.pos;
+			const textStart = cx.lineStart + line.basePos;
 			const textEnd = cx.lineStart + line.text.length;
 			if (textStart < textEnd) {
 				addDisplayMath(markers, textStart, textEnd);
-				empty = false;
 			}
 		}
 		const InBetweenElements = markers.map((marker) =>
@@ -340,7 +335,7 @@ function isCommentEnd(line: Line): number {
 		}
 		startPos++;
 	}
-	return -1	
+	return -1
 }
 
 function isBlockCommentBegin(line: Line): boolean {
