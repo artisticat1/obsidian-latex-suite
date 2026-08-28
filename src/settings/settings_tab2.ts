@@ -1,13 +1,13 @@
-import { App, ButtonComponent, Component, debounce, ExtraButtonComponent, MarkdownRenderer, Modal, Platform, Setting, SettingDefinition, SettingDefinitionControl, SettingDefinitionItem, SettingTab } from "obsidian"
-import { DEFAULT_SETTINGS, LatexSuitePluginSettings } from "./settings"
-import { i18next } from "../i18n/i18n"
+import { App, ButtonComponent, Component, debounce, ExtraButtonComponent, MarkdownRenderer, Modal, Notice, Platform, Setting, SettingDefinition, SettingDefinitionControl, SettingDefinitionItem, SettingTab } from "obsidian"
+import { DEFAULT_SETTINGS, EnvironmentSchema, LatexSuitePluginSettings } from "./settings"
+import { settings_translation as t } from "../i18n/i18n"
 import { EditorState, Extension } from "@codemirror/state"
 import { EditorView, ViewUpdate } from "@codemirror/view"
 import { parseSnippetVariables, parseSnippets } from "src/snippets/parse"
-import { DEFAULT_SNIPPETS } from "src/utils/default_snippets"
 import { basicSetup } from "./ui/snippets_editor/extensions"
 import LatexSuitePlugin from "src/main"
 import { FileSuggest } from "./ui/file_suggest"
+import * as v from "valibot"
 
 
 type Definition<K> = K extends keyof LatexSuitePluginSettings ? SettingDefinition<K> : never
@@ -89,6 +89,8 @@ type ExperimentalSettingDefinition = Definition<
 
 export class LatexSuiteSettingsTab2 extends SettingTab {
 	snippetsEditor: EditorView | null = null;
+	snippetVariablesEditor: EditorView | null = null;
+	component = new Component();
 
 	constructor(
 		public app: App,
@@ -98,7 +100,8 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 	}
 
 	getSettingDefinitions(): SettingDefinitionItem[] {
-		return [
+		this.component.unload()
+		const definitions: SettingDefinitionItem[] = [
 			...this.getSnippetDefinitions(),
 			...this.getConcealDefinitions(),
 			...this.getColorHighlightBracketsDefinitions(),
@@ -111,42 +114,42 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 			...this.getKeyMapDefinitions(),
 			...this.getExperimentalDefinitions(),
 		]
+		this.component.load()
+		return definitions
 	}
 
 	getSnippetDefinitions(): SettingDefinitionItem[] {
 		const snippets: SnippetSettingDefinition[] = [];
 		snippets.push(
 			{
-				name: i18next.t("snippets.enabled.name"),
-				desc: i18next.t("snippets.enabled.desc"),
-				control: {
-					type: "toggle",
-					key: "snippetsEnabled",
-					defaultValue: DEFAULT_SETTINGS.snippetsEnabled,
-				},
+				name: t("snippets.enabled.name"),
+				desc: this.renderMarkdown( t("snippets.enabled.desc")),
+				control: getToggleControl("snippetsEnabled"),
 			},
 			{
-				name: i18next.t("snippets.snippets.name"),
-				desc: i18next.t("snippets.snippets.desc"),
+				name: t("snippets.snippets.name"),
+				desc: this.renderMarkdown(t("snippets.snippets.desc")),
 				render: (setting) => {
-					setting.setClass("snippets-text-area");
 					this.snippetsEditor?.destroy()
-					this.snippetsEditor = createSnippetsEditor(setting, this.plugin);
+					this.snippetsEditor = createSnippetsEditor(setting, this.plugin, {
+						type: "snippets",
+						validate: async (value) => {
+							const snippetVariables = await parseSnippetVariables(this.plugin.settings.snippetVariables, "snippet-variables.js");
+							await parseSnippets(value, snippetVariables, "snippets.js");
+						},
+						deleted: "export default [\n\n]"
+					});
 				},
 				visible: () => !this.plugin.settings.loadSnippetsFromFile,
 			},
 			{
-				name: i18next.t("snippets.load-from-file.name"),
-				desc: i18next.t("snippets.load-from-file.desc"),
-				control: {
-					key: "loadSnippetsFromFile",
-					type: "toggle",
-					defaultValue: DEFAULT_SETTINGS.loadSnippetsFromFile,
-				},
+				name: t("snippets.load-from-file.name"),
+				desc: this.renderMarkdown(t("snippets.load-from-file.desc")),
+				control: getToggleControl("loadSnippetsFromFile")
 			},
 			{
-				name: i18next.t("snippets.file-path.name"),
-				desc: i18next.t("snippets.file-path.desc"),
+				name: t("snippets.file-path.name"),
+				desc: this.renderMarkdown(t("snippets.file-path.desc")),
 				render: (setting) => {
 					this.fileSearch(setting, "snippetsFileLocation")
 				},
@@ -155,36 +158,36 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 		);
 		const advanced: AdvancedSnippetSettingDefinition[] = [
 			{
-				name: i18next.t("advanced-snippets.variables.name"),
-				desc: i18next.t("advanced-snippets.variables.desc"),
+				name: t("advanced-snippets.variables.name"),
+				desc: this.renderMarkdown(t("advanced-snippets.variables.desc")),
 				render: (setting) => {
-					setting.addTextArea(text => text
-						.setValue(this.plugin.settings.snippetVariables)
-						.onChange(async (value) => {
-							this.plugin.settings.snippetVariables = value;
-							await this.plugin.saveSettings();
-						})
-						.setPlaceholder(DEFAULT_SETTINGS.snippetVariables))
-						.setClass("latex-suite-snippet-variables-setting");
+					this.snippetVariablesEditor?.destroy()
+					this.snippetVariablesEditor = createSnippetsEditor(setting, this.plugin, {
+						type: "snippetVariables",
+						validate: async (value) => {
+							await parseSnippetVariables(value, "snippet-variables.js")
+						},
+						deleted: "export default {\n\n}"
+					})
 				},
 				visible: () => !this.plugin.settings.loadSnippetVariablesFromFile
 			},
 			{
-				name: i18next.t("advanced-snippets.load-variables-from-file.name"),
-				desc: i18next.t("advanced-snippets.load-variables-from-file.desc"),
+				name: t("advanced-snippets.load-variables-from-file.name"),
+				desc: this.renderMarkdown(t("advanced-snippets.load-variables-from-file.desc")),
 				control: getToggleControl("loadSnippetVariablesFromFile"),
 			},
 			{
-				name: i18next.t("advanced-snippets.variables-file-path.name"),
-				desc: i18next.t("advanced-snippets.variables-file-path.desc"),
+				name: t("advanced-snippets.variables-file-path.name"),
+				desc: this.renderMarkdown(t("advanced-snippets.variables-file-path.desc")),
 				render: (setting) => {
 					this.fileSearch(setting, "snippetVariablesFileLocation")
 				},
 				visible: () => this.plugin.settings.loadSnippetVariablesFromFile
 			},
 			{
-				name: i18next.t("advanced-snippets.word-delimiters.name"),
-				desc: i18next.t("advanced-snippets.word-delimiters.desc"),
+				name: t("advanced-snippets.word-delimiters.name"),
+				desc: this.renderMarkdown(t("advanced-snippets.word-delimiters.desc")),
 				control: {
 					type: "text",
 					key: "wordDelimiters",
@@ -192,53 +195,41 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 				}
 			},
 			{
-				name: i18next.t("advanced-snippets.trailing-whitespace.name"),
-				desc: i18next.t("advanced-snippets.trailing-whitespace.desc"),
-				control: {
-					type: "toggle",
-					key: "removeSnippetWhitespace",
-					defaultValue: DEFAULT_SETTINGS.removeSnippetWhitespace,
-				}
+				name: t("advanced-snippets.trailing-whitespace.name"),
+				desc: this.renderMarkdown(t("advanced-snippets.trailing-whitespace.desc")),
+				control: getToggleControl("removeSnippetWhitespace")
 			},
 			{
-				name: i18next.t("advanced-snippets.auto-delete$.name"),
-				desc: i18next.t("advanced-snippets.auto-delete$.desc"),
-				control: {
-					type: "toggle",
-					key: "autoDelete$",
-					defaultValue: DEFAULT_SETTINGS.autoDelete$,
-				}
+				name: t("advanced-snippets.auto-delete$.name"),
+				desc: this.renderMarkdown(t("advanced-snippets.auto-delete$.desc")),
+				control: getToggleControl("autoDelete$")
 			},
 			{
-				name: i18next.t("advanced-snippets.suppress-IME-warning.name"),
-				desc: i18next.t("advanced-snippets.suppress-IME-warning.desc"),
+				name: t("advanced-snippets.suppress-IME-warning.name"),
+				desc: this.renderMarkdown(t("advanced-snippets.suppress-IME-warning.desc")),
 				control: getToggleControl("suppressIMEWarning"),
 				visible: () => isIMESupported() && this.plugin.settings.suppressSnippetTriggerOnIME
 			},
 			{
-				name: i18next.t("advanced-snippets.suppress-IME.name"),
-				desc: i18next.t("advanced-snippets.suppress-IME.desc"),
+				name: t("advanced-snippets.suppress-IME.name"),
+				desc: this.renderMarkdown(t("advanced-snippets.suppress-IME.desc")),
 				control: getToggleControl("suppressSnippetTriggerOnIME"),
 			},
 			{
-				name: i18next.t("advanced-snippets.code-languages.name"),
-				desc: i18next.t("advanced-snippets.code-languages.desc"),
-				control: {
-					type: "text",
-					key: "forceMathLanguages",
-					defaultValue: DEFAULT_SETTINGS.forceMathLanguages,
-				}
+				name: t("advanced-snippets.code-languages.name"),
+				desc: this.renderMarkdown(t("advanced-snippets.code-languages.desc")),
+				control: getTextControl("forceMathLanguages")
 			},
 			{
-				name: i18next.t("advanced-snippets.snippet-debug-mode.name"),
-				desc: i18next.t("advanced-snippets.snippet-debug-mode.desc"),
+				name: t("advanced-snippets.snippet-debug-mode.name"),
+				desc: this.renderMarkdown(t("advanced-snippets.snippet-debug-mode.desc")),
 				control: {
 					type: "dropdown",
 					key: "snippetDebug",
 					options: {
-						off: i18next.t("advanced-snippets.snippet-debug-mode.options.off"),
-						info: i18next.t("advanced-snippets.snippet-debug-mode.options.info"),
-						verbose: i18next.t("advanced-snippets.snippet-debug-mode.options.verbose")
+						off: t("advanced-snippets.snippet-debug-mode.options.off"),
+						info: t("advanced-snippets.snippet-debug-mode.options.info"),
+						verbose: t("advanced-snippets.snippet-debug-mode.options.verbose")
 					},
 					defaultValue: DEFAULT_SETTINGS.snippetDebug
 				}
@@ -246,10 +237,10 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 		]
 		return [{
 			type: "page",
-			name: i18next.t("snippets.heading"),
+			name: t("snippets.heading"),
 			items: [...snippets, {
 				type: "group",
-				heading: i18next.t("advanced-snippets.heading"),
+				heading: t("advanced-snippets.heading"),
 				items: advanced
 			}],
 		}]
@@ -258,17 +249,13 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 	getConcealDefinitions(): SettingDefinitionItem[] {
 		const settings: ConcealSettingDefinition[] = [
 			{
-				name: i18next.t("conceal.enabled.name"),
-				desc: renderMarkdown(this.app, i18next.t("conceal.enabled.desc")),
-				control: {
-					type: "toggle",
-					key: "concealEnabled",
-					defaultValue: DEFAULT_SETTINGS.concealEnabled
-				}
+				name: t("conceal.enabled.name"),
+				desc: this.renderMarkdown( t("conceal.enabled.desc")),
+				control: getToggleControl("concealEnabled")
 			},
 			{
-				name: i18next.t("conceal.reveal-delay.name"),
-				desc: renderMarkdown(this.app, i18next.t("conceal.reveal-delay.desc")),
+				name: t("conceal.reveal-delay.name"),
+				desc: this.renderMarkdown( t("conceal.reveal-delay.desc")),
 				control: {
 					type: "number",
 					key: "concealRevealTimeout",
@@ -279,7 +266,7 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 		]
 		return [{
 			type: "page",
-			name: i18next.t("conceal.heading"),
+			name: t("conceal.heading"),
 			items: settings,
 		}]
 	}
@@ -287,36 +274,24 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 	getColorHighlightBracketsDefinitions(): SettingDefinitionItem[] {
 		const settings: ColorHighlightSettingDefinition[] = [
 			{
-				name: i18next.t("highlight-brackets.color-brackets.name"),
-				desc: i18next.t("highlight-brackets.color-brackets.desc"),
-				control: {
-					type: "toggle",
-					key: "colorPairedBracketsEnabled",
-					defaultValue: DEFAULT_SETTINGS.colorPairedBracketsEnabled,
-				}
+				name: t("highlight-brackets.color-brackets.name"),
+				desc: this.renderMarkdown(t("highlight-brackets.color-brackets.desc")),
+				control: getToggleControl("colorPairedBracketsEnabled")
 			},
 			{
-				name: i18next.t("highlight-brackets.highlight-brackets.name"),
-				desc: i18next.t("highlight-brackets.highlight-brackets.desc"),
-				control: {
-					type: "toggle",
-					key: "highlightCursorBracketsEnabled",
-					defaultValue: DEFAULT_SETTINGS.highlightCursorBracketsEnabled,
-				}
+				name: t("highlight-brackets.highlight-brackets.name"),
+				desc: this.renderMarkdown(t("highlight-brackets.highlight-brackets.desc")),
+				control: getToggleControl("highlightCursorBracketsEnabled")
 			},
 			{
-				name: i18next.t("highlight-brackets.color-math.name"),
-				desc: i18next.t("highlight-brackets.color-math.desc"),
-				control: {
-					type: "toggle",
-					key: "highlightDollarEnabled",
-					defaultValue: DEFAULT_SETTINGS.highlightDollarEnabled,
-				}
+				name: t("highlight-brackets.color-math.name"),
+				desc: this.renderMarkdown(t("highlight-brackets.color-math.desc")),
+				control: getToggleControl("highlightDollarEnabled")
 			}
 		]
 		return [{
 			type: "page",
-			name: i18next.t("highlight-brackets.heading"),
+			name: t("highlight-brackets.heading"),
 			items: settings
 		}]
 	}
@@ -324,21 +299,17 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 	getPopupPreviewDefinitions(): SettingDefinitionItem[] {
 		const settings: PopupPreviewSettingDefinition[] = [
 			{
-				name: i18next.t("math-preview.enabled.name"),
-				desc: renderMarkdown(this.app, i18next.t("math-preview.enabled.desc")),
-				control: {
-					type: "toggle",
-					key: "mathPreviewEnabled",
-					defaultValue: DEFAULT_SETTINGS.mathPreviewEnabled,
-				}
+				name: t("math-preview.enabled.name"),
+				desc: this.renderMarkdown( t("math-preview.enabled.desc")),
+				control: getToggleControl("mathPreviewEnabled")
 			},
 			{
-				name: i18next.t("math-preview.position.name"),
-				desc: i18next.t("math-preview.position.desc"),
+				name: t("math-preview.position.name"),
+				desc: this.renderMarkdown(t("math-preview.position.desc")),
 				render: (setting) => {
 					setting.addDropdown((dropdown) => dropdown
-						.addOption("above", i18next.t("math-preview.position.options.above"))
-						.addOption("below", i18next.t("math-preview.position.options.below"))
+						.addOption("above", t("math-preview.position.options.above"))
+						.addOption("below", t("math-preview.position.options.below"))
 						.setValue(this.plugin.settings.mathPreviewPositionIsAbove ? "above" : "below")
 						.onChange(async (value) => {
 							this.plugin.settings.mathPreviewPositionIsAbove = value === "above";
@@ -348,8 +319,8 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 				}
 			},
 			{
-				name: i18next.t("math-preview.cursor-symbol.name"),
-				desc: i18next.t("math-preview.cursor-symbol.desc"),
+				name: t("math-preview.cursor-symbol.name"),
+				desc: this.renderMarkdown(t("math-preview.cursor-symbol.desc")),
 				render: (setting) => {
 					setting.addText(text => {
 						text
@@ -367,27 +338,19 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 				}
 			},
 			{
-				name: i18next.t("math-preview.highlight-brackets.name"),
-				desc: i18next.t("math-preview.highlight-brackets.desc"),
-				control: {
-					type: "toggle",
-					key: "mathPreviewBracketHighlighting",
-					defaultValue: DEFAULT_SETTINGS.mathPreviewBracketHighlighting,
-				}
+				name: t("math-preview.highlight-brackets.name"),
+				desc: this.renderMarkdown(t("math-preview.highlight-brackets.desc")),
+				control: getToggleControl("mathPreviewBracketHighlighting")
 			},
 			{
-				name: i18next.t("math-preview.display-live-preview.name"),
-				desc: i18next.t("math-preview.display-live-preview.desc"),
-				control: {
-					type: "toggle",
-					key: "mathPreviewLivePreviewDisplay",
-					defaultValue: DEFAULT_SETTINGS.mathPreviewLivePreviewDisplay,
-				}
+				name: t("math-preview.display-live-preview.name"),
+				desc: this.renderMarkdown(t("math-preview.display-live-preview.desc")),
+				control: getToggleControl("mathPreviewLivePreviewDisplay")
 			}
 		]
 		return [{
 			type: "page",
-			name: i18next.t("math-preview.heading"),
+			name: t("math-preview.heading"),
 			items: settings,
 		}]
 	}
@@ -395,17 +358,13 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 	getAutofractionDefinitions(): SettingDefinitionItem[] {
 		const settings: AutofractionSettingDefinition[] = [
 			{
-				name: i18next.t("auto-fraction.enabled.name"),
-				desc: i18next.t("auto-fraction.enabled.desc"),
-				control: {
-					type: "toggle",
-					key: "autofractionEnabled",
-					defaultValue: DEFAULT_SETTINGS.autofractionEnabled,
-				}
+				name: t("auto-fraction.enabled.name"),
+				desc: this.renderMarkdown(t("auto-fraction.enabled.desc")),
+				control: getToggleControl("autofractionEnabled")
 			},
 			{
-				name: i18next.t("auto-fraction.fraction-symbol.name"),
-				desc: renderMarkdown(this.app, i18next.t("auto-fraction.fraction-symbol.desc")),
+				name: t("auto-fraction.fraction-symbol.name"),
+				desc: this.renderMarkdown( t("auto-fraction.fraction-symbol.desc")),
 				render: (setting) => {
 					setting.addText(text => {
 						text
@@ -424,17 +383,25 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 				}
 			},
 			{
-				name: i18next.t("auto-fraction.excluded-environments.name"),
-				desc: i18next.t("auto-fraction.excluded-environments.desc"),
+				name: t("auto-fraction.excluded-environments.name"),
+				desc: this.renderMarkdown(t("auto-fraction.excluded-environments.desc")),
 				control: {
 					key: "autofractionExcludedEnvs",
 					type: "textarea",
-					defaultValue: DEFAULT_SETTINGS.autofractionExcludedEnvs
-				}
+					defaultValue: DEFAULT_SETTINGS.autofractionExcludedEnvs,
+					validate: (value) => {
+						try {
+							v.parse(EnvironmentSchema, value);
+						} catch (e) {
+							console.error(e)
+							return "Invalid environment format. Error: " + (e as {message: string}).message;
+						}
+					}
+				},
 			},
 			{
-				name: i18next.t("auto-fraction.breaking-characters.name"),
-				desc: i18next.t("auto-fraction.breaking-characters.desc"),
+				name: t("auto-fraction.breaking-characters.name"),
+				desc: this.renderMarkdown(t("auto-fraction.breaking-characters.desc")),
 				control: {
 					key: "autofractionBreakingChars",
 					type: "text",
@@ -445,7 +412,7 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 
 		return [{
 			type: "page",
-			name: i18next.t("auto-fraction.heading"),
+			name: t("auto-fraction.heading"),
 			items: settings,
 		}]
 	}
@@ -453,17 +420,13 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 	getMatrixShortcutsDefinitions(): SettingDefinitionItem[] {
 		const settings: MatrixShortcutsSettingDefinition[] = [
 			{
-				name: i18next.t("matrix-shortcuts.enabled.name"),
-				desc: i18next.t("matrix-shortcuts.enabled.desc"),
-				control: {
-					type: "toggle",
-					key: "matrixShortcutsEnabled",
-					defaultValue: DEFAULT_SETTINGS.matrixShortcutsEnabled,
-				}
+				name: t("matrix-shortcuts.enabled.name"),
+				desc: this.renderMarkdown(t("matrix-shortcuts.enabled.desc")),
+				control: getToggleControl("matrixShortcutsEnabled")
 			},
 			{
-				name: i18next.t("matrix-shortcuts.environments.name"),
-				desc: i18next.t("matrix-shortcuts.environments.desc"),
+				name: t("matrix-shortcuts.environments.name"),
+				desc: this.renderMarkdown(t("matrix-shortcuts.environments.desc")),
 				control: {
 					key: "matrixShortcutsEnvNames",
 					type: "text",
@@ -471,8 +434,8 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 				}
 			},
 			{
-				name: i18next.t("matrix-shortcuts.macros.name"),
-				desc: i18next.t("matrix-shortcuts.macros.desc"),
+				name: t("matrix-shortcuts.macros.name"),
+				desc: this.renderMarkdown(t("matrix-shortcuts.macros.desc")),
 				control: {
 					key: "matrixShortcutsMacroNames",
 					type: "text",
@@ -482,7 +445,7 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 		]
 		return [{
 			type: "page",
-			name: i18next.t("matrix-shortcuts.heading"),
+			name: t("matrix-shortcuts.heading"),
 			items: settings,
 		}]
 	}
@@ -490,17 +453,13 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 	getTaboutDefinitions(): SettingDefinitionItem[] {
 		const settings: TaboutSettingDefinition[] = [
 			{
-				name: i18next.t("tabout.enabled.name"),
-				desc: i18next.t("tabout.enabled.desc"),
-				control: {
-					type: "toggle",
-					key: "taboutEnabled",
-					defaultValue: DEFAULT_SETTINGS.taboutEnabled
-				}
+				name: t("tabout.enabled.name"),
+				desc: this.renderMarkdown(t("tabout.enabled.desc")),
+				control: getToggleControl("taboutEnabled")
 			},
 			{
-				name: i18next.t("tabout.closing-brackets.name"),
-				desc: i18next.t("tabout.closing-brackets.desc"),
+				name: t("tabout.closing-brackets.name"),
+				desc: this.renderMarkdown(t("tabout.closing-brackets.desc")),
 				control: {
 					type: "text",
 					key: "taboutClosingSymbols",
@@ -508,18 +467,14 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 				}
 			},
 			{
-				name: i18next.t("tabout.exit-EOL.name"),
-				desc: i18next.t("tabout.exit-EOL.desc"),
-				control: {
-					type: "toggle",
-					key: "taboutExitEquationOnlyOnEOL",
-					defaultValue: DEFAULT_SETTINGS.taboutExitEquationOnlyOnEOL
-				}
+				name: t("tabout.exit-EOL.name"),
+				desc: this.renderMarkdown(t("tabout.exit-EOL.desc")),
+				control: getToggleControl("taboutExitEquationOnlyOnEOL")
 			}
 		]
 		return [{
 			type: "page",
-			name: i18next.t("tabout.heading"),
+			name: t("tabout.heading"),
 			items: settings
 		}]
 	}
@@ -527,17 +482,13 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 	getAutoEnlargeBracketsDefinitions(): SettingDefinitionItem[] {
 		const settings: AutoEnlargeBracketsSettingDefinition[] = [
 			{
-				name: i18next.t("auto-enlarge.enabled.name"),
-				desc: i18next.t("auto-enlarge.enabled.desc"),
-				control: {
-					type: "toggle",
-					key: "autoEnlargeBrackets",
-					defaultValue: DEFAULT_SETTINGS.autoEnlargeBrackets
-				}
+				name: t("auto-enlarge.enabled.name"),
+				desc: this.renderMarkdown(t("auto-enlarge.enabled.desc")),
+				control: getToggleControl("autoEnlargeBrackets")
 			},
 			{
-				name: i18next.t("auto-enlarge.triggers.name"),
-				desc: i18next.t("auto-enlarge.triggers.desc"),
+				name: t("auto-enlarge.triggers.name"),
+				desc: this.renderMarkdown(t("auto-enlarge.triggers.desc")),
 				control: {
 					type: "text",
 					key: "autoEnlargeBracketsTriggers",
@@ -545,18 +496,14 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 				}
 			},
 			{
-				name: i18next.t("auto-enlarge.space.name"),
-				desc: i18next.t("auto-enlarge.space.desc"),
-				control: {
-					type: "toggle",
-					key: "autoEnlargeBracketsSpace",
-					defaultValue: DEFAULT_SETTINGS.autoEnlargeBracketsSpace
-				}
+				name: t("auto-enlarge.space.name"),
+				desc: this.renderMarkdown(t("auto-enlarge.space.desc")),
+				control: getToggleControl("autoEnlargeBracketsSpace")
 			}
 		]
 		return [{
 			type: "page",
-			name: i18next.t("auto-enlarge.heading"),
+			name: t("auto-enlarge.heading"),
 			items: settings,
 		}]
 	}
@@ -564,23 +511,23 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 	getVimSettingDefinitions(): SettingDefinitionItem[] {
 		const settings: VimSettingDefinition[] = [
 			{
-				name: i18next.t("vim.enabled.name"),
-				desc: i18next.t("vim.enabled.desc"),
+				name: t("vim.enabled.name"),
+				desc: this.renderMarkdown(t("vim.enabled.desc")),
 				control: getToggleControl("vimEnabled")
 			},
 			{
-				name: i18next.t("vim.select-mode.name"),
-				desc: i18next.t("vim.select-mode.desc"),
+				name: t("vim.select-mode.name"),
+				desc: this.renderMarkdown(t("vim.select-mode.desc")),
 				control: getTextControl("vimSelectMode"),
 			},
 			{
-				name: i18next.t("vim.visual-mode.name"),
-				desc: i18next.t("vim.visual-mode.desc"),
+				name: t("vim.visual-mode.name"),
+				desc: this.renderMarkdown(t("vim.visual-mode.desc")),
 				control: getTextControl("vimVisualMode"),
 			},
 			{
-				name: i18next.t("vim.matrix-enter.name"),
-				desc: i18next.t("vim.matrix-enter.desc"),
+				name: t("vim.matrix-enter.name"),
+				desc: this.renderMarkdown(t("vim.matrix-enter.desc")),
 				control: getTextControl("vimMatrixEnter"),
 			}
 		]
@@ -599,7 +546,7 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 			["prev-tabstop", "snippetPreviousTabstopTrigger"] ,
 			["tabout", "taboutTrigger"] ,
 		] as const).map((keys) => ({
-			name: i18next.t(`keymap.${keys[0]}`),
+			name: t(`keymap.${keys[0]}`),
 			control: {
 				type: "text",
 				key: keys[1],
@@ -608,12 +555,12 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 		
 		return [{
 			type: "page",
-			name: i18next.t("keymap.heading.name"),
-			desc: i18next.t("keymap.heading.desc"),
+			name: t("keymap.heading.name"),
+			desc: this.renderMarkdown(t("keymap.heading.desc")),
 			items: [
 				{
 					name: " ",
-					desc: renderMarkdown(this.app, i18next.t("keymap.desc")),
+					desc: this.renderMarkdown( t("keymap.desc")),
 				},
 				{
 					type: "list",
@@ -626,8 +573,8 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 	getExperimentalDefinitions(): SettingDefinitionItem[] {
 		const settings: ExperimentalSettingDefinition[] = [
 			{
-				name: i18next.t("experimental.snippet-recursion.name"),
-				desc: renderMarkdown(this.app, i18next.t("experimental.snippet-recursion.desc")),
+				name: t("experimental.snippet-recursion.name"),
+				desc: this.renderMarkdown( t("experimental.snippet-recursion.desc")),
 				control: {
 					type: "number",
 					key: "snippetRecursion",
@@ -640,7 +587,7 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 
 		return [{
 			type: "page",
-			name: i18next.t("experimental.heading.name"),
+			name: t("experimental.heading.name"),
 			items: settings,
 		}]
 	}
@@ -664,15 +611,45 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 			new FileSuggest(this.app, inputEl);
 		});
 	}
+
+	renderMarkdown(source: string) {
+		const fragment = new DocumentFragment()
+		const span = fragment.createSpan()
+		// Don't render right on startup, but have something rendered.
+		span.setText(source)
+		void MarkdownRenderer.render(this.app, source, span, "", this.component).then(() => {
+			span.replaceChildren(...Array.from(span.children).map(child => {
+				if (child.tagName === "P") {
+					child.addClass("latex-suite-markdown-p")
+				}
+				return child
+			})
+			)
+		})
+		return fragment
+	}
 }
 
-function createSnippetsEditor(snippetsSetting: Setting, plugin: LatexSuitePlugin) {
-	const customCSSWrapper = snippetsSetting.controlEl.createDiv("snippets-editor-wrapper");
-	const snippetsFooter = snippetsSetting.controlEl.createDiv("snippets-footer");
+function createSnippetsEditor(
+	snippetsSetting: Setting,
+	plugin: LatexSuitePlugin,
+	config: {
+		type: "snippets" | "snippetVariables";
+		validate: (value: string) => Promise<void>;
+		deleted: string;
+	},
+): EditorView {
+	snippetsSetting.setClass("snippets-text-area");
+	const customCSSWrapper = snippetsSetting.controlEl.createDiv(
+		"snippets-editor-wrapper",
+	);
+	const snippetsFooter =
+		snippetsSetting.controlEl.createDiv("snippets-footer");
 	const validity = snippetsFooter.createDiv("snippets-editor-validity");
 
 	const validityIndicator = new ExtraButtonComponent(validity);
-	validityIndicator.setIcon("checkmark")
+	validityIndicator
+		.setIcon("checkmark")
 		.extraSettingsEl.addClass("snippets-editor-validity-indicator");
 
 	const validityText = validity.createDiv("snippets-editor-validity-text");
@@ -680,85 +657,112 @@ function createSnippetsEditor(snippetsSetting: Setting, plugin: LatexSuitePlugin
 
 	function updateValidityIndicator(success: boolean) {
 		validityIndicator.setIcon(success ? "checkmark" : "cross");
-		validityIndicator.extraSettingsEl.removeClass(success ? "invalid" : "valid");
-		validityIndicator.extraSettingsEl.addClass(success ? "valid" : "invalid");
-		validityText.setText(success ? "Saved" : "Invalid syntax. Changes not saved");
+		validityIndicator.extraSettingsEl.removeClass(
+			success ? "invalid" : "valid",
+		);
+		validityIndicator.extraSettingsEl.addClass(
+			success ? "valid" : "invalid",
+		);
+		validityText.setText(
+			success ? "Saved" : "Invalid syntax. Changes not saved",
+		);
 	}
 
-
 	const extensions = [...basicSetup];
+	
+	const debouncedValidityIndicator = debounce(async (state: EditorState) => {
+		const snippets = state.doc.toString();
+		let success = true;
 
-	const change = EditorView.updateListener.of((v: ViewUpdate) => void (async () => {
-		if (v.docChanged) {
-			const snippets = v.state.doc.toString();
-			let success = true;
-
-			let snippetVariables;
-			try {
-				snippetVariables = await parseSnippetVariables(plugin.settings.snippetVariables, "snippet-variables.js");
-				await parseSnippets(snippets, snippetVariables, "snippets.js");
-			}
-			catch {
-				success = false;
-			}
-
-			updateValidityIndicator(success);
-
-			if (!success) return;
-
-			plugin.settings.snippets = snippets;
-			await plugin.saveSettings();
+		try {
+			await config.validate(snippets);
+		} catch {
+			success = false;
 		}
-	})());
+
+		updateValidityIndicator(success);
+
+		if (!success) return;
+
+		plugin.settings[config.type] = snippets;
+		await plugin.saveSettings();
+	}, 500);
+
+	const change = EditorView.updateListener.of(
+		(v: ViewUpdate) =>
+			void (async () => {
+		if (v.docChanged) {
+			debouncedValidityIndicator(v.state);
+		}
+			})(),
+	);
 
 	extensions.push(change);
 
-	const snippetsEditor = createCMEditor(plugin.settings.snippets, extensions, customCSSWrapper);
-
+	const snippetsEditor = createCMEditor(
+		plugin.settings[config.type],
+		extensions,
+		customCSSWrapper,
+	);
 
 	const buttonsDiv = snippetsFooter.createDiv("snippets-editor-buttons");
 	const reset = new ButtonComponent(buttonsDiv);
-	reset.setIcon("switch")
+	reset
+		.setIcon("switch")
 		.setTooltip("Reset to default snippets")
 		.onClick(async () => {
-			new ConfirmationModal(plugin.app,
+			new ConfirmationModal(
+				plugin.app,
 				"Are you sure? This will delete any custom snippets you have written.",
-				button => void button
+				(button) =>
+					void button
 					.setButtonText("Reset to default snippets")
 					.setWarning(),
 				async () => {
-					snippetsEditor.setState(EditorState.create({ doc: DEFAULT_SNIPPETS, extensions: extensions }));
+					snippetsEditor.setState(
+						EditorState.create({
+							doc: DEFAULT_SETTINGS[config.type],
+							extensions: extensions,
+						}),
+					);
 					updateValidityIndicator(true);
 
-					plugin.settings.snippets = DEFAULT_SNIPPETS;
+					plugin.settings[config.type] =
+						DEFAULT_SETTINGS[config.type];
 
 					await plugin.saveSettings();
-				}
+				},
 			).open();
 		});
 
 	const remove = new ButtonComponent(buttonsDiv);
-	remove.setIcon("trash")
+	remove
+		.setIcon("trash")
 		.setTooltip("Remove all snippets")
 		.onClick(async () => {
-			new ConfirmationModal(plugin.app,
+			new ConfirmationModal(
+				plugin.app,
 				"Are you sure? This will delete any custom snippets you have written.",
-				button => void button
+				(button) =>
+					void button
 					.setButtonText("Remove all snippets")
 					.setWarning(),
 				async () => {
-					const value = `export default [
-
-]`;
-					snippetsEditor.setState(EditorState.create({ doc: value, extensions: extensions }));
+					const value = config.deleted
+					snippetsEditor.setState(
+						EditorState.create({
+							doc: value,
+							extensions: extensions,
+						}),
+					);
 					updateValidityIndicator(true);
 
-					plugin.settings.snippets = value;
+					plugin.settings[config.type] = value;
 					await plugin.saveSettings();
-				}
+				},
 			).open();
 		});
-	return snippetsEditor
+	return snippetsEditor;
 }
 
 class ConfirmationModal extends Modal {
@@ -818,11 +822,17 @@ export function renderMarkdown(app: App, markdown: string) {
 	const component = new Component()
 	const fragment = new DocumentFragment()
 	const span = fragment.createSpan()
+	span.setText(markdown)
 	void MarkdownRenderer.render(app, markdown, span, "", component).then(() => {
-		component.load()
-		component.unload()
-		// fragment.replaceChildren(...span.children)
+		span.replaceChildren(...Array.from(span.children).map(child => {
+			if (child.tagName === "P") {
+				child.addClass("latex-suite-markdown-p")
+			}
+			return child
+		})
+		)
 	})
+	component.unload()
 	return fragment
 }
 

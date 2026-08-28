@@ -53,8 +53,11 @@
 		"obsidian": "^1.13.1",
 		"obsidian-integration-testing": "^10.3.2",
 		"obsidian-typings": "^6.32.0",
+		"remark-parse": "^11.0.0",
+		"remark-stringify": "^11.0.0",
 		"tslib": "2.3.1",
 		"typescript": "^6.0.3",
+		"unified": "^11.0.5",
 		"vitest": "^4.1.11"
 	},
 	"dependencies": {

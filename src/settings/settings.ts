@@ -137,7 +137,7 @@ export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
 	highlightDollarEnabled: true,
 }
 
-const EnvironmentSchema = v.pipe(
+export const EnvironmentSchema = v.pipe(
 	v.string(),
 	v.parseJson(),
 	v.array(v.looseTuple([v.string(), v.string()], "Every item needs to be an array with 2 items"), "Needs to be an array [item1,item2]"),

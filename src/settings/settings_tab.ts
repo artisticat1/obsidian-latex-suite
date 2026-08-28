@@ -9,7 +9,7 @@ import { FileSuggest } from "./ui/file_suggest";
 import { basicSetup } from "./ui/snippets_editor/extensions";
 import { getVimSelectModeCommand, vimCommand, getVimVisualModeCommand, getVimEditorCommands, getVimRunMatrixEnterCommand } from "src/features/editor_commands";
 import { LatexSuiteSettingsTab2, renderMarkdown } from "./settings_tab2";
-import {i18next} from "../i18n/i18n";
+import { settings_translation as t } from "../i18n/i18n"
 
 
 export class LatexSuiteSettingTab extends PluginSettingTab {
@@ -25,6 +25,11 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 	hide() {
 		this.snippetsEditor?.destroy();
+	}
+	async setControlValue(key: string, value: unknown): Promise<void> {
+		const settings = this.plugin.settings as unknown as Record<string, unknown>
+		settings[key] = value;
+		await this.plugin.saveSettings();
 	}
 
 	getSettingDefinitions(): SettingDefinitionItem[] {
@@ -142,7 +147,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		const containerEl = this.containerEl;
 		this.addHeading(containerEl, "Conceal", "math-integral-x");
 
-		const fragment = renderMarkdown(this.app, i18next.t("conceal.enabled.desc"))
+		const fragment = renderMarkdown(this.app, t("conceal.enabled.desc"))
 		new Setting(containerEl)
 			.setName("Enabled")
 			.setDesc(fragment)
@@ -154,7 +159,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				})
 			);
 
-		const fragment2 = renderMarkdown(this.app, i18next.t("conceal.reveal-delay.desc"))
+		const fragment2 = renderMarkdown(this.app, t("conceal.reveal-delay.desc"))
 		new Setting(containerEl)
 			.setName("Reveal delay (ms)")
 			.setDesc(fragment2)

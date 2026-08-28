@@ -37,3 +37,7 @@ To install and run this plugin:
 - clone this repo inside `.obsidian/plugins` of your dev vault
 - run `npm install` to install the necessary packages
 - run `npm run dev` to compile the project and reload obsidian either with hotreload or with the command.
+
+## Translations
+
+See [here](./src/i18n/locales/README.md) for more info.

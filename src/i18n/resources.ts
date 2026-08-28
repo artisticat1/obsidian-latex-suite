@@ -1,9 +1,9 @@
-import settings from "./locales/en/settings.json";
+import en_settings from "./locales/en/settings.json";
 
 const resources = {
 	en: {
-		settings,
-	}
+		settings: en_settings,
+	},
 } as const;
 
 export default resources;
