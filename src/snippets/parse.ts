@@ -111,12 +111,14 @@ export async function parseSnippets(snippetsStr: string, snippetVariables: Snipp
 			try {
 				// Normalize the raw snippet and convert it into a Snippet
 				return parseSnippet(raw, snippetVariables);
-			} catch (e) {
+			} catch (err) {
+				const e = err as Error;
 				// provide context of which snippet errored
 				throw new Error(`${e}\nErroring snippet:\n${serializeSnippetLike(raw)}`);
 			}
 		});
-	} catch(e) {
+	} catch(err) {
+		const e = err as Error;
 		throw new Error(`Invalid snippet format: ${e}`);
 	}
 

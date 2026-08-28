@@ -128,10 +128,10 @@ const parseWorker = ViewPlugin.fromClass(
 		chunkEnd = -1;
 		// Milliseconds of budget left for this chunk
 		chunkBudget = -1;
-		workCallback: (deadline: IdleDeadline) => void;
+		workCallback: (deadline?: IdleDeadline) => void;
 
 		constructor(readonly view: EditorView) {
-			this.workCallback = (deadline: IdleDeadline) => this.work(deadline);
+			this.workCallback = (deadline?: IdleDeadline) => this.work(deadline);
 			this.scheduleWork();
 		}
 

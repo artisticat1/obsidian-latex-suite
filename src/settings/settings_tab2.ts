@@ -1,4 +1,4 @@
-import { App, ButtonComponent, Component, debounce, ExtraButtonComponent, MarkdownRenderer, Modal, Notice, Platform, Setting, SettingDefinition, SettingDefinitionControl, SettingDefinitionItem, SettingTab } from "obsidian"
+import { App, ButtonComponent, Component, debounce, ExtraButtonComponent, MarkdownRenderer, Modal, Platform, Setting, SettingDefinition, SettingDefinitionControl, SettingDefinitionItem, SettingTab } from "obsidian"
 import { DEFAULT_SETTINGS, EnvironmentSchema, LatexSuitePluginSettings } from "./settings"
 import { settings_translation as t } from "../i18n/i18n"
 import { EditorState, Extension } from "@codemirror/state"
@@ -8,6 +8,7 @@ import { basicSetup } from "./ui/snippets_editor/extensions"
 import LatexSuitePlugin from "src/main"
 import { FileSuggest } from "./ui/file_suggest"
 import * as v from "valibot"
+import { buttonSetWarning } from "./settings_tab"
 
 
 type Definition<K> = K extends keyof LatexSuitePluginSettings ? SettingDefinition<K> : never
@@ -715,9 +716,8 @@ function createSnippetsEditor(
 				plugin.app,
 				"Are you sure? This will delete any custom snippets you have written.",
 				(button) =>
-					void button
-					.setButtonText("Reset to default snippets")
-					.setWarning(),
+					void buttonSetWarning(button)
+					.setButtonText("Reset to default snippets"),
 				async () => {
 					snippetsEditor.setState(
 						EditorState.create({
@@ -744,9 +744,8 @@ function createSnippetsEditor(
 				plugin.app,
 				"Are you sure? This will delete any custom snippets you have written.",
 				(button) =>
-					void button
-					.setButtonText("Remove all snippets")
-					.setWarning(),
+					void buttonSetWarning(button)
+					.setButtonText("Remove all snippets"),
 				async () => {
 					const value = config.deleted
 					snippetsEditor.setState(
@@ -804,20 +803,6 @@ function createCMEditor(content: string, extensions: Extension[], node: Element)
 export function isIMESupported(): boolean {
 	return Platform.isMobileApp
 }
-function getTriggerHelpText(name: string) {
-	const fragment = new DocumentFragment();
-	fragment.createDiv({}, (div) => {
-		div.appendText(
-			`What key to press to trigger ${name}. Should follow codemirror keymap syntax such as "Ctrl-k Ctrl-a". For more info see `,
-		);
-		div.createEl("a", {
-			attr: { href: "https://codemirror.net/docs/ref/#view.KeyBinding" },
-			text: "codemirror keymap documentation",
-		});
-	});
-	return fragment;
-}
-
 export function renderMarkdown(app: App, markdown: string) {
 	const component = new Component()
 	const fragment = new DocumentFragment()

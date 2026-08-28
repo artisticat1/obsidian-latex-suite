@@ -9,9 +9,9 @@ const wrapAround = (value: number, size: number): number => {
 
 class Suggest<T> {
 	private owner: ISuggestOwner<T>;
-	private values: T[];
-	private suggestions: HTMLDivElement[];
-	private selectedItem: number;
+	private values!: T[];
+	private suggestions!: HTMLDivElement[];
+	private selectedItem!: number;
 	private containerEl: HTMLElement;
 
 	constructor(owner: ISuggestOwner<T>, containerEl: HTMLElement, scope: Scope) {
@@ -102,7 +102,7 @@ export abstract class TextInputSuggest<T> implements ISuggestOwner<T> {
 	protected app: App;
 	protected inputEl: HTMLInputElement;
 
-	private popper: PopperInstance;
+	private popper!: PopperInstance;
 	private scope: Scope;
 	private suggestEl: HTMLElement;
 	private suggest: Suggest<T>;

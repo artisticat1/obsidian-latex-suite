@@ -1,6 +1,6 @@
 import { EditorState, Extension } from "@codemirror/state";
 import { EditorView, ViewUpdate } from "@codemirror/view";
-import { App, ButtonComponent, ExtraButtonComponent, Modal, Notice, Platform, PluginSettingTab, Setting, SettingDefinitionItem, debounce, setIcon } from "obsidian";
+import { App, ButtonComponent, ExtraButtonComponent, Modal, Notice, Platform, PluginSettingTab, Setting, SettingDefinitionItem, debounce, requireApiVersion, setIcon } from "obsidian";
 import { parseKeyName, parseSnippetVariables, parseSnippets } from "src/snippets/parse";
 import { DEFAULT_SNIPPETS } from "src/utils/default_snippets";
 import LatexSuitePlugin from "../main";
@@ -14,9 +14,9 @@ import { settings_translation as t } from "../i18n/i18n"
 
 export class LatexSuiteSettingTab extends PluginSettingTab {
 	plugin: LatexSuitePlugin;
-	snippetsEditor: EditorView;
-	snippetsFileLocEl: HTMLElement;
-	snippetVariablesFileLocEl: HTMLElement;
+	snippetsEditor: EditorView | null = null;
+	snippetsFileLocEl: HTMLElement | undefined = undefined;
+	snippetVariablesFileLocEl: HTMLElement | undefined = undefined;
 
 	constructor(app: App, plugin: LatexSuitePlugin) {
 		super(app, plugin);
@@ -812,7 +812,8 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 		extensions.push(change);
 
-		this.snippetsEditor = createCMEditor(this.plugin.settings.snippets, extensions, customCSSWrapper);
+		const snippetsEditor = createCMEditor(this.plugin.settings.snippets, extensions, customCSSWrapper);
+		this.snippetsEditor = snippetsEditor;
 
 
 		const buttonsDiv = snippetsFooter.createDiv("snippets-editor-buttons");
@@ -822,11 +823,10 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			.onClick(async () => {
 				new ConfirmationModal(this.plugin.app,
 					"Are you sure? This will delete any custom snippets you have written.",
-					button => void button
-						.setButtonText("Reset to default snippets")
-						.setWarning(),
+					button => void buttonSetWarning(button)
+						.setButtonText("Reset to default snippets"),
 					async () => {
-						this.snippetsEditor.setState(EditorState.create({ doc: DEFAULT_SNIPPETS, extensions: extensions }));
+						snippetsEditor.setState(EditorState.create({ doc: DEFAULT_SNIPPETS, extensions: extensions }));
 						updateValidityIndicator(true);
 
 						this.plugin.settings.snippets = DEFAULT_SNIPPETS;
@@ -842,14 +842,13 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			.onClick(async () => {
 				new ConfirmationModal(this.plugin.app,
 					"Are you sure? This will delete any custom snippets you have written.",
-					button => void button
-						.setButtonText("Remove all snippets")
-						.setWarning(),
+					button => void buttonSetWarning(button)
+						.setButtonText("Remove all snippets"),
 					async () => {
 						const value = `[
 
 ]`;
-						this.snippetsEditor.setState(EditorState.create({ doc: value, extensions: extensions }));
+						snippetsEditor.setState(EditorState.create({ doc: value, extensions: extensions }));
 						updateValidityIndicator(true);
 
 						this.plugin.settings.snippets = value;
@@ -926,4 +925,14 @@ function getTriggerHelpText(name: string) {
 		});
 	});
 	return fragment;
+}
+
+export function buttonSetWarning(button: ButtonComponent): ButtonComponent {
+	if (requireApiVersion("1.13.0")) {
+		button.setDestructive().setCta();
+	} else {
+		const button2: {setWarning: () => void} = button;
+		button2.setWarning();
+	}
+	return button;
 }

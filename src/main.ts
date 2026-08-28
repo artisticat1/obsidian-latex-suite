@@ -130,7 +130,8 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 	async getSettingsSnippetVariables() {
 		try {
 			return await parseSnippetVariables(this.settings.snippetVariables, "snippet-variables.js");
-		} catch (e) {
+		} catch (err) {
+			const e = err as Error;
 			new Notice(`Failed to load snippet variables from settings: ${e}`);
 			console.error(`Failed to load snippet variables from settings: ${e}`);
 			return {};
@@ -140,7 +141,8 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 	async getSettingsSnippets(snippetVariables: SnippetVariables) {
 		try {
 			return await parseSnippets(this.settings.snippets, snippetVariables, "snippets.js");
-		} catch (e) {
+		} catch (err) {
+			const e = err as Error;
 			new Notice(`Failed to load snippets from settings: ${e}`);
 			console.error(`Failed to load snippets from settings: ${e}`);
 			return [];

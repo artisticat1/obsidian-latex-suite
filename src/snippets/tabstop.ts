@@ -1,4 +1,4 @@
-import { ChangeDesc, EditorSelection, SelectionRange, Range } from "@codemirror/state";
+import { ChangeDesc, EditorSelection, SelectionRange } from "@codemirror/state";
 import { Decoration, DecorationSet, EditorView, WidgetType } from "@codemirror/view";
 import { resetCursorBlink } from "src/utils/editor_utils";
 import { endSnippet } from "./codemirror/history";
@@ -29,7 +29,7 @@ function getMarkerDecoration(from: number, to: number, color: number) {
 		})
 		// technically this is a widget decoration but the range should be behaving like a mark 
 		// and thus increase in size when text is inserted
-		return Decoration.prototype.range.call(marker, from, to) as Range<Decoration>
+		return Decoration.prototype.range.call(marker, from, to)
 	} else {
 		return Decoration.mark({
 			inclusive: true,

@@ -304,7 +304,8 @@ export async function getVariablesFromFiles(files: FileSets) {
 		const content = await file.read();
 		try {
 			Object.assign(snippetVariables, await parseSnippetVariables(content, file.path));
-		} catch (e) {
+		} catch (err) {
+			const e = err as Error;
 			new Notice(`Failed to parse variable file ${file.name}: ${e}`);
 			console.error(`Failed to parse variable file ${file.name}: ${e}`);
 			files.definitelyVariableFiles.delete(file);
@@ -343,7 +344,8 @@ export async function getSnippetsFromFiles(
 		const content = await file.read();
 		try {
 			snippets.push(...await parseSnippets(content, snippetVariables, file.path));
-		} catch (e) {
+		} catch (err) {
+			const e = err as Error;
 			new Notice(`Failed to parse snippet file ${file.name}: ${e}`);
 			console.error(`Failed to parse snippet file ${file.name}: ${e}`);
 			files.definitelySnippetFiles.delete(file);

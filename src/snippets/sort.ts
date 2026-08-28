@@ -15,14 +15,14 @@ export function sortSnippets(snippets: Snippet[]): Snippet[] {
 	// and retrieving back the original elements.
 	return snippets
 		// first precompute trigger lengths for each snippet while keeping a reference to the original snippet (via index in `snippets`),
-		.map((snippet, i) => [getPriority(snippet), getTriggerLength(snippet), i])
+		.map((snippet, i) => [getPriority(snippet), getTriggerLength(snippet), i] as const)
 		// sort resultant tuples representing the snippets
 		.sort(schwartzianSnippetCompare)
 		// and get back the snippets
 		.map(([_p, _t, i]) => snippets[i]);
 }
 
-type SchwartzianIntermediateValue = [priority: number, triggerLength: number, i: number];
+type SchwartzianIntermediateValue = readonly [priority: number, triggerLength: number, i: number];
 
 /**
  * Sorts snippets by priority, falling back to trigger length if there is a tie.

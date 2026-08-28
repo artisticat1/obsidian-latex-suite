@@ -6,7 +6,7 @@ import { StringStream } from "@codemirror/language";
 import { EditorView, ViewUpdate } from "@codemirror/view";
 import { SearchQuery } from "@codemirror/search";
 
-type unknownFunction = (...args: unknown[]) => unknown;
+type unknownFunction = (cm: CodeMirror,...args: unknown[]) => void;
 declare class VimState {
     onPasteFn?: unknown;
     sel: { head: Pos$1; anchor: Pos$1 };
