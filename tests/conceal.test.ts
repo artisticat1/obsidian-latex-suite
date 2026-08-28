@@ -105,4 +105,35 @@ $$
 			});
 		})
 	})
-});
+	
+	it("malformed multiline equation", async () => {
+		const result = await evalInObsidian({
+			input: {pluginId: "obsidian-latex-suite" },
+			callback: ({app, pluginId, obsidianModule, lib }) => {
+				const plugin = lib.plugin
+				const view = lib.view
+				const conceal = plugin.test.conceal
+				const start_end_equation = 
+`
+$$X_1
+X_2
+X_3$$
+`
+				view.setDoc(start_end_equation)
+				const equation_result = conceal(view, {}).cached_equations
+				return equation_result
+			}
+		})
+		expect(result).toStrictEqual({
+			"X_1": [
+				[{"start": 1, "end": 3, "text": "1", "class": "cm-number", "elementType": "sub"}]
+			],
+			"X_2": [
+				[{"start": 1, "end": 3, "text": "2", "class": "cm-number", "elementType": "sub"}]
+			],
+			"X_3": [
+				[{"start": 1, "end": 3, "text": "3", "class": "cm-number", "elementType": "sub"}]
+			]
+		})
+	})
+})
