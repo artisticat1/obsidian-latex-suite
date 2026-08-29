@@ -219,7 +219,7 @@ export function isLogLevelEnabled(
 	const currentLevelNum = convertLogLevelToNumber(currentLevel);
 	const messageLevelNum = convertLogLevelToNumber(messageLevel);
 
-	return messageLevelNum >= currentLevelNum;
+	return messageLevelNum <= currentLevelNum;
 }
 
 export function convertLogLevelToNumber(level: LatexSuiteBasicSettings["logLevel"]): number {
