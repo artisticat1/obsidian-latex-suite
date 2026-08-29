@@ -42,12 +42,12 @@ function isSizeControl(tree: SyntaxNode, from: number, doc: EquationText) {
 
 export const autoEnlargeBrackets = (view: EditorView) => {
 	const settings = getLatexSuiteConfig(view);
-	if (!settings.autoEnlargeBrackets) return;
+	if (!settings.autoEnlargeBrackets) return false;
 	const overlays = getMathBoundsPlugin(view).getEquationOverlays(view.state)
 	const pos = view.state.selection.main.head
 	const covered_overlay = overlays.filter(o => o.bound.inner_start <= pos && o.bound.inner_end >= pos)[0]
 	if (!covered_overlay) {
-		return
+		return false;
 	}
 	
 	const left = "\\left"
@@ -79,5 +79,5 @@ export const autoEnlargeBrackets = (view: EditorView) => {
 
 	}
 
-	expandSnippets(view);
+	return expandSnippets(view);
 }

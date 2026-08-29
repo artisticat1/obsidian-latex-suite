@@ -227,7 +227,7 @@ export function getKeymaps(settings: LatexSuiteCMSettings): LatexSuiteKeyBinding
 				if (!getLatexSuiteConfig(view).autofractionEnabled) return false;
 				const ctx = getContextPlugin(view);
 				if (!ctx.mode.strictlyInMath()) return false;
-				return runAutoFraction(view, ctx);
+				return runAutoFraction(view);
 			},
 		});
 	}

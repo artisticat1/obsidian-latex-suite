@@ -4,7 +4,7 @@ import { App, ButtonComponent, ExtraButtonComponent, Modal, Notice, Platform, Pl
 import { parseKeyName, parseSnippetVariables, parseSnippets } from "src/snippets/parse";
 import { DEFAULT_SNIPPETS } from "src/utils/default_snippets";
 import LatexSuitePlugin from "../main";
-import { DEFAULT_SETTINGS, LatexSuiteCMKeymapSettings } from "./settings";
+import { DEFAULT_SETTINGS, LatexSuiteCMKeymapSettings, LatexSuitePluginSettings } from "./settings";
 import { FileSuggest } from "./ui/file_suggest";
 import { basicSetup } from "./ui/snippets_editor/extensions";
 import { getVimSelectModeCommand, vimCommand, getVimVisualModeCommand, getVimEditorCommands, getVimRunMatrixEnterCommand } from "src/features/editor_commands";
@@ -764,6 +764,31 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		// 			await this.plugin.saveSettings();
 		// 		})
 		// 	);
+		// 	
+		new Setting(containerEl)
+			.setName(t("experimental.excalidraw-enabled.name"))
+			.setDesc(t("experimental.excalidraw-enabled.desc"))
+			.addToggle((toggle) => toggle
+				.setValue(this.plugin.settings.excalidrawSupportEnabled)
+				.onChange(async (value) => {
+					this.plugin.settings.excalidrawSupportEnabled = value;
+					await this.plugin.saveSettings();
+				})
+			);
+		new Setting(containerEl)
+			.setName(t("experimental.log-level.name"))
+			.setDesc(t("experimental.log-level.desc"))
+			.addDropdown((dropdown) => dropdown
+				.setValue(this.plugin.settings.logLevel)
+				.addOption("off", t("experimental.log-level.options.off"))
+				.addOption("info", t("experimental.log-level.options.info"))
+				.addOption("verbose", t("experimental.log-level.options.verbose"))
+				.addOption("vverbose", t("experimental.log-level.options.vverbose"))
+				.onChange(async (value) => {
+					this.plugin.settings.logLevel = value as LatexSuitePluginSettings["logLevel"];
+					await this.plugin.saveSettings();
+				})
+			);
 	}
 
 	createSnippetsEditor(snippetsSetting: Setting) {

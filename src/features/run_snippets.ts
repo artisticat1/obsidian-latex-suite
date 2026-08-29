@@ -77,7 +77,7 @@ const runSnippetCursor = (view: EditorView, ctx: Context, snippetInfo: SnippetIn
 			continue;
 		}	
 
-		const result = snippet.process(updatedLine, range, sel, effectiveLineAfter);
+		const result = snippet.process({effectiveLine: updatedLine, range, sel, effectiveLineAfter, view});
 		if (result === null) continue;
 
 		// Check that this snippet is not excluded in a certain environment

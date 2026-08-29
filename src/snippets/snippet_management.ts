@@ -4,9 +4,26 @@ import { endSnippet, startSnippet } from "./codemirror/history";
 import { isolateHistory } from "@codemirror/commands";
 import { TabstopSpec, tabstopSpecsToTabstopGroups } from "./tabstop";
 import { addTabstops, getNextTabstopColor, tabstopsStateField } from "./codemirror/tabstops_state_field";
-import { clearSnippetQueue, getSnippetQueue } from "./codemirror/snippet_queue_state_field";
-import { SnippetChangeSpec } from "./codemirror/snippet_change_spec";
+import { clearSnippetQueue, getSnippetQueue, queueSnippet } from "./codemirror/snippet_queue_state_field";
 import { resetCursorBlink } from "src/utils/editor_utils";
+import { SnippetChangeSpecApi } from "src/api";
+import { ArrayNode, BaseNode, ResultInsert, SnippetStringNode } from "./luasnip_api/node";
+import { SnippetChangeSpec } from "./codemirror/snippet_change_spec";
+
+export function snippet(view: EditorView, snippetChangeSpec: SnippetChangeSpecApi): boolean {
+	let insert: ResultInsert;
+	if (typeof snippetChangeSpec.insert === "string") {
+		insert = new SnippetStringNode(snippetChangeSpec.insert).applyInsert();
+	} else if (Array.isArray(snippetChangeSpec.insert)) {
+		insert = new ArrayNode( snippetChangeSpec.insert as unknown as BaseNode[]).applyInsert();
+	} else {
+		insert = snippetChangeSpec.insert;
+	}
+	queueSnippet(view, snippetChangeSpec.from, snippetChangeSpec.to, insert, snippetChangeSpec.keyPressed, snippetChangeSpec.after);
+	const success = expandSnippets(view);
+	
+	return success;
+}
 
 // this function and the functions it calls are a bit too statefull
 // its use as few dispatches as possible, but probably can be simplified.

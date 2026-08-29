@@ -4,12 +4,13 @@ import { findMatchingBracket, getOpenBracket } from "src/utils/editor_utils";
 import { queueSnippet } from "src/snippets/codemirror/snippet_queue_state_field";
 import { expandSnippets } from "src/snippets/snippet_management";
 import { autoEnlargeBrackets } from "./auto_enlarge_brackets";
-import { Context } from "src/utils/context";
+import { Context, getContextPlugin } from "src/utils/context";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
 import { ArrayNode, emptyInsertOptions, TabstopNode, TextNode } from "src/snippets/luasnip_api/node";
 
 
-export const runAutoFraction = (view: EditorView, ctx: Context): boolean => {
+export const runAutoFraction = (view: EditorView): boolean => {
+	const ctx = getContextPlugin(view);
 
 	for (const range of ctx.ranges) {
 		runAutoFractionCursor(view, ctx, range);
