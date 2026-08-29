@@ -85,9 +85,12 @@ async function AbsolutePath(path: string) {
 	if (!Platform.isDesktop) {
 		return null
 	}
+	// eslint-disable-next-line @typescript-eslint/no-require-imports -- inline needed to keep it working on mobile
 	const fs = require("fs") as typeof import("fs")
+	// eslint-disable-next-line @typescript-eslint/no-require-imports -- inline needed to keep it working on mobile
 	const node_path = require("path") as typeof import("path")
 	if (path.slice(0, 2) === "~/") {
+		// eslint-disable-next-line @typescript-eslint/no-require-imports -- inline needed to keep it working on mobile
 		const os = require("os") as typeof import("os")
 		const homeDir = os.homedir();
 		path = node_path.join(homeDir, path.slice(2));
