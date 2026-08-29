@@ -13,7 +13,7 @@ type MathTooltip = {
 	pos: number,
 	tooltip: Tooltip,
 }
-const updateTooltipEffect = StateEffect.define<MathTooltip[]>();
+export const updateTooltipEffect = StateEffect.define<MathTooltip[]>();
 
 export const cursorTooltipField = StateField.define<readonly MathTooltip[]>({
 	create: () => [],

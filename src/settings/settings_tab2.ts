@@ -85,6 +85,8 @@ type VimSettingDefinition = Definition<
 
 type ExperimentalSettingDefinition = Definition<
 	| "snippetRecursion"
+	| "excalidrawSupportEnabled"
+	| "logLevel"
 >
 
 
@@ -582,6 +584,26 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 					defaultValue: DEFAULT_SETTINGS.snippetRecursion,
 					min: 0,
 				}
+			},
+			{
+				name: t("experimental.excalidraw-enabled.name"),
+				desc: this.renderMarkdown( t("experimental.excalidraw-enabled.desc")),
+				control: getToggleControl("excalidrawSupportEnabled")
+			},
+			{
+				name: t("experimental.log-level.name"),
+				desc: this.renderMarkdown( t("experimental.log-level.desc")),
+				control: {
+					type: "dropdown",
+					key: "logLevel",
+					defaultValue: DEFAULT_SETTINGS.logLevel,
+					options: {
+						  "off":  t("experimental.log-level.options.off"),
+						  "info":  t("experimental.log-level.options.info"),
+						  "verbose":  t("experimental.log-level.options.verbose"),
+						  "vverbose":  t("experimental.log-level.options.vverbose"),
+					},
+				}
 			}
 		]
 		
@@ -589,6 +611,7 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 		return [{
 			type: "page",
 			name: t("experimental.heading.name"),
+			desc: this.renderMarkdown(t("experimental.heading.desc")),
 			items: settings,
 		}]
 	}

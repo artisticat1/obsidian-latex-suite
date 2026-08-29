@@ -220,6 +220,20 @@
 		"snippet-recursion": {
 			"name": "Snippet recursion",
 			"desc": "How many times to run snippets in a row. Set to 0 to disable recursion.\n\n[Related pr/feedback](https://github.com/artisticat1/obsidian-latex-suite/pull/536)"
+		},
+		"excalidraw-enabled": {
+			"name": "Excalidraw enabled",
+			"desc": "Enable or disable Excalidraw integration."
+		},
+		"log-level": {
+			"name": "Log level",
+			"desc": "Set the level of debug information to log. Set to `$t(settings.experimental.log-level.options.vverbose)` for bug report purposes.",
+			"options": {
+				"off": "Off",
+				"info": "Info",
+				"verbose": "Verbose",
+				"vverbose": "VVerbose"
+			}
 		}
 	}
 }

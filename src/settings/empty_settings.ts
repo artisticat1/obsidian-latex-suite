@@ -52,4 +52,6 @@ export const EMPTY_SETTINGS: LatexSuitePluginSettings = {
 	snippetRecursion: 0,
 	snippetIMEVersion: false,
 	highlightDollarEnabled: false,
+	excalidrawSupportEnabled: false,
+	logLevel: "off",
 }

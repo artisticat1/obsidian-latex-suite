@@ -4,6 +4,7 @@ import { BaseNode, ResultInsert, ArrayNode, SnippetTabstopOnlyNode, Options as I
 import * as v from "valibot";
 import { MacroArea } from "src/utils/default_text_areas";
 import { isMacroArgumentCount, StackOutput } from "src/utils/context";
+import { EditorView } from "@codemirror/view";
 
 /**
  * in visual snippets, if the replacement is a string, this is the magic substring to indicate the selection.
@@ -52,21 +53,25 @@ function convertOutputToNode(rawReplacement: unknown): ArrayNode | null {
 	return parseResult.output
 }
 
+type SnippetReplacementUnstableApi = {
+	_view: EditorView
+}
+
 // output of replacement functions should be the output fo ReplacementOutputSchema,
 // but this would lead to false confidence as user might return something else.
 export type SnippetData<T extends SnippetType> = {
 	visual: {
 		trigger: string;
-		replacement: ArrayNode | ((selection: string) => unknown);
+		replacement: ArrayNode | ((selection: string, api: SnippetReplacementUnstableApi) => unknown);
 	};
 	regex: {
 		trigger: RegExp;
-		replacement: ArrayNode | ((match: RegExpExecArray) => unknown);
+		replacement: ArrayNode | ((match: RegExpExecArray, api: SnippetReplacementUnstableApi) => unknown);
 		triggerAfter?: RegExp;
 	};
 	string: {
 		trigger: string;
-		replacement: ArrayNode | ((match: string) => unknown);
+		replacement: ArrayNode | ((match: string, api: SnippetReplacementUnstableApi) => unknown);
 		triggerAfter?: string;
 	};
 }[T]
@@ -79,6 +84,14 @@ export enum IncludedEnvironmentResult {
 	None,
 	Included,
 	NotIncluded
+}
+
+type ProccesArgs = {
+	effectiveLine: string;
+	range: SelectionRange;
+	sel: string;
+	effectiveLineAfter: () => string;
+	view: EditorView
 }
 
 /**
@@ -126,7 +139,7 @@ export abstract class Snippet<T extends SnippetType = SnippetType> {
 	get trigger(): SnippetData<T>["trigger"] { return this.data.trigger; }
 	get replacement(): SnippetData<T>["replacement"] { return this.data.replacement; }
 
-	abstract process(effectiveLine: string, range: SelectionRange, sel: string, effectiveLineAfter: () => string): ProcessSnippetResult;
+	abstract process(args: ProccesArgs): ProcessSnippetResult;
 	
 	isWithinExcludedScope(stack: StackOutput[]): boolean {
 		if (this.excludedEnvironments.length === 0 && this.excludedMacros.length === 0) return false;
@@ -176,7 +189,7 @@ export class VisualSnippet extends Snippet<"visual"> {
 		super("visual", trigger, replacement, options, priority, description, excludedEnvironments, excludedMacros, includedMacros, triggerKey);
 	}
 
-	process(effectiveLine: string, range: SelectionRange, sel: string): ProcessSnippetResult {
+	process({effectiveLine, range, sel, view}: ProccesArgs): ProcessSnippetResult {
 		const hasSelection = !!sel;
 		// visual snippets only run when there is a selection
 		if (!hasSelection) { return null; }
@@ -191,7 +204,7 @@ export class VisualSnippet extends Snippet<"visual"> {
 		if (this.replacement instanceof ArrayNode) {
 			replacement = this.replacement.applyInsert(options);
 		} else {
-			const replacementTemp = convertOutputToNode(this.replacement(sel))
+			const replacementTemp = convertOutputToNode(this.replacement(sel, {_view: view}))
 
 			// sanity check - if this.replacement was a function,
 			// we have no way to validate beforehand that it really does returns a valid output.
@@ -210,7 +223,7 @@ export class RegexSnippet extends Snippet<"regex"> {
 		this.data.triggerAfter = triggerAfter;
 	}
 
-	process(effectiveLine: string, _range: SelectionRange, sel: string, effectiveLineAfter: () => string): ProcessSnippetResult {
+	process({effectiveLine, sel, effectiveLineAfter, view: _view}: ProccesArgs): ProcessSnippetResult {
 		const hasSelection = !!sel;
 		// non-visual snippets only run when there is no selection
 		if (hasSelection) { return null; }
@@ -231,7 +244,7 @@ export class RegexSnippet extends Snippet<"regex"> {
 			// result.length - 1 = the number of capturing groups
 			replacement = this.replacement.applyInsert(options);
 		} else {
-			const replacementTemp = convertOutputToNode(this.replacement(result));
+			const replacementTemp = convertOutputToNode(this.replacement(result, { _view}));
 
 			// sanity check - if this.replacement was a function,
 			// we have no way to validate beforehand that it really does return a valid output.
@@ -250,7 +263,7 @@ export class StringSnippet extends Snippet<"string"> {
 		this.data.triggerAfter = triggerAfter;
 	}
 
-	process(effectiveLine: string, _range: SelectionRange, sel: string, effectiveLineAfter: () => string): ProcessSnippetResult {
+	process({effectiveLine, sel, effectiveLineAfter, view: _view}: ProccesArgs): ProcessSnippetResult {
 		const hasSelection = !!sel;
 		// non-visual snippets only run when there is no selection
 		if (hasSelection) { return null; }
@@ -268,7 +281,7 @@ export class StringSnippet extends Snippet<"string"> {
 		if (this.replacement instanceof ArrayNode) {
 			replacement = this.replacement.applyInsert(options)
 		} else {
-			const replacementTemp = convertOutputToNode(this.replacement(this.trigger))
+			const replacementTemp = convertOutputToNode(this.replacement(this.trigger, { _view }))
 
 			// sanity check - if replacement was a function,
 			// we have no way to validate beforehand that it really does return a string

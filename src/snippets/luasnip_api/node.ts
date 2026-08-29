@@ -22,7 +22,7 @@ export class BaseNode {
 	) {}
 	
 
-	applyInsert(options: Options): ResultInsert {
+	applyInsert(options: Options = emptyInsertOptions): ResultInsert {
 		if (typeof this.insert === "string") {
 			return { insert: this.insert, tabstops: this.tabstops };
 		}
@@ -106,7 +106,7 @@ export class SnippetNode extends BaseNode {
 		super("", []);
 	}
 	
-	override applyInsert(options: Options): ResultInsert {
+	override applyInsert(options: Options = emptyInsertOptions): ResultInsert {
 		const result = new ArrayNode(this.nodes).applyInsert(options);
 		const super_tabstop = {index: [this.index], from: 0, to: result.insert.length}
 		const final_result: ResultInsert = {
@@ -202,7 +202,7 @@ export class SnippetTabstopOnlyNode extends BaseNode {
 export class ArrayNode {
 	constructor(private children: BaseNode[]) {}
 
-	applyInsert(options: Options): ResultInsert {
+	applyInsert(options: Options = emptyInsertOptions): ResultInsert {
 		return new BaseNode(() => this.children).applyInsert(options);
 	}
 

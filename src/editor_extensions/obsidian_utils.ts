@@ -26,7 +26,7 @@ function createNoticeManager(): NoticeCallback {
 	return lastNoticeFunc;
 };
 
-const notice = StateField.define<NoticeCallback>({
+export const notice = StateField.define<NoticeCallback>({
 	create: () => createNoticeManager(),
 	update: (value) => value,
 });

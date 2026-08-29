@@ -2,7 +2,7 @@ import { Snippet } from "../snippets/snippets";
 import { Environment } from "../snippets/environment";
 import { DEFAULT_SNIPPETS } from "src/utils/default_snippets";
 import { DEFAULT_SNIPPET_VARIABLES } from "src/utils/default_snippet_variables";
-import * as v from "valibot"
+import * as v from "valibot";
 
 export type snippetDebugLevel = "off" | "info" | "verbose";
 
@@ -45,6 +45,8 @@ export interface LatexSuiteBasicSettings {
 	snippetRecursion: number;
 	snippetIMEVersion: boolean;
 	highlightDollarEnabled: boolean;
+	excalidrawSupportEnabled: boolean;
+	logLevel: "off" | "info" | "verbose" | "vverbose";
 }
 
 /** triggers following the same format as https://codemirror.net/docs/ref/#view.KeyBinding */
@@ -76,8 +78,17 @@ interface LatexSuiteParsedSettings {
 	forceMathLanguages: string[];
 }
 
-export type LatexSuitePluginSettings = {snippets: string, snippetVariables: string} & LatexSuiteBasicSettings & LatexSuiteRawSettings & LatexSuiteCMKeymapSettings;
-export type LatexSuiteCMSettings = {snippets: Snippet[]} & LatexSuiteBasicSettings & LatexSuiteParsedSettings & LatexSuiteCMKeymapSettings;
+export type LatexSuitePluginSettings = {
+	snippets: string;
+	snippetVariables: string;
+} & LatexSuiteBasicSettings &
+	LatexSuiteRawSettings &
+	LatexSuiteCMKeymapSettings;
+export type LatexSuiteCMSettings = {
+	snippets: Snippet[];
+} & LatexSuiteBasicSettings &
+	LatexSuiteParsedSettings &
+	LatexSuiteCMKeymapSettings;
 
 export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
 	snippets: DEFAULT_SNIPPETS,
@@ -117,14 +128,15 @@ export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
 	wordDelimiters: "., +-\\n\t:;!?\\/{}[]()=~$'\"|`<>*^%#@&",
 
 	// Raw settings
-	autofractionExcludedEnvs:
-	`[
+	autofractionExcludedEnvs: `[
 		["^{", "}"],
 		["\\\\pu{", "}"]
 	]`,
-	matrixShortcutsEnvNames: "pmatrix, cases, align, gather, bmatrix, Bmatrix, vmatrix, Vmatrix, array, matrix",
+	matrixShortcutsEnvNames:
+		"pmatrix, cases, align, gather, bmatrix, Bmatrix, vmatrix, Vmatrix, array, matrix",
 	matrixShortcutsMacroNames: "eqalign",
-	taboutClosingSymbols: "), ], \\rbrack, \\}, \\rbrace, \\rangle, \\rvert, \\rVert, \\rfloor, \\rceil, \\urcorner, }",
+	taboutClosingSymbols:
+		"), ], \\rbrack, \\}, \\rbrace, \\rangle, \\rvert, \\rVert, \\rfloor, \\rceil, \\urcorner, }",
 	autoEnlargeBracketsTriggers: "sum, int, frac, prod, bigcup, bigcap",
 	forceMathLanguages: "math",
 	snippetDebug: "off",
@@ -135,19 +147,29 @@ export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
 	snippetRecursion: 0,
 	snippetIMEVersion: false,
 	highlightDollarEnabled: true,
-}
+	excalidrawSupportEnabled: true,
+	logLevel: "off",
+};
 
 export const EnvironmentSchema = v.pipe(
 	v.string(),
 	v.parseJson(),
-	v.array(v.looseTuple([v.string(), v.string()], "Every item needs to be an array with 2 items"), "Needs to be an array [item1,item2]"),
+	v.array(
+		v.looseTuple(
+			[v.string(), v.string()],
+			"Every item needs to be an array with 2 items",
+		),
+		"Needs to be an array [item1,item2]",
+	),
 	v.mapItems(([openSymbol, closeSymbol]) => ({ openSymbol, closeSymbol })),
 );
 
-export function processLatexSuiteSettings(snippets: Snippet[], settings: LatexSuitePluginSettings):LatexSuiteCMSettings {
-
+export function processLatexSuiteSettings(
+	snippets: Snippet[],
+	settings: LatexSuitePluginSettings,
+): LatexSuiteCMSettings {
 	function strToArray(str: string) {
-		return str.replace(/\s/g,"").split(",");
+		return str.replace(/\s/g, "").split(",");
 	}
 
 	function getAutofractionExcludedEnvs(envsStr: string) {
@@ -155,8 +177,7 @@ export function processLatexSuiteSettings(snippets: Snippet[], settings: LatexSu
 
 		try {
 			envs = v.parse(EnvironmentSchema, envsStr);
-		}
-		catch (e) {
+		} catch (e) {
 			console.error(e);
 		}
 
@@ -168,13 +189,48 @@ export function processLatexSuiteSettings(snippets: Snippet[], settings: LatexSu
 
 		// Override raw settings with parsed settings
 		snippets: snippets,
-		autofractionExcludedEnvs: getAutofractionExcludedEnvs(settings.autofractionExcludedEnvs),
+		autofractionExcludedEnvs: getAutofractionExcludedEnvs(
+			settings.autofractionExcludedEnvs,
+		),
 		matrixShortcutsEnvNames: strToArray(settings.matrixShortcutsEnvNames),
-		matrixShortcutsMacroNames: strToArray(settings.matrixShortcutsMacroNames),
-		taboutClosingSymbols: new Set<string>(strToArray(settings.taboutClosingSymbols)),
+		matrixShortcutsMacroNames: strToArray(
+			settings.matrixShortcutsMacroNames,
+		),
+		taboutClosingSymbols: new Set<string>(
+			strToArray(settings.taboutClosingSymbols),
+		),
 		// Add backslash to triggers that are LaTeX commands
-		autoEnlargeBracketsTriggers: strToArray(settings.autoEnlargeBracketsTriggers)
-			.map(trigger => /[A-Za-z]+/.test(trigger) ? `\\${trigger}` : trigger), 
+		autoEnlargeBracketsTriggers: strToArray(
+			settings.autoEnlargeBracketsTriggers,
+		).map((trigger) =>
+			/[A-Za-z]+/.test(trigger) ? `\\${trigger}` : trigger,
+		),
 		forceMathLanguages: strToArray(settings.forceMathLanguages),
+	};
+}
+
+export function isLogLevelEnabled(
+	currentLevel: LatexSuiteBasicSettings["logLevel"],
+	messageLevel: LatexSuiteBasicSettings["logLevel"],
+): boolean {
+	if (currentLevel === "off") {
+		return false;
+	}
+	const currentLevelNum = convertLogLevelToNumber(currentLevel);
+	const messageLevelNum = convertLogLevelToNumber(messageLevel);
+
+	return messageLevelNum >= currentLevelNum;
+}
+
+export function convertLogLevelToNumber(level: LatexSuiteBasicSettings["logLevel"]): number {
+	switch (level) {
+		case "off":
+			return 0;
+		case "info":
+			return 1;
+		case "verbose":
+			return 2;
+		case "vverbose":
+			return 3;
 	}
 }

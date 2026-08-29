@@ -11,6 +11,7 @@ import { Parser, Tree } from "@lezer/common";
 import { fullMathParser } from "./mathjax-parser";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
 import { parser } from "./mathjax/latex-parser";
+import { isLogLevelEnabled } from "src/settings/settings";
 
 export class Work {
 	// Milliseconds of work time to perform immediately for a state doc change
@@ -113,14 +114,14 @@ type FakeNavigator = {
 const isInputPending = typeof navigator != "undefined" && (navigator as unknown as FakeNavigator)?.scheduling?.isInputPending
   ? (): boolean => !!(navigator as unknown as FakeNavigator)?.scheduling?.isInputPending?.() : null
 
-const LanguageSetStateEffect = StateEffect.define<LanguageState>();
+export const LanguageSetStateEffect = StateEffect.define<LanguageState>();
 
 const requestIdle = (callback: (deadline?: IdleDeadline) => void) => {
 	let timeout = window.setTimeout(() => callback(), Work.MaxPause)
 	return () => window.clearTimeout(timeout)
 }
   
-const parseWorker = ViewPlugin.fromClass(
+export const parseWorker = ViewPlugin.fromClass(
 	class ParseWorker {
 		working: (() => void) | null = null;
 		workScheduled = 0;
@@ -248,6 +249,7 @@ const OPEN_DISPLAY_MATH_NODE = "formatting_formatting-math_formatting-math-begin
 const CLOSE_DISPLAY_MATH_NODE = "formatting_formatting-math_formatting-math-end_keyword_math_math-"
 
 function isNotExcalidraw(state: EditorState): boolean {
+	const settings = getLatexSuiteConfig(state)
 	const languageFacet = state.facet(language) as null | {name?: string}
 	// other plugins like templater may override the language name (which they really shouldn't do but oh well)
 	// thus assuming the syntaxtree of excalidraw is constant
@@ -257,21 +259,35 @@ function isNotExcalidraw(state: EditorState): boolean {
 		const firstChild = topNode.firstChild
 		const secondChild = firstChild?.nextSibling
 		const lastChild = topNode.lastChild
+		const conditions = [
+			firstChild,
+			firstChild?.name === OPEN_DISPLAY_MATH_NODE,
+			firstChild?.from === firstChild?.to,
+			firstChild?.from === 0,
+			lastChild,
+			lastChild?.name === CLOSE_DISPLAY_MATH_NODE,
+			lastChild?.from === lastChild?.to,
+			secondChild,
+			secondChild?.name === "math",
+		];
+		if (isLogLevelEnabled(settings.logLevel, "info")) {
+			console.debug("[Obsidian LaTeX Suite] isNotExcalidraw: checkSyntaxTree() conditions:", conditions.map((c) => !!c));
+			if (isLogLevelEnabled(settings.logLevel, "verbose")) {
+				console.debug("[Obsidian LaTeX Suite] isNotExcalidraw: checkSyntaxTree() details:", conditions);
+			}
+		}
+		
 		return !(
-			firstChild &&
-			firstChild.name === OPEN_DISPLAY_MATH_NODE &&
-			firstChild.from === firstChild.to && firstChild.from === 0 &&
-			lastChild &&
-			lastChild.name === CLOSE_DISPLAY_MATH_NODE &&
-			lastChild.from === lastChild.to &&
-			secondChild &&
-			secondChild.name === "math"
+			conditions.every((c) => !!c)
 		);
 	}
-	return languageFacet?.name === "hypermd" || languageFacet?.name === "templater" || checkSyntaxTree()
+	if (isLogLevelEnabled(settings.logLevel, "info")) {
+		console.debug(`[Obsidian LaTeX Suite] isNotExcalidraw: languageFacet?.name=${languageFacet?.name}, checkSyntaxTree()=${checkSyntaxTree()}, settings.excalidrawSupportEnabled=${settings.excalidrawSupportEnabled}`);
+	}
+	return languageFacet?.name === "hypermd" || languageFacet?.name === "templater" || checkSyntaxTree() || !settings.excalidrawSupportEnabled
 }
 
-const languageStateField = StateField.define({
+export const languageStateField = StateField.define({
 	create: (state: EditorState) => {
 		const fullParser = isNotExcalidraw(state)
 			? fullMathParser(getLatexSuiteConfig(state).forceMathLanguages)

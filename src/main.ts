@@ -1,27 +1,37 @@
 import { Extension, Prec } from "@codemirror/state";
 import { Plugin, Notice, loadMathJax, addIcon, debounce } from "obsidian";
 import { getSnippetsFromFiles, getFileSets, getVariablesFromFiles, tryGetVariablesFromUnknownFiles, fileWatch } from "./settings/file_watch";
-import { LatexSuitePluginSettings, DEFAULT_SETTINGS, LatexSuiteCMSettings, processLatexSuiteSettings, LatexSuiteBasicSettings, LatexSuiteRawSettings } from "./settings/settings";
+import { LatexSuitePluginSettings, DEFAULT_SETTINGS, LatexSuiteCMSettings, processLatexSuiteSettings, LatexSuiteBasicSettings, LatexSuiteRawSettings, isLogLevelEnabled } from "./settings/settings";
 import { isIMESupported, LatexSuiteSettingTab } from "./settings/settings_tab";
 import { ICONS } from "./settings/ui/icons";
 
-import { getEditorCommands, getVimEditorCommands } from "./features/editor_commands";
+import { getEditorCommands, getVimEditorCommands, getVimRunMatrixEnterCommand } from "./features/editor_commands";
 import { getLatexSuiteConfigExtension } from "./snippets/codemirror/config";
 import { SnippetVariables, parseSnippetVariables, parseSnippets } from "./snippets/parse";
 import { handleUpdate, onInput, keyboardEventPlugin, getKeymaps } from "./latex_suite";
 import { EditorView, keymap, tooltips } from "@codemirror/view";
 import { snippetExtensions } from "./snippets/codemirror/extensions";
 import { mkConcealPlugin } from "./editor_extensions/conceal";
-import { colorPairedBracketsPluginLowestPrec, highlightCursorBracketsPlugin } from "./editor_extensions/highlight_brackets";
-import { cursorTooltipBaseTheme, cursorTooltipField } from "./editor_extensions/math_tooltip";
+import { colorPairedBracketsPlugin, colorPairedBracketsPluginLowestPrec, highlightCursorBracketsPlugin } from "./editor_extensions/highlight_brackets";
+import { cursorTooltipBaseTheme, cursorTooltipField, updateTooltipEffect } from "./editor_extensions/math_tooltip";
 import { contextPlugin, getContextPlugin, mathBoundsPlugin } from "./utils/context";
 import { LatexSuitePluginPublicApi } from "./api";
 import * as v from "valibot"
-import { languageExtension } from "./parser/language";
+import { languageExtension, LanguageSetStateEffect, languageStateField, modifiedSyntaxTree, parseWorker } from "./parser/language";
 import { highlight_dollar } from "./editor_extensions/highlight_dollar";
 import { EMPTY_SETTINGS } from "./settings/empty_settings";
 import i18next from "./i18n/i18n";
 import resources from "./i18n/resources";
+import { mathParserPlugin } from "./parser/parser_printer";
+import { endSnippet, snippetInvertedEffects, startSnippet, undidEndSnippet, undidStartSnippet } from "./snippets/codemirror/history";
+import { addTabstopsEffect, removeAllTabstopsEffect, tabstopsStateField } from "./snippets/codemirror/tabstops_state_field";
+import { notice } from "./editor_extensions/obsidian_utils";
+import { snippetQueuePlugin } from "./snippets/codemirror/snippet_queue_state_field";
+import { autoEnlargeBrackets } from "./features/auto_enlarge_brackets";
+import { runAutoFraction } from "./features/autofraction";
+import { addCellMatrixShortcut, exitMatrixShortCut, newlineMatrixShortcut, priorityTaboutMatrixShortcut } from "./features/matrix_shortcuts";
+import { snippet, tempKeyPress } from "./snippets/snippet_management";
+import { snippetApi } from "./snippets/luasnip_api";
 
 export default class LatexSuitePlugin extends Plugin implements LatexSuitePluginPublicApi {
 	settings: LatexSuitePluginSettings = EMPTY_SETTINGS;
@@ -35,6 +45,51 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 			console.error("Error occurred while disabling math:", e);
 		}
 	};
+	modifiedSyntaxTree = modifiedSyntaxTree;
+	snippet = snippet;
+	api = {
+		effects: {
+			snippetInvertedEffects,
+			startSnippet,
+			endSnippet,
+			undidStartSnippet,
+			undidEndSnippet,
+			LanguageSetStateEffect,
+			addTabstopsEffect,
+			removeAllTabstopsEffect,
+			updateTooltipEffect,
+		},
+		fields: {
+			cursorTooltipField,
+			notice,
+			languageStateField,
+			tabstopsStateField,
+		},
+		annotations: {
+			tempKeyPress,
+		},
+		plugin: {
+			keyboardEventPlugin,
+			colorPairedBracketsPlugin,
+			highlightCursorBracketsPlugin,
+			parseWorker,
+			mathParserPlugin,
+			snippetQueuePlugin,
+			contextPlugin,
+			mathBoundsPlugin
+		},
+		shortcuts: {
+			autoEnlargeBrackets,
+			runAutoFraction,
+			exitMatrixShortCut,
+			addCellMatrixShortcut,
+			newlineMatrixShortcut,
+			getVimRunMatrixEnterCommand,
+			priorityTaboutMatrixShortcut,
+			snippet,
+		},
+		snippetApi
+	}
 
 	async onload() {
 		i18next.addResourceBundle("en", "obsidian-latex-suite", resources.en)
@@ -224,6 +279,9 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 			]);
 		if (this.CMSettings.highlightDollarEnabled) {
 			this.editorExtensions.push(highlight_dollar);
+		}
+		if (isLogLevelEnabled(this.CMSettings.logLevel, "verbose")) {
+			this.editorExtensions.push(mathParserPlugin);
 		}
 	}
 
