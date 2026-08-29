@@ -52,7 +52,7 @@
 		"jiti": "^2.7.0",
 		"obsidian": "^1.13.1",
 		"obsidian-integration-testing": "^10.3.2",
-		"obsidian-typings": "^6.32.0",
+		"obsidian-typings": "^6.35.0",
 		"remark-parse": "^11.0.0",
 		"remark-stringify": "^11.0.0",
 		"stylelint": "^17.14.1",

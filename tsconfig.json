@@ -9,7 +9,7 @@
     "allowJs": true,
     "noImplicitAny": true,
 	"strictNullChecks": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
 	"ignoreDeprecations": "6.0",
 	"resolveJsonModule": true,
     "importHelpers": true,
