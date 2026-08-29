@@ -227,7 +227,7 @@
 		},
 		"log-level": {
 			"name": "Log level",
-			"desc": "Set the level of debug information to log. Set to `$t(settings.experimental.log-level.options.vverbose)` for bug report purposes.",
+			"desc": "Set the level of debug information to log. Set to `$t(settings:experimental.log-level.options.vverbose)` for bug report purposes.",
 			"options": {
 				"off": "Off",
 				"info": "Info",

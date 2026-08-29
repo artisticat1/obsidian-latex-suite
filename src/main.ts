@@ -92,7 +92,7 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 	}
 
 	async onload() {
-		i18next.addResourceBundle("en", "obsidian-latex-suite", resources.en)
+		i18next.addResourceBundle("en", "settings", resources.en.settings)
 		await this.loadSettings();
 
 		this.loadIcons();
