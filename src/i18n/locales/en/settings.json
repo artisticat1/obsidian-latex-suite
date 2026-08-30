@@ -207,10 +207,14 @@
 			"name": "Keymap",
 			"desc": "codemirror 6 keymaps for snippets and tabout."
 		},
-		"snippet": "expand manual snippets",
-		"next-tabstop": "next tabstop",
-		"prev-tabstop": "previous tabstop",
-		"tabout": "tabout"
+		"snippet": "Expand manual snippets",
+		"next-tabstop": "Next tabstop",
+		"prev-tabstop": "Previous tabstop",
+		"tabout": "Tabout",
+		"matrix-newline": "Matrix: insert newline and \"\\\\\"",
+		"matrix-cell": "Matrix: insert \" & \"",
+		"matrix-exit": "Matrix: move to the next line",
+		"auto-fraction": "Expand fraction"
 	},
 	"experimental": {
 		"heading": {

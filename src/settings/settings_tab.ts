@@ -1,6 +1,6 @@
 import { EditorState, Extension } from "@codemirror/state";
 import { EditorView, ViewUpdate } from "@codemirror/view";
-import { App, ButtonComponent, ExtraButtonComponent, Modal, Notice, Platform, PluginSettingTab, Setting, SettingDefinitionItem, debounce, requireApiVersion, setIcon } from "obsidian";
+import { App, ButtonComponent, Component, ExtraButtonComponent, MarkdownRenderer, Modal, Notice, Platform, PluginSettingTab, Setting, SettingDefinitionItem, debounce, requireApiVersion, setIcon } from "obsidian";
 import { parseKeyName, parseSnippetVariables, parseSnippets } from "src/snippets/parse";
 import { DEFAULT_SNIPPETS } from "src/utils/default_snippets";
 import LatexSuitePlugin from "../main";
@@ -17,6 +17,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 	snippetsEditor: EditorView | null = null;
 	snippetsFileLocEl: HTMLElement | undefined = undefined;
 	snippetVariablesFileLocEl: HTMLElement | undefined = undefined;
+	component = new Component()
 
 	constructor(app: App, plugin: LatexSuitePlugin) {
 		super(app, plugin);
@@ -32,7 +33,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		await this.plugin.saveSettings();
 	}
 
-	getSettingDefinitions(): SettingDefinitionItem[] {
+	_getSettingDefinitions(): SettingDefinitionItem[] {
 		return new LatexSuiteSettingsTab2(this.app, this.plugin).getSettingDefinitions();
 	}
 
@@ -53,6 +54,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 	display(): void {
 		const { containerEl } = this;
 		containerEl.empty();
+		this.component.unload();
 
 		this.displaySnippetSettings();
 		this.displayConcealSettings();
@@ -63,7 +65,9 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		this.displayTaboutSettings();
 		this.displayAutoEnlargeBracketsSettings();
 		this.displayAdvancedSnippetSettings();
+		this.displayKeymapSettings();
 		this.displayExperimentalSettings();
+		this.component.load();
 	}
 
 	private displaySnippetSettings() {
@@ -138,10 +142,6 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		snippetsSetting.settingEl.toggleClass("hidden", loadSnippetsFromFile);
 		this.snippetsFileLocEl.toggleClass("hidden", !loadSnippetsFromFile);
 
-
-		this.createTriggerSetting(containerEl, "non-auto snippets", "snippetsTrigger");
-		this.createTriggerSetting(containerEl, "next tabstop", "snippetNextTabstopTrigger")
-		this.createTriggerSetting(containerEl, "previous tabstop", "snippetPreviousTabstopTrigger")
 	}
 
 	private displayConcealSettings() {
@@ -416,11 +416,9 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 					taboutClosingBracketsSetting.settingEl.toggleClass("hidden", !value);
 					taboutExitEquationOnlyOnEOLSetting.settingEl.toggleClass("hidden", !value);
-					taboutTriggerSetting.settingEl.toggleClass("hidden", !value);
 
 					await this.plugin.saveSettings();
 				}));
-		const taboutTriggerSetting = this.createTriggerSetting(containerEl, "tabout", "taboutTrigger")
 
 		const taboutClosingBracketsSetting =  new Setting(containerEl)
 			.setName("Closing brackets")
@@ -722,6 +720,41 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				});
 		});
 	}
+	
+	private displayKeymapSettings() {
+		const containerEl = this.containerEl;
+		this.addHeading(containerEl, "Keymap", "keyboard");
+		
+		const settings = [
+			["snippet", "snippetsTrigger"],
+			["next-tabstop", "snippetNextTabstopTrigger"],
+			["prev-tabstop", "snippetPreviousTabstopTrigger"],
+			["auto-fraction", "autofractionTrigger"],
+			["matrix-newline", "matrixShortcutsNewlineTrigger"],
+			["matrix-cell", "matrixShortcutsCellTrigger"],
+			["matrix-exit", "matrixShortcutsExitTrigger"],
+			["tabout", "taboutTrigger"],
+		] as const;
+		const explanation = new Setting(containerEl)
+			.setDesc(this.renderMarkdown(t("keymap.desc")));
+		explanation.setClass("latex-suite-keymap-list");
+		explanation.settingEl.createEl("ul", {}, ol => {
+			for (const [name, key] of settings) {
+				ol.createEl("li", { cls: "latex-suite-keymap-item" }, li => {
+					new Setting(li)
+						.setName(t(`keymap.${name}`))
+						.addText(text => text
+							.setPlaceholder(DEFAULT_SETTINGS[key])
+							.setValue(this.plugin.settings[key])
+							.onChange(async (value) => {
+								this.plugin.settings[key] = value;
+								await this.plugin.saveSettings();
+							})
+						);
+				});
+			}
+		})
+	}
 
 	private displayExperimentalSettings() {
 		const containerEl = this.containerEl;
@@ -884,19 +917,21 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			});
 	}
 
-	createTriggerSetting(containerEl: HTMLElement, name: string, settingName: keyof LatexSuiteCMKeymapSettings) {
-		return new Setting(containerEl)
-			.setName(`Key trigger for ${name}`)
-			.setDesc(getTriggerHelpText(name))
-			.addText((text) => text
-				.setValue(this.plugin.settings[settingName])
-				.setPlaceholder(DEFAULT_SETTINGS[settingName])
-				.onChange(async (value) => {
-					parseKeyName(value);
-					this.plugin.settings[settingName] = value;
-					await this.plugin.saveSettings();
-				})
-			);
+	renderMarkdown(source: string) {
+		const fragment = new DocumentFragment()
+		const span = fragment.createSpan()
+		// Don't render right on startup, but have something rendered.
+		span.setText(source)
+		void MarkdownRenderer.render(this.app, source, span, "", this.component).then(() => {
+			span.replaceChildren(...Array.from(span.children).map(child => {
+				if (child.tagName === "P") {
+					child.addClass("latex-suite-markdown-p")
+				}
+				return child
+			})
+			)
+		})
+		return fragment
 	}
 }
 
@@ -938,19 +973,6 @@ function createCMEditor(content: string, extensions: Extension[], node: Element)
  */
 export function isIMESupported(): boolean {
 	return Platform.isMobileApp
-}
-function getTriggerHelpText(name: string) {
-	const fragment = new DocumentFragment();
-	fragment.createDiv({}, (div) => {
-		div.appendText(
-			`What key to press to trigger ${name}. Should follow codemirror keymap syntax such as "Ctrl-k Ctrl-a". For more info see `,
-		);
-		div.createEl("a", {
-			attr: { href: "https://codemirror.net/docs/ref/#view.KeyBinding" },
-			text: "codemirror keymap documentation",
-		});
-	});
-	return fragment;
 }
 
 export function buttonSetWarning(button: ButtonComponent): ButtonComponent {

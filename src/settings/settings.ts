@@ -55,6 +55,10 @@ export interface LatexSuiteCMKeymapSettings {
 	snippetNextTabstopTrigger: CMKeyMap;
 	snippetPreviousTabstopTrigger: CMKeyMap;
 	taboutTrigger: CMKeyMap;
+	matrixShortcutsNewlineTrigger: CMKeyMap
+	matrixShortcutsCellTrigger: CMKeyMap
+	matrixShortcutsExitTrigger: CMKeyMap
+	autofractionTrigger: CMKeyMap
 }
 
 /**
@@ -149,6 +153,10 @@ export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
 	highlightDollarEnabled: true,
 	excalidrawSupportEnabled: true,
 	logLevel: "off",
+	autofractionTrigger: "/",
+	matrixShortcutsCellTrigger: "Tab",
+	matrixShortcutsNewlineTrigger: "Enter",
+	matrixShortcutsExitTrigger: "Shift-Enter",
 };
 
 export const EnvironmentSchema = v.pipe(
