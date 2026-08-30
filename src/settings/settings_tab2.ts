@@ -544,10 +544,14 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 	getKeyMapDefinitions(): SettingDefinitionItem[] {
 		// typescript doesn't infer correctly here so using broader definition.
 		const settings: SettingDefinition[] = ([
-			["snippet", "snippetsTrigger"] ,
-			["next-tabstop", "snippetNextTabstopTrigger"] ,
-			["prev-tabstop", "snippetPreviousTabstopTrigger"] ,
-			["tabout", "taboutTrigger"] ,
+			["snippet", "snippetsTrigger"],
+			["next-tabstop", "snippetNextTabstopTrigger"],
+			["prev-tabstop", "snippetPreviousTabstopTrigger"],
+			["auto-fraction", "autofractionTrigger"],
+			["matrix-newline", "matrixShortcutsNewlineTrigger"],
+			["matrix-cell", "matrixShortcutsCellTrigger"],
+			["matrix-exit", "matrixShortcutsExitTrigger"],
+			["tabout", "taboutTrigger"],
 		] as const).map((keys) => ({
 			name: t(`keymap.${keys[0]}`),
 			control: {

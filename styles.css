@@ -113,6 +113,18 @@
     width: initial;
 }
 
+
+.setting-item.latex-suite-keymap-list {
+	display: flex;
+	flex-direction: column;	
+}
+
+.latex-suite-keymap-item {
+	list-style: none;
+	align-self: flex-start;
+}
+
+
 /*
 Snippet color classes.
 */

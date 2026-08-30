@@ -222,7 +222,7 @@ export function getKeymaps(settings: LatexSuiteCMSettings): LatexSuiteKeyBinding
 	});
 	if (settings.autofractionEnabled) {
 		keybindings.push({
-			key: "/",
+			key: settings.autofractionTrigger,
 			run: function autofraction (view: EditorView) {
 				if (!getLatexSuiteConfig(view).autofractionEnabled) return false;
 				const ctx = getContextPlugin(view);
@@ -235,19 +235,19 @@ export function getKeymaps(settings: LatexSuiteCMSettings): LatexSuiteKeyBinding
 	// Matrix shortcuts are intentionally put before tabout shortcuts,
 	const matrixShortcuts = [
 		{
-			key: "Enter",
+			key: settings.matrixShortcutsNewlineTrigger,
 			run: newlineMatrixShortcut,
 		},
 		{
-			key: "Tab",
+			key: settings.matrixShortcutsCellTrigger,
 			run: addCellMatrixShortcut,
 		},
 		{
-			key: "Shift-Enter",
+			key: settings.matrixShortcutsExitTrigger,
 			run: exitMatrixShortCut,
 		},
 	];
-	if (settings.taboutEnabled && settings.taboutTrigger === "Tab") {
+	if (settings.taboutEnabled && settings.taboutTrigger === settings.matrixShortcutsCellTrigger) {
 		matrixShortcuts.unshift({
 			key: settings.taboutTrigger,
 			run: priorityTaboutMatrixShortcut
