@@ -1,10 +1,10 @@
 import { EditorState, Extension } from "@codemirror/state";
 import { EditorView, ViewUpdate } from "@codemirror/view";
 import { App, ButtonComponent, Component, ExtraButtonComponent, MarkdownRenderer, Modal, Notice, Platform, PluginSettingTab, Setting, SettingDefinitionItem, debounce, requireApiVersion, setIcon } from "obsidian";
-import { parseKeyName, parseSnippetVariables, parseSnippets } from "src/snippets/parse";
+import { parseSnippetVariables, parseSnippets } from "src/snippets/parse";
 import { DEFAULT_SNIPPETS } from "src/utils/default_snippets";
 import LatexSuitePlugin from "../main";
-import { DEFAULT_SETTINGS, LatexSuiteCMKeymapSettings, LatexSuitePluginSettings } from "./settings";
+import { DEFAULT_SETTINGS, LatexSuitePluginSettings } from "./settings";
 import { FileSuggest } from "./ui/file_suggest";
 import { basicSetup } from "./ui/snippets_editor/extensions";
 import { getVimSelectModeCommand, vimCommand, getVimVisualModeCommand, getVimEditorCommands, getVimRunMatrixEnterCommand } from "src/features/editor_commands";
@@ -33,7 +33,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		await this.plugin.saveSettings();
 	}
 
-	_getSettingDefinitions(): SettingDefinitionItem[] {
+	getSettingDefinitions(): SettingDefinitionItem[] {
 		return new LatexSuiteSettingsTab2(this.app, this.plugin).getSettingDefinitions();
 	}
 
@@ -444,7 +444,6 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 		taboutClosingBracketsSetting.settingEl.toggleClass("hidden", !this.plugin.settings.taboutEnabled);
 		taboutExitEquationOnlyOnEOLSetting.settingEl.toggleClass("hidden", !this.plugin.settings.taboutEnabled);
-		taboutTriggerSetting.settingEl.toggleClass("hidden", !this.plugin.settings.taboutEnabled);
 	}
 
 	private displayAutoEnlargeBracketsSettings() {
