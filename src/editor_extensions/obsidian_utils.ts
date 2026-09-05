@@ -1,5 +1,5 @@
 import { EditorState, StateField } from "@codemirror/state";
-import { Notice } from "obsidian";
+import { Notice, Platform } from "obsidian";
 import { Snippet, SnippetType } from "src/snippets/snippets";
 
 // grouping obsidian apis that obsidian forces in the linter, such that they can be easily replaced.
@@ -60,3 +60,7 @@ export function showSnippetInfo(state: EditorState,snippet: Snippet<SnippetType>
 	console.debug(div.textContent);
 }
 
+
+export function isMacOS() {
+	return Platform.isMacOS
+}

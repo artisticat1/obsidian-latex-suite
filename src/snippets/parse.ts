@@ -3,10 +3,10 @@ import { RegexSnippet, serializeSnippetLike, Snippet, StringSnippet, VISUAL_SNIP
 import { Options } from "./options";
 import { sortSnippets } from "./sort";
 import { EXCLUSIONS } from "./environment";
-import { Platform } from "obsidian";
 import { api } from "./luasnip_api";
 import { ArrayNode, BaseNode, SnippetStringNode, SnippetTabstopOnlyNode, VisualSnippetNode } from "./luasnip_api/node";
 import { MacroArea, MacroAreaPipeSchema } from "src/utils/default_text_areas";
+import { isMacOS } from "src/editor_extensions/obsidian_utils";
 
 export type SnippetVariables = Record<string, string>;
 
@@ -346,7 +346,7 @@ function normalizeKeyName(name: string) {
 		else if (/^(c|ctrl|control)$/i.test(mod)) ctrl = true;
 		else if (/^s(hift)?$/i.test(mod)) shift = true;
 		else if (/^mod$/i.test(mod)) {
-			if (Platform.isMacOS) meta = true;
+			if (isMacOS()) meta = true;
 			else ctrl = true;
 		} else throw new Error("Unrecognized modifier name: " + mod);
 	}
