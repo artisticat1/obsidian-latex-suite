@@ -54,4 +54,8 @@ export const EMPTY_SETTINGS: LatexSuitePluginSettings = {
 	highlightDollarEnabled: false,
 	excalidrawSupportEnabled: false,
 	logLevel: "off",
+	autofractionTrigger: "",
+	matrixShortcutsCellTrigger: "",
+	matrixShortcutsExitTrigger: "",
+	matrixShortcutsNewlineTrigger: "",
 }
