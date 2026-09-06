@@ -30,8 +30,11 @@
   - The following flags are permitted: `i`, `m`, `s`, `u`, `v`.
 - `triggerKey` (optional): The shortcut to expand the snippet.
   - Has to be in <a href="https://codemirror.net/docs/ref/#view.KeyBinding">codemirror keymap format</a> such as `Ctrl-a`.
-  - Empty strings are ignored and both the `triggerKey` and `trigger` need to match (`trigger` can be an empty string making it a hotkey). See #439 for examples and a snippet to add a snippet as an hotkey.
-  - No other shortcut such as obsidians hotkeys, vims keymaps or other plugins can have used the shortcut before this plugin. For example `Ctrl-o` by default will open quick switcher and thus won't as a `triggerKey`.
+  - Empty strings are ignored.
+  - When `trigger` is defined and the snippet is not automatic, both `triggerKey` and `trigger` have to match.
+  - When the snippet is automatic, `trigger` is ignored when `triggerKey` is pressed.
+  - No other shortcut such as obsidians hotkeys, vims keymaps or other plugins can have used the shortcut before this plugin. For example `Ctrl-o` by default will open quick switcher and thus can't be used for `triggerKey`.
+
 - `language` (optional): Which code language to expand this in. Needs to match the text after <code>```</code> exactly.
 - `excludedMacros` (optional): Which macros\commands name to skip expansion in. Could be usefull for commands such as `ce` and `pu`.
 - `excludedEnvironments` (optional): Which environment names such as `pmatrix` to skip expansion in.
@@ -44,7 +47,7 @@
 - `n` : Inline math mode. Only run this snippet inside a `$ ... $` block
 - `A` : Auto. Expand this snippet as soon as the trigger is typed. If omitted, the <kbd>Tab</kbd> key must be pressed to expand the snippet
 - `r` : [Regex](#regex-snippets). The `trigger` will be treated as a regular expression
-- `v` : [Visual](#visual-snippets). Only run this snippet on a selection. The trigger should be a single character
+- `v` : [Visual](#visual-snippets). Only run this snippet on a selection. Either the trigger should be a single character or `triggerKey` should be a keymap.
 - `w` : Word boundary. Only run this snippet when the trigger is preceded (and followed by) a word delimiter, such as `.`, `,`, or `-`.
 - `c` : Code mode. Only run this snippet inside a ```` ``` ... ``` ```` block
 	- Languages using `$` as part of their syntax won't trigger math mode while in their codeblock
@@ -163,8 +166,36 @@ To create a visual snippet, you can alternatively use the `v` option and make th
 .
 
 Visual snippets will not expand unless text is selected.
+Either `triggerKey` has to be defined or `trigger`, not both and snippets with `trigger` defined are treated as if `triggerKey` was defined instead and as such are always automatic.
 You can also trigger visual snippets with vim, see [select-mode](#select-mode)
 
+
+Composite markers, e.g. callouts and indentation are removed from the `${VISUAL}` and is currently only available through `capture_node("${VISUAL_ORIGINAL}")`, see the [nodes](#nodes) section for more info about nodes.
+
+This makes working composite markers when they are all on the same level easier.
+For example, with the snippet
+
+```ts
+{trigger: "(", replacement: "(${VISUAL})", options: "mv"},
+```
+
+and the text below where everything between the `|` is selected
+```md
+> $$
+|> \frac{1}{2} +
+> \frac{2}{3} 
+> |
+> $$
+```
+
+Then pressing `(` encapsulates everything except for the starting composite markers as that would disrupt the composite markers
+
+```md
+> $$
+|> \left( \frac{1}{2} +
+> \frac{2}{3}  \right) |
+> $$
+```
 
 ### Function snippets
 
@@ -264,7 +295,7 @@ type api = {
 	tabstop_node: (index: number, insert: string="") => BaseNode,
 	text_node: (text: string) => BaseNode,
 	// The key to extract regex groups or named groups, replaces [[X]].
-	// ${VISUAL} is used for the selection in visual snippets and 0 for the trigger in normal snippets
+	// ${VISUAL} and ${VISUAL_ORIGINAL} are used for the selection in visual snippets and 0 for the trigger in normal snippets
 	// default is used, if the key isn't defiend.
 	capture_node: (key: string | number, defaultValue: string = "") => BaseNode,
 }
@@ -283,7 +314,7 @@ const snippet = {
 }
 ```
 
-Or when the visual selection should be copied as is
+Or when the visual selection should be copied as is and currency should not be converted to tabstops.
 
 ```ts
 const ls = require("latex-suite")

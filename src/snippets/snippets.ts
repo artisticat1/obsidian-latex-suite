@@ -46,12 +46,12 @@ function convertOutputToNode(rawReplacement: unknown): ArrayNode | null {
 	}
 	if (parseResult.output === false) {
 		return null;
-	} else if (typeof parseResult.output === "string") { 
+	} else if (typeof parseResult.output === "string") {
 		const snippet = new SnippetTabstopOnlyNode(parseResult.output);
 		return new ArrayNode([snippet]);
 	} else if (Array.isArray(parseResult.output)){
 		return new ArrayNode(parseResult.output);
-	} 
+	}
 
 	// never happens but ts can't figure that out without a return
 	return parseResult.output
@@ -150,7 +150,7 @@ export abstract class Snippet<T extends SnippetType = SnippetType> {
 	get replacement(): SnippetData<T>["replacement"] { return this.data.replacement; }
 
 	abstract process(args: ProccesArgs): ProcessSnippetResult;
-	
+
 	isWithinExcludedScope(stack: StackOutput[]): boolean {
 		if (this.excludedEnvironments.length === 0 && this.excludedMacros.length === 0) return false;
 		for (const envName of stack) {
@@ -167,7 +167,7 @@ export abstract class Snippet<T extends SnippetType = SnippetType> {
 		}
 		return false;
 	}
-	
+
 	isWithinIncludedScope(stack: StackOutput[]): IncludedEnvironmentResult {
 		if (this.includedMacros.length === 0) return IncludedEnvironmentResult.None;
 		// Environments are skipped for the same reason as in isWithinExcludedScope, but only the

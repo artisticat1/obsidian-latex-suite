@@ -134,7 +134,7 @@ type LatexSuiteKeyBinding = KeyBinding & {scope: "latex-suite"};
  * @returns The keymaps for the LaTeX suite based on the provided settings
  */
 export function getKeymaps(settings: LatexSuiteCMSettings): LatexSuiteKeyBinding[] {
-	// Order matters for keybindings, 
+	// Order matters for keybindings,
 	// as they are checked in order from the beginning of the array to the end
 	const keybindings: KeyBinding[] = [];
 
@@ -168,7 +168,7 @@ export function getKeymaps(settings: LatexSuiteCMSettings): LatexSuiteKeyBinding
 			},
 		});
 	}
-	
+
 	const snippet_triggers = new Set(
 		settings.snippets.map((s) => s.triggerKey).filter((s) => s !== "")
 	);
@@ -196,6 +196,7 @@ export function getKeymaps(settings: LatexSuiteCMSettings): LatexSuiteKeyBinding
 			}
 		};
 	};
+
 	if (settings.snippetsEnabled) {
 		keybindings.push(
 			...Array.from(snippet_triggers, (key) => {
@@ -284,4 +285,3 @@ export function getKeymaps(settings: LatexSuiteCMSettings): LatexSuiteKeyBinding
 		scope: "latex-suite",
 	}));
 }
-
