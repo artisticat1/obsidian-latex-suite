@@ -8,6 +8,7 @@ import { autoEnlargeBrackets } from "./auto_enlarge_brackets";
 import { snippetDebugLevel } from "src/settings/settings";
 import { IncludedEnvironmentResult, Snippet, SnippetType } from "src/snippets/snippets";
 import { showSnippetInfo } from "src/editor_extensions/obsidian_utils";
+import { ResultInsert } from "src/snippets/luasnip_api/node";
 
 type SnippetInfo = {
 	snippets: Snippet<SnippetType>[];
@@ -99,7 +100,7 @@ const runSnippetCursor = (view: EditorView, ctx: Context, snippetInfo: SnippetIn
 
 		// When in inline math, remove any spaces at the end of the replacement
 		if (ctx.mode.inlineMath && settings.removeSnippetWhitespace) {
-			replacement.insert = trimWhitespace(replacement.insert, ctx);
+			replacement = trimWhitespace(replacement, ctx);
 		}
 
 		// Expand the snippet
@@ -144,28 +145,12 @@ const isOnWordBoundary = (state: EditorState, triggerPos: number, to: number, wo
 	return (wordDelimiters.contains(prevChar) && wordDelimiters.contains(nextChar));
 }
 
-const trimWhitespace = (replacement: string, _ctx: Context) => {
-	let spaceIndex = 0;
-
-	if (replacement.endsWith(" ")) {
-		spaceIndex = -1;
-	}
-	else {
-		const lastThreeChars = replacement.slice(-3);
-		const lastChar = lastThreeChars.slice(-1);
-
-		if (lastThreeChars.slice(0, 2) === " $" && !isNaN(parseInt(lastChar))) {
-			spaceIndex = -3;
-		}
-	}
-
-	if (spaceIndex != 0) {
-		if (spaceIndex === -1) {
-			replacement = replacement.trimEnd();
-		}
-		else if (spaceIndex === -3){
-			replacement = replacement.slice(0, -3) + replacement.slice(-2);
-		}
+const trimWhitespace = (replacement: ResultInsert, _ctx: Context) => {
+	const tabstops = replacement.tabstops;
+	replacement.insert = replacement.insert.trimEnd();
+	for (const tabstop of tabstops) {
+		tabstop.to = Math.min(tabstop.to, replacement.insert.length);
+		tabstop.from = Math.min(tabstop.from, replacement.insert.length);
 	}
 
 	return replacement;
