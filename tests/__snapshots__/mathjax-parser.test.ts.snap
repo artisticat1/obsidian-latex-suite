@@ -1,0 +1,3 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`my-plugin > should parse markdown after obsidian multiline comment (#634) 1`] = `"Document(Paragraph(DollarInlineMath(Dollar,LaTeX(Math(MathChar,Group(OpenBrace,Math(MathChar),CloseBrace),Group(OpenBrace,Math(MathChar),CloseBrace))),Dollar)),ObsidianComment,Paragraph(DollarInlineMath(Dollar,LaTeX(Math(MathChar,MathSpecialChar,MathChar)),Dollar)))"`;
