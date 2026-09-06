@@ -223,7 +223,7 @@ export class Context implements PluginValue {
 			return createEnvironment(node);
 		} else if (value === "KnownEnvironment") {
 			return createEnvironment(node.firstChild);
-		} else if (value.endsWith("Argument")) {
+		} else if (value.endsWith("Argument") || value === "EnvNameGroup") {
 			const parent = node.parent;
 			const command = parent?.firstChild;
 			const openBraced = node?.firstChild;

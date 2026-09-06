@@ -1,9 +1,9 @@
-import LatexSuitePlugin from "../src/main.js";
-import { fullMathParser } from "../src/parser/mathjax-parser.js";
-import { conceal } from "../src/editor_extensions/conceal_fns.js";
+import LatexSuitePlugin from "../src/main";
+import { fullMathParser } from "../src/parser/mathjax-parser";
+import { conceal } from "../src/editor_extensions/conceal_fns";
 import { MarkdownView } from "obsidian";
 import { EditorView } from "@codemirror/view";
-import { RawSnippetSchema } from "../src/snippets/parse.js";
+import { RawSnippetSchema } from "../src/snippets/parse";
 import * as v from "valibot"
 
 declare global {

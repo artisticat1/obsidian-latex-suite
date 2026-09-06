@@ -13,6 +13,8 @@ export const names = [
 	["math", "m"],
 	["math-exclude-pu", "m"],
 	["math-exclude-align", "m"],
+	["math-include-begin", "m"],
+	["math-include-color", "m"],
 ] as const;
 
 const normal_name_options = [
@@ -75,31 +77,68 @@ export const transactionSpec: Spec[] = [
 		pos: "$$\\begin{align}a&=b\\\\c&=d".length,
 		options: ["M", "m"],
 		names: ["display-math", "math", "math-exclude-pu"],
+	},
+	// snippetless envs
+	{
+		text: "$$\\begin{align}a&=b\\\\c&=d\\end{align}$$",
+		pos: "$$\\begin{align".length,
+		options: ["m"],
+		names: ["math-include-begin"]
+	},
+	{
+		text: "$$\\color{}$$",
+		pos: "$$\\color{".length,
+		options: ["m"],
+		names: ["math-include-color"]
 	}
 ];
 
 let length = normal_name_options.length;
-const snippets = [
-	...normal_name_options.slice(0, length).map((value, index) => ({
-		trigger: index.toString(),
-		replacement: "",
-		options: value[1],
-		name: value[0],
-	})),
-	{
-		trigger: (length++).toString(),
-		replacement: "",
-		options: "m",
-		name: "math-exclude-pu",
-		excludedMacros: ["pu"],
-	},
-	{
-		trigger: (length++).toString(),
-		replacement: "",
-		options: "m",
-		name: "math-exclude-align",
-		excludedEnvironments: ["align"],
-	}
-] satisfies (RawSnippet & { name: typeof names[number]["0"] })[];
+const snippets = (
+	[
+		...normal_name_options.slice(0, length).map((value, index) => ({
+			trigger: index.toString(),
+			replacement: "",
+			options: value[1],
+			name: value[0],
+		})),
+		{
+			trigger: (length++).toString(),
+			replacement: "",
+			options: "m",
+			name: "math-exclude-pu",
+			excludedMacros: ["pu"],
+		},
+		{
+			trigger: (length++).toString(),
+			replacement: "",
+			options: "m",
+			name: "math-exclude-align",
+			excludedEnvironments: ["align"],
+		},
+		{
+			trigger: (length++).toString(),
+			replacement: "",
+			options: "m",
+			name: "math-include-color",
+			includedMacros: ["color"],
+		},
+		{
+			trigger: (length++).toString(),
+			replacement: "",
+			options: "m",
+			name: "math-include-begin",
+			includedMacros: ["begin"],
+		},
+	] as const
+).map(
+	(snippet) =>
+		({
+			...snippet,
+			trigger: new RegExp(`(?<!\\d)${snippet.trigger}`),
+		}) as const,
+) satisfies (Readonly<RawSnippet> & {
+	readonly name: (typeof names)[number]["0"];
+})[];
 
 export default snippets;
