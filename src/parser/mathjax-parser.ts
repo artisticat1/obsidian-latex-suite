@@ -379,6 +379,7 @@ const obsidianCommentParser: MarkdownConfig = {
 					const endPos = cx.lineStart + end + 2
 					cx.addElement(cx.elt(Type.ObsidianComment, startPos, endPos));
 					cx.parser.parseInline(line.text.slice(end + 2), endPos).map(marker => cx.addElement(marker));
+					cx.nextLine();
 					return true;
 				}
 				return false;

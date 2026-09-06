@@ -74,7 +74,7 @@ obsidian display comment
 				return parsed.toString();
 			},
 		});
-		expect(result).toBe("Document(Paragraph(ObsidianComment,DollarInlineMath(Dollar,LaTeX(Math(MathChar,MathSpecialChar,Number)),Dollar)),ObsidianComment,DollarInlineMath(Dollar,LaTeX(Math(MathChar,MathSpecialChar,Number)),Dollar),Paragraph)")
+		expect(result).toBe("Document(Paragraph(ObsidianComment,DollarInlineMath(Dollar,LaTeX(Math(MathChar,MathSpecialChar,Number)),Dollar)),ObsidianComment,DollarInlineMath(Dollar,LaTeX(Math(MathChar,MathSpecialChar,Number)),Dollar))")
 	})
 	
 	it("parser: html comment with markdown at then end", async () => {
@@ -119,6 +119,26 @@ display html comment
 			},
 		});
 		expect(result).toBe("Document(Table(TableHeader(TableDelimiter,TableCell(DollarInlineMath(Dollar,LaTeX(Math(MathChar,MathSpecialChar,Number)),Dollar)),TableDelimiter,TableCell(DollarInlineMath(Dollar,LaTeX(Math(MathChar,MathSpecialChar,Number)),Dollar)),TableDelimiter),TableDelimiter,TableRow(TableDelimiter,TableCell(DollarInlineMath(Dollar,LaTeX(Math(MathChar,MathSpecialChar,Number)),Dollar)),TableDelimiter,TableCell(DollarInlineMath(Dollar,LaTeX(Math(MathChar,MathSpecialChar,Number)),Dollar)),TableDelimiter)))")
+	})
+	
+	it("should parse markdown after obsidian multiline comment (#634)", async () => {
+		const result = await evalInObsidian({
+			input: { pluginId: "obsidian-latex-suite" },
+			callback: ({ app, pluginId }) => {
+				const plugin = app.plugins.getPlugin(pluginId) as TestPlugin;
+				const parser = plugin.test.parser(["math"]);
+				return parser.parse(
+`
+$\frac{a}{b}$
+%%
+multi-line comment
+%%
+$a/b$
+`
+				).toString();
+			}
+		})	
+		expect(result).toMatchSnapshot();
 	})
 
 });
