@@ -64,7 +64,7 @@ export const tabstopsStateField = StateField.define<TabstopsState>({
 	},
 
 	provide: (field) => {
-		return EditorView.decorations.of(view => {
+		return EditorView.outerDecorations.of(view => {
 			// "Flatten" the array of DecorationSets to produce a single DecorationSet
 			const tabstopGroups = view.state.field(field).tabstopGroups;
 			const decos = [];
