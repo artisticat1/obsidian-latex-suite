@@ -54,13 +54,9 @@ const getSliceAroundCursor = (view: EditorView, to: number) => {
 	return {line, effectiveLineAfter};
 }
 
-const runSnippetCursor = (view: EditorView, ctx: Context, snippetInfo: SnippetInfo, original_range: CMBound, debug: snippetDebugLevel):{success: boolean; shouldAutoEnlargeBrackets: boolean} => {
-
-	const settings = getLatexSuiteConfig(view);
-	const original_sel = view.state.sliceDoc(original_range.from, original_range.to);
-	const {line, effectiveLineAfter} = getSliceAroundCursor(view, original_range.to);
-	const to = original_range.to;
+const getParsedSelection = (view: EditorView, original_range: CMBound) => {
 	const parsed_range = {from: original_range.from, to: original_range.to};
+	const original_sel = view.state.sliceDoc(original_range.from, original_range.to);
 	let parsedSel = original_sel;
 	// Remove indentations and callouts from selection as composite markers aren't really "part" of the text
 	// and make more sense to be removed from the selection.
@@ -78,6 +74,16 @@ const runSnippetCursor = (view: EditorView, ctx: Context, snippetInfo: SnippetIn
 	}
 	const range = {original: original_range, parsed: parsed_range};
 	const sel = {original: original_sel, parsed: parsedSel};
+	return {range, sel};
+}
+
+const runSnippetCursor = (view: EditorView, ctx: Context, snippetInfo: SnippetInfo, original_range: CMBound, debug: snippetDebugLevel):{success: boolean; shouldAutoEnlargeBrackets: boolean} => {
+
+	const settings = getLatexSuiteConfig(view);
+	const {line, effectiveLineAfter} = getSliceAroundCursor(view, original_range.to);
+	const to = original_range.to;
+	
+	const {range, sel} = getParsedSelection(view, original_range);
 
 	const key = snippetInfo.key ?? "";
 	// If the key pressed wasn't a text character, continue
