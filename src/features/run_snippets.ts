@@ -1,9 +1,9 @@
 import { EditorView } from "@codemirror/view";
-import { EditorState, SelectionRange } from "@codemirror/state";
+import { EditorState } from "@codemirror/state";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
 import { queueSnippet } from "src/snippets/codemirror/snippet_queue_state_field";
 import { expandSnippets } from "src/snippets/snippet_management";
-import { Context, getContextPlugin } from "src/utils/context";
+import { CMBound, Context, getContextPlugin } from "src/utils/context";
 import { autoEnlargeBrackets } from "./auto_enlarge_brackets";
 import { snippetDebugLevel } from "src/settings/settings";
 import { IncludedEnvironmentResult, Snippet, SnippetType } from "src/snippets/snippets";
@@ -25,7 +25,7 @@ export const runSnippets = (view: EditorView, snippetInfo: SnippetInfo, options:
 		let shouldAutoEnlargeBrackets = false;
 
 		for (const range of ctx.ranges) {
-			const result = runSnippetCursor(view, ctx, snippetInfo, range, options.debug);
+			const result = runSnippetCursor(view, ctx, snippetInfo, {from: range.from, to: range.to}, options.debug);
 
 			if (result.shouldAutoEnlargeBrackets) shouldAutoEnlargeBrackets = true;
 		}
@@ -54,12 +54,31 @@ const getSliceAroundCursor = (view: EditorView, to: number) => {
 	return {line, effectiveLineAfter};
 }
 
-const runSnippetCursor = (view: EditorView, ctx: Context, snippetInfo: SnippetInfo, range: SelectionRange, debug: snippetDebugLevel):{success: boolean; shouldAutoEnlargeBrackets: boolean} => {
+const runSnippetCursor = (view: EditorView, ctx: Context, snippetInfo: SnippetInfo, original_range: CMBound, debug: snippetDebugLevel):{success: boolean; shouldAutoEnlargeBrackets: boolean} => {
 
 	const settings = getLatexSuiteConfig(view);
-	const {from, to} = range;
-	const sel = view.state.sliceDoc(from, to);
-	const {line, effectiveLineAfter} = getSliceAroundCursor(view, to);
+	const original_sel = view.state.sliceDoc(original_range.from, original_range.to);
+	const {line, effectiveLineAfter} = getSliceAroundCursor(view, original_range.to);
+	const to = original_range.to;
+	const parsed_range = {from: original_range.from, to: original_range.to};
+	let parsedSel = original_sel;
+	// Remove indentations and callouts from selection as composite markers aren't really "part" of the text
+	// and make more sense to be removed from the selection.
+	if (original_range.from !== original_range.to) {
+		parsedSel = original_sel.replaceAll(/\n>*\s*/gm, "\n")
+		parsed_range.to = parsed_range.from + parsedSel.length;
+		const startLine = view.state.doc.lineAt(parsed_range.from);
+		if (startLine.from === parsed_range.from) {
+			const match = parsedSel.match(/^>*\s*/);
+			if (match) {
+				parsed_range.from += match[0].length;
+				parsedSel = parsedSel.replace(/^>*\s*/, "");
+			}
+		}	
+	}
+	const range = {original: original_range, parsed: parsed_range};
+	const sel = {original: original_sel, parsed: parsedSel};
+
 	const key = snippetInfo.key ?? "";
 	// If the key pressed wasn't a text character, continue
 	if (snippetInfo.key && snippetInfo.key.length !== 1) {

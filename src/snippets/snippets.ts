@@ -1,15 +1,19 @@
-import { SelectionRange } from "@codemirror/state";
 import { Options } from "./options";
 import { BaseNode, ResultInsert, ArrayNode, SnippetTabstopOnlyNode, Options as InsertOptions } from "./luasnip_api/node";
 import * as v from "valibot";
 import { MacroArea } from "src/utils/default_text_areas";
-import { isMacroArgumentCount, StackOutput } from "src/utils/context";
+import { CMBound, isMacroArgumentCount, StackOutput } from "src/utils/context";
 import { EditorView } from "@codemirror/view";
 
 /**
  * in visual snippets, if the replacement is a string, this is the magic substring to indicate the selection.
  */
 export const VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER = "${VISUAL}";
+/**
+ * Similar to ${VISUAL}, but refers to the original selection before any processing.
+ * can only be accessed through basenodes. Has the callouts and indentation preserved.
+ */
+const VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER_ORIGINAL = "${VISUAL_ORIGINAL}";
 
 /**
  * there are 3 distinct types of snippets:
@@ -88,8 +92,14 @@ export enum IncludedEnvironmentResult {
 
 type ProccesArgs = {
 	effectiveLine: string;
-	range: SelectionRange;
-	sel: string;
+	range: {
+		original: CMBound;
+		parsed: CMBound;
+	};
+	sel: {
+		original: string;
+		parsed: string;
+	};
 	effectiveLineAfter: () => string;
 	view: EditorView
 }
@@ -190,26 +200,37 @@ export class VisualSnippet extends Snippet<"visual"> {
 	}
 
 	process({effectiveLine, range, sel, view}: ProccesArgs): ProcessSnippetResult {
-		const hasSelection = !!sel;
+		const hasSelection = !!sel.original;
 		// visual snippets only run when there is a selection
 		if (!hasSelection) { return null; }
 
 		// check whether the trigger text was typed
 		if (!(effectiveLine.endsWith(this.trigger))) { return null; }
 
-		const triggerPos = range.from;
+		let triggerPos = range.original.from;
 		let replacement: ResultInsert;
-		const captures = { match: [], groups: { [VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER]: sel } };
+		const captures = {
+			match: [],
+			groups: {
+				[VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER]: sel.parsed,
+				[VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER_ORIGINAL]: sel.original,
+			},
+		};
 		const options: InsertOptions = { captures };
 		if (this.replacement instanceof ArrayNode) {
 			replacement = this.replacement.applyInsert(options);
 		} else {
-			const replacementTemp = convertOutputToNode(this.replacement(sel, {_view: view}))
+			const replacementTemp = convertOutputToNode(this.replacement(sel.parsed, {_view: view}))
 
 			// sanity check - if this.replacement was a function,
 			// we have no way to validate beforehand that it really does returns a valid output.
 			if (replacementTemp === null) { return null; }
 			replacement = replacementTemp.applyInsert(options);
+		}
+		if (replacement.tabstops.length === 0) {
+			const startDifference = range.parsed.from - range.original.from;
+			replacement.insert = sel.original.slice(0, startDifference) + replacement.insert;
+			replacement.tabstops = [{ from: 0, to: replacement.insert.length, index: [0] }];
 		}
 
 		return { triggerPos, replacement };
@@ -224,7 +245,7 @@ export class RegexSnippet extends Snippet<"regex"> {
 	}
 
 	process({effectiveLine, sel, effectiveLineAfter, view: _view}: ProccesArgs): ProcessSnippetResult {
-		const hasSelection = !!sel;
+		const hasSelection = !!sel.original;
 		// non-visual snippets only run when there is no selection
 		if (hasSelection) { return null; }
 
@@ -264,7 +285,7 @@ export class StringSnippet extends Snippet<"string"> {
 	}
 
 	process({effectiveLine, sel, effectiveLineAfter, view: _view}: ProccesArgs): ProcessSnippetResult {
-		const hasSelection = !!sel;
+		const hasSelection = !!sel.original;
 		// non-visual snippets only run when there is no selection
 		if (hasSelection) { return null; }
 
