@@ -154,13 +154,12 @@ export abstract class Snippet<T extends SnippetType = SnippetType> {
 	isWithinExcludedScope(stack: StackOutput[]): boolean {
 		if (this.excludedEnvironments.length === 0 && this.excludedMacros.length === 0) return false;
 		for (const envName of stack) {
-			if (envName.kind === "environment" && this.excludedEnvironments.includes(envName.name)) {
-				return true;
+			if (envName.kind === "environment") {
+				if (this.excludedEnvironments.includes(envName.name)) return true;
+				// An environment does not end the enclosing macro's scope: \begin{align} inside \ce{}
+				// is still mhchem syntax, so keep walking outward to check excludedMacros.
+				continue;
 			} else if (envName.kind === "math") {
-				return false;
-				// environments always override the scope whereas macros can sometimes take scope from outer macro
-				// like \textcolor is math or text depending if its inside a \text macro or not.
-			} else if (envName.kind === "environment") {
 				return false;
 			} else if (isMacroArgumentCount(envName, this.excludedMacros)) {
 				return true;
@@ -171,9 +170,10 @@ export abstract class Snippet<T extends SnippetType = SnippetType> {
 	
 	isWithinIncludedScope(stack: StackOutput[]): IncludedEnvironmentResult {
 		if (this.includedMacros.length === 0) return IncludedEnvironmentResult.None;
-		if (stack.length === 0) return IncludedEnvironmentResult.NotIncluded
-		const firstName = stack[0]
-		if (firstName.kind === "math" || firstName.kind === "environment")
+		// Environments are skipped for the same reason as in isWithinExcludedScope, but only the
+		// innermost macro is considered: an included macro further out does not re-enable snippets.
+		const firstName = stack.find((envName) => envName.kind !== "environment");
+		if (firstName === undefined || firstName.kind === "math")
 			return IncludedEnvironmentResult.NotIncluded;
 		if (isMacroArgumentCount(firstName, this.includedMacros))
 			return IncludedEnvironmentResult.Included;
