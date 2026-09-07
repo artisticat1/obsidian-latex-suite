@@ -267,15 +267,28 @@ In general, **function snippets** take the form
 ```ts
 {
   replacement:
-    | ((str: string) => string)
-    | ((match: RegExpExecArray) => string) // Regex snippets
-    | ((selection: string) => (string | false)) // Visual snippets
+    | ((str: string, options: Options) => string | false)
+    | ((match: RegExpExecArray, options: Options) => string | false) // Regex snippets
+    | ((selection: string, options: Options) => (string | false)) // Visual snippets
 }
 ```
 
 based on which type of snippet the replacement applies to.
 
 If a snippet replacement function returns a non-string value, the snippet is ignored and will not expand.
+
+If more control is needed, `options` can be used to access things like the editor. Only recommended if you know what you are doing.
+```ts
+type Options = {
+	view: EditorView; // codemirror view
+	options: {
+		captures: {
+			match: string
+			groups: Record<string, string>
+		}
+	} // used to expand a BaseNode.applyInsert. ${VISUAL_ORIGINAL} for example will be in the `options.captures.groups["${VISUAL_ORIGINAL}]`.
+}
+```
 
 ### Nodes
 

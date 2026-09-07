@@ -58,20 +58,51 @@ const getParsedSelection = (view: EditorView, original_range: CMBound) => {
 	const parsed_range = {from: original_range.from, to: original_range.to};
 	const original_sel = view.state.sliceDoc(original_range.from, original_range.to);
 	let parsedSel = original_sel;
+	const originalResult =  {
+		range: {original: original_range, parsed: parsed_range},
+		sel: {original: original_sel, parsed: parsedSel}
+	}
 	// Remove indentations and callouts from selection as composite markers aren't really "part" of the text
 	// and make more sense to be removed from the selection.
-	if (original_range.from !== original_range.to) {
-		parsedSel = original_sel.replaceAll(/\n>*\s*/gm, "\n")
-		parsed_range.to = parsed_range.from + parsedSel.length;
-		const startLine = view.state.doc.lineAt(parsed_range.from);
-		if (startLine.from === parsed_range.from) {
-			const match = parsedSel.match(/^>*\s*/);
-			if (match) {
-				parsed_range.from += match[0].length;
-				parsedSel = parsedSel.replace(/^>*\s*/, "");
-			}
-		}	
+	if (original_range.from === original_range.to) {
+		return originalResult;
 	}
+
+	parsed_range.to = parsed_range.from + parsedSel.length;
+	const startLine = view.state.doc.lineAt(parsed_range.from);
+	const pattern = /^((?:> ?)*)(\s*)/;
+	const startCalloutMatch = startLine.text.match(pattern);
+	if (!startCalloutMatch) {
+		return originalResult;
+	}
+	const calloutCount = startCalloutMatch[1].split(">").length - 1;
+	const indentation = startCalloutMatch[2];
+	let exit = false;
+	parsedSel = original_sel.replaceAll(
+		new RegExp("\\n((?:> ?)*)(\\s*)", "g"),
+		(match, callouts: string, indent: string) => {
+			if (exit) return match;
+			if (
+				callouts.split(">").length - 1 !== calloutCount ||
+				indent.length < indentation.length
+			) {
+				exit = true;
+				return match;
+			}
+			return "\n";
+		},
+	);
+	if (exit) {
+		return originalResult;
+	}
+	
+	if (startLine.from === parsed_range.from) {
+		const match = parsedSel.match(/^(> ?)*\s*/);
+		if (match) {
+			parsed_range.from += match[0].length;
+			parsedSel = parsedSel.replace(pattern, "");
+		}
+	}	
 	const range = {original: original_range, parsed: parsed_range};
 	const sel = {original: original_sel, parsed: parsedSel};
 	return {range, sel};
