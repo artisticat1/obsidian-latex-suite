@@ -10,7 +10,7 @@ import {
 	getCloseBracket,
 	stackResolveNodeIterate,
 } from "src/utils/editor_utils";
-import { Mode } from "../snippets/options";
+import { Mode } from "./options";
 import { Environment } from "../snippets/environment";
 import { getLatexSuiteConfig } from "../snippets/codemirror/config";
 import { syntaxTree } from "@codemirror/language";

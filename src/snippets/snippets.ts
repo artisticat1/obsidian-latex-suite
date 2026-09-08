@@ -1,4 +1,4 @@
-import { Options } from "./options";
+import { Options } from "../editor_context/options";
 import { BaseNode, ResultInsert, ArrayNode, SnippetTabstopOnlyNode, Options as InsertOptions } from "./luasnip_api/node";
 import * as v from "valibot";
 import { MacroArea } from "src/editor_context/default_text_areas";
