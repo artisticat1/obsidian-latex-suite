@@ -90,7 +90,7 @@ const runSnippetCursor = (view: EditorView, ctx: Context, snippetInfo: SnippetIn
 	if (snippetInfo.key && snippetInfo.key.length !== 1) {
 		return {success: false, shouldAutoEnlargeBrackets: false};
 	}
-	const envNames = Array.from(ctx.getEnvNames())
+	const envNames = Array.from(ctx.getEnvNames(to))
 	const updatedLine = line + key;
 	for (let i=0; i < snippetInfo.snippets.length; i++) {
 		const snippet = snippetInfo.snippets[i];

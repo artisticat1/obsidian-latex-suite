@@ -15,6 +15,10 @@ export const names = [
 	["math-exclude-align", "m"],
 	["math-include-begin", "m"],
 	["math-include-color", "m"],
+	// See #629, environments generally override the allowed syntax thus the context changes
+	// Except the ones that do are generally not allowed inside macros that override their syntax thus environments are ignored
+	// as in most practical cases that makes the most sense. Also applies to math-exclude-pu.
+	["math-include-pu-align", "m"], 
 ] as const;
 
 const normal_name_options = [
@@ -70,7 +74,7 @@ export const transactionSpec: Spec[] = [
 		text: "$$\\pu{}$$",
 		pos: "$$\\pu{".length,
 		options: ["M", "m"],
-		names: ["display-math", "math", "math-exclude-align"],
+		names: ["display-math", "math", "math-exclude-align", "math-include-pu-align"],
 	},
 	{
 		text: "$$\\begin{align}a&=b\\\\c&=d\\end{align}$$",
@@ -90,7 +94,13 @@ export const transactionSpec: Spec[] = [
 		pos: "$$\\color{".length,
 		options: ["m"],
 		names: ["math-include-color"]
-	}
+	},
+	{
+		text: "$$ \\pu{ \\begin{align} &A -> B \\\\ &C -> D \\end{align} } $$",
+		pos: "$$ \\pu{ \\begin{align} &A -> B".length,
+		options: ["m", "M"],
+		names: ["math-include-pu-align", "display-math", "math"],
+	},
 ];
 
 let length = normal_name_options.length;
@@ -130,7 +140,16 @@ const snippets = (
 			name: "math-include-begin",
 			includedMacros: ["begin"],
 		},
-	] as const
+		{
+			trigger: (length++).toString(),
+			replacement: "",
+			options: "m",
+			name: "math-include-pu-align",
+			includedMacros: ["pu"],
+		},
+	] as const satisfies (Readonly<RawSnippet> & {
+		readonly name: (typeof names)[number]["0"];
+	})[]
 ).map(
 	(snippet) =>
 		({
