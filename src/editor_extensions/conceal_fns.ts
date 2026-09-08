@@ -1,7 +1,6 @@
 // Conceal functions
 
 import { EditorView } from "@codemirror/view";
-import { getMathBoundsPlugin } from "src/utils/context";
 import { ConcealSpec } from "./conceal";
 import {
 	fractions,
@@ -15,9 +14,10 @@ import {
 	leftrightBrackets,
 } from "./conceal_maps";
 import { SyntaxNode, TreeCursor } from "@lezer/common";
-import * as latex from "src/parser/mathjax/latex-parser.terms";
 import { cumulativeSum } from "src/utils/editor_utils";
 import { EquationText, iterateTreeCursor } from "src/utils/tokenizer";
+import { getMathBoundsPlugin } from "src/editor_context/mathbounds";
+import { latex } from "src/parser/latex-terms";
 
 const ALL_SYMBOLS: Record<string, string> = {...greek, ...cmd_symbols}
 

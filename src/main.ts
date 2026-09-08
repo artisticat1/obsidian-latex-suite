@@ -14,7 +14,8 @@ import { snippetExtensions } from "./snippets/codemirror/extensions";
 import { mkConcealPlugin } from "./editor_extensions/conceal";
 import { colorPairedBracketsPlugin, colorPairedBracketsPluginLowestPrec, highlightCursorBracketsPlugin } from "./editor_extensions/highlight_brackets";
 import { cursorTooltipBaseTheme, cursorTooltipField, updateTooltipEffect } from "./editor_extensions/math_tooltip";
-import { contextPlugin, getContextPlugin, mathBoundsPlugin } from "./utils/context";
+import { contextPlugin, getContextPlugin } from "./editor_context/context";
+import { mathBoundsPlugin } from "./editor_context/mathbounds";
 import { LatexSuitePluginPublicApi } from "./api";
 import * as v from "valibot"
 import { languageExtension, LanguageSetStateEffect, languageStateField, modifiedSyntaxTree, parseWorker } from "./parser/language";

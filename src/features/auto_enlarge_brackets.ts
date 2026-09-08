@@ -1,7 +1,6 @@
 import { EditorView } from "@codemirror/view";
 import { queueSnippet } from "src/snippets/codemirror/snippet_queue_state_field";
 import { expandSnippets } from "src/snippets/snippet_management";
-import { getMathBoundsPlugin } from "src/utils/context";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
 import { isContains } from "src/utils/type_utils";
 import { emptyInsertOptions, TextNode } from "src/snippets/luasnip_api/node";
@@ -9,7 +8,8 @@ import { pairBrackets, traverseTree } from "src/editor_extensions/highlight_brac
 import { EquationText } from "src/utils/tokenizer";
 import { walkPairedBrackets } from "src/utils/tokenizer";
 import { SyntaxNode } from "@lezer/common";
-import * as latex from "src/parser/mathjax/latex-parser.terms"
+import { getMathBoundsPlugin } from "src/editor_context/mathbounds";
+import { latex } from "src/parser/latex-terms";
 
 
 const sizeControls = [

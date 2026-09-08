@@ -2,7 +2,7 @@ import { Platform } from "obsidian";
 import { EditorView } from "@codemirror/view";
 import { NodeIterator, SyntaxNode, Tree, TreeCursor } from "@lezer/common";
 import { EditorState } from "@codemirror/state";
-import { Bounds } from "./context";
+import { Bounds } from "src/editor_context/context";
 
 export function replaceRange(view: EditorView, start: number, end: number, replacement: string) {
 	view.dispatch({

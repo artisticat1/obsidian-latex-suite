@@ -1,7 +1,7 @@
 import { EditorView } from "@codemirror/view";
 import { isBoundMultiline, setCursor } from "src/utils/editor_utils";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
-import { Bounds, getContextPlugin } from "src/utils/context";
+import { Bounds, getContextPlugin } from "src/editor_context/context";
 import { queueSnippet } from "src/snippets/codemirror/snippet_queue_state_field";
 import { expandSnippets } from "src/snippets/snippet_management";
 import { taboutByEnclosedBrackets } from "./tabout";

@@ -5,7 +5,7 @@ import { sortSnippets } from "./sort";
 import { EXCLUSIONS } from "./environment";
 import { api } from "./luasnip_api";
 import { ArrayNode, BaseNode, SnippetStringNode, SnippetTabstopOnlyNode, VisualSnippetNode } from "./luasnip_api/node";
-import { MacroArea, MacroAreaPipeSchema } from "src/utils/default_text_areas";
+import { MacroArea, MacroAreaPipeSchema } from "src/editor_context/default_text_areas";
 import { isMacOS } from "src/editor_extensions/obsidian_utils";
 
 export type SnippetVariables = Record<string, string>;

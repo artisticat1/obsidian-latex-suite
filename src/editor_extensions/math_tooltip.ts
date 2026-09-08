@@ -1,7 +1,7 @@
 import { Tooltip, showTooltip, EditorView, ViewUpdate } from "@codemirror/view";
 import { StateField, EditorState, EditorSelection, StateEffect } from "@codemirror/state";
 import { renderMath, finishRenderMath, editorLivePreviewField } from "obsidian";
-import { Bounds, Context, getContextPlugin } from "src/utils/context";
+import { Bounds, Context, getContextPlugin } from "src/editor_context/context";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
 import { syntaxTree } from "@codemirror/language";
 import { createElement } from "./obsidian_utils";

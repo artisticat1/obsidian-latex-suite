@@ -2,7 +2,7 @@ import { TransactionSpec } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { intersection } from "src/utils/prototype_utils";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
-import { Context } from "src/utils/context";
+import { Context } from "src/editor_context/context";
 import { setCursor, getCharacterAtPos, isBoundMultiline } from "src/utils/editor_utils";
 import { Token, tokenize } from "src/utils/tokenizer";
 

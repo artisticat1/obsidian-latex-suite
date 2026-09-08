@@ -4,7 +4,8 @@ import { runAutoFraction } from "./features/autofraction";
 import { tabout, shouldTaboutByCloseBracket } from "./features/tabout";
 import { addCellMatrixShortcut, exitMatrixShortCut, newlineMatrixShortcut, priorityTaboutMatrixShortcut } from "./features/matrix_shortcuts";
 
-import { getContextPlugin, getMathBoundsPlugin } from "./utils/context";
+import { getContextPlugin } from "./editor_context/context";
+import { getMathBoundsPlugin } from "./editor_context/mathbounds";
 import { getCharacterAtPos, replaceRange } from "./utils/editor_utils";
 import { setSelectionToNextTabstop, tempKeyPress } from "./snippets/snippet_management";
 import { removeAllTabstops } from "./snippets/codemirror/tabstops_state_field";

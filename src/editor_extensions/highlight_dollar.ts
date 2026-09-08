@@ -7,8 +7,9 @@ import {
 	ViewPlugin,
 	ViewUpdate,
 } from "@codemirror/view";
-import { Bounds, getMathBoundsPlugin, MathMode } from "src/utils/context";
-import * as latex from "src/parser/mathjax/latex-parser.terms";
+import { Bounds, MathMode } from "src/editor_context/context";
+import { getMathBoundsPlugin } from "src/editor_context/mathbounds";
+import { latex } from "src/parser/latex-terms";
 import { EquationText, iterateTreeCursor } from "src/utils/tokenizer";
 
 type DollarBounds =

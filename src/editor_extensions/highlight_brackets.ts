@@ -1,11 +1,12 @@
 import { EditorView, ViewUpdate, Decoration, DecorationSet, ViewPlugin } from "@codemirror/view";
 import { Prec, Range } from "@codemirror/state";
-import { CMBound, getContextPlugin, getMathBoundsPlugin } from "src/utils/context";
 import { tempKeyPress } from "src/snippets/snippet_management";
 import { EquationText, findIndexReverse, iterateTreeCursor } from "src/utils/tokenizer";
 import { walkPairedBrackets } from "src/utils/tokenizer";
 import { SyntaxNode, TreeCursor } from "@lezer/common";
-import * as latex from "src/parser/mathjax/latex-parser.terms";
+import { CMBound, getContextPlugin } from "src/editor_context/context";
+import { getMathBoundsPlugin } from "src/editor_context/mathbounds";
+import { latex } from "src/parser/latex-terms";
 
 const Ncolors = 3;
 

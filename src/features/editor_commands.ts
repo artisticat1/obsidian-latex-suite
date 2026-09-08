@@ -2,7 +2,7 @@ import { Editor, EditorSelection } from "obsidian";
 import { EditorView } from "@codemirror/view";
 import { replaceRange, setCursor, setSelection } from "../utils/editor_utils";
 import LatexSuitePlugin from "src/main";
-import { getContextPlugin } from "src/utils/context";
+import { getContextPlugin } from "src/editor_context/context";
 import { CodeMirrorEditor } from "src/types/vim_types";
 import { LatexSuitePluginSettings } from "src/settings/settings";
 import { newlineMatrixShortcut} from "./matrix_shortcuts";
