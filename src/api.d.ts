@@ -121,6 +121,7 @@ export interface LatexSuitePluginPublicApi extends Plugin{
 			capture_node: (captureName: string | number, defaultValue: string) => BaseNode,
 			snippet_node: (snippet: string) => BaseNode,
 			array_node: unknown,
+			ALL_MACROS: string[],
 		}
 	}
 }

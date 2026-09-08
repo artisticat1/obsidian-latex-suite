@@ -35,7 +35,7 @@ export class Options {
 		let regex = false;
 		let onWordBoundary = false;
 		let visual = false;
-		let undoKey = false;
+		let undoKey = true;
 
 		for (const flag_char of source) {
 			switch (flag_char) {

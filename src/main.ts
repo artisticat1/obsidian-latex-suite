@@ -283,6 +283,9 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 		if (isLogLevelEnabled(this.CMSettings.logLevel, "verbose")) {
 			this.editorExtensions.push(mathParserPlugin);
 		}
+		if (isLogLevelEnabled(this.CMSettings.snippetDebug, "info")) {
+			this.editorExtensions.push(notice);
+		}
 	}
 
 	showSnippetsLoadedNotice(nSnippets: number, nSnippetVariables: number, becauseFileLocationUpdated: boolean, becauseFileUpdated: boolean) {

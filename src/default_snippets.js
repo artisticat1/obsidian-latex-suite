@@ -199,7 +199,7 @@ export default [
     {trigger: "=>", replacement: "\\implies", options: "mA"},
 	{trigger: "=<", replacement: "\\impliedby", options: "mA"},
 
-	{trigger: "and", replacement: "\\cap", options: "mA"},
+	{trigger: /\band/, replacement: "\\cap", options: "mA"},
 	{trigger: "orr", replacement: "\\cup", options: "mA"},
 	{trigger: "inn", replacement: "\\in", options: "mA"},
 	{trigger: "notin", replacement: "\\not\\in", options: "mA"},
@@ -207,7 +207,7 @@ export default [
     {trigger: "sub=", replacement: "\\subseteq", options: "mA"},
     {trigger: "sup=", replacement: "\\supseteq", options: "mA"},
 	{trigger: "eset", replacement: "\\emptyset", options: "mA"},
-	{trigger: "set", replacement: "\\{ $0 \\}$1", options: "mA"},
+	{trigger: /\bset/, replacement: "\\{ $0 \\}$1", options: "mA"},
 	{trigger: /(n?)e\\xi sts/, replacement: "\\[[0]]exists", options: "mA", priority: 1},
 
 	{trigger: "LL", replacement: "\\mathcal{L}", options: "mA"},
@@ -227,26 +227,6 @@ export default [
 	{trigger: "([^\\\\])(${GREEK})", replacement: "[[0]]\\[[1]]", options: "rmA", description: "Add backslash before Greek letters"},
 	{trigger: "([^\\\\])(${SYMBOL})", replacement: "[[0]]\\[[1]]", options: "rmA", description: "Add backslash before symbols"},
 
-    // Insert space after Greek letters and symbols
-	{
-		trigger: "\\\\(${GREEK}|${SYMBOL}|${MORE_SYMBOLS})([A-Za-z])",
-		replacement: function (match) {
-			const [string, trigger, letter] = match;
-			const variables = require("latex-suite").snippetVariables
-			const names = ["GREEK", "SYMBOL", "MORE_SYMBOLS"]
-			const pattern = new RegExp(
-				`^\\\\(?:${names.map((name) => variables["${" + name + "}"]).join("|")})$`,
-			);
-			// Dont insert space when the current symbol is part of another symbol
-			if (pattern.test(string)) {
-				return string;
-			} else {
-				return "\\" + trigger + " " + letter;
-			}
-		},
-		options: "rmA",
-		priority: 2
-	},
 
 	{trigger: "\\\\(${GREEK}|${SYMBOL}) sr", replacement: "\\[[0]]^{2}", options: "rmA"},
 	{trigger: "\\\\(${GREEK}|${SYMBOL}) cb", replacement: "\\[[0]]^{3}", options: "rmA"},
@@ -280,15 +260,6 @@ export default [
 
     // Trigonometry
     {trigger: /([^\\])(arcsin|sin|arccos|cos|arctan|tan|csc|sec|cot)/, replacement: "[[0]]\\[[1]]", options: "rmA", description: "Add backslash before trig funcs"},
-
-    {trigger: /\\(arcsin|sin|arccos|cos|arctan|tan|csc|sec|cot)([A-Za-gi-z])/,
-     replacement: "\\[[0]] [[1]]", options: "rmA",
-     description: "Add space after trig funcs. Skips letter h to allow sinh, cosh, etc."},
-
-    {trigger: /\\(sinh|cosh|tanh|coth)([A-Za-z])/,
-     replacement: "\\[[0]] [[1]]", options: "rmA",
-     description: "Add space after hyperbolic trig funcs"},
-
     {
         trigger: /(arccsc|arcsec|arccot)/,
         replacement: "\\operatorname{[[0]]}$0",
@@ -313,7 +284,7 @@ export default [
     // Quantum mechanics
     {trigger: "dag", replacement: "^{\\dagger}", options: "mA"},
 	{trigger: "o+", replacement: "\\oplus ", options: "mA"},
-	{trigger: "ox", replacement: "\\otimes ", options: "mA"},
+	{trigger: /\box/, replacement: "\\otimes ", options: "mA"},
     {trigger: "bra", replacement: "\\bra{$0} $1", options: "mA"},
 	{trigger: "ket", replacement: "\\ket{$0} $1", options: "mA"},
 	{trigger: "brk", replacement: "\\braket{ $0 | $1 } $2", options: "mA"},
@@ -389,28 +360,48 @@ export default [
 	// Disable automatic snippets while typing macros
 	// This is a catch all rule that may disable other snippets in some cases.
 	// Increase the priority of the snippets that shouldn't be disabled.
-	// {trigger: /\\[A-Za-z]+/, replacement: "$0", options: "mAU", priority: 1, description: "Disable snippets while typing macros"},
-	// Less aggressive version of the above
+	// {trigger: /(\\[A-Za-z]+)/, replacement: "[[0]]$0", options: "mAU", priority: 100, description: "Disable snippets while typing macros"},
+
+	// Disable snippets while typing macros, doesn't insert an undo stop because of the option "U", thus its treated normal typing.
+	// like \top -> \top but \tox -> \to x as \tox is not a macro but \top is.
+	// In order to add your custom macros to the list, you can do require("latex-suite").ALL_MACROS.push("\\my_macro") at the top or bottom of this file.
+	// outside this function and array.
 	{
-		trigger: /\\([A-Za-z]+)/,
+		trigger: /\\[A-Za-z]{2,}/,
 		replacement: function (match) {
 			/** @type {string} */
-			const [string, trigger, letter] = match;
-			const variables = require("latex-suite").snippetVariables
-			const names = ["GREEK", "SYMBOL", "MORE_SYMBOLS"]
-			const test_string = names.map((name) => variables[`\\${name}`]).join("|");
+			const string = match[0];
+			const trigger = string.slice(1);
 			
-			// Check if we are partways of a trigger
-			const new_trigger = new RegExp(`\\b${trigger}`);
-			if (new_trigger.test(test_string)) {
+			const names = require("latex-suite").ALL_MACROS;
+			if (names.some(name => name.startsWith(string))) {
 				return string;
-			} else {
-				return false
 			}
+			return false;
 		},
 		options: "mAU",
 		priority: 3,
 		description: "Disable snippets while typing macros",
+	},
+	// Add space after macros if not part of another macro
+	{
+		trigger: /\\[A-Za-z]{2,}/,
+		replacement: function (match) {
+			/** @type {string} */
+			const string = match[0];
+			const trigger = string.slice(1);
+			
+			const names = require("latex-suite").ALL_MACROS;
+			if (!names.some(name => name.startsWith(string))) {
+				const macro = trigger.slice(0, -1);
+				const letter = trigger.slice(-1);
+				return "\\" + macro + " " + letter;
+			}
+			return false;
+		},
+		options: "mA",
+		priority: 3,
+		description: "Insert space after macros if not part of another macro",
 	},
 
     // Snippet replacements can have placeholders.
