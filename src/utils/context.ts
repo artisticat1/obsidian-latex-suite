@@ -92,7 +92,16 @@ export class Context implements PluginValue {
 		this.shouldUpdate = false;
 		this.boundsCache.clear();
 		this.innerBoundsCache.clear();
-		this.mode = new Mode()
+		this.mode = new Mode({
+			text: false,
+			inlineMath: false,
+			blockMath: false,
+			codeMath: false,
+			codeBlock: false,
+			code: false,
+			textEnv: false,
+			snippetlessEnv: false,
+		})
 		const mathBounds = getMathBoundsPlugin(this.view, false);
 		mathBounds.reset();
 	}
@@ -120,7 +129,16 @@ export class Context implements PluginValue {
 		this.state = state;
 		this.pos = sel.main.to;
 		this.ranges = Array.from(sel.ranges).reverse(); // Last to first
-		this.mode = new Mode();
+		this.mode = new Mode({
+			text: false,
+			inlineMath: false,
+			blockMath: false,
+			codeMath: false,
+			codeBlock: false,
+			code: false,
+			textEnv: false,
+			snippetlessEnv: false,
+		});
 		this.boundsCache = new Map();
 		this.innerBoundsCache = new Map();
 		this.codeblockLanguage = null;

@@ -6,45 +6,72 @@ export class Options {
 	visual: boolean;
 	undoKey: boolean;
 
-	constructor() {
-		this.mode = new Mode();
-		this.automatic = false;
-		this.regex = false;
-		this.onWordBoundary = false;
-		this.visual = false;
-		this.undoKey = true;
+	constructor({
+		mode,
+		automatic,
+		regex,
+		onWordBoundary,
+		visual,
+		undoKey,
+	}: {
+		mode: Mode;
+		automatic: boolean;
+		regex: boolean;
+		onWordBoundary: boolean;
+		visual: boolean;
+		undoKey: boolean;
+	}) {
+		this.mode = mode;
+		this.automatic = automatic;
+		this.regex = regex;
+		this.onWordBoundary = onWordBoundary;
+		this.visual = visual;
+		this.undoKey = undoKey;
 	}
 
 	static fromSource(source: string, language: string | undefined): Options {
-		const options = new Options();
-		options.mode = Mode.fromSource(source, language);
+		const mode = Mode.fromSource(source, language);
+		let automatic = false;
+		let regex = false;
+		let onWordBoundary = false;
+		let visual = false;
+		let undoKey = true;
 
 		for (const flag_char of source) {
 			switch (flag_char) {
 				case "A":
-					options.automatic = true;
+					automatic = true;
 					break;
 				case "r":
-					options.regex = true;
+					regex = true;
 					break;
 				case "w":
-					options.onWordBoundary = true;
+					onWordBoundary = true;
 					break;
 				case "v":
-					options.visual = true;
+					visual = true;
 					break;
 				case "U":
-					options.undoKey = false;
+					undoKey = false;
 					break;
 			}
 		}
-
-		return options;
+		return new Options({
+			mode,
+			automatic,
+			regex,
+			onWordBoundary,
+			visual,
+			undoKey,
+		});
 	}
 
-	snippetShouldRunInMode(mode: Mode, ignoreSnippetLessEnv: boolean = false): boolean {
+	snippetShouldRunInMode(
+		mode: Mode,
+		ignoreSnippetLessEnv: boolean = false,
+	): boolean {
 		if (mode.snippetlessEnv && !ignoreSnippetLessEnv) {
-			return false
+			return false;
 		}
 		if (
 			(this.mode.inlineMath && mode.inlineMath) ||
@@ -73,23 +100,59 @@ export class Options {
 		}
 		return false;
 	}
+
+	copy() {
+		return new Options({
+			...this,
+			mode: this.mode.copy(),
+		});
+	}
 }
 
 
 export class Mode {
-	text: boolean = false;
-	inlineMath: boolean = false;
-	blockMath: boolean = false;
-	codeMath: boolean = false;
-	codeBlock: string | boolean = false;
-	code: boolean = false;
-	textEnv: boolean = false;
-	snippetlessEnv: boolean = false;
+	text: boolean;
+	inlineMath: boolean;
+	blockMath: boolean;
+	codeMath: boolean;
+	codeBlock: string | boolean;
+	code: boolean;
+	textEnv: boolean;
+	snippetlessEnv: boolean;
+
+	constructor({
+		text,
+		inlineMath: inlinemath,
+		blockMath,
+		codeMath,
+		codeBlock,
+		code,
+		textEnv,
+		snippetlessEnv,
+	}: {
+		text: boolean;
+		inlineMath: boolean;
+		blockMath: boolean;
+		codeMath: boolean;
+		codeBlock: string | boolean;
+		code: boolean;
+		textEnv: boolean;
+		snippetlessEnv: boolean;
+	}) {
+		this.text = text;
+		this.inlineMath = inlinemath;
+		this.blockMath = blockMath;
+		this.codeMath = codeMath;
+		this.codeBlock = codeBlock;
+		this.code = code;
+		this.textEnv = textEnv;
+		this.snippetlessEnv = snippetlessEnv;
+	}
 
 	/**
 	 * Whether the state is inside an equation bounded by $ or $$ delimeters.
 	 */
-	inEquation():boolean {
+	inEquation(): boolean {
 		return this.inlineMath || this.blockMath;
 	}
 
@@ -98,11 +161,11 @@ export class Mode {
 	 *
 	 * The equation may be bounded by $ or $$ delimeters, or it may be an equation inside a `math` codeblock.
 	 */
-	inMath():boolean {
+	inMath(): boolean {
 		return this.inlineMath || this.blockMath || this.codeMath;
 	}
-	
-	inDisplayMath():boolean {
+
+	inDisplayMath(): boolean {
 		return this.blockMath || this.codeMath;
 	}
 
@@ -111,8 +174,8 @@ export class Mode {
 	 *
 	 * Returns false when the state is within math, but inside a text environment, such as \text{}.
 	 */
-	strictlyInMath():boolean {
-		return this.inMath() && !this.textEnv && !this.snippetlessEnv;
+	strictlyInMath(): boolean {
+		return this.inMath() && !this.textEnv;
 	}
 
 	invert() {
@@ -127,51 +190,71 @@ export class Mode {
 	}
 
 	static fromSource(source: string, language: string | undefined): Mode {
-		const mode = new Mode();
+		let blockMath = false;
+		let inlineMath = false;
+		let text = false;
+		let codeMath = false;
+		let codeBlock: string | boolean = false;
+		let code = false;
+		let textEnv = false;
+		let snippetlessEnv = false;
 
 		for (const flag_char of source) {
 			switch (flag_char) {
 				case "m":
-					mode.blockMath = true;
-					mode.inlineMath = true;
+					blockMath = true;
+					inlineMath = true;
 					break;
 				case "n":
-					mode.inlineMath = true;
+					inlineMath = true;
 					break;
 				case "M":
-					mode.blockMath = true;
+					blockMath = true;
 					break;
 				case "t":
-					mode.text = true;
+					text = true;
 					break;
 				case "T":
-					mode.textEnv = true;
+					textEnv = true;
 					break;
 				case "c":
-					mode.codeBlock = true;
+					codeBlock = true;
 					break;
 				case "C":
-					mode.code = true;
+					code = true;
 					break;
 			}
 		}
 
 		if (language !== undefined) {
-			mode.codeBlock = language;
-		}
-		
-		if (mode.textEnv && !(mode.blockMath || mode.inlineMath)) {
-			mode.blockMath = true;
-			mode.inlineMath = true;
+			codeBlock = language;
 		}
 
-		if (!(mode.text ||
-			mode.inlineMath ||
-			mode.blockMath ||
-			mode.codeMath ||
-			mode.codeBlock !== false ||
-			mode.textEnv ||
-			mode.code)
+		if (textEnv && !(blockMath || inlineMath)) {
+			blockMath = true;
+			inlineMath = true;
+		}
+		const mode = new Mode({
+			text,
+			inlineMath,
+			blockMath,
+			codeMath,
+			codeBlock,
+			code,
+			textEnv,
+			snippetlessEnv,
+		})
+
+		if (
+			!(
+				mode.text ||
+				mode.inlineMath ||
+				mode.blockMath ||
+				mode.codeMath ||
+				mode.codeBlock !== false ||
+				mode.textEnv ||
+				mode.code
+			)
 		) {
 			// for backwards compat we need to assume that this is a catchall mode then
 			mode.invert();
@@ -179,5 +262,11 @@ export class Mode {
 		}
 
 		return mode;
+	}
+
+	copy(): Mode {
+		return new Mode({
+			...this
+		})
 	}
 }

@@ -1,12 +1,15 @@
 export default [
     // Math mode
-	{trigger: "mk", replacement: "$$0$", options: "tA"},
+	// ${}$0{}$ or ${} $0 {}$ is recommended over $$0$ as this avoids the flickering when typing spaces
+	// and also avoids a lag issues when on an empty line and everything below is suddenly display math for a short second.
+	{trigger: "mk", replacement: "${}$0{}$", options: "tA"},
 	{trigger: "mk", replacement: "\\($0\\)", options: "TA"},
-    {trigger: "dm", replacement: "$$\n$0\n$$", options: "tAw"},
+    {trigger: "dm", replacement: "$$\n$0\n$$", options: "tAw", description: "Display math"},
 	{trigger: /(\S\s*)dm/, replacement: "[[0]]\n$$\n$0\n$$", options: "tAw", priority: 1},
+	// for the other dm snippet see below in Misc
 
-	{trigger: /([^\\])beg/, replacement: "[[0]]\\begin{$0}\n$1\n\\end{$0}", options: "MA"},
-	{trigger: /([^\\])beg/, replacement: "[[0]]\\begin{$0} $1 \\end{$0}", options: "nA"},
+	{trigger: /([^\\\w])beg/, replacement: "[[0]]\\begin{$0}\n$1\n\\end{$0}", options: "MA"},
+	{trigger: /([^\\]\w)beg/, replacement: "[[0]]\\begin{$0} $1 \\end{$0}", options: "nA"},
 
     // Dashes
 	// {trigger: "--", replacement: "–", options: "tA"},
@@ -40,16 +43,18 @@ export default [
 	{trigger: "Ome", replacement: "\\Omega", options: "mA"},
 
     // Text environment
-    {trigger: "text", replacement: "\\text{$0}$1", options: "mA"},
-    {trigger: "\"", replacement: "\\text{$0}$1", options: "mA"},
+	{trigger: /\n\s*\"/, replacement: "\n\\text{$0 } $1", options: "mrA"}, // Text at the beginning of a line
+    {trigger: "text", replacement: "\\text{$0}$1", options: "mA", priority: -1},
+    {trigger: "\"", replacement: "\\text{$0}$1", options: "mA", priority: -1},
 
     // Basic operations
     {trigger: "sr", replacement: "^{2}", options: "mA"},
 	{trigger: "cb", replacement: "^{3}", options: "mA"},
-	{trigger: "rd", replacement: "^{$0}$1", options: "mA"},
+	{trigger: "rd", replacement: "^{$0}$1", options: "mA", description: "Raise to (D)the power of"}, // the `th` in the phrase is spoken like a d so rd for short.
 	{trigger: "_", replacement: "_{$0}$1", options: "mA"},
 	{trigger: "sts", replacement: "_\\text{$0}", options: "mA"},
 	{trigger: "sq", replacement: "\\sqrt{ $0 }$1", options: "mA"},
+	{trigger: /(\d)rt/, replacement: "\\sqrt[[[0]]]{ $0 }$1", options: "mA", description: "Nth RooT"},
 	{trigger: "//", replacement: "\\frac{$0}{$1}$2", options: "mA"},
 	{trigger: /\bee/, replacement: "e^{ $0 }$1", options: "mA"},
     {trigger: "invs", replacement: "^{-1}", options: "mA"},
@@ -96,15 +101,33 @@ export default [
         description: "Parenthesized modulo (\\pmod{n})",
     },
 
-    // Auto letter subscript
+    // Auto letter subscript and add space after other macros
 	//
-	// x3 -> x_{3}, \alpha3 -> \alpha_{3}
+	// - x3 -> x_{3}
+	// - \alpha3 -> \alpha_{3}
+	// - \leq -> \leq 1
 	{
-	  trigger: "(\\\\${GREEK}|[A-Za-z])(\\d)",
-	  replacement: "[[0]]_{[[1]]}",
+		trigger: /(\\?)([A-Za-z]+)(\d)/,
+		replacement: (match) => {
+			const isMacro = match[1] === "\\";
+			const digit = match[3];
+			if (!isMacro) {
+				const variable = match[2];
+				return `${variable}_{${digit}}`;
+			}
+			const greek = require("latex-suite").snippetVariables["${GREEK}"];
+			const greek_pattern = new RegExp("^(?:" + greek + ")$");
+			const macro_name = match[2];
+			if (greek_pattern.test(macro_name)) {
+				return `\\${macro_name}_{${digit}}`;
+			} else {
+				return `\\${macro_name} ${digit}`;
+			}
+		},
 	  options: "rmA",
 	  priority: -1,
-	  excludedMacros: ["pu", "ce"]
+	  excludedMacros: ["pu", "ce"],
+	  description: "Auto letter subscript for variables and greek letters, add space after other macros",
 	},
 	// x_{3}4 -> x_{34}, \alpha_{3}4 -> \alpha_{34}
 	{
@@ -112,33 +135,22 @@ export default [
 	  replacement: "[[0]]_{[[1]][[2]]}",
 	  options: "rmA",
 	  priority: -1,
+	  description: "Combine subscripts for variables and greek letters",
 	},
 
 	// \dot{x}3 -> \dot{x}_{3}, \dot{\alpha}3 -> \dot{\alpha}_{3}
-	{
-	  trigger: "\\\\(${ACCENT})\\{(\\\\${GREEK}|[A-Za-z])\\}(\\d)",
-	  replacement: "\\[[0]]{[[1]]}_{[[2]]}",
-	  options: "rmA",
-	  priority: -1,
-	},
-	
 	// \dot{x}_{3}4 -> \dot{x}_{34}
 	{
-	  trigger: "\\\\(${ACCENT})\\{(\\\\${GREEK}|[A-Za-z])\\}_\\{(\\d+)\\}(\\d)",
+	  trigger: "\\\\(${ACCENT})\\{(\\\\${GREEK}|[A-Za-z])\\}(?:_\\{(\\d+)\\})?(\\d)",
 	  replacement: "\\[[0]]{[[1]]}_{[[2]][[3]]}",
 	  options: "rmA",
 	  priority: -1,
 	},
+
 	// \dot{\vec{a}}3 -> \dot{\vec{a}}_{3}
-	{
-	  trigger: "\\\\(${ACCENT})\\{\\\\(${ACCENT})\\{(\\\\${GREEK}|[A-Za-z])\\}\\}(\\d)",
-	  replacement: "\\[[0]]{\\[[1]]{[[2]]}}_{[[3]]}",
-	  options: "rmA",
-	  priority: -1,
-	},
 	// \dot{\vec{a}}_{3}4 -> \dot{\vec{a}}_{34}
 	{
-	  trigger: "\\\\(${ACCENT})\\{\\\\(${ACCENT})\\{(\\\\${GREEK}|[A-Za-z])\\}\\}_\\{(\\d+)\\}(\\d)",
+	  trigger: "\\\\(${ACCENT})\\{\\\\(${ACCENT})\\{(\\\\${GREEK}|[A-Za-z])\\}\\}(?:_\\{(\\d+)\\})?(\\d)",
 	  replacement: "\\[[0]]{\\[[1]]{[[2]]}}_{[[3]][[4]]}",
 	  options: "rmA",
 	  priority: -1,
@@ -187,7 +199,7 @@ export default [
     {trigger: "=>", replacement: "\\implies", options: "mA"},
 	{trigger: "=<", replacement: "\\impliedby", options: "mA"},
 
-	{trigger: "and", replacement: "\\cap", options: "mA"},
+	{trigger: "and", replacement: "\\cap", options: "wmA"},
 	{trigger: "orr", replacement: "\\cup", options: "mA"},
 	{trigger: "inn", replacement: "\\in", options: "mA"},
 	{trigger: "notin", replacement: "\\not\\in", options: "mA"},
@@ -195,7 +207,7 @@ export default [
     {trigger: "sub=", replacement: "\\subseteq", options: "mA"},
     {trigger: "sup=", replacement: "\\supseteq", options: "mA"},
 	{trigger: "eset", replacement: "\\emptyset", options: "mA"},
-	{trigger: "set", replacement: "\\{ $0 \\}$1", options: "mA"},
+	{trigger: "set", replacement: "\\{ $0 \\}$1", options: "wmA"},
 	{trigger: /(n?)e\\xi sts/, replacement: "\\[[0]]exists", options: "mA", priority: 1},
 
 	{trigger: "LL", replacement: "\\mathcal{L}", options: "mA"},
@@ -210,35 +222,11 @@ export default [
 
     // Snippet variables can be used as shortcuts when writing snippets.
     // For example, ${GREEK} below is shorthand for "alpha|beta|gamma|Gamma|delta|..."
-    // You can edit snippet variables under the Advanced snippet settings section.
+    // You can edit snippet variables under the Advanced snippet section.
 
 	{trigger: "([^\\\\])(${GREEK})", replacement: "[[0]]\\[[1]]", options: "rmA", description: "Add backslash before Greek letters"},
 	{trigger: "([^\\\\])(${SYMBOL})", replacement: "[[0]]\\[[1]]", options: "rmA", description: "Add backslash before symbols"},
 
-    // Insert space after Greek letters and symbols
-	{
-		trigger: "\\\\(${GREEK}|${SYMBOL}|${MORE_SYMBOLS})([A-Za-z])",
-		replacement: function (match) {
-			const [string, trigger, letter] = match;
-			const new_trigger = new RegExp(this.trigger.source.replace("([A-Za-z])", "")); 
-			// Dont insert space when the current symbol is part of another symbol
-			if (new_trigger.test(string)) {
-				return string;
-			} else {
-				return "\\" + trigger + " " + letter;
-			}
-		},
-		options: "rmA",
-		priority: 2
-	},
-
-	// Avoid Auto letter subscript
-	{
-		trigger: "\\\\(${SYMBOLS}|${MORE_SYMBOLS})([0-9])",
-		replacement: "\\[[0]] [[1]]",
-		options: "mA",
-		description: "Add space after symbols when followed by a number.",
-	},
 
 	{trigger: "\\\\(${GREEK}|${SYMBOL}) sr", replacement: "\\[[0]]^{2}", options: "rmA"},
 	{trigger: "\\\\(${GREEK}|${SYMBOL}) cb", replacement: "\\[[0]]^{3}", options: "rmA"},
@@ -262,7 +250,7 @@ export default [
 
     {trigger: /([^\\])int/, replacement: "[[0]]\\int", options: "mA", priority: -1},
     {trigger: "\\int", replacement: "\\int $0 \\, d${1:x} $2", options: "m"},
-    {trigger: "dint", replacement: "\\int_{${0:0}}^{${1:1}} $2 \\, d${3:x} $4", options: "mA"},
+    {trigger: "dint", replacement: "\\int_{${0:0}}^{${1:1}} $2 \\, d${3:x} $4", options: "mA", description: "Definite integral"},
     {trigger: "oint", replacement: "\\oint", options: "mA"},
 	{trigger: "iint", replacement: "\\iint", options: "mA"},
     {trigger: "iiint", replacement: "\\iiint", options: "mA"},
@@ -272,15 +260,6 @@ export default [
 
     // Trigonometry
     {trigger: /([^\\])(arcsin|sin|arccos|cos|arctan|tan|csc|sec|cot)/, replacement: "[[0]]\\[[1]]", options: "rmA", description: "Add backslash before trig funcs"},
-
-    {trigger: /\\(arcsin|sin|arccos|cos|arctan|tan|csc|sec|cot)([A-Za-gi-z])/,
-     replacement: "\\[[0]] [[1]]", options: "rmA",
-     description: "Add space after trig funcs. Skips letter h to allow sinh, cosh, etc."},
-
-    {trigger: /\\(sinh|cosh|tanh|coth)([A-Za-z])/,
-     replacement: "\\[[0]] [[1]]", options: "rmA",
-     description: "Add space after hyperbolic trig funcs"},
-
     {
         trigger: /(arccsc|arcsec|arccot)/,
         replacement: "\\operatorname{[[0]]}$0",
@@ -290,12 +269,12 @@ export default [
     },
 
     // Visual operations
-	{trigger: "U", replacement: "\\underbrace{ ${VISUAL} }_{ $0 }", options: "mA"},
-	{trigger: "O", replacement: "\\overbrace{ ${VISUAL} }^{ $0 }", options: "mA"},
-	{trigger: "B", replacement: "\\underset{ $0 }{ ${VISUAL} }", options: "mA"},
-	{trigger: "C", replacement: "\\cancel{ ${VISUAL} }", options: "mA"},
-	{trigger: "K", replacement: "\\cancelto{ $0 }{ ${VISUAL} }", options: "mA"},
-	{trigger: "S", replacement: "\\sqrt{ ${VISUAL} }", options: "mA"},
+	{trigger: "U", replacement: "\\underbrace{ ${VISUAL} }_{ $0 }", options: "mv"},
+	{trigger: "O", replacement: "\\overbrace{ ${VISUAL} }^{ $0 }", options: "mv"},
+	{trigger: "B", replacement: "\\underset{ $0 }{ ${VISUAL} }", options: "mv"},
+	{trigger: "C", replacement: "\\cancel{ ${VISUAL} }", options: "mv"},
+	{trigger: "K", replacement: "\\cancelto{ $0 }{ ${VISUAL} }", options: "mv"},
+	{trigger: "S", replacement: "\\sqrt{ ${VISUAL} }", options: "mv"},
 
 
     // Physics
@@ -305,7 +284,7 @@ export default [
     // Quantum mechanics
     {trigger: "dag", replacement: "^{\\dagger}", options: "mA"},
 	{trigger: "o+", replacement: "\\oplus ", options: "mA"},
-	{trigger: "ox", replacement: "\\otimes ", options: "mA"},
+	{trigger: "ox", replacement: "\\otimes ", options: "wmA"},
     {trigger: "bra", replacement: "\\bra{$0} $1", options: "mA"},
 	{trigger: "ket", replacement: "\\ket{$0} $1", options: "mA"},
 	{trigger: "brk", replacement: "\\braket{ $0 | $1 } $2", options: "mA"},
@@ -352,9 +331,9 @@ export default [
 	{trigger: "floor", replacement: "\\lfloor $0 \\rfloor $1", options: "mA"},
     // For the modulo operator, see the section "More operations" above
 	{trigger: "mod", replacement: "|$0|$1", options: "mA"},
-	{trigger: "(", replacement: "(${VISUAL})", options: "mA"},
-	{trigger: "[", replacement: "[${VISUAL}]", options: "mA"},
-	{trigger: "{", replacement: "{${VISUAL}}", options: "mA"},
+	{trigger: "(", replacement: "(${VISUAL})", options: "mv"},
+	{trigger: "[", replacement: "[${VISUAL}]", options: "mv"},
+	{trigger: "{", replacement: "{${VISUAL}}", options: "mv"},
 	{trigger: "(", replacement: "($0)$1", options: "mA"},
 	{trigger: "{", replacement: "{$0}$1", options: "mA"},
 	{trigger: "[", replacement: "[$0]$1", options: "mA"},
@@ -381,25 +360,48 @@ export default [
 	// Disable automatic snippets while typing macros
 	// This is a catch all rule that may disable other snippets in some cases.
 	// Increase the priority of the snippets that shouldn't be disabled.
-	// {trigger: /\\[A-Za-z]+/, replacement: "$0", options: "mAU", priority: 1, description: "Disable snippets while typing macros"},
-	// Less aggressive version of the above
+	// {trigger: /(\\[A-Za-z]+)/, replacement: "[[0]]$0", options: "mAU", priority: 100, description: "Disable snippets while typing macros"},
+
+	// Disable snippets while typing macros, doesn't insert an undo stop because of the option "U", thus its treated normal typing.
+	// like \top -> \top but \tox -> \to x as \tox is not a macro but \top is.
+	// In order to add your custom macros to the list, you can do require("latex-suite").ALL_MACROS.push("\\my_macro") at the top or bottom of this file.
+	// outside this function and array.
 	{
-		trigger: /\\([A-Za-z]+)(?:${GREEK}|${SYMBOL}|${MORE_SYMBOLS}){0}/,
+		trigger: /\\[A-Za-z]{2,}/,
 		replacement: function (match) {
 			/** @type {string} */
-			const [string, trigger, letter] = match;
-			const test_string = this.trigger.source.replace("\\\\([A-Za-z]+)", "");
-			// Check if we are partways of a trigger
-			const new_trigger = new RegExp(`\\b${trigger}`); 
-			if (new_trigger.test(test_string)) {
+			const string = match[0];
+			const trigger = string.slice(1);
+			
+			const names = require("latex-suite").ALL_MACROS;
+			if (names.some(name => name.startsWith(string))) {
 				return string;
-			} else {
-				return false
 			}
+			return false;
 		},
 		options: "mAU",
 		priority: 3,
 		description: "Disable snippets while typing macros",
+	},
+	// Add space after macros if not part of another macro
+	{
+		trigger: /\\[A-Za-z]{2,}/,
+		replacement: function (match) {
+			/** @type {string} */
+			const string = match[0];
+			const trigger = string.slice(1);
+			
+			const names = require("latex-suite").ALL_MACROS;
+			if (!names.some(name => name.startsWith(string))) {
+				const macro = trigger.slice(0, -1);
+				const letter = trigger.slice(-1);
+				return "\\" + macro + " " + letter;
+			}
+			return false;
+		},
+		options: "mA",
+		priority: 3,
+		description: "Insert space after macros if not part of another macro",
 	},
 
     // Snippet replacements can have placeholders.

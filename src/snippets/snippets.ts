@@ -46,19 +46,20 @@ function convertOutputToNode(rawReplacement: unknown): ArrayNode | null {
 	}
 	if (parseResult.output === false) {
 		return null;
-	} else if (typeof parseResult.output === "string") { 
+	} else if (typeof parseResult.output === "string") {
 		const snippet = new SnippetTabstopOnlyNode(parseResult.output);
 		return new ArrayNode([snippet]);
 	} else if (Array.isArray(parseResult.output)){
 		return new ArrayNode(parseResult.output);
-	} 
+	}
 
 	// never happens but ts can't figure that out without a return
 	return parseResult.output
 }
 
 type SnippetReplacementUnstableApi = {
-	_view: EditorView
+	view: EditorView
+	options: InsertOptions
 }
 
 // output of replacement functions should be the output fo ReplacementOutputSchema,
@@ -150,7 +151,7 @@ export abstract class Snippet<T extends SnippetType = SnippetType> {
 	get replacement(): SnippetData<T>["replacement"] { return this.data.replacement; }
 
 	abstract process(args: ProccesArgs): ProcessSnippetResult;
-	
+
 	isWithinExcludedScope(stack: StackOutput[]): boolean {
 		if (this.excludedEnvironments.length === 0 && this.excludedMacros.length === 0) return false;
 		for (const envName of stack) {
@@ -167,7 +168,7 @@ export abstract class Snippet<T extends SnippetType = SnippetType> {
 		}
 		return false;
 	}
-	
+
 	isWithinIncludedScope(stack: StackOutput[]): IncludedEnvironmentResult {
 		if (this.includedMacros.length === 0) return IncludedEnvironmentResult.None;
 		// Environments are skipped for the same reason as in isWithinExcludedScope, but only the
@@ -220,7 +221,10 @@ export class VisualSnippet extends Snippet<"visual"> {
 		if (this.replacement instanceof ArrayNode) {
 			replacement = this.replacement.applyInsert(options);
 		} else {
-			const replacementTemp = convertOutputToNode(this.replacement(sel.parsed, {_view: view}))
+			const replacementOptions = {
+				view, options
+			}
+			const replacementTemp = convertOutputToNode(this.replacement(sel.parsed, replacementOptions))
 
 			// sanity check - if this.replacement was a function,
 			// we have no way to validate beforehand that it really does returns a valid output.
@@ -244,7 +248,7 @@ export class RegexSnippet extends Snippet<"regex"> {
 		this.data.triggerAfter = triggerAfter;
 	}
 
-	process({effectiveLine, sel, effectiveLineAfter, view: _view}: ProccesArgs): ProcessSnippetResult {
+	process({effectiveLine, sel, effectiveLineAfter, view}: ProccesArgs): ProcessSnippetResult {
 		const hasSelection = !!sel.original;
 		// non-visual snippets only run when there is no selection
 		if (hasSelection) { return null; }
@@ -265,7 +269,11 @@ export class RegexSnippet extends Snippet<"regex"> {
 			// result.length - 1 = the number of capturing groups
 			replacement = this.replacement.applyInsert(options);
 		} else {
-			const replacementTemp = convertOutputToNode(this.replacement(result, { _view}));
+			const replacementOptions = {
+				view,
+				options
+			};
+			const replacementTemp = convertOutputToNode(this.replacement(result, replacementOptions));
 
 			// sanity check - if this.replacement was a function,
 			// we have no way to validate beforehand that it really does return a valid output.
@@ -284,7 +292,7 @@ export class StringSnippet extends Snippet<"string"> {
 		this.data.triggerAfter = triggerAfter;
 	}
 
-	process({effectiveLine, sel, effectiveLineAfter, view: _view}: ProccesArgs): ProcessSnippetResult {
+	process({effectiveLine, sel, effectiveLineAfter, view}: ProccesArgs): ProcessSnippetResult {
 		const hasSelection = !!sel.original;
 		// non-visual snippets only run when there is no selection
 		if (hasSelection) { return null; }
@@ -302,7 +310,11 @@ export class StringSnippet extends Snippet<"string"> {
 		if (this.replacement instanceof ArrayNode) {
 			replacement = this.replacement.applyInsert(options)
 		} else {
-			const replacementTemp = convertOutputToNode(this.replacement(this.trigger, { _view }))
+			const replacementOptions = {
+				view,
+				options
+			};
+			const replacementTemp = convertOutputToNode(this.replacement(this.trigger, replacementOptions))
 
 			// sanity check - if replacement was a function,
 			// we have no way to validate beforehand that it really does return a string

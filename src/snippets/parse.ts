@@ -107,7 +107,7 @@ export async function parseSnippets(snippetsStr: string, snippetVariables: Snipp
 		// validate the shape of the raw snippets
 		const rawValidatedSnippets = validateRawSnippets(rawSnippets);
 
-		parsedSnippets = rawValidatedSnippets.map((raw) => {
+		parsedSnippets = rawValidatedSnippets.flatMap((raw) => {
 			try {
 				// Normalize the raw snippet and convert it into a Snippet
 				return parseSnippet(raw, snippetVariables);
@@ -130,7 +130,7 @@ export async function parseSnippets(snippetsStr: string, snippetVariables: Snipp
 /** raw snippet IR */
 
 export const RawSnippetSchema = object({
-	trigger: union([string_(), instance(RegExp)]),
+	trigger: optional(union([string_(), instance(RegExp)])),
 	triggerAfter: optional(union([string_(), instance(RegExp)])),
 	replacement: union([
 		string_(),
@@ -175,7 +175,7 @@ function validateRawSnippets(snippets: unknown): RawSnippet[] {
  * - `options.regex` and `options.visual` are set properly
  * - if it is a regex snippet, the trigger is represented as a RegExp instance with flags set
  */
-function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snippet {
+function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snippet[] {
 	const {
 		replacement: replacementRaw,
 		priority,
@@ -186,6 +186,12 @@ function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snip
 	} = raw;
 	const options = Options.fromSource(raw.options, raw.language);
 	const triggerKey = parseKeyName(raw.triggerKey);
+
+	if (raw.trigger === undefined && raw.triggerKey.length === 0) {
+		throw new Error("Either trigger has to be defined or triggerKey must be non-zero length")
+	}
+	raw.trigger ??= "";
+
 
 	// we have a regex snippet
 	if (options.regex || raw.trigger instanceof RegExp) {
@@ -252,8 +258,15 @@ function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snip
 		options.regex = true;
 
 		const normalised = { trigger, replacement, options, priority, description, excludedMacros, triggerKey, triggerAfter, excludedEnvironments, includedMacros };
+		const snippets: Snippet[] = [new RegexSnippet(normalised)]
+		if (triggerKey && options.automatic) {
+			const nonAutomaticOptions = options.copy()
+			nonAutomaticOptions.automatic = false;
+			const triggerKeyNormalized = {...normalised, trigger: new RegExp(""), options: nonAutomaticOptions}
+			snippets.push(new RegexSnippet(triggerKeyNormalized))
+		}
 
-		return new RegexSnippet(normalised);
+		return snippets
 	}
 	else {
 		// substitute snippet variables
@@ -270,18 +283,32 @@ function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snip
 		const excludedMacros = [...getExcludedMacros(trigger), ...userExcludedMacros];
 
 		// normalize visual replacements
-		if (typeof replacementRaw === "string" && replacementRaw.includes(VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER)) {
+		if (typeof replacementRaw === "string" && replacementRaw.includes(VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER) && trigger.length <= 1) {
 			options.visual = true;
 		}
 
 
 		if (options.visual) {
+			if (trigger.length > 1) {
+				throw new Error("trigger should be a single character for visual snippets")
+			} else if (trigger.length === 1 && triggerKey.length > 0) {
+				throw new Error("trigger and triggerKey can't both be defined for visual snippets")
+			} else if (trigger.length === 0 && triggerKey.length === 0) {
+				throw new Error("Either trigger or triggerKey have to be defined for visual snippets")
+			}
 			const replacement =
 				typeof raw.replacement === "string"
 					? new ArrayNode([new VisualSnippetNode(raw.replacement)])
 					: raw.replacement;
+			options.automatic = false;
 			const normalised = { trigger, replacement, options, priority, description, excludedEnvironments, excludedMacros, includedMacros, triggerKey, triggerAfter };
-			return new VisualSnippet(normalised);
+			const snippets = [];
+			if (trigger) {
+				snippets.push(new VisualSnippet({...normalised, triggerKey: trigger, trigger: ""}))
+			} else {
+				snippets.push(new VisualSnippet(normalised))
+			}
+			return snippets;
 		}
 		else {
 			const replacement =
@@ -289,7 +316,15 @@ function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snip
 					? new ArrayNode([new SnippetTabstopOnlyNode(raw.replacement)])
 					: raw.replacement;
 			const normalised = { trigger, replacement, options, priority, description, excludedEnvironments, excludedMacros, includedMacros, triggerKey, triggerAfter };
-			return new StringSnippet(normalised);
+
+			const snippets = [new StringSnippet(normalised)];
+			if (triggerKey && options.automatic) {
+				const nonAutomaticOptions = options.copy()
+				nonAutomaticOptions.automatic = false;
+				const triggerKeyNormalized = {...normalised, trigger: "", options: nonAutomaticOptions}
+				snippets.push(new StringSnippet(triggerKeyNormalized))
+			}
+			return snippets
 		}
 	}
 }

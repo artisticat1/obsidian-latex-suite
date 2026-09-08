@@ -1,4 +1,5 @@
 import { SnippetVariables } from "../parse";
+import { ALL_MACROS } from "./macros";
 import { ArrayNode, BaseNode, CaptureNode, SnippetStringNode, TabstopNode, TextNode } from "./node";
 
 // For now SnippetNode, VisualSnippetNode and ArrayNode remain internal api only,
@@ -36,6 +37,7 @@ export const api = (snippetVariables: SnippetVariables) => {
 		tabstop_node,
 		text_node,
 		capture_node,
+		ALL_MACROS
 	}
 }
 
@@ -44,5 +46,6 @@ export const snippetApi = {
 	text_node,
 	capture_node,
 	snippet_node,
-	array_node
+	array_node,
+	ALL_MACROS,
 }
