@@ -309,7 +309,7 @@ type ColorBracketsCachedEquations = Record<string, BracketConcealment[]>;
  * @param cached_equations previously cached equations to avoid re-tokenizing them
  * @returns new decorations and the updated cached equations
  */
-function colorPairedBrackets(view: EditorView, cached_equations: ColorBracketsCachedEquations) {
+export function colorPairedBrackets(view: EditorView, cached_equations: ColorBracketsCachedEquations) {
 	const overlays = getMathBoundsPlugin(view).getEquationOverlays(view.state);
 	const new_equations: typeof cached_equations = {};
 	const widgets: Range<Decoration>[] = [];
