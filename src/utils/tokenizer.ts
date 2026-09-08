@@ -117,9 +117,19 @@ export function* walkPairedBrackets(tokens: PairedBrackets[], depth: number = 0)
 	}
 }
 
+function NodeEquals(node1: SyntaxNode, node2: SyntaxNode): boolean {
+	return node1.from === node2.from && node1.to === node2.to && node1.name === node2.name;
+}
+
 export function* iterateTreeCursor(topNode: SyntaxNode, doc: EquationText) {
 	const cursor = topNode.cursor();
 	cursor.moveTo(doc.from, 1);
+	if (cursor.node.from < doc.from) {
+		return;
+	}
+	while (cursor.node.parent && cursor.node.parent.from >= doc.from && cursor.parent() && !NodeEquals(cursor.node, cursor.node.parent)) {
+		// empty
+	}
 	
 	do {
 		doc.skipCursorMove = false;
