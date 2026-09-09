@@ -814,10 +814,13 @@ class ConfirmationModal extends Modal {
 	}
 }
 
-function createCMEditor(content: string, extensions: Extension[], node: Element) {
+function createCMEditor(content: string, extensions: Extension[], node: HTMLElement) {
 	const view = new EditorView({
 		state: EditorState.create({ doc: content, extensions }),
 		parent: node,
+		// codemirror needs the root and thats different for popup windows.
+		// and the ownerDocument of node can be in a shadowRoot with 1.13+ api thus root needs to be set separately.
+		root: activeDocument,
 	});
 
 	return view;
