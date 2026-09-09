@@ -63,7 +63,7 @@
 		"vitest": "^4.1.11"
 	},
 	"dependencies": {
-		"@lezer/markdown": "^1.6.4",
+		"@lezer/markdown": "^1.7.2",
 		"@popperjs/core": "2.11.5",
 		"valibot": "^1.4.2"
 	}
