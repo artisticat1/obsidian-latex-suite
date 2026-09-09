@@ -1,4 +1,4 @@
-import { App, ButtonComponent, Component, debounce, ExtraButtonComponent, MarkdownRenderer, Modal, Platform, Setting, SettingDefinition, SettingDefinitionControl, SettingDefinitionItem, SettingTab } from "obsidian"
+import { App, ButtonComponent, debounce, ExtraButtonComponent, Modal, Platform, sanitizeHTMLToDom, Setting, SettingDefinition, SettingDefinitionControl, SettingDefinitionItem, SettingTab } from "obsidian"
 import { DEFAULT_SETTINGS, EnvironmentSchema, LatexSuitePluginSettings } from "./settings"
 import { settings_translation as t } from "../i18n/i18n"
 import { EditorState, Extension } from "@codemirror/state"
@@ -93,7 +93,6 @@ type ExperimentalSettingDefinition = Definition<
 export class LatexSuiteSettingsTab2 extends SettingTab {
 	snippetsEditor: EditorView | null = null;
 	snippetVariablesEditor: EditorView | null = null;
-	component = new Component();
 
 	constructor(
 		public app: App,
@@ -103,7 +102,6 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 	}
 
 	getSettingDefinitions(): SettingDefinitionItem[] {
-		this.component.unload()
 		const definitions: SettingDefinitionItem[] = [
 			...this.getSnippetDefinitions(),
 			...this.getConcealDefinitions(),
@@ -117,7 +115,6 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 			...this.getKeyMapDefinitions(),
 			...this.getExperimentalDefinitions(),
 		]
-		this.component.load()
 		return definitions
 	}
 
@@ -126,12 +123,12 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 		snippets.push(
 			{
 				name: t("snippets.enabled.name"),
-				desc: this.renderMarkdown( t("snippets.enabled.desc")),
+				desc: this.renderHtml( t("snippets.enabled.desc")),
 				control: getToggleControl("snippetsEnabled"),
 			},
 			{
 				name: t("snippets.snippets.name"),
-				desc: this.renderMarkdown(t("snippets.snippets.desc")),
+				desc: this.renderHtml(t("snippets.snippets.desc")),
 				render: (setting) => {
 					this.snippetsEditor?.destroy()
 					this.snippetsEditor = createSnippetsEditor(setting, this.plugin, {
@@ -147,12 +144,12 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 			},
 			{
 				name: t("snippets.load-from-file.name"),
-				desc: this.renderMarkdown(t("snippets.load-from-file.desc")),
+				desc: this.renderHtml(t("snippets.load-from-file.desc")),
 				control: getToggleControl("loadSnippetsFromFile")
 			},
 			{
 				name: t("snippets.file-path.name"),
-				desc: this.renderMarkdown(t("snippets.file-path.desc")),
+				desc: this.renderHtml(t("snippets.file-path.desc")),
 				render: (setting) => {
 					this.fileSearch(setting, "snippetsFileLocation")
 				},
@@ -162,7 +159,7 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 		const advanced: AdvancedSnippetSettingDefinition[] = [
 			{
 				name: t("advanced-snippets.variables.name"),
-				desc: this.renderMarkdown(t("advanced-snippets.variables.desc")),
+				desc: this.renderHtml(t("advanced-snippets.variables.desc")),
 				render: (setting) => {
 					this.snippetVariablesEditor?.destroy()
 					this.snippetVariablesEditor = createSnippetsEditor(setting, this.plugin, {
@@ -177,12 +174,12 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 			},
 			{
 				name: t("advanced-snippets.load-variables-from-file.name"),
-				desc: this.renderMarkdown(t("advanced-snippets.load-variables-from-file.desc")),
+				desc: this.renderHtml(t("advanced-snippets.load-variables-from-file.desc")),
 				control: getToggleControl("loadSnippetVariablesFromFile"),
 			},
 			{
 				name: t("advanced-snippets.variables-file-path.name"),
-				desc: this.renderMarkdown(t("advanced-snippets.variables-file-path.desc")),
+				desc: this.renderHtml(t("advanced-snippets.variables-file-path.desc")),
 				render: (setting) => {
 					this.fileSearch(setting, "snippetVariablesFileLocation")
 				},
@@ -190,7 +187,7 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 			},
 			{
 				name: t("advanced-snippets.word-delimiters.name"),
-				desc: this.renderMarkdown(t("advanced-snippets.word-delimiters.desc")),
+				desc: this.renderHtml(t("advanced-snippets.word-delimiters.desc")),
 				control: {
 					type: "text",
 					key: "wordDelimiters",
@@ -199,33 +196,33 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 			},
 			{
 				name: t("advanced-snippets.trailing-whitespace.name"),
-				desc: this.renderMarkdown(t("advanced-snippets.trailing-whitespace.desc")),
+				desc: this.renderHtml(t("advanced-snippets.trailing-whitespace.desc")),
 				control: getToggleControl("removeSnippetWhitespace")
 			},
 			{
 				name: t("advanced-snippets.auto-delete$.name"),
-				desc: this.renderMarkdown(t("advanced-snippets.auto-delete$.desc")),
+				desc: this.renderHtml(t("advanced-snippets.auto-delete$.desc")),
 				control: getToggleControl("autoDelete$")
 			},
 			{
 				name: t("advanced-snippets.suppress-IME-warning.name"),
-				desc: this.renderMarkdown(t("advanced-snippets.suppress-IME-warning.desc")),
+				desc: this.renderHtml(t("advanced-snippets.suppress-IME-warning.desc")),
 				control: getToggleControl("suppressIMEWarning"),
 				visible: () => isIMESupported() && this.plugin.settings.suppressSnippetTriggerOnIME
 			},
 			{
 				name: t("advanced-snippets.suppress-IME.name"),
-				desc: this.renderMarkdown(t("advanced-snippets.suppress-IME.desc")),
+				desc: this.renderHtml(t("advanced-snippets.suppress-IME.desc")),
 				control: getToggleControl("suppressSnippetTriggerOnIME"),
 			},
 			{
 				name: t("advanced-snippets.code-languages.name"),
-				desc: this.renderMarkdown(t("advanced-snippets.code-languages.desc")),
+				desc: this.renderHtml(t("advanced-snippets.code-languages.desc")),
 				control: getTextControl("forceMathLanguages")
 			},
 			{
 				name: t("advanced-snippets.snippet-debug-mode.name"),
-				desc: this.renderMarkdown(t("advanced-snippets.snippet-debug-mode.desc")),
+				desc: this.renderHtml(t("advanced-snippets.snippet-debug-mode.desc")),
 				control: {
 					type: "dropdown",
 					key: "snippetDebug",
@@ -253,12 +250,12 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 		const settings: ConcealSettingDefinition[] = [
 			{
 				name: t("conceal.enabled.name"),
-				desc: this.renderMarkdown( t("conceal.enabled.desc")),
+				desc: this.renderHtml( t("conceal.enabled.desc")),
 				control: getToggleControl("concealEnabled")
 			},
 			{
 				name: t("conceal.reveal-delay.name"),
-				desc: this.renderMarkdown( t("conceal.reveal-delay.desc")),
+				desc: this.renderHtml( t("conceal.reveal-delay.desc")),
 				control: {
 					type: "number",
 					key: "concealRevealTimeout",
@@ -278,17 +275,17 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 		const settings: ColorHighlightSettingDefinition[] = [
 			{
 				name: t("highlight-brackets.color-brackets.name"),
-				desc: this.renderMarkdown(t("highlight-brackets.color-brackets.desc")),
+				desc: this.renderHtml(t("highlight-brackets.color-brackets.desc")),
 				control: getToggleControl("colorPairedBracketsEnabled")
 			},
 			{
 				name: t("highlight-brackets.highlight-brackets.name"),
-				desc: this.renderMarkdown(t("highlight-brackets.highlight-brackets.desc")),
+				desc: this.renderHtml(t("highlight-brackets.highlight-brackets.desc")),
 				control: getToggleControl("highlightCursorBracketsEnabled")
 			},
 			{
 				name: t("highlight-brackets.color-math.name"),
-				desc: this.renderMarkdown(t("highlight-brackets.color-math.desc")),
+				desc: this.renderHtml(t("highlight-brackets.color-math.desc")),
 				control: getToggleControl("highlightDollarEnabled")
 			}
 		]
@@ -303,12 +300,12 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 		const settings: PopupPreviewSettingDefinition[] = [
 			{
 				name: t("math-preview.enabled.name"),
-				desc: this.renderMarkdown( t("math-preview.enabled.desc")),
+				desc: this.renderHtml( t("math-preview.enabled.desc")),
 				control: getToggleControl("mathPreviewEnabled")
 			},
 			{
 				name: t("math-preview.position.name"),
-				desc: this.renderMarkdown(t("math-preview.position.desc")),
+				desc: this.renderHtml(t("math-preview.position.desc")),
 				render: (setting) => {
 					setting.addDropdown((dropdown) => dropdown
 						.addOption("above", t("math-preview.position.options.above"))
@@ -323,7 +320,7 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 			},
 			{
 				name: t("math-preview.cursor-symbol.name"),
-				desc: this.renderMarkdown(t("math-preview.cursor-symbol.desc")),
+				desc: this.renderHtml(t("math-preview.cursor-symbol.desc")),
 				render: (setting) => {
 					setting.addText(text => {
 						text
@@ -342,12 +339,12 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 			},
 			{
 				name: t("math-preview.highlight-brackets.name"),
-				desc: this.renderMarkdown(t("math-preview.highlight-brackets.desc")),
+				desc: this.renderHtml(t("math-preview.highlight-brackets.desc")),
 				control: getToggleControl("mathPreviewBracketHighlighting")
 			},
 			{
 				name: t("math-preview.display-live-preview.name"),
-				desc: this.renderMarkdown(t("math-preview.display-live-preview.desc")),
+				desc: this.renderHtml(t("math-preview.display-live-preview.desc")),
 				control: getToggleControl("mathPreviewLivePreviewDisplay")
 			}
 		]
@@ -362,12 +359,12 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 		const settings: AutofractionSettingDefinition[] = [
 			{
 				name: t("auto-fraction.enabled.name"),
-				desc: this.renderMarkdown(t("auto-fraction.enabled.desc")),
+				desc: this.renderHtml(t("auto-fraction.enabled.desc")),
 				control: getToggleControl("autofractionEnabled")
 			},
 			{
 				name: t("auto-fraction.fraction-symbol.name"),
-				desc: this.renderMarkdown( t("auto-fraction.fraction-symbol.desc")),
+				desc: this.renderHtml( t("auto-fraction.fraction-symbol.desc")),
 				render: (setting) => {
 					setting.addText(text => {
 						text
@@ -387,7 +384,7 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 			},
 			{
 				name: t("auto-fraction.excluded-environments.name"),
-				desc: this.renderMarkdown(t("auto-fraction.excluded-environments.desc")),
+				desc: this.renderHtml(t("auto-fraction.excluded-environments.desc")),
 				control: {
 					key: "autofractionExcludedEnvs",
 					type: "textarea",
@@ -404,7 +401,7 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 			},
 			{
 				name: t("auto-fraction.breaking-characters.name"),
-				desc: this.renderMarkdown(t("auto-fraction.breaking-characters.desc")),
+				desc: this.renderHtml(t("auto-fraction.breaking-characters.desc")),
 				control: {
 					key: "autofractionBreakingChars",
 					type: "text",
@@ -424,12 +421,12 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 		const settings: MatrixShortcutsSettingDefinition[] = [
 			{
 				name: t("matrix-shortcuts.enabled.name"),
-				desc: this.renderMarkdown(t("matrix-shortcuts.enabled.desc")),
+				desc: this.renderHtml(t("matrix-shortcuts.enabled.desc")),
 				control: getToggleControl("matrixShortcutsEnabled")
 			},
 			{
 				name: t("matrix-shortcuts.environments.name"),
-				desc: this.renderMarkdown(t("matrix-shortcuts.environments.desc")),
+				desc: this.renderHtml(t("matrix-shortcuts.environments.desc")),
 				control: {
 					key: "matrixShortcutsEnvNames",
 					type: "text",
@@ -438,7 +435,7 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 			},
 			{
 				name: t("matrix-shortcuts.macros.name"),
-				desc: this.renderMarkdown(t("matrix-shortcuts.macros.desc")),
+				desc: this.renderHtml(t("matrix-shortcuts.macros.desc")),
 				control: {
 					key: "matrixShortcutsMacroNames",
 					type: "text",
@@ -457,12 +454,12 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 		const settings: TaboutSettingDefinition[] = [
 			{
 				name: t("tabout.enabled.name"),
-				desc: this.renderMarkdown(t("tabout.enabled.desc")),
+				desc: this.renderHtml(t("tabout.enabled.desc")),
 				control: getToggleControl("taboutEnabled")
 			},
 			{
 				name: t("tabout.closing-brackets.name"),
-				desc: this.renderMarkdown(t("tabout.closing-brackets.desc")),
+				desc: this.renderHtml(t("tabout.closing-brackets.desc")),
 				control: {
 					type: "text",
 					key: "taboutClosingSymbols",
@@ -471,7 +468,7 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 			},
 			{
 				name: t("tabout.exit-EOL.name"),
-				desc: this.renderMarkdown(t("tabout.exit-EOL.desc")),
+				desc: this.renderHtml(t("tabout.exit-EOL.desc")),
 				control: getToggleControl("taboutExitEquationOnlyOnEOL")
 			}
 		]
@@ -486,12 +483,12 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 		const settings: AutoEnlargeBracketsSettingDefinition[] = [
 			{
 				name: t("auto-enlarge.enabled.name"),
-				desc: this.renderMarkdown(t("auto-enlarge.enabled.desc")),
+				desc: this.renderHtml(t("auto-enlarge.enabled.desc")),
 				control: getToggleControl("autoEnlargeBrackets")
 			},
 			{
 				name: t("auto-enlarge.triggers.name"),
-				desc: this.renderMarkdown(t("auto-enlarge.triggers.desc")),
+				desc: this.renderHtml(t("auto-enlarge.triggers.desc")),
 				control: {
 					type: "text",
 					key: "autoEnlargeBracketsTriggers",
@@ -500,7 +497,7 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 			},
 			{
 				name: t("auto-enlarge.space.name"),
-				desc: this.renderMarkdown(t("auto-enlarge.space.desc")),
+				desc: this.renderHtml(t("auto-enlarge.space.desc")),
 				control: getToggleControl("autoEnlargeBracketsSpace")
 			}
 		]
@@ -515,22 +512,22 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 		const settings: VimSettingDefinition[] = [
 			{
 				name: t("vim.enabled.name"),
-				desc: this.renderMarkdown(t("vim.enabled.desc")),
+				desc: this.renderHtml(t("vim.enabled.desc")),
 				control: getToggleControl("vimEnabled")
 			},
 			{
 				name: t("vim.select-mode.name"),
-				desc: this.renderMarkdown(t("vim.select-mode.desc")),
+				desc: this.renderHtml(t("vim.select-mode.desc")),
 				control: getTextControl("vimSelectMode"),
 			},
 			{
 				name: t("vim.visual-mode.name"),
-				desc: this.renderMarkdown(t("vim.visual-mode.desc")),
+				desc: this.renderHtml(t("vim.visual-mode.desc")),
 				control: getTextControl("vimVisualMode"),
 			},
 			{
 				name: t("vim.matrix-enter.name"),
-				desc: this.renderMarkdown(t("vim.matrix-enter.desc")),
+				desc: this.renderHtml(t("vim.matrix-enter.desc")),
 				control: getTextControl("vimMatrixEnter"),
 			}
 		]
@@ -563,11 +560,11 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 		return [{
 			type: "page",
 			name: t("keymap.heading.name"),
-			desc: this.renderMarkdown(t("keymap.heading.desc")),
+			desc: this.renderHtml(t("keymap.heading.desc")),
 			items: [
 				{
 					name: " ",
-					desc: this.renderMarkdown( t("keymap.desc")),
+					desc: this.renderHtml( t("keymap.desc")),
 				},
 				{
 					type: "list",
@@ -581,7 +578,7 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 		const settings: ExperimentalSettingDefinition[] = [
 			{
 				name: t("experimental.snippet-recursion.name"),
-				desc: this.renderMarkdown( t("experimental.snippet-recursion.desc")),
+				desc: this.renderHtml( t("experimental.snippet-recursion.desc")),
 				control: {
 					type: "number",
 					key: "snippetRecursion",
@@ -591,12 +588,12 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 			},
 			{
 				name: t("experimental.excalidraw-enabled.name"),
-				desc: this.renderMarkdown( t("experimental.excalidraw-enabled.desc")),
+				desc: this.renderHtml( t("experimental.excalidraw-enabled.desc")),
 				control: getToggleControl("excalidrawSupportEnabled")
 			},
 			{
 				name: t("experimental.log-level.name"),
-				desc: this.renderMarkdown( t("experimental.log-level.desc")),
+				desc: this.renderHtml( t("experimental.log-level.desc")),
 				control: {
 					type: "dropdown",
 					key: "logLevel",
@@ -615,7 +612,7 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 		return [{
 			type: "page",
 			name: t("experimental.heading.name"),
-			desc: this.renderMarkdown(t("experimental.heading.desc")),
+			desc: this.renderHtml(t("experimental.heading.desc")),
 			items: settings,
 		}]
 	}
@@ -640,21 +637,11 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 		});
 	}
 
-	renderMarkdown(source: string) {
-		const fragment = new DocumentFragment()
-		const span = fragment.createSpan()
-		// Don't render right on startup, but have something rendered.
-		span.setText(source)
-		void MarkdownRenderer.render(this.app, source, span, "", this.component).then(() => {
-			span.replaceChildren(...Array.from(span.children).map(child => {
-				if (child.tagName === "P") {
-					child.addClass("latex-suite-markdown-p")
-				}
-				return child
-			})
-			)
-		})
-		return fragment
+	renderHtml(source: string) {
+		if (!source.includes("</")) {
+			return source;
+		}
+		return sanitizeHTMLToDom(source);
 	}
 }
 
@@ -833,22 +820,11 @@ function createCMEditor(content: string, extensions: Extension[], node: HTMLElem
 export function isIMESupported(): boolean {
 	return Platform.isMobileApp
 }
-export function renderMarkdown(app: App, markdown: string) {
-	const component = new Component()
-	const fragment = new DocumentFragment()
-	const span = fragment.createSpan()
-	span.setText(markdown)
-	void MarkdownRenderer.render(app, markdown, span, "", component).then(() => {
-		span.replaceChildren(...Array.from(span.children).map(child => {
-			if (child.tagName === "P") {
-				child.addClass("latex-suite-markdown-p")
-			}
-			return child
-		})
-		)
-	})
-	component.unload()
-	return fragment
+export function renderMarkdown(app: App, html: string) {
+	if (!html.includes("</")) {
+		return html;
+	}
+	return sanitizeHTMLToDom(html);
 }
 
 type toggles = keyof {
