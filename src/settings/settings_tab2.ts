@@ -818,6 +818,10 @@ function createCMEditor(content: string, extensions: Extension[], node: Element)
 	const view = new EditorView({
 		state: EditorState.create({ doc: content, extensions }),
 		parent: node,
+		// Obsidian 1.14 renders Settings in its own window. Without an explicit root, CodeMirror
+		// mounts its base theme into the main window's document, and the editor in the Settings
+		// window renders unstyled (gutter and content stacked as blocks, overflowing the box).
+		root: node.ownerDocument,
 	});
 
 	return view;
