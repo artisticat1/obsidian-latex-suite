@@ -818,7 +818,7 @@ function createCMEditor(content: string, extensions: Extension[], node: HTMLElem
 	const view = new EditorView({
 		state: EditorState.create({ doc: content, extensions }),
 		parent: node,
-		root: node.ownerDocument,
+		root: activeDocument,
 	});
 
 	// Obsidian 1.14 renders Settings in its own window, and it builds the settings DOM in the
@@ -830,8 +830,14 @@ function createCMEditor(content: string, extensions: Extension[], node: HTMLElem
 		const doc = view.dom.ownerDocument;
 		if (view.root !== doc) view.setRoot(doc);
 	};
-	node.onNodeInserted(syncRoot, true);
-	node.onWindowMigrated(syncRoot);
+	const nodeDestroy = node.onNodeInserted(syncRoot, true);
+	const windowDestroy = node.onWindowMigrated(syncRoot);
+	const originalDestroy = view.destroy.bind(view);
+	view.destroy = () => {
+		nodeDestroy();
+		windowDestroy();
+		originalDestroy();
+	}
 
 	return view;
 }
