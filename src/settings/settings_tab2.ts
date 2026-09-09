@@ -814,15 +814,24 @@ class ConfirmationModal extends Modal {
 	}
 }
 
-function createCMEditor(content: string, extensions: Extension[], node: Element) {
+function createCMEditor(content: string, extensions: Extension[], node: HTMLElement) {
 	const view = new EditorView({
 		state: EditorState.create({ doc: content, extensions }),
 		parent: node,
-		// Obsidian 1.14 renders Settings in its own window. Without an explicit root, CodeMirror
-		// mounts its base theme into the main window's document, and the editor in the Settings
-		// window renders unstyled (gutter and content stacked as blocks, overflowing the box).
 		root: node.ownerDocument,
 	});
+
+	// Obsidian 1.14 renders Settings in its own window, and it builds the settings DOM in the
+	// main window before moving it there. CodeMirror mounts its base theme into the root it was
+	// given, so once the editor lands in a different document its styles are missing and the
+	// gutter and content render as plain blocks overflowing the box. Re-point the root whenever
+	// the editor is inserted or migrated into another window.
+	const syncRoot = () => {
+		const doc = view.dom.ownerDocument;
+		if (view.root !== doc) view.setRoot(doc);
+	};
+	node.onNodeInserted(syncRoot, true);
+	node.onWindowMigrated(syncRoot);
 
 	return view;
 }
