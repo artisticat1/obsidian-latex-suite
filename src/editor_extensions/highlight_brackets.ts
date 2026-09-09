@@ -1,10 +1,10 @@
-import { EditorView, ViewUpdate, Decoration, DecorationSet, ViewPlugin } from "@codemirror/view";
+import { EditorView, ViewUpdate, Decoration, type DecorationSet, ViewPlugin } from "@codemirror/view";
 import { Prec, Range } from "@codemirror/state";
 import { tempKeyPress } from "src/snippets/snippet_management";
 import { EquationText, findIndexReverse, iterateTreeCursor } from "src/utils/tokenizer";
 import { walkPairedBrackets } from "src/utils/tokenizer";
-import { SyntaxNode, TreeCursor } from "@lezer/common";
-import { CMBound, getContextPlugin } from "src/editor_context/context";
+import { type SyntaxNode, TreeCursor } from "@lezer/common";
+import { type CMBound, getContextPlugin } from "src/editor_context/context";
 import { getMathBoundsPlugin } from "src/editor_context/mathbounds";
 import { latex } from "src/parser/latex-terms";
 

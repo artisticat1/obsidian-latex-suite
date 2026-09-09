@@ -1,6 +1,6 @@
 import { Text } from "@codemirror/state";
-import { SyntaxNode } from "@lezer/common";
-import { PairedBrackets } from "src/editor_extensions/highlight_brackets";
+import type { SyntaxNode } from "@lezer/common";
+import type { PairedBrackets } from "src/editor_extensions/highlight_brackets";
 
 export interface Token {
 	readonly start: number;

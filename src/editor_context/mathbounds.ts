@@ -1,7 +1,7 @@
-import { EditorView, PluginValue, ViewPlugin, ViewUpdate } from "@codemirror/view";
-import { Bounds, CMBound, MathMode } from "./context";
+import { EditorView, type PluginValue, ViewPlugin, ViewUpdate } from "@codemirror/view";
+import { type Bounds, type CMBound, MathMode } from "./context";
 import { EditorState } from "@codemirror/state";
-import { SyntaxNode, SyntaxNodeRef } from "@lezer/common";
+import type { SyntaxNode, SyntaxNodeRef } from "@lezer/common";
 import { modifiedSyntaxTree } from "src/parser/language";
 import { Type } from "src/parser/mathjax-parser";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";

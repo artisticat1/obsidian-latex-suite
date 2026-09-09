@@ -1,23 +1,18 @@
-import { parseMixed, SyntaxNodeRef } from "@lezer/common";
+import { parseMixed, type SyntaxNodeRef } from "@lezer/common";
 import { parser as mathJaxParser } from "./mathjax/latex-parser";
 import {
 	BlockContext,
-	BlockParser,
+	type BlockParser,
 	Element,
-	InlineParser,
+	type InlineParser,
 	Line,
-	MarkdownConfig,
+	type MarkdownConfig,
 	parser as baseParser,
 	GFM,
-	DelimiterType,
+	type DelimiterType,
 	parseCode,
 } from "@lezer/markdown";
 
-declare module "@lezer/markdown" {
-	interface Line {
-		markers?: Element[];
-	}
-}
 export class Type {
 	static readonly InlineMath = "InlineMath";
 	static readonly DisplayMath = "DisplayMath";
@@ -199,7 +194,7 @@ const blockParserDisplayMath: BlockParser = {
 			endLine = line.text.length + cx.lineStart;
 			const endDollar = isDisplayBlockEnd(line, delimiterLength);
 			if (endDollar !== null) {
-				for (const m of line.markers ?? []) markers.push(m);
+				for (const m of line.markers) markers.push(m);
 				const endFrom = cx.lineStart + endDollar[0];
 				const endTo = cx.lineStart + endDollar[1];
 				if (cx.lineStart + line.basePos < endFrom) {
@@ -217,7 +212,7 @@ const blockParserDisplayMath: BlockParser = {
 			if (!first) {
 				addDisplayMath(markers, cx.lineStart - 1, cx.lineStart)
 			}
-			for (const m of line.markers ?? []) markers.push(m);
+			for (const m of line.markers) markers.push(m);
 			const textStart = cx.lineStart + line.basePos;
 			const textEnd = cx.lineStart + line.text.length;
 			if (textStart < textEnd) {

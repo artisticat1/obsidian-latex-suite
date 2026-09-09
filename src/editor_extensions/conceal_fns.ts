@@ -1,7 +1,7 @@
 // Conceal functions
 
 import { EditorView } from "@codemirror/view";
-import { ConcealSpec } from "./conceal";
+import type { ConcealSpec } from "./conceal";
 import {
 	fractions,
 	not_remap,
@@ -13,7 +13,7 @@ import {
 	cmd_symbols,
 	leftrightBrackets,
 } from "./conceal_maps";
-import { SyntaxNode, TreeCursor } from "@lezer/common";
+import { type SyntaxNode, TreeCursor } from "@lezer/common";
 import { cumulativeSum } from "src/utils/editor_utils";
 import { EquationText, iterateTreeCursor } from "src/utils/tokenizer";
 import { getMathBoundsPlugin } from "src/editor_context/mathbounds";

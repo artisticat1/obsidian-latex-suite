@@ -1,13 +1,13 @@
 import { Prec, Range } from "@codemirror/state";
 import {
 	Decoration,
-	DecorationSet,
+	type DecorationSet,
 	EditorView,
-	PluginValue,
+	type PluginValue,
 	ViewPlugin,
 	ViewUpdate,
 } from "@codemirror/view";
-import { Bounds, MathMode } from "src/editor_context/context";
+import { type Bounds, MathMode } from "src/editor_context/context";
 import { getMathBoundsPlugin } from "src/editor_context/mathbounds";
 import { latex } from "src/parser/latex-terms";
 import { EquationText, iterateTreeCursor } from "src/utils/tokenizer";

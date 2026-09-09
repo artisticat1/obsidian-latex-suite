@@ -1,11 +1,11 @@
-import { optional, object, string as string_, union, parse, number, InferOutput as Output, custom, instance, array, pipe, transform } from "valibot";
+import { optional, object, string as string_, union, parse, number, type InferOutput as Output, custom, instance, array, pipe, transform } from "valibot";
 import { RegexSnippet, serializeSnippetLike, Snippet, StringSnippet, VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER, VisualSnippet } from "./snippets";
 import { Options } from "../editor_context/options";
 import { sortSnippets } from "./sort";
 import { EXCLUSIONS } from "./environment";
 import { api } from "./luasnip_api";
 import { ArrayNode, BaseNode, SnippetStringNode, SnippetTabstopOnlyNode, VisualSnippetNode } from "./luasnip_api/node";
-import { MacroArea, MacroAreaPipeSchema } from "src/editor_context/default_text_areas";
+import { type MacroArea, MacroAreaPipeSchema } from "src/editor_context/default_text_areas";
 import { isMacOS } from "src/editor_extensions/obsidian_utils";
 
 export type SnippetVariables = Record<string, string>;

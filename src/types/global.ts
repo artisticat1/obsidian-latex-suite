@@ -1,5 +1,5 @@
 import { EditorView } from "@codemirror/view";
-import { CodeMirrorEditor, Vim } from "./vim_types";
+import { CodeMirrorEditor, type Vim } from "./vim_types";
 
 declare global {
 	interface Window {

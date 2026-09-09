@@ -1,4 +1,4 @@
-import { MacroArea } from "src/editor_context/default_text_areas";
+import { type MacroArea } from "src/editor_context/default_text_areas";
 
 /**
  * defines a math environment, where semantics for snippets may change from how they'd usually behave in math mode

@@ -1,5 +1,5 @@
-import { PluginValue, ViewPlugin, ViewUpdate } from "@codemirror/view";
-import { SyntaxNode } from "@lezer/common";
+import { type PluginValue, ViewPlugin, ViewUpdate } from "@codemirror/view";
+import type { SyntaxNode } from "@lezer/common";
 import { modifiedSyntaxTree } from "./language";
 import { Type } from "./mathjax-parser";
 import { EditorState } from "@codemirror/state";

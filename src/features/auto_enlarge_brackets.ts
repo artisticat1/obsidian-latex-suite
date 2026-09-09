@@ -7,7 +7,7 @@ import { emptyInsertOptions, TextNode } from "src/snippets/luasnip_api/node";
 import { pairBrackets, traverseTree } from "src/editor_extensions/highlight_brackets";
 import { EquationText } from "src/utils/tokenizer";
 import { walkPairedBrackets } from "src/utils/tokenizer";
-import { SyntaxNode } from "@lezer/common";
+import type { SyntaxNode } from "@lezer/common";
 import { getMathBoundsPlugin } from "src/editor_context/mathbounds";
 import { latex } from "src/parser/latex-terms";
 

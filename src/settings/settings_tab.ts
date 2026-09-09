@@ -1,13 +1,13 @@
-import { EditorState, Extension } from "@codemirror/state";
+import { EditorState, type Extension } from "@codemirror/state";
 import { EditorView, ViewUpdate } from "@codemirror/view";
-import { App, ButtonComponent, Component, ExtraButtonComponent, MarkdownRenderer, Modal, Notice, Platform, PluginSettingTab, Setting, SettingDefinitionItem, debounce, requireApiVersion, setIcon } from "obsidian";
+import { App, ButtonComponent, Component, ExtraButtonComponent, MarkdownRenderer, Modal, Notice, Platform, PluginSettingTab, Setting, type SettingDefinitionItem, debounce, requireApiVersion, setIcon } from "obsidian";
 import { parseSnippetVariables, parseSnippets } from "src/snippets/parse";
 import { DEFAULT_SNIPPETS } from "src/utils/default_snippets";
 import LatexSuitePlugin from "../main";
-import { DEFAULT_SETTINGS, LatexSuitePluginSettings } from "./settings";
+import { DEFAULT_SETTINGS, type LatexSuitePluginSettings } from "./settings";
 import { FileSuggest } from "./ui/file_suggest";
 import { basicSetup } from "./ui/snippets_editor/extensions";
-import { getVimSelectModeCommand, vimCommand, getVimVisualModeCommand, getVimEditorCommands, getVimRunMatrixEnterCommand } from "src/features/editor_commands";
+import { getVimSelectModeCommand, type vimCommand, getVimVisualModeCommand, getVimEditorCommands, getVimRunMatrixEnterCommand } from "src/features/editor_commands";
 import { LatexSuiteSettingsTab2, renderMarkdown } from "./settings_tab2";
 import { settings_translation as t } from "../i18n/i18n"
 

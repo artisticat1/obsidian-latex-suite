@@ -1,7 +1,7 @@
 import { EditorState, SelectionRange, Text } from "@codemirror/state";
 import {
 	EditorView,
-	PluginValue,
+	type PluginValue,
 	ViewPlugin,
 	ViewUpdate,
 } from "@codemirror/view";
@@ -11,11 +11,11 @@ import {
 	stackResolveNodeIterate,
 } from "src/utils/editor_utils";
 import { Mode } from "./options";
-import { Environment } from "../snippets/environment";
+import type { Environment } from "../snippets/environment";
 import { getLatexSuiteConfig } from "../snippets/codemirror/config";
 import { syntaxTree } from "@codemirror/language";
-import { SyntaxNode } from "@lezer/common";
-import { allTextAreas, MacroArea, snippetLessArea } from "./default_text_areas";
+import type { SyntaxNode } from "@lezer/common";
+import { allTextAreas, type MacroArea, snippetLessArea } from "./default_text_areas";
 import { getMathBoundsPlugin } from "./mathbounds";
 
 const OPEN_INLINE_MATH_NODE =

@@ -3,12 +3,12 @@ import { EditorState } from "@codemirror/state";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
 import { queueSnippet } from "src/snippets/codemirror/snippet_queue_state_field";
 import { expandSnippets } from "src/snippets/snippet_management";
-import { CMBound, Context, getContextPlugin } from "src/editor_context/context";
+import { type CMBound, Context, getContextPlugin } from "src/editor_context/context";
 import { autoEnlargeBrackets } from "./auto_enlarge_brackets";
-import { snippetDebugLevel } from "src/settings/settings";
-import { IncludedEnvironmentResult, Snippet, SnippetType } from "src/snippets/snippets";
+import type { snippetDebugLevel } from "src/settings/settings";
+import { IncludedEnvironmentResult, Snippet, type SnippetType } from "src/snippets/snippets";
 import { showSnippetInfo } from "src/editor_extensions/obsidian_utils";
-import { ResultInsert } from "src/snippets/luasnip_api/node";
+import type { ResultInsert } from "src/snippets/luasnip_api/node";
 
 type SnippetInfo = {
 	snippets: Snippet<SnippetType>[];

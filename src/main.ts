@@ -1,13 +1,13 @@
-import { Extension, Prec } from "@codemirror/state";
+import { type Extension, Prec } from "@codemirror/state";
 import { Plugin, Notice, loadMathJax, addIcon, debounce } from "obsidian";
 import { getSnippetsFromFiles, getFileSets, getVariablesFromFiles, tryGetVariablesFromUnknownFiles, fileWatch } from "./settings/file_watch";
-import { LatexSuitePluginSettings, DEFAULT_SETTINGS, LatexSuiteCMSettings, processLatexSuiteSettings, LatexSuiteBasicSettings, LatexSuiteRawSettings, isLogLevelEnabled } from "./settings/settings";
+import { type LatexSuitePluginSettings, DEFAULT_SETTINGS, type LatexSuiteCMSettings, processLatexSuiteSettings, type LatexSuiteBasicSettings, type LatexSuiteRawSettings, isLogLevelEnabled } from "./settings/settings";
 import { isIMESupported, LatexSuiteSettingTab } from "./settings/settings_tab";
 import { ICONS } from "./settings/ui/icons";
 
 import { getEditorCommands, getVimEditorCommands, getVimRunMatrixEnterCommand } from "./features/editor_commands";
 import { getLatexSuiteConfigExtension } from "./snippets/codemirror/config";
-import { SnippetVariables, parseSnippetVariables, parseSnippets } from "./snippets/parse";
+import { type SnippetVariables, parseSnippetVariables, parseSnippets } from "./snippets/parse";
 import { handleUpdate, onInput, keyboardEventPlugin, getKeymaps } from "./latex_suite";
 import { EditorView, keymap, tooltips } from "@codemirror/view";
 import { snippetExtensions } from "./snippets/codemirror/extensions";
@@ -16,7 +16,7 @@ import { colorPairedBracketsPlugin, colorPairedBracketsPluginLowestPrec, highlig
 import { cursorTooltipBaseTheme, cursorTooltipField, updateTooltipEffect } from "./editor_extensions/math_tooltip";
 import { contextPlugin, getContextPlugin } from "./editor_context/context";
 import { mathBoundsPlugin } from "./editor_context/mathbounds";
-import { LatexSuitePluginPublicApi } from "./api";
+import type { LatexSuitePluginPublicApi } from "./api";
 import * as v from "valibot"
 import { languageExtension, LanguageSetStateEffect, languageStateField, modifiedSyntaxTree, parseWorker } from "./parser/language";
 import { highlight_dollar } from "./editor_extensions/highlight_dollar";

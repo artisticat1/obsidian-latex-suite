@@ -2,12 +2,12 @@ import { EditorView } from "@codemirror/view";
 import { Annotation, ChangeSet, EditorSelection } from "@codemirror/state";
 import { endSnippet, startSnippet } from "./codemirror/history";
 import { isolateHistory } from "@codemirror/commands";
-import { TabstopSpec, tabstopSpecsToTabstopGroups } from "./tabstop";
+import { type TabstopSpec, tabstopSpecsToTabstopGroups } from "./tabstop";
 import { addTabstops, getNextTabstopColor, tabstopsStateField } from "./codemirror/tabstops_state_field";
 import { clearSnippetQueue, getSnippetQueue, queueSnippet } from "./codemirror/snippet_queue_state_field";
 import { resetCursorBlink } from "src/utils/editor_utils";
-import { SnippetChangeSpecApi } from "src/api";
-import { ArrayNode, BaseNode, ResultInsert, SnippetStringNode } from "./luasnip_api/node";
+import type { SnippetChangeSpecApi } from "src/api";
+import { ArrayNode, BaseNode, type ResultInsert, SnippetStringNode } from "./luasnip_api/node";
 import { SnippetChangeSpec } from "./codemirror/snippet_change_spec";
 
 export function snippet(view: EditorView, snippetChangeSpec: SnippetChangeSpecApi): boolean {

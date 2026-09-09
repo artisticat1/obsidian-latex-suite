@@ -1,4 +1,4 @@
-import { SnippetVariables } from "../parse";
+import type { SnippetVariables } from "../parse";
 import { ALL_MACROS } from "./macros";
 import { ArrayNode, BaseNode, CaptureNode, SnippetStringNode, TabstopNode, TextNode } from "./node";
 

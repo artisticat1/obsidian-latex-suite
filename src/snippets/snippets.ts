@@ -1,8 +1,8 @@
 import { Options } from "../editor_context/options";
-import { BaseNode, ResultInsert, ArrayNode, SnippetTabstopOnlyNode, Options as InsertOptions } from "./luasnip_api/node";
+import { BaseNode, type ResultInsert, ArrayNode, SnippetTabstopOnlyNode, type Options as InsertOptions } from "./luasnip_api/node";
 import * as v from "valibot";
-import { MacroArea } from "src/editor_context/default_text_areas";
-import { CMBound, StackOutput, isMacroArgumentCount } from "src/editor_context/context";
+import type { MacroArea } from "src/editor_context/default_text_areas";
+import { type CMBound, type StackOutput, isMacroArgumentCount } from "src/editor_context/context";
 import { EditorView } from "@codemirror/view";
 
 /**

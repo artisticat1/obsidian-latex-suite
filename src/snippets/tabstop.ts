@@ -1,5 +1,5 @@
 import { ChangeDesc, EditorSelection, SelectionRange } from "@codemirror/state";
-import { Decoration, DecorationSet, EditorView, WidgetType } from "@codemirror/view";
+import { Decoration, type DecorationSet, EditorView, WidgetType } from "@codemirror/view";
 import { resetCursorBlink } from "src/utils/editor_utils";
 import { endSnippet } from "./codemirror/history";
 import { createElement } from "src/editor_extensions/obsidian_utils";

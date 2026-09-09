@@ -1,4 +1,4 @@
-import { EditorView, ViewPlugin, ViewUpdate, KeyBinding, runScopeHandlers } from "@codemirror/view";
+import { EditorView, ViewPlugin, ViewUpdate, type KeyBinding, runScopeHandlers } from "@codemirror/view";
 import { runSnippets } from "./features/run_snippets";
 import { runAutoFraction } from "./features/autofraction";
 import { tabout, shouldTaboutByCloseBracket } from "./features/tabout";
@@ -15,7 +15,7 @@ import { handleUndoRedo } from "./snippets/codemirror/history";
 
 import { handleMathTooltip } from "./editor_extensions/math_tooltip";
 import { isComposing, forceEndComposition } from "./utils/editor_utils";
-import { LatexSuiteCMSettings } from "./settings/settings";
+import type { LatexSuiteCMSettings } from "./settings/settings";
 import { Type } from "./parser/mathjax-parser";
 
 export const handleUpdate = (update: ViewUpdate) => {

@@ -1,5 +1,5 @@
 import { VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER } from "../snippets"
-import { TabstopSpec } from "../tabstop"
+import type { TabstopSpec } from "../tabstop"
 
 type Captures = {match: string[], groups: Record<string, string>}
 

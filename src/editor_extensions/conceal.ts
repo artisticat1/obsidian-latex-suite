@@ -1,8 +1,8 @@
 // https://discuss.codemirror.net/t/concealing-syntax/3135
 
-import { ViewUpdate, Decoration, DecorationSet, WidgetType, ViewPlugin, EditorView } from "@codemirror/view";
+import { ViewUpdate, Decoration, type DecorationSet, WidgetType, ViewPlugin, EditorView } from "@codemirror/view";
 import { EditorSelection, Range, RangeSet, RangeSetBuilder, RangeValue, Transaction } from "@codemirror/state";
-import { conceal, ConcealCachedEquations } from "./conceal_fns";
+import { conceal, type ConcealCachedEquations } from "./conceal_fns";
 import { debounce, livePreviewState } from "obsidian";
 import { tempKeyPress } from "src/snippets/snippet_management";
 import { createElement } from "./obsidian_utils";

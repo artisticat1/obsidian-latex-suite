@@ -1,6 +1,6 @@
 import { EditorState, StateField } from "@codemirror/state";
 import { Notice, Platform } from "obsidian";
-import { Snippet, SnippetType } from "src/snippets/snippets";
+import { Snippet, type SnippetType } from "src/snippets/snippets";
 
 // grouping obsidian apis that obsidian forces in the linter, such that they can be easily replaced.
 export function createElement(tagName: Parameters<Document["createElement"]>[0]) {

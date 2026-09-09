@@ -7,7 +7,7 @@ import {
 		lineNumbers,
 		rectangularSelection
 	} from "@codemirror/view";
-	import { Extension, EditorState } from "@codemirror/state";
+	import { type Extension, EditorState } from "@codemirror/state";
 	import { javascript } from "@codemirror/lang-javascript";
 	import { indentOnInput, indentUnit, bracketMatching, syntaxHighlighting, defaultHighlightStyle } from "@codemirror/language";
 	import { defaultKeymap, indentWithTab, history, historyKeymap } from "@codemirror/commands";

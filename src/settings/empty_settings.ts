@@ -1,4 +1,4 @@
-import { LatexSuitePluginSettings } from "./settings";
+import type { LatexSuitePluginSettings } from "./settings";
 
 export const EMPTY_SETTINGS: LatexSuitePluginSettings = {
 	snippets: "",
