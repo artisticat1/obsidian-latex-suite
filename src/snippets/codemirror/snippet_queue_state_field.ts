@@ -5,21 +5,24 @@ import { countColumn, EditorState } from "@codemirror/state";
 import { applyReplacements, type Replacement, type ResultInsert } from "../luasnip_api/node";
 export const snippetQueuePlugin = ViewPlugin.fromClass(
 	class {
-	private snippetQueue: SnippetChangeSpec[] = [];
+		snippetQueue: SnippetChangeSpec[] = [];
 
 
-	clearSnippetQueue() {
-		this.snippetQueue = [];
+		clearSnippetQueue() {
+			this.snippetQueue = [];
+		}
+		
+		executeSnippetQueue() {
+			const queue = this.snippetQueue;
+			this.snippetQueue = [];
+			return queue;
+		}
+		
+		QueueSnippets(values: SnippetChangeSpec[]) {
+			this.snippetQueue = this.snippetQueue.concat(values);
+		}
 	}
-	
-	QueueSnippets(values: SnippetChangeSpec[]) {
-		this.snippetQueue = this.snippetQueue.concat(values);
-	}
-	
-	get snippetQueueValue(): SnippetChangeSpec[] {
-		return this.snippetQueue.map(s => new SnippetChangeSpec(s.from, s.to, s.insert, s.keyPressed, s.after));
-	}
-})
+)
 
 export function getSnippetQueue(view: EditorView) {
 	const plugin = view.plugin(snippetQueuePlugin);

@@ -82,6 +82,11 @@ interface LatexSuiteParsedSettings {
 	forceMathLanguages: string[];
 }
 
+type GroupedSnippets = {
+	automatic: Snippet[];
+	all: Snippet[];
+};
+
 export type LatexSuitePluginSettings = {
 	snippets: string;
 	snippetVariables: string;
@@ -89,7 +94,7 @@ export type LatexSuitePluginSettings = {
 	LatexSuiteRawSettings &
 	LatexSuiteCMKeymapSettings;
 export type LatexSuiteCMSettings = {
-	snippets: Snippet[];
+	snippets: GroupedSnippets;
 } & LatexSuiteBasicSettings &
 	LatexSuiteParsedSettings &
 	LatexSuiteCMKeymapSettings;
@@ -191,12 +196,16 @@ export function processLatexSuiteSettings(
 
 		return envs;
 	}
+	const groupedSnippets = {
+		automatic: snippets.filter((s) => s.options.automatic),
+		all: snippets,
+	}
 
 	return {
 		...settings,
 
 		// Override raw settings with parsed settings
-		snippets: snippets,
+		snippets: groupedSnippets,
 		autofractionExcludedEnvs: getAutofractionExcludedEnvs(
 			settings.autofractionExcludedEnvs,
 		),

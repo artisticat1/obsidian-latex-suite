@@ -36,7 +36,7 @@ const refreshFromFiles = debounce(async (plugin: LatexSuitePlugin) => {
 
 	await plugin.processSettings(false, true);
 
-}, 7000, true);
+}, 3000, true);
 
 /**
  * Create a file watcher using either obsidian publics api, obsidians internal fs adapter for hidden files inside the vault
@@ -300,6 +300,21 @@ export async function getFileSets(plugin: LatexSuitePlugin): Promise<FileSets> {
 	return {definitelyVariableFiles, definitelySnippetFiles, snippetOrVariableFiles};
 }
 
+
+class NoticeManager {
+	notices: Notice[] = [];
+	addNotice(notice: Notice) {
+		this.notices.push(notice);
+		// Too many notices are just spammy, that the console should be read used instead.
+		// or fix the errors one by one.
+		if (this.notices.length > 4) {
+			const first = this.notices.shift();
+			first?.hide();
+		}
+	}
+}
+const noticeManager = new NoticeManager();
+
 export async function getVariablesFromFiles(files: FileSets) {
 	const snippetVariables: SnippetVariables = {};
 
@@ -309,7 +324,8 @@ export async function getVariablesFromFiles(files: FileSets) {
 			Object.assign(snippetVariables, await parseSnippetVariables(content, file.path));
 		} catch (err) {
 			const e = err as Error;
-			new Notice(`Failed to parse variable file ${file.name}: ${e}`);
+			const notice = new Notice(`Failed to parse variable file ${file.name}: ${e}`);
+			noticeManager.addNotice(notice);
 			console.error(`Failed to parse variable file ${file.name}: ${e}`);
 			files.definitelyVariableFiles.delete(file);
 		}
@@ -349,7 +365,8 @@ export async function getSnippetsFromFiles(
 			snippets.push(...await parseSnippets(content, snippetVariables, file.path));
 		} catch (err) {
 			const e = err as Error;
-			new Notice(`Failed to parse snippet file ${file.name}: ${e}`);
+			const notice = new Notice(`Failed to parse snippet file ${file.name}: ${e}`);
+			noticeManager.addNotice(notice);
 			console.error(`Failed to parse snippet file ${file.name}: ${e}`);
 			files.definitelySnippetFiles.delete(file);
 		}

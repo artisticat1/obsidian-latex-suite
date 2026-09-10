@@ -170,17 +170,17 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 		if (this.settings.loadSnippetsFromFile || this.settings.loadSnippetVariablesFromFile) {
 			// Use onLayoutReady so that we don't try to read the snippets file too early
 			this.app.workspace.onLayoutReady(() => {
-				void this.processSettings();
+				void this.processSettings(false, true);
 			});
 		}
 		else {
-			await this.processSettings();
+			await this.processSettings(false, true);
 		}
 	}
 
-	async saveSettings(didFileLocationChange = false) {
+	async saveSettings(didFileLocationChange = false, didFileUpdated = false) {
 		await this.saveData(this.settings);
-		await this.processSettings(didFileLocationChange);
+		await this.processSettings(didFileLocationChange, didFileUpdated);
 	}
 
 	async getSettingsSnippetVariables() {
@@ -206,6 +206,10 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 	}
 
 	async getSnippets(becauseFileLocationUpdated: boolean, becauseFileUpdated: boolean) {
+		// don't recompute if unnecessary.
+		if (!becauseFileLocationUpdated && !becauseFileUpdated) {
+			return this.CMSettings.snippets.all;
+		}
 		// Get files in snippet/variable folders.
 		// If either is set to be loaded from settings the set will just be empty.
 		const files = await getFileSets(this);

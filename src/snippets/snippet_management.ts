@@ -4,7 +4,7 @@ import { endSnippet, startSnippet } from "./codemirror/history";
 import { isolateHistory } from "@codemirror/commands";
 import { type TabstopSpec, tabstopSpecsToTabstopGroups } from "./tabstop";
 import { addTabstops, getNextTabstopColor, tabstopsStateField } from "./codemirror/tabstops_state_field";
-import { clearSnippetQueue, getSnippetQueue, queueSnippet } from "./codemirror/snippet_queue_state_field";
+import { getSnippetQueue, queueSnippet } from "./codemirror/snippet_queue_state_field";
 import { resetCursorBlink } from "src/utils/editor_utils";
 import type { SnippetChangeSpecApi } from "src/api";
 import { ArrayNode, BaseNode, type ResultInsert, SnippetStringNode } from "./luasnip_api/node";
@@ -28,7 +28,7 @@ export function snippet(view: EditorView, snippetChangeSpec: SnippetChangeSpecAp
 // this function and the functions it calls are a bit too statefull
 // its use as few dispatches as possible, but probably can be simplified.
 export function expandSnippets(view: EditorView):boolean {
-	const snippetsToExpand = getSnippetQueue(view).snippetQueueValue;
+	const snippetsToExpand = getSnippetQueue(view).executeSnippetQueue();
 	if (snippetsToExpand.length === 0) return false;
 
 	// Try to apply changes all at once, because `view.dispatch` gets expensive for large documents
@@ -50,13 +50,11 @@ export function expandSnippets(view: EditorView):boolean {
 	// Insert any tabstops
 	if (tabstopsToAdd.length === 0) {
 		view.dispatch(changes)
-		clearSnippetQueue(view);
 		return true;
 	}
 
 	expandTabstops(view, tabstopsToAdd, changes);
 
-	clearSnippetQueue(view);
 	return true;
 }
 // optimization to avoid updating math preview and conceal when a keypress is pushed into the history but immediately undone

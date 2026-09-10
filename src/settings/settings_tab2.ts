@@ -624,10 +624,13 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 				.setValue(this.plugin.settings[key])
 				.onChange(debounce(
 					async (value) => {
+						if (value === "") {
+							return;
+						}
 						this.plugin.settings[key] = value;
 						await this.plugin.saveSettings(true);
 					},
-					500,
+					7000,
 					true,
 				));
 
@@ -700,7 +703,7 @@ function createSnippetsEditor(
 		if (!success) return;
 
 		plugin.settings[config.type] = snippets;
-		await plugin.saveSettings();
+		await plugin.saveSettings(false, true);
 	}, 500);
 
 	const change = EditorView.updateListener.of(
@@ -771,7 +774,7 @@ function createSnippetsEditor(
 					updateValidityIndicator(true);
 
 					plugin.settings[config.type] = value;
-					await plugin.saveSettings();
+					await plugin.saveSettings(false, true);
 				},
 			).open();
 		});

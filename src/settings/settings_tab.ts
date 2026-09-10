@@ -495,7 +495,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.snippetVariables)
 				.onChange(async (value) => {
 					this.plugin.settings.snippetVariables = value;
-					await this.plugin.saveSettings();
+					await this.plugin.saveSettings(false, true);
 				})
 				.setPlaceholder(DEFAULT_SETTINGS.snippetVariables))
 			.setClass("latex-suite-snippet-variables-setting");
@@ -864,7 +864,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				if (!success) return;
 
 				this.plugin.settings.snippets = snippets;
-				await this.plugin.saveSettings();
+				await this.plugin.saveSettings(false, true);
 			}
 		})());
 

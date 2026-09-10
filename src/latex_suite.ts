@@ -116,7 +116,7 @@ export const handleKeydown = (key: string, ctrlKey: boolean, isIME: boolean, vie
 	) {
 		return false;
 	}
-	const snippets = settings.snippets.filter((s) => s.options.automatic);
+	const snippets = settings.snippets.automatic;
 	try {
 		const options = {recursive: settings.snippetRecursion, debug: settings.snippetDebug};
 		if (runSnippets(view, {snippets, key}, options)) return true;
@@ -171,11 +171,11 @@ export function getKeymaps(settings: LatexSuiteCMSettings): LatexSuiteKeyBinding
 	}
 
 	const snippet_triggers = new Set(
-		settings.snippets.map((s) => s.triggerKey).filter((s) => s !== "")
+		settings.snippets.all.map((s) => s.triggerKey).filter((s) => s !== "")
 	);
 	snippet_triggers.add(settings.snippetsTrigger);
 	const runMaker = (key: string) => {
-		const snippets = settings.snippets.filter(
+		const snippets = settings.snippets.all.filter(
 			(s) =>
 				s.triggerKey === key ||
 				(!s.triggerKey &&
