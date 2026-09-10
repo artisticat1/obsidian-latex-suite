@@ -7,8 +7,12 @@ import { type SyntaxNode, TreeCursor } from "@lezer/common";
 import { type CMBound, getContextPlugin } from "src/editor_context/context";
 import { getMathBoundsPlugin } from "src/editor_context/mathbounds";
 import { latex } from "src/parser/latex-terms";
+import { cmDarkClass, cmLightClass } from "./obsidian_utils";
 
 const Ncolors = 3;
+const HIGHLIGHTED_BRACKET_CLASS = "latex-suite-highlighted-bracket";
+const COLOR_BRACKET_CLASS = "latex-suite-color-bracket";
+const MISMATCHED_BRACKET_CLASS = "latex-suite-mismatched-bracket";
 
 /**
  * Helper function to create a decoration to highlight a bracket at a given position
@@ -330,7 +334,7 @@ export function colorPairedBrackets(view: EditorView, cached_equations: ColorBra
 				const pos = token.kind === "error_open" ? token.open.from : token.close.from;
 				localSpecs.push({
 					pos,
-					className: "latex-suite-mismatched-bracket",
+					className: MISMATCHED_BRACKET_CLASS,
 					bracket: token.bracket.length,
 				});
 				continue;
@@ -339,12 +343,12 @@ export function colorPairedBrackets(view: EditorView, cached_equations: ColorBra
 			const colorIndex = depth % Ncolors;
 			localSpecs.push({
 				pos: token.open.from,
-				className: `latex-suite-color-bracket-${colorIndex}`,
+				className: `${COLOR_BRACKET_CLASS}-${colorIndex}`,
 				bracket: token.open.to - token.open.from,
 			});
 			localSpecs.push({
 				pos: token.close.from,
-				className: `latex-suite-color-bracket-${colorIndex}`,
+				className: `${COLOR_BRACKET_CLASS}-${colorIndex}`,
 				bracket: token.close.to - token.close.from
 			});
 		}
@@ -425,12 +429,12 @@ function highlightCursorBrackets(view: EditorView) {
 		widgets.push(
 			getHighlightBracketMark(
 				prev_token.region.open.from,
-				"latex-suite-highlighted-bracket",
+				HIGHLIGHTED_BRACKET_CLASS,
 				prev_token.region.open.to - prev_token.region.open.from,
 			),
 			getHighlightBracketMark(
 				prev_token.region.close.from,
-				"latex-suite-highlighted-bracket",
+				HIGHLIGHTED_BRACKET_CLASS,
 				prev_token.region.close.to - prev_token.region.close.from,
 			),
 		);
@@ -466,7 +470,42 @@ export const colorPairedBracketsPlugin = ViewPlugin.fromClass(class {
 }, { decorations: v => v.decorations, });
 
 
-export const colorPairedBracketsPluginLowestPrec = Prec.lowest(colorPairedBracketsPlugin.extension);
+const colorPairedBracketsTheme = EditorView.baseTheme({
+	[`${cmLightClass} .${COLOR_BRACKET_CLASS}-0, ${cmLightClass} .${COLOR_BRACKET_CLASS}-0 .cm-bracket`]:
+		{
+			color: "#527aff",
+		},
+	[`${cmDarkClass} .${COLOR_BRACKET_CLASS}-0, ${cmDarkClass} .${COLOR_BRACKET_CLASS}-0 .cm-bracket`]:
+		{
+			color: "#47b8ff",
+		},
+	[`${cmLightClass} .${COLOR_BRACKET_CLASS}-1, ${cmLightClass} .${COLOR_BRACKET_CLASS}-1 .cm-bracket`]:
+		{
+			color: "#ff50b7",
+		},
+	[`${cmDarkClass} .${COLOR_BRACKET_CLASS}-1, ${cmDarkClass} .${COLOR_BRACKET_CLASS}-1 .cm-bracket`]:
+		{
+			color: "#ff55cd",
+		},
+	[`${cmLightClass} .${COLOR_BRACKET_CLASS}-2, ${cmLightClass} .${COLOR_BRACKET_CLASS}-2 .cm-bracket`]:
+		{
+			color: "#69ba00",
+		},
+	[`${cmDarkClass} .${COLOR_BRACKET_CLASS}-2, ${cmDarkClass} .${COLOR_BRACKET_CLASS}-2 .cm-bracket`]:
+		{
+			color: "#73ff63",
+		},
+	[`${cmLightClass} .${MISMATCHED_BRACKET_CLASS}, ${cmLightClass} .${MISMATCHED_BRACKET_CLASS} .cm-bracket`]:
+		{
+			color: "rgb(255 18 18 / 80%)",
+		},
+	[`${cmDarkClass} .${MISMATCHED_BRACKET_CLASS}, ${cmDarkClass} .${MISMATCHED_BRACKET_CLASS} .cm-bracket`]:
+		{
+			color: "rgb(255 18 18 / 80%)",
+		},
+});
+
+export const colorPairedBracketsPluginLowestPrec = Prec.lowest([colorPairedBracketsPlugin, colorPairedBracketsTheme]);
 
 export const highlightCursorBracketsPlugin = ViewPlugin.fromClass(class {
 	decorations: DecorationSet;
@@ -484,3 +523,16 @@ export const highlightCursorBracketsPlugin = ViewPlugin.fromClass(class {
 	}
 
 }, { decorations: v => v.decorations, });
+
+const HIGHLIGHT_ACCENT_COLOR = "hsl(var(--accent-h) var(--accent-s)";
+
+export const highlightBracketsTheme = EditorView.baseTheme({
+	[`${cmLightClass} .${HIGHLIGHTED_BRACKET_CLASS}, ${cmLightClass} .${HIGHLIGHTED_BRACKET_CLASS} [class^="${COLOR_BRACKET_CLASS}-"]`]: {
+		backgroundColor: `${HIGHLIGHT_ACCENT_COLOR} 40% / 30%)`,
+	},
+	[`${cmDarkClass} .${HIGHLIGHTED_BRACKET_CLASS}, ${cmDarkClass} .${HIGHLIGHTED_BRACKET_CLASS} [class^="${COLOR_BRACKET_CLASS}-"]`]: {
+		backgroundColor: `${HIGHLIGHT_ACCENT_COLOR} 70% / 60%)`,
+	}
+});
+
+export const highlightCursorBracketsExtension = [highlightCursorBracketsPlugin, highlightBracketsTheme];

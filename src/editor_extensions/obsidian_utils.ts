@@ -64,3 +64,7 @@ export function showSnippetInfo(state: EditorState,snippet: Snippet<SnippetType>
 export function isMacOS() {
 	return Platform.isMacOS
 }
+
+// normally this should be `&dark` and `&light` but obsidian doesn't have it setup correctly and only does `.theme-dark` and `.theme-light`.
+export const cmDarkClass = ".theme-dark & ";
+export const cmLightClass = ".theme-light & ";

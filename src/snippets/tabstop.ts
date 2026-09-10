@@ -3,6 +3,7 @@ import { Decoration, type DecorationSet, EditorView, WidgetType } from "@codemir
 import { resetCursorBlink } from "src/utils/editor_utils";
 import { endSnippet } from "./codemirror/history";
 import { createElement } from "src/editor_extensions/obsidian_utils";
+import { FIELD_MARKER_CLASS } from "./codemirror/tabstops_state_field";
 
 const LATEX_SUITE_TABSTOP_DECO_CLASS = "latex-suite-snippet-placeholder";
 
@@ -185,11 +186,12 @@ export function getEditorSelectionEndpoints(sel: EditorSelection) {
     return EditorSelection.create(endpoints);
 }
 
+
 const FieldMarker = Decoration.widget({widget: new class extends WidgetType {
 
 		toDOM() {
 			const span = createElement("span");
-			span.className = "cm-snippetFieldPosition";
+			span.className = FIELD_MARKER_CLASS;
 			return span
 		}
 		ignoreEvent() {return false}

@@ -1,6 +1,6 @@
 import { EditorState, type Extension } from "@codemirror/state";
 import { EditorView, ViewUpdate } from "@codemirror/view";
-import { App, ButtonComponent, Component, ExtraButtonComponent, MarkdownRenderer, Modal, Notice, Platform, PluginSettingTab, Setting, type SettingDefinitionItem, debounce, requireApiVersion, setIcon } from "obsidian";
+import { App, ButtonComponent, Component, ExtraButtonComponent, Modal, Notice, Platform, PluginSettingTab, Setting, type SettingDefinitionItem, debounce, requireApiVersion, setIcon } from "obsidian";
 import { parseSnippetVariables, parseSnippets } from "src/snippets/parse";
 import { DEFAULT_SNIPPETS } from "src/utils/default_snippets";
 import LatexSuitePlugin from "../main";
@@ -8,7 +8,7 @@ import { DEFAULT_SETTINGS, type LatexSuitePluginSettings } from "./settings";
 import { FileSuggest } from "./ui/file_suggest";
 import { basicSetup } from "./ui/snippets_editor/extensions";
 import { getVimSelectModeCommand, type vimCommand, getVimVisualModeCommand, getVimEditorCommands, getVimRunMatrixEnterCommand } from "src/features/editor_commands";
-import { LatexSuiteSettingsTab2, renderMarkdown } from "./settings_tab2";
+import { LatexSuiteSettingsTab2, renderHtml } from "./settings_tab2";
 import { settings_translation as t } from "../i18n/i18n"
 
 
@@ -148,7 +148,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		const containerEl = this.containerEl;
 		this.addHeading(containerEl, "Conceal", "math-integral-x");
 
-		const fragment = renderMarkdown(this.app, t("conceal.enabled.desc"))
+		const fragment = renderHtml(t("conceal.enabled.desc"))
 		new Setting(containerEl)
 			.setName("Enabled")
 			.setDesc(fragment)
@@ -160,7 +160,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				})
 			);
 
-		const fragment2 = renderMarkdown(this.app, t("conceal.reveal-delay.desc"))
+		const fragment2 = renderHtml(t("conceal.reveal-delay.desc"))
 		new Setting(containerEl)
 			.setName("Reveal delay (ms)")
 			.setDesc(fragment2)
@@ -917,20 +917,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 	}
 
 	renderMarkdown(source: string) {
-		const fragment = new DocumentFragment()
-		const span = fragment.createSpan()
-		// Don't render right on startup, but have something rendered.
-		span.setText(source)
-		void MarkdownRenderer.render(this.app, source, span, "", this.component).then(() => {
-			span.replaceChildren(...Array.from(span.children).map(child => {
-				if (child.tagName === "P") {
-					child.addClass("latex-suite-markdown-p")
-				}
-				return child
-			})
-			)
-		})
-		return fragment
+		return renderHtml(source);
 	}
 }
 

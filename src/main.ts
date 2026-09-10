@@ -12,14 +12,14 @@ import { handleUpdate, onInput, keyboardEventPlugin, getKeymaps } from "./latex_
 import { EditorView, keymap, tooltips } from "@codemirror/view";
 import { snippetExtensions } from "./snippets/codemirror/extensions";
 import { mkConcealPlugin } from "./editor_extensions/conceal";
-import { colorPairedBracketsPlugin, colorPairedBracketsPluginLowestPrec, highlightCursorBracketsPlugin } from "./editor_extensions/highlight_brackets";
+import { colorPairedBracketsPlugin, colorPairedBracketsPluginLowestPrec, highlightCursorBracketsExtension, highlightCursorBracketsPlugin } from "./editor_extensions/highlight_brackets";
 import { cursorTooltipBaseTheme, cursorTooltipField, updateTooltipEffect } from "./editor_extensions/math_tooltip";
 import { contextPlugin, getContextPlugin } from "./editor_context/context";
 import { mathBoundsPlugin } from "./editor_context/mathbounds";
 import type { LatexSuitePluginPublicApi } from "./api";
 import * as v from "valibot"
 import { languageExtension, LanguageSetStateEffect, languageStateField, modifiedSyntaxTree, parseWorker } from "./parser/language";
-import { highlight_dollar } from "./editor_extensions/highlight_dollar";
+import { highlight_dollar_extension } from "./editor_extensions/highlight_dollar";
 import { EMPTY_SETTINGS } from "./settings/empty_settings";
 import i18next from "./i18n/i18n";
 import resources from "./i18n/resources";
@@ -275,7 +275,7 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 		if (this.CMSettings.colorPairedBracketsEnabled)
 			this.editorExtensions.push(colorPairedBracketsPluginLowestPrec);
 		if (this.CMSettings.highlightCursorBracketsEnabled)
-			this.editorExtensions.push(highlightCursorBracketsPlugin.extension);
+			this.editorExtensions.push(highlightCursorBracketsExtension);
 		if (this.CMSettings.mathPreviewEnabled)
 			this.editorExtensions.push([
 				cursorTooltipField.extension,
@@ -283,7 +283,7 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 				tooltips({ position: "absolute" }),
 			]);
 		if (this.CMSettings.highlightDollarEnabled) {
-			this.editorExtensions.push(highlight_dollar);
+			this.editorExtensions.push(highlight_dollar_extension);
 		}
 		if (isLogLevelEnabled(this.CMSettings.logLevel, "verbose")) {
 			this.editorExtensions.push(mathParserPlugin);

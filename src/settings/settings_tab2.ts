@@ -823,7 +823,7 @@ function createCMEditor(content: string, extensions: Extension[], node: HTMLElem
 export function isIMESupported(): boolean {
 	return Platform.isMobileApp
 }
-export function renderMarkdown(app: App, html: string) {
+export function renderHtml(html: string) {
 	if (!html.includes("</")) {
 		return html;
 	}

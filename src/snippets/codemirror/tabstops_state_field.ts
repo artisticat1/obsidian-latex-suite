@@ -1,6 +1,7 @@
 import { EditorView, Decoration } from "@codemirror/view";
 import { EditorSelection, StateEffect, StateField } from "@codemirror/state";
 import { TabstopGroup } from "../tabstop";
+import { cmDarkClass } from "src/editor_extensions/obsidian_utils";
 
 export const addTabstopsEffect = StateEffect.define<TabstopGroup[]>();
 export const removeAllTabstopsEffect = StateEffect.define();
@@ -114,3 +115,59 @@ const N_COLORS = 3;
 export function getNextTabstopColor(view: EditorView) {
 	return view.state.field(tabstopsStateField).color++ % N_COLORS;
 }
+
+export const FIELD_MARKER_CLASS = "cm-snippetFieldPosition";
+const PLACEHOLDER_CLASS = "latex-suite-snippet-placeholder"
+const PLACEHOLDER_CSS_BG_VAR = "--placeholder-bg";
+const PLACEHOLDER_CSS_OUTLINE_VAR = "--placeholder-outline";
+
+export const tabstopTheme = EditorView.baseTheme({
+	[`.${FIELD_MARKER_CLASS}`]: {
+		verticalAlign: "text-top",
+		width: "0",
+		height: "1.15em",
+		display: "inline-block",
+		margin: "0 -0.7px -.7em",
+		borderLeft: "1.4px dotted #888",
+	},
+
+
+	// These extra selectors enforce their color on all children, because CodeMirror does weird nesting of spans when
+	// nesting multiple decorations.
+
+	[`.${PLACEHOLDER_CLASS}`]: {
+		borderRadius: "2px",
+		backgroundColor: `var(${PLACEHOLDER_CSS_BG_VAR})`,
+		outline: `var(${PLACEHOLDER_CSS_OUTLINE_VAR}) solid 1px`,
+	},
+
+	[`.${PLACEHOLDER_CLASS}-0, span.${PLACEHOLDER_CLASS}-0 span`]:
+		{
+			[PLACEHOLDER_CSS_BG_VAR]: "#87cefa2e",
+			[PLACEHOLDER_CSS_OUTLINE_VAR]: "#87cefa6e",
+		},
+
+	[`${cmDarkClass} .${PLACEHOLDER_CLASS}-0, span.${PLACEHOLDER_CLASS}-0 span`]: {
+		[PLACEHOLDER_CSS_OUTLINE_VAR]: "#87cefa43",
+	},
+
+	[`.${PLACEHOLDER_CLASS}-1, span.${PLACEHOLDER_CLASS}-1 span`]:
+		{
+			[PLACEHOLDER_CSS_BG_VAR]: "#ffa50033",
+			[PLACEHOLDER_CSS_OUTLINE_VAR]: "#ffa5006b",
+		},
+
+	[`${cmDarkClass} .${PLACEHOLDER_CLASS}-1, span.${PLACEHOLDER_CLASS}-1 span`]: {
+		[PLACEHOLDER_CSS_OUTLINE_VAR]: "#ffa5004d",
+	},
+
+	[`.${PLACEHOLDER_CLASS}-2, span.${PLACEHOLDER_CLASS}-2 span`]:
+		{
+			[PLACEHOLDER_CSS_BG_VAR]: "#0f02",
+			[PLACEHOLDER_CSS_OUTLINE_VAR]: "#00ff0060",
+		},
+
+	[`${cmDarkClass} .${PLACEHOLDER_CLASS}-2, span.${PLACEHOLDER_CLASS}-2 span`]: {
+		[PLACEHOLDER_CSS_OUTLINE_VAR]: "#00ff003d",
+	},
+});

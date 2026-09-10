@@ -4,7 +4,7 @@ import { renderMath, finishRenderMath, editorLivePreviewField } from "obsidian";
 import { type Bounds, Context, getContextPlugin } from "src/editor_context/context";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
 import { syntaxTree } from "@codemirror/language";
-import { createElement } from "./obsidian_utils";
+import { cmDarkClass, cmLightClass, createElement } from "./obsidian_utils";
 import { isBoundMultiline } from "src/utils/editor_utils";
 
 type MathTooltip = {
@@ -13,6 +13,7 @@ type MathTooltip = {
 	pos: number,
 	tooltip: Tooltip,
 }
+const HIGHLIGHT_CLASS = "latex-suite-math-preview-highlight";
 export const updateTooltipEffect = StateEffect.define<MathTooltip[]>();
 
 export const cursorTooltipField = StateField.define<readonly MathTooltip[]>({
@@ -105,7 +106,7 @@ export function handleMathTooltip(update: ViewUpdate) {
 		eqnWithDecorations =
 			eqn.slice(0, left + 1) +
 			// `\class` doesn't work, so using style and adding it back in as workaround.
-			"\\style{background-color: var(--latex-suite-math-preview-highlight);}{" +
+			`\\style{background-color: var(--${HIGHLIGHT_CLASS});}{` +
 			eqn.slice(left + 1, maxPosOrLeft) +
 			settings.mathPreviewCursor +
 			eqn.slice(maxPosOrLeft, right) +
@@ -149,9 +150,9 @@ export function handleMathTooltip(update: ViewUpdate) {
 		try {
 			const renderedEqn = renderMath(eqnWithDecorations, ctx.mode.inDisplayMath());
 			const highlight = renderedEqn.querySelector(
-				"[style*=\"background-color: var(--latex-suite-math-preview-highlight)\"]",
+				`[style*="background-color: var(--${HIGHLIGHT_CLASS})"]`,
 			) as HTMLElement;
-			highlight?.addClass("latex-suite-math-preview-highlight");
+			highlight?.addClass(HIGHLIGHT_CLASS);
 			highlight?.style.removeProperty("background-color");
 			dom.appendChild(renderedEqn);
 			void finishRenderMath();
@@ -249,5 +250,33 @@ export const cursorTooltipBaseTheme = EditorView.baseTheme({
 		"& mjx-container": {
 			padding: "2px !important",
 		},
-	}
+		
+		// CM6 puts the top of the tooltip higher than what's viewable (negative top value),
+		// so to compensate for this, we align the content to the bottom of the tooltip container,
+		// and limit the height.
+		"&.cm-tooltip-above": {
+			display: "flex",
+		},
+		"&.cm-tooltip-above > .MathJax": {
+			overflowY: "auto",
+			maxHeight: "70%",
+			display: "inline-block",
+			alignSelf: "flex-end",
+		},
+		"&.cm-tooltip-below > .MathJax": {
+			overflowY: "auto",
+			maxHeight: "90%",
+		},
+	},
+	[`.${HIGHLIGHT_CLASS}`]: {
+		backgroundColor: "var(--text-selection)",
+	},
+	[`${cmDarkClass} .cm-tooltip.cm-tooltip-cursor`]: {
+		boxShadow: "0 1px 2px rgb(0 0 0 / 10%), 0 3.4px 6.7px rgb(0 0 0 / 15%), 0 0 30px rgb(0 0 0 / 27%)"
+	},
+	[`${cmLightClass} .cm-tooltip.cm-tooltip-cursor`]: {
+		boxShadow: "0 1px 2px rgb(0 0 0 / 2.8%), 0 3.4px 6.7px rgb(0 0 0 / 4.2%), 0 5px 20px rgb(0 0 0 / 7%)",
+	},
+
 });
+

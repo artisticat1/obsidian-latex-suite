@@ -15,6 +15,11 @@ import { EquationText, iterateTreeCursor } from "src/utils/tokenizer";
 type DollarBounds =
 	| (Bounds & { kind: "pair", mode: MathMode })
 	| { from: number; to: number; kind: "error" };
+
+const ERROR_CLASS = "latex-suite-error-dollar";
+const INLINE_CLASS = "latex-suite-highlighted-dollar-inline";
+const BLOCK_CLASS = "latex-suite-highlighted-dollar-block";
+const CODE_CLASS = "latex-suite-highlighted-dollar-code";
 class HighlightDollarPlugin implements PluginValue {
 	decorations: DecorationSet = Decoration.none;
 
@@ -98,24 +103,24 @@ class HighlightDollarPlugin implements PluginValue {
 			if (bounds.kind === "error") {
 				widgets.push(
 					Decoration.mark({
-						class: "latex-suite-error-dollar",
+						class: ERROR_CLASS,
 					}).range(bounds.from, bounds.to),
 				);
 			} else {
-				let modeClass: "inline" | "block" | "code";
+				let modeClass: typeof INLINE_CLASS | typeof BLOCK_CLASS | typeof CODE_CLASS;
 				if (bounds.mode === MathMode.InlineMath || (bounds.mode === MathMode.BlockMath && bounds.outer_start - bounds.outer_end < 4)) {
-					modeClass = "inline";
+					modeClass = INLINE_CLASS;
 				} else if (bounds.mode === MathMode.BlockMath) {
-					modeClass = "block";
+					modeClass = BLOCK_CLASS;
 				} else {
-					modeClass = "code";
+					modeClass = CODE_CLASS;
 				}
 				widgets.push(
 					Decoration.mark({
-						class: `latex-suite-highlighted-dollar-${modeClass}`,
+						class: modeClass,
 					}).range(bounds.outer_start, bounds.inner_start),
 					Decoration.mark({
-						class: `latex-suite-highlighted-dollar-${modeClass}`,
+						class: modeClass,
 					}).range(bounds.inner_end, bounds.outer_end),
 				);
 			}
@@ -125,8 +130,29 @@ class HighlightDollarPlugin implements PluginValue {
 	}
 }
 
-export const highlight_dollar = Prec.highest(
-	ViewPlugin.fromClass(HighlightDollarPlugin, {
-		decorations: (v) => v.decorations,
-	}),
-);
+const highlight_dollar_theme = EditorView.baseTheme({
+	[`.${ERROR_CLASS}`]: {
+		color: "#f00",
+	},
+
+	[`.${INLINE_CLASS}`]: {
+		color: "#61ae08",
+	},
+
+	[`.${BLOCK_CLASS}`]: {
+		color: "#3e7202",
+	},
+
+	[`.${CODE_CLASS}`]: {
+		color: "#54940b",
+	},
+})
+
+export const highlight_dollar_extension = [
+	Prec.highest(
+		ViewPlugin.fromClass(HighlightDollarPlugin, {
+			decorations: (v) => v.decorations,
+		}),
+	),
+	highlight_dollar_theme,
+];
