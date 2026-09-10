@@ -68,7 +68,21 @@ export interface LatexSuitePluginPublicApi extends Plugin{
 	 * @since 1.13.0
 	 */
 	snippet: (view: EditorView, snippetChangeSpec: SnippetChangeSpecApi) => boolean,
+	addRawConcealMaps: (rawConcealMaps: Record<string, unknown>) => void,	
+
+	/**
+	 * See `conceal_maps.ts` for the structure. Is reset every time the snippets are reloaded.
+	 * @private
+	 * @since 1.13.0
+	 */
+	rawConcealMaps: Record<string, unknown>[]
 	
+	/**
+	 * The base set, lifetimes/duplicates have to be managed by the caller.
+	 * @private
+	 * @since 1.13.0
+	 */
+	baseRawConcealMaps: Record<string, unknown>[]
 
 	/**
 	 * Mostly for internal use only. Use at your own discretion.
