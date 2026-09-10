@@ -1,11 +1,12 @@
 // https://discuss.codemirror.net/t/concealing-syntax/3135
 
-import { ViewUpdate, Decoration, type DecorationSet, WidgetType, ViewPlugin, EditorView } from "@codemirror/view";
+import { ViewUpdate, Decoration, type DecorationSet, WidgetType, ViewPlugin, EditorView, type PluginValue } from "@codemirror/view";
 import { EditorSelection, Range, RangeSet, RangeSetBuilder, RangeValue, Transaction } from "@codemirror/state";
 import { conceal, type ConcealCachedEquations } from "./conceal_fns";
 import { debounce, livePreviewState } from "obsidian";
 import { tempKeyPress } from "src/snippets/snippet_management";
 import { createElement } from "./obsidian_utils";
+import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
 
 export type Replacement = {
 	start: number,
@@ -255,7 +256,7 @@ const updateSelection = debounce((view: EditorView) => {
 	});
 }, 50);
 
-export const mkConcealPlugin = (revealTimeout: number) => ViewPlugin.fromClass(class {
+class Conceal implements PluginValue {
 	// Stateful ViewPlugin: you should avoid one in general, but here
 	// the approach based on StateField and updateListener conflicts with
 	// obsidian's internal logic and causes weird rendering.
@@ -273,6 +274,7 @@ export const mkConcealPlugin = (revealTimeout: number) => ViewPlugin.fromClass(c
 		this.concealments = [];
 		this.decorations = Decoration.none;
 		this.atomicRanges = RangeSet.empty as RangeSet<RangeValue>;
+		const revealTimeout = getLatexSuiteConfig(view).concealRevealTimeout;
 		this.delayEnabled = revealTimeout > 0;
 		this.cached_equations = {};
 		this.concealSpecs = [];
@@ -372,7 +374,35 @@ export const mkConcealPlugin = (revealTimeout: number) => ViewPlugin.fromClass(c
 		this.decorations = buildDecoSet(this.concealments);
 		this.atomicRanges = buildAtomicRanges(this.concealments);
 	}
-}, {
-	decorations: v => v.decorations,
-	provide: plugin => EditorView.atomicRanges.of(view => view.plugin(plugin)?.atomicRanges ?? RangeSet.empty),
+}
+const concealTheme = EditorView.baseTheme({
+	"span.cm-math.cm-concealed-bold": {
+		fontWeight: "bold",
+	},
+
+	"span.cm-math.cm-concealed-underline": {
+		textDecoration: "underline",
+	},
+
+	"span.cm-math.cm-concealed-mathrm, sub.cm-math.cm-concealed-mathrm": {
+		fontStyle: "normal",
+	},
+
+	/* Conceal superscripts without changing line height */
+	"sup.cm-math": {
+		lineHeight: 0,
+	},
+
+	"sup.cm-math, sub.cm-math": {
+		fontStyle: "italic",
+	},
 });
+
+export function mkConcealPlugin() {
+	const concealPlugin = ViewPlugin.fromClass(Conceal, {
+		decorations: v => v.decorations,
+		provide: plugin => EditorView.atomicRanges.of(view => view.plugin(plugin)?.atomicRanges ?? RangeSet.empty),
+	});
+	
+	return [concealPlugin, concealTheme];
+}

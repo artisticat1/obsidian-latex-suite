@@ -165,32 +165,6 @@ nesting multiple decorations. */
     --placeholder-outline: #00ff003d;
 }
 
-
-/* Conceal */
-
-span.cm-math.cm-concealed-bold {
-    font-weight: bold;
-}
-
-span.cm-math.cm-concealed-underline {
-    text-decoration: underline;
-}
-
-span.cm-math.cm-concealed-mathrm, sub.cm-math.cm-concealed-mathrm {
-    font-style: normal;
-}
-
-
-/* Conceal superscripts without changing line height */
-sup.cm-math {
-    line-height: 0;
-}
-
-sup.cm-math, sub.cm-math {
-    font-style: italic;
-}
-
-
 /* Inline math tooltip styling */
 
 .theme-light .cm-tooltip.cm-tooltip-cursor {
