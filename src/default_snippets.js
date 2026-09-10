@@ -455,3 +455,17 @@ export default [
 		priority: 2,
 	},
 ]
+
+function addRawConcealMaps() {
+	const ls = require("latex-suite");
+	// for the full api see the documentation: https://github.com/artisticat1/obsidian-latex-suite/blob/main/DOCS.md#conceal-maps
+	ls.addRawConcealMaps({
+		cmd_symbols: {
+			// example of disabeling conceal for \quad
+			"quad": null
+		},
+	})
+	
+}
+
+// addRawConcealMaps()

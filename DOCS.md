@@ -559,6 +559,48 @@ When 2 or more keymaps have the same key, the following order will be used
 
 If the feature is disabled, the keymap will be skipped.
 
+## Conceal maps
+
+You can change the conceal symbols or disable them inside the snippet files and snippet variable files.
+For example if you don't like that `\quad` is concealed as ` `, or have a custom macro  you can do the following
+
+```js
+const ls = require("latex-suite")
+ls.addRawConcealMaps({
+	cmd_symbols: {
+		// null disables the concealment
+		"quad": null,
+		"euro": "€"
+	}	
+})
+```
+
+`addRawConcealMaps` accepts the following type
+
+```ts
+type ConcealMap = Record<string, string | null>
+// the key like `sin` for `\sin` is disabled/enabled depending if the key: value is true or false.
+type OperatorMap = Record<string, boolean>
+type RawConcealMap = {
+	cmd_symbols: ConcealMap,
+	not_remap: ConcealMap,
+	operators: OperatorMap,
+	fractions: ConcealMap,
+	greek: ConcealMap,
+	map_super: ConcealMap,
+	map_sub: ConcealMap,
+	bar: ConcealMap,
+	dot: ConcealMap,
+	hat: ConcealMap,
+	brackets: ConcealMap,
+	mathbb: ConcealMap,
+	mathscrcal: ConcealMap,
+	mathfrak: ConcealMap,
+}
+```
+
+For all the default values see [here](./src/editor_extensions/conceal_maps.ts).
+
 ## Vim
 
 [Vim](https://vimhelp.org/intro.txt.html#intro.txt) is a powerful and highly configurable text editor, that is known for its unique editing style. It allows you to perform complex editing tasks with minimal keystrokes. It is heavily centered around moving with the keys `hjkl` instead of using the mouse. This can make the tedious parts of editing a bit less tedious.

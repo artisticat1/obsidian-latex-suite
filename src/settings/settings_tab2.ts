@@ -9,6 +9,7 @@ import LatexSuitePlugin from "src/main"
 import { FileSuggest } from "./ui/file_suggest"
 import * as v from "valibot"
 import { EMPTY_SETTINGS } from "./empty_settings"
+import { MappingSchema } from "src/editor_extensions/conceal_maps"
 
 
 type Definition<K> = K extends keyof LatexSuitePluginSettings ? SettingDefinition<K> : never
@@ -35,6 +36,7 @@ type AdvancedSnippetSettingDefinition = Definition<
 type ConcealSettingDefinition = Definition<
 	| "concealEnabled"
 	| "concealRevealTimeout"
+	| "concealMaps"
 >
 
 type ColorHighlightSettingDefinition = Definition<
@@ -94,6 +96,7 @@ type ExperimentalSettingDefinition = Definition<
 export class LatexSuiteSettingsTab2 extends SettingTab {
 	snippetsEditor: EditorView | null = null;
 	snippetVariablesEditor: EditorView | null = null;
+	concealMapEditor: EditorView | null = null;
 
 	constructor(
 		public app: App,
@@ -135,7 +138,7 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 					this.snippetsEditor = createSnippetsEditor(setting, this.plugin, {
 						type: "snippets",
 						validate: async (value) => {
-							await parseSnippets(value, this.plugin.CMSettings.snippetVariables, "snippets.js");
+							await parseSnippets(value, this.plugin.CMSettings.snippetVariables, "snippets.js", this.plugin.pluginSnippetApi);
 						},
 					});
 				},
@@ -248,12 +251,12 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 		const settings: ConcealSettingDefinition[] = [
 			{
 				name: t("conceal.enabled.name"),
-				desc: this.renderHtml( t("conceal.enabled.desc")),
+				desc: this.renderHtml(t("conceal.enabled.desc")),
 				control: getToggleControl("concealEnabled")
 			},
 			{
 				name: t("conceal.reveal-delay.name"),
-				desc: this.renderHtml( t("conceal.reveal-delay.desc")),
+				desc: this.renderHtml(t("conceal.reveal-delay.desc")),
 				control: {
 					type: "number",
 					key: "concealRevealTimeout",
@@ -261,6 +264,19 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 					min: 0,
 				},
 			},
+			{
+				name: t("conceal.conceal-maps.name"),
+				desc: this.renderHtml(t("conceal.conceal-maps.desc")),
+				render: (setting) => {
+					this.concealMapEditor?.destroy();
+					this.concealMapEditor = createSnippetsEditor(setting, this.plugin, {
+						type: "concealMaps",
+						validate: async (value) => {
+							v.parse(v.pipe(v.string(), v.parseJson(), MappingSchema), value)
+						}
+					})
+				}
+			}
 		]
 		return [{
 			type: "page",
@@ -644,7 +660,7 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 	}
 
 	renderHtml(source: string) {
-		if (!source.includes("</")) {
+		if (!source.includes("<")) {
 			return source;
 		}
 		return sanitizeHTMLToDom(source);
@@ -655,7 +671,7 @@ export function createSnippetsEditor(
 	snippetsSetting: Setting,
 	plugin: LatexSuitePlugin,
 	config: {
-		type: "snippets" | "snippetVariables";
+		type: "snippets" | "snippetVariables" | "concealMaps";
 		validate: (value: string) => Promise<void>;
 	},
 ): EditorView {
@@ -725,18 +741,24 @@ export function createSnippetsEditor(
 		customCSSWrapper,
 	);
 
+	const type =
+		config.type === "snippets"
+			? "snippets"
+			: config.type === "snippetVariables"
+				? "snippet variables"
+				: "conceal maps";
 	const buttonsDiv = snippetsFooter.createDiv("snippets-editor-buttons");
 	const reset = new ButtonComponent(buttonsDiv);
 	reset
 		.setIcon("switch")
-		.setTooltip("Reset to default snippets")
+		.setTooltip(`Reset to default ${type}`)
 		.onClick(async () => {
 			new ConfirmationModal(
 				plugin.app,
-				"Are you sure? This will delete any custom snippets you have written.",
+				`Are you sure? This will delete any custom ${type} you have written.`,
 				(button) =>
 					void buttonSetWarning(button)
-					.setButtonText("Reset to default snippets"),
+					.setButtonText(`Reset to default ${type}`),
 				async () => {
 					snippetsEditor.setState(
 						EditorState.create({
@@ -757,14 +779,14 @@ export function createSnippetsEditor(
 	const remove = new ButtonComponent(buttonsDiv);
 	remove
 		.setIcon("trash")
-		.setTooltip("Remove all snippets")
+		.setTooltip(`Remove all ${type}`)
 		.onClick(async () => {
 			new ConfirmationModal(
 				plugin.app,
-				"Are you sure? This will delete any custom snippets you have written.",
+				`Are you sure? This will delete any custom ${type} you have written.`,
 				(button) =>
 					void buttonSetWarning(button)
-					.setButtonText("Remove all snippets"),
+					.setButtonText(`Remove all ${type}`),
 				async () => {
 					const value = EMPTY_SETTINGS[config.type];
 					snippetsEditor.setState(

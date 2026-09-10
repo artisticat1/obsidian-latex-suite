@@ -19,6 +19,7 @@ export const EMPTY_SETTINGS: LatexSuitePluginSettings = {
 	snippetVariablesFileLocation: "",
 	concealEnabled: false,
 	concealRevealTimeout: 0,
+	concealMaps: "{\n\n}",
 	colorPairedBracketsEnabled: false,
 	highlightCursorBracketsEnabled: false,
 	mathPreviewEnabled: false,

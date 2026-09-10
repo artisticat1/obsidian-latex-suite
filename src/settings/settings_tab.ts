@@ -99,7 +99,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		this.snippetsEditor = createSnippetsEditor(snippetsSetting, this.plugin, {
 			type: "snippets",
 			validate: async (value) => {
-				await parseSnippets(value, this.plugin.CMSettings.snippetVariables, "snippets.js");
+				await parseSnippets(value, this.plugin.CMSettings.snippetVariables, "snippets.js", this.plugin.pluginSnippetApi);
 			}
 		});
 

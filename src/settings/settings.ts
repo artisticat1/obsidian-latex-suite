@@ -4,6 +4,8 @@ import { DEFAULT_SNIPPETS } from "src/utils/default_snippets";
 import { DEFAULT_SNIPPET_VARIABLES } from "src/utils/default_snippet_variables";
 import * as v from "valibot";
 import type { SnippetVariables } from "src/snippets/parse";
+import { EMPTY_MAPPING, fullMappingSchema, MappingSchema, type RawConcealMapping } from "src/editor_extensions/conceal_maps";
+import { createMacroMap, type MappingInfo } from "src/editor_extensions/conceal_fns";
 
 export type snippetDebugLevel = "off" | "info" | "verbose";
 
@@ -72,6 +74,7 @@ export interface LatexSuiteRawSettings {
 	taboutClosingSymbols: string;
 	autoEnlargeBracketsTriggers: string;
 	forceMathLanguages: string;
+	concealMaps: string;
 }
 
 interface LatexSuiteParsedSettings {
@@ -81,6 +84,7 @@ interface LatexSuiteParsedSettings {
 	taboutClosingSymbols: Set<string>;
 	autoEnlargeBracketsTriggers: string[];
 	forceMathLanguages: string[];
+	concealMaps: MappingInfo;
 }
 
 interface LatexSuiteRawSchemaSettings {
@@ -91,11 +95,13 @@ interface LatexSuiteRawSchemaSettings {
 export interface LatexSuiteParsedSchemaSettings {
 	snippets: Snippet[];
 	snippetVariables: SnippetVariables;
+	rawConcealMaps: RawConcealMapping[];
 }
 
 interface LatexSuiteProcessedSchemaSettings {
 	snippets: GroupedSnippets;
 	snippetVariables: SnippetVariables;
+	concealMaps: MappingInfo;
 }
 
 type GroupedSnippets = {
@@ -131,6 +137,7 @@ export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
 	snippetVariablesFileLocation: "",
 	concealEnabled: false,
 	concealRevealTimeout: 0,
+	concealMaps: JSON.stringify(EMPTY_MAPPING, null, "\t"),
 	colorPairedBracketsEnabled: true,
 	highlightCursorBracketsEnabled: true,
 	mathPreviewEnabled: true,
@@ -192,7 +199,7 @@ export const EnvironmentSchema = v.pipe(
 
 export function processLatexSuiteSettings(
 	settings: LatexSuitePluginSettings,
-	{ snippets, snippetVariables }: LatexSuiteParsedSchemaSettings,
+	{ snippets, snippetVariables, rawConcealMaps }: LatexSuiteParsedSchemaSettings,
 ): LatexSuiteCMSettings {
 	function strToArray(str: string) {
 		return str.replace(/\s/g, "").split(",");
@@ -209,10 +216,28 @@ export function processLatexSuiteSettings(
 
 		return envs;
 	}
+	function getConcealMaps(concealMapsStr: string): RawConcealMapping {
+		const schema = v.pipe(
+			v.string(), v.parseJson(), MappingSchema
+		)
+		try {
+			return v.parse(schema, concealMapsStr);
+		} catch (e) {
+			console.error(e);
+			return EMPTY_MAPPING;
+		}
+	}
 	const groupedSnippets = {
 		automatic: snippets.filter((s) => s.options.automatic),
 		all: snippets,
 	};
+
+	const concatenatedMaps = [...rawConcealMaps, getConcealMaps(settings.concealMaps)];
+	const concealMaps = fullMappingSchema(concatenatedMaps);
+	const mappingInfo = {
+		maps: concealMaps,
+		macroMap: createMacroMap(concealMaps),
+	}
 
 	return {
 		...settings,
@@ -220,6 +245,7 @@ export function processLatexSuiteSettings(
 
 		// Override raw settings with parsed settings
 		snippets: groupedSnippets,
+		concealMaps: mappingInfo,
 		autofractionExcludedEnvs: getAutofractionExcludedEnvs(
 			settings.autofractionExcludedEnvs,
 		),
