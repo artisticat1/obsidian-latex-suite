@@ -59,7 +59,7 @@ export class MathBoundsPlugin implements PluginValue {
 	getDollarBounds(node: SyntaxNode): {open: CMBound, close: CMBound} {
 		const open = node.firstChild!;
 		const close =
-			node.lastChild!.name === "Dollar"
+			node.lastChild!.name === "Dollar" && open.nextSibling
 				? node.lastChild!
 				: { from: node.to, to: node.to };
 		return {

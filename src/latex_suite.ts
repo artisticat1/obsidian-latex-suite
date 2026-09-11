@@ -6,9 +6,8 @@ import { addCellMatrixShortcut, exitMatrixShortCut, newlineMatrixShortcut, prior
 
 import { getContextPlugin } from "./editor_context/context";
 import { getMathBoundsPlugin } from "./editor_context/mathbounds";
-import { getCharacterAtPos, replaceRange } from "./utils/editor_utils";
+import { replaceRange } from "./utils/editor_utils";
 import { setSelectionToNextTabstop, tempKeyPress } from "./snippets/snippet_management";
-import { removeAllTabstops } from "./snippets/codemirror/tabstops_state_field";
 import { getLatexSuiteConfig } from "./snippets/codemirror/config";
 import { clearSnippetQueue } from "./snippets/codemirror/snippet_queue_state_field";
 import { handleUndoRedo } from "./snippets/codemirror/history";
@@ -155,17 +154,19 @@ export function getKeymaps(settings: LatexSuiteCMSettings): LatexSuiteKeyBinding
 				const node = tree.resolveInner(pos, -1)
 				if (node.name !== Type.Dollar) return false;
 				const prevSibling = node.prevSibling;
-				const nextSibling = node.nextSibling;
-				if (prevSibling || (nextSibling && nextSibling.name !== Type.Dollar)) return false;
-				const charAtPos = getCharacterAtPos(view, pos);
-				const charAtPrevPos = getCharacterAtPos(view, pos - 1);
-				if (charAtPos === "$" && charAtPrevPos === "$") {
-					replaceRange(view, pos - 1, pos + 1, "");
-					// Note: not sure if removeAllTabstops is necessary
-					removeAllTabstops(view);
-					return true;
-				}
-				return false;
+				const nextSibling = node.nextSibling?.nextSibling;
+				const parent = node.parent
+				if (
+					prevSibling ||
+					!nextSibling ||
+					!parent ||
+					nextSibling.name !== Type.Dollar ||
+					parent.name !== Type.DollarInlineMath ||
+					node.to !== nextSibling.from
+				)
+					return false;
+				replaceRange(view, node.from, nextSibling.to, "");
+				return true;
 			},
 		});
 	}

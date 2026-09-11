@@ -54,7 +54,7 @@ const inlineParserDisplayAndInlineMath: InlineParser = {
 				i++;
 				continue;
 			} else if (ch === 10 /* newline */) {
-				return -1;
+				break;
 			} else if (ch !== 36 /* '$' */) {
 				continue;
 			}
