@@ -5,6 +5,7 @@ export class Options {
 	onWordBoundary: boolean;
 	visual: boolean;
 	undoKey: boolean;
+	includedPaths: (path: string) => boolean;
 
 	constructor({
 		mode,
@@ -13,6 +14,7 @@ export class Options {
 		onWordBoundary,
 		visual,
 		undoKey,
+		includedPaths
 	}: {
 		mode: Mode;
 		automatic: boolean;
@@ -20,6 +22,7 @@ export class Options {
 		onWordBoundary: boolean;
 		visual: boolean;
 		undoKey: boolean;
+		includedPaths: (path: string) => boolean;
 	}) {
 		this.mode = mode;
 		this.automatic = automatic;
@@ -27,9 +30,10 @@ export class Options {
 		this.onWordBoundary = onWordBoundary;
 		this.visual = visual;
 		this.undoKey = undoKey;
+		this.includedPaths = includedPaths;
 	}
 
-	static fromSource(source: string, language: string | undefined): Options {
+	static fromSource(source: string, language: string | undefined, includedPaths: (path: string) => boolean): Options {
 		const mode = Mode.fromSource(source, language);
 		let automatic = false;
 		let regex = false;
@@ -63,6 +67,7 @@ export class Options {
 			onWordBoundary,
 			visual,
 			undoKey,
+			includedPaths,
 		});
 	}
 
