@@ -1,3 +1,5 @@
+import type { IncludedPathsFunction } from "src/snippets/parse";
+
 export class Options {
 	mode: Mode;
 	automatic: boolean;
@@ -5,7 +7,7 @@ export class Options {
 	onWordBoundary: boolean;
 	visual: boolean;
 	undoKey: boolean;
-	includedPaths: (path: string) => boolean;
+	includedPaths: IncludedPathsFunction;
 
 	constructor({
 		mode,
@@ -22,7 +24,7 @@ export class Options {
 		onWordBoundary: boolean;
 		visual: boolean;
 		undoKey: boolean;
-		includedPaths: (path: string) => boolean;
+		includedPaths: IncludedPathsFunction;
 	}) {
 		this.mode = mode;
 		this.automatic = automatic;
@@ -33,7 +35,7 @@ export class Options {
 		this.includedPaths = includedPaths;
 	}
 
-	static fromSource(source: string, language: string | undefined, includedPaths: (path: string) => boolean): Options {
+	static fromSource(source: string, language: string | undefined, includedPaths: IncludedPathsFunction): Options {
 		const mode = Mode.fromSource(source, language);
 		let automatic = false;
 		let regex = false;

@@ -17,9 +17,9 @@ import { handleMathTooltip } from "./editor_extensions/math_tooltip";
 import { isComposing, forceEndComposition } from "./utils/editor_utils";
 import type { GroupedSnippets, LatexSuiteCMSettings } from "./settings/settings";
 import { Type } from "./parser/mathjax-parser";
-import { getFilePathFromState } from "./editor_extensions/obsidian_utils";
-import { StateField } from "@codemirror/state";
-import type { Snippet } from "./snippets/snippets";
+import { getFilePathFromState, notice } from "./editor_extensions/obsidian_utils";
+import { EditorState, StateField } from "@codemirror/state";
+import { serializeSnippetLike, type Snippet } from "./snippets/snippets";
 
 export const handleUpdate = (update: ViewUpdate) => {
 	const settings = getLatexSuiteConfig(update.state);
@@ -291,9 +291,19 @@ function getKeymaps(settings: LatexSuiteCMSettings, snippets: Snippet[]): LatexS
 	}));
 }
 
-function filterSnippetsByFile(snippets: Snippet[], file: string | null): GroupedSnippets {
-	const filtered_snippets =  file !== null
-		? snippets.filter((snippet) => snippet.options.includedPaths(file))
+function filterSnippetsByFile(snippets: Snippet[], path: string | null, state: EditorState): GroupedSnippets {
+	const filtered_snippets =  path !== null
+		? snippets.filter((snippet) => {
+			try {
+				return snippet.options.includedPaths({ path, state });
+			} catch (e) {
+				const error_message = `Included paths crashed, skipping snippet: \n${serializeSnippetLike(snippet)}\n\n` 
+				state.field(notice)(`${error_message}\n\n with error ${e as string}`, 5000)
+				console.error(error_message)
+				console.error(e);
+				return false;
+			}
+		})
 		: snippets;
 
 	return {
@@ -302,31 +312,29 @@ function filterSnippetsByFile(snippets: Snippet[], file: string | null): Grouped
 	};
 }
 
-type snippetState = {
+type SnippetState = {
 	snippets: GroupedSnippets;
 	path: string | null;
 	keymaps: KeyBinding[];
 }
 
-export const snippetStateField = StateField.define<snippetState>({
-	create: (state) => {
-		const settings = getLatexSuiteConfig(state);
-		const snippets = settings.snippets;
-		const path = getFilePathFromState(state);
-		const filtered_snippets = filterSnippetsByFile(snippets.all, path);
-		const keymaps = getKeymaps(settings, filtered_snippets.all);
-		return { snippets: filtered_snippets, path, keymaps };
-	},
+function createSnippetState(state: EditorState): SnippetState {
+	const settings = getLatexSuiteConfig(state);
+	const snippets = settings.snippets;
+	const path = getFilePathFromState(state);
+	const filtered_snippets = filterSnippetsByFile(snippets.all, path, state);
+	const keymaps = getKeymaps(settings, filtered_snippets.all);
+	return { snippets: filtered_snippets, path, keymaps };
+}
+
+export const snippetStateField = StateField.define<SnippetState>({
+	create: createSnippetState,
 	update: (value, tr) => {
-		const settings = getLatexSuiteConfig(tr.state);
 		const path = getFilePathFromState(tr.state);	
 		if (!tr.reconfigured && path === value.path) {
 			return value;
 		}
-		const snippets = settings.snippets;
-		const filtered_snippets = filterSnippetsByFile(snippets.all, value.path);
-		const keymaps = getKeymaps(settings, filtered_snippets.all);
-		return { snippets: filtered_snippets, path, keymaps };
+		return createSnippetState(tr.state);
 	},
 	provide: (f) => keymap.compute([f], (state) => state.field(f).keymaps),
 })

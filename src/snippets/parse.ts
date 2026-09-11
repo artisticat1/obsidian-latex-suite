@@ -1,4 +1,4 @@
-import { optional, object, string as string_, union, parse, number, type InferOutput as Output, custom, instance, array, pipe, transform } from "valibot";
+import { optional, object, string as string_, union, parse, number, type InferOutput as Output, custom, instance, array, pipe, transform, type BaseSchema, type BaseIssue } from "valibot";
 import { RegexSnippet, serializeSnippetLike, Snippet, StringSnippet, VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER, VisualSnippet } from "./snippets";
 import { Options } from "../editor_context/options";
 import { sortSnippets } from "./sort";
@@ -8,6 +8,7 @@ import { ArrayNode, BaseNode, SnippetStringNode, SnippetTabstopOnlyNode, VisualS
 import { type MacroArea, MacroAreaPipeSchema } from "src/editor_context/default_text_areas";
 import { isMacOS } from "src/editor_extensions/obsidian_utils";
 import picomatch from "picomatch";
+import type { EditorState } from "@codemirror/state";
 
 export type SnippetVariables = Record<string, string>;
 
@@ -128,6 +129,13 @@ export async function parseSnippets(snippetsStr: string, snippetVariables: Snipp
 	return parsedSnippets;
 }
 
+function singleOrArrayScheme<TInput, TOutput, TIssue, T extends BaseSchema<TInput, TOutput, BaseIssue<TIssue>>>(scheme: T) {
+	return union([array(scheme), pipe(scheme, transform(value => [value]))])
+}
+
+type IncludedPathsFunctionOptions = { path: string, state: EditorState };
+export type IncludedPathsFunction = (options: IncludedPathsFunctionOptions) => boolean
+
 /** raw snippet IR */
 
 export const RawSnippetSchema = object({
@@ -152,21 +160,22 @@ export const RawSnippetSchema = object({
 	includedMacros: MacroAreaPipeSchema,
 	includedPaths: pipe(
 		optional(
-			union([
-				pipe(
-					string_(),
-					transform((string) => [string]),
-				),
-				array(string_()),
-			]),
+			singleOrArrayScheme(
+				union([
+					pipe(string_(), transform((value): IncludedPathsFunction => {
+						const match = picomatch(value)
+						return ({path}) => match(path)
+					})),
+					custom<UnknownFunction>((x) => typeof x === "function")
+				])
+			),
 			[]
 		),
-		transform((paths) => {
-			const matches = paths.map(path => picomatch(path))
+		transform((matches): IncludedPathsFunction => {
 			if (matches.length === 0) {
-				return () => true;
+				return () => true
 			}
-			return (path: string) => matches.some(match => match(path))
+			return (options: IncludedPathsFunctionOptions) => matches.some(match => match(options))
 		})
 	),
 });
