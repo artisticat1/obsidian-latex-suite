@@ -12,6 +12,7 @@
 // https://github.com/mathjax/MathJax-src/blob/master/ts/input/tex/mathtools/MathtoolsMappings.ts
 // https://github.com/mathjax/MathJax-src/blob/master/ts/input/tex/textmacros/TextMacrosMappings.ts
 // https://github.com/mathjax/MathJax-src/blob/master/ts/input/tex/newcommand/NewcommandMappings.ts
+import * as v from "valibot";
 
 
 export const cmd_symbols:{[name:string]: string} =
@@ -636,44 +637,44 @@ export const not_remap: Record<string, string> = {
 }
 
 
-export const operators:string[] =
+export const operators:Record<string, boolean> =
 // From https://www.overleaf.com/learn/latex/Operators
-[
-	"arcsin",
-	"arccos",
-	"arctan",
-	"sinh",
-	"cosh",
-	"tanh",
-	"coth",
-	"sin",
-	"cos",
-	"tan",
-	"sec",
-	"csc",
-	"cot",
-	"exp",
-	"ker",
-	"limsup",
-	"lim",
-	"sup",
-	"deg",
-	"gcd",
-	"log",
-	"lg",
-	"ln",
-	"Pr",
-	"det",
-	"hom",
-	"arg",
-	"dim",
-	"liminf",
-	"min",
-	"max",
-	"inf",
-	"mod",
+{
+	"arcsin": true,
+	"arccos": true,
+	"arctan": true,
+	"sinh": true,
+	"cosh": true,
+	"tanh": true,
+	"coth": true,
+	"sin": true,
+	"cos": true,
+	"tan": true,
+	"sec": true,
+	"csc": true,
+	"cot": true,
+	"exp": true,
+	"ker": true,
+	"limsup": true,
+	"lim": true,
+	"sup": true,
+	"deg": true,
+	"gcd": true,
+	"log": true,
+	"lg": true,
+	"ln": true,
+	"Pr": true,
+	"det": true,
+	"hom": true,
+	"arg": true,
+	"dim": true,
+	"liminf": true,
+	"min": true,
+	"max": true,
+	"inf": true,
+	"mod": true,
 
-	];
+};
 
 
 export const fractions: { [name: string]: string } = {
@@ -1206,4 +1207,151 @@ export const mathfrak = {
 	"X": "𝔛",
 	"Y": "𝔜",
 	"Z": "ℨ",
+}
+
+const concealMapSchema = v.optional(
+	v.record(v.string(), v.union([v.string(), v.undefined()])),
+	{},
+);
+const operatorsSchema = v.optional(v.record(v.string(), v.boolean()), {});
+export const MappingSchema = v.object({
+		cmd_symbols: concealMapSchema,
+		not_remap: concealMapSchema,
+		operators: operatorsSchema,
+		fractions: concealMapSchema,
+		greek: concealMapSchema,
+		map_super: concealMapSchema,
+		map_sub: concealMapSchema,
+		bar: concealMapSchema,
+		dot: concealMapSchema,
+		hat: concealMapSchema,
+		brackets: concealMapSchema,
+		leftrightBrackets: concealMapSchema,
+		mathbb: concealMapSchema,
+		mathscrcal: concealMapSchema,
+		mathfrak: concealMapSchema,
+})
+
+export type RawConcealMapping = v.InferOutput<typeof MappingSchema>
+type ConcealMap = Record<string, string | undefined>
+
+export type ConcealMapping = {
+	not_remap: ConcealMap,
+	operators: string[],
+	fractions: ConcealMap,
+	greek: ConcealMap,
+	map_super: ConcealMap,
+	map_sub: ConcealMap,
+	bar: ConcealMap,
+	dot: ConcealMap,
+	hat: ConcealMap,
+	brackets: ConcealMap,
+	leftrightBrackets: ConcealMap,
+	mathbb: ConcealMap,
+	mathscrcal: ConcealMap,
+	mathfrak: ConcealMap,
+	ALL_SYMBOLS: ConcealMap,
+}
+
+export const default_mapping = {
+	cmd_symbols,
+	not_remap,
+	operators,
+	fractions,
+	greek,
+	map_super,
+	map_sub,
+	bar,
+	dot,
+	hat,
+	brackets,
+	leftrightBrackets,
+	mathbb,
+	mathscrcal,
+	mathfrak,
+} satisfies RawConcealMapping
+
+type ConcealMapKey =
+	| "cmd_symbols"
+	| "not_remap"
+	| "fractions"
+	| "greek"
+	| "map_super"
+	| "map_sub"
+	| "bar"
+	| "dot"
+	| "hat"
+	| "brackets"
+	| "leftrightBrackets"
+	| "mathbb"
+	| "mathscrcal"
+	| "mathfrak";
+
+export function fullMappingSchema(arr: RawConcealMapping[]): ConcealMapping {
+	function concealMap<T extends ConcealMapKey>(key: T, arr: RawConcealMapping[]) {
+		const result = arr.reduce(
+			(acc, mapping) => ({ ...acc, ...mapping[key] }),
+			default_mapping[key],
+		);
+		// Delete "unset" keys such that the user can delete them.
+		for (const key in result) {
+			if (result[key] === undefined) {
+				delete result[key];
+			}
+		}
+		return result
+	}
+	function operatorsReducer(arr: RawConcealMapping[]) {
+		const result = arr.reduce((acc, mapping) => {
+			if (mapping.operators) {
+				return { ...acc, ...mapping.operators };
+			}
+			return acc;
+		}, default_mapping.operators);
+		return Object.keys(result).filter((k) => result[k]);
+	}
+	
+	// Not sure if there is a better way to do this type-safely as looping through the keys has its own issues.
+	const cmd_symbols = concealMap("cmd_symbols", arr);
+	const not_remap_unsorted = concealMap("not_remap", arr);
+	const fractions = concealMap("fractions", arr);
+	const greek = concealMap("greek", arr);
+	const map_super = concealMap("map_super", arr);
+	const map_sub = concealMap("map_sub", arr);
+	const bar = concealMap("bar", arr);
+	const dot = concealMap("dot", arr);
+	const hat = concealMap("hat", arr);
+	const brackets = concealMap("brackets", arr);
+	const leftrightBrackets = concealMap("leftrightBrackets", arr);
+	const mathbb = concealMap("mathbb", arr);
+	const mathscrcal = concealMap("mathscrcal", arr);
+	const mathfrak = concealMap("mathfrak", arr);
+	const operators = operatorsReducer(arr);
+	const ALL_SYMBOLS = Object.fromEntries(
+		Object.entries({ ...cmd_symbols, ...greek }).sort(
+			(a, b) => b[0].length - a[0].length,
+		),
+	);
+	const not_remap: Record<string, string> = Object.fromEntries(
+		Object.entries(not_remap_unsorted).sort(
+			(a, b) => b[0].length - a[0].length,
+		),
+	);
+	return {
+		not_remap,
+		operators,
+		fractions,
+		greek,
+		map_super,
+		map_sub,
+		bar,
+		dot,
+		hat,
+		brackets,
+		leftrightBrackets,
+		mathbb,
+		mathscrcal,
+		mathfrak,
+		ALL_SYMBOLS,
+	}
 }

@@ -3,6 +3,8 @@ import type { Environment } from "../snippets/environment";
 import { DEFAULT_SNIPPETS } from "src/utils/default_snippets";
 import { DEFAULT_SNIPPET_VARIABLES } from "src/utils/default_snippet_variables";
 import * as v from "valibot";
+import { fullMappingSchema, type RawConcealMapping } from "src/editor_extensions/conceal_maps";
+import { createMacroMap, type MappingInfo } from "src/editor_extensions/conceal_fns";
 
 export type snippetDebugLevel = "off" | "info" | "verbose";
 
@@ -95,6 +97,7 @@ export type LatexSuitePluginSettings = {
 	LatexSuiteCMKeymapSettings;
 export type LatexSuiteCMSettings = {
 	snippets: GroupedSnippets;
+	concealMaps: MappingInfo;
 } & LatexSuiteBasicSettings &
 	LatexSuiteParsedSettings &
 	LatexSuiteCMKeymapSettings;
@@ -180,6 +183,7 @@ export const EnvironmentSchema = v.pipe(
 export function processLatexSuiteSettings(
 	snippets: Snippet[],
 	settings: LatexSuitePluginSettings,
+	rawConcealMaps: RawConcealMapping[]
 ): LatexSuiteCMSettings {
 	function strToArray(str: string) {
 		return str.replace(/\s/g, "").split(",");
@@ -200,12 +204,18 @@ export function processLatexSuiteSettings(
 		automatic: snippets.filter((s) => s.options.automatic),
 		all: snippets,
 	}
+	const concealMaps = fullMappingSchema(rawConcealMaps);
+	const mappingInfo = {
+		maps: concealMaps,
+		macroMap: createMacroMap(concealMaps),
+	}
 
 	return {
 		...settings,
 
 		// Override raw settings with parsed settings
 		snippets: groupedSnippets,
+		concealMaps: mappingInfo,
 		autofractionExcludedEnvs: getAutofractionExcludedEnvs(
 			settings.autofractionExcludedEnvs,
 		),
