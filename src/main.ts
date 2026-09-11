@@ -8,8 +8,8 @@ import { ICONS } from "./settings/ui/icons";
 import { getEditorCommands, getVimEditorCommands, getVimRunMatrixEnterCommand } from "./features/editor_commands";
 import { getLatexSuiteConfigExtension } from "./snippets/codemirror/config";
 import { type SnippetVariables, parseSnippetVariables, parseSnippets } from "./snippets/parse";
-import { handleUpdate, onInput, keyboardEventPlugin, getKeymaps } from "./latex_suite";
-import { EditorView, keymap, tooltips } from "@codemirror/view";
+import { handleUpdate, onInput, keyboardEventPlugin, snippetStateField } from "./latex_suite";
+import { EditorView, tooltips } from "@codemirror/view";
 import { snippetExtensions } from "./snippets/codemirror/extensions";
 import { mkConcealPlugin } from "./editor_extensions/conceal";
 import { colorPairedBracketsPlugin, colorPairedBracketsPluginLowestPrec, highlightCursorBracketsExtension, highlightCursorBracketsPlugin } from "./editor_extensions/highlight_brackets";
@@ -26,7 +26,7 @@ import resources from "./i18n/resources";
 import { mathParserPlugin } from "./parser/parser_printer";
 import { endSnippet, snippetInvertedEffects, startSnippet, undidEndSnippet, undidStartSnippet } from "./snippets/codemirror/history";
 import { addTabstopsEffect, removeAllTabstopsEffect, tabstopsStateField } from "./snippets/codemirror/tabstops_state_field";
-import { notice } from "./editor_extensions/obsidian_utils";
+import { getFileConfigExtension, notice } from "./editor_extensions/obsidian_utils";
 import { snippetQueuePlugin } from "./snippets/codemirror/snippet_queue_state_field";
 import { autoEnlargeBrackets } from "./features/auto_enlarge_brackets";
 import { runAutoFraction } from "./features/autofraction";
@@ -263,10 +263,9 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 			EditorView.updateListener.of(handleUpdate),
 			snippetExtensions,
 			languageExtension,
+			getFileConfigExtension(() => this.app.workspace.getActiveFile() ?? null),
+			snippetStateField,
 		]);
-		
-		const latexSuiteKeymaps = getKeymaps(this.CMSettings)
-		this.editorExtensions.push(keymap.of(latexSuiteKeymaps))
 
 		// Optional extensions
 		if (this.CMSettings.concealEnabled) {

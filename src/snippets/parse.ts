@@ -7,6 +7,7 @@ import { api } from "./luasnip_api";
 import { ArrayNode, BaseNode, SnippetStringNode, SnippetTabstopOnlyNode, VisualSnippetNode } from "./luasnip_api/node";
 import { type MacroArea, MacroAreaPipeSchema } from "src/editor_context/default_text_areas";
 import { isMacOS } from "src/editor_extensions/obsidian_utils";
+import picomatch from "picomatch";
 
 export type SnippetVariables = Record<string, string>;
 
@@ -149,6 +150,25 @@ export const RawSnippetSchema = object({
 	excludedMacros: MacroAreaPipeSchema,
 	excludedEnvironments: optional(array(string_()), []),
 	includedMacros: MacroAreaPipeSchema,
+	includedPaths: pipe(
+		optional(
+			union([
+				pipe(
+					string_(),
+					transform((string) => [string]),
+				),
+				array(string_()),
+			]),
+			[]
+		),
+		transform((paths) => {
+			const matches = paths.map(path => picomatch(path))
+			if (matches.length === 0) {
+				return () => true;
+			}
+			return (path: string) => matches.some(match => match(path))
+		})
+	),
 });
 
 type RawSnippet = Output<typeof RawSnippetSchema>;
@@ -184,7 +204,7 @@ function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snip
 		excludedMacros: userExcludedMacros,
 		includedMacros
 	} = raw;
-	const options = Options.fromSource(raw.options, raw.language);
+	const options = Options.fromSource(raw.options, raw.language, raw.includedPaths);
 	const triggerKey = parseKeyName(raw.triggerKey);
 
 	if (raw.trigger === undefined && raw.triggerKey.length === 0) {

@@ -127,7 +127,7 @@ export function* iterateTreeCursor(topNode: SyntaxNode, doc: EquationText) {
 	if (cursor.node.from < doc.from) {
 		return;
 	}
-	while (cursor.node.parent && cursor.node.parent.from >= doc.from && cursor.parent() && !NodeEquals(cursor.node, cursor.node.parent)) {
+	while (cursor.node.parent && cursor.node.parent.from >= doc.from && cursor.parent() && !NodeEquals(cursor.node, topNode)) {
 		// empty
 	}
 	
