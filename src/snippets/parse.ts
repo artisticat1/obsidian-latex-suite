@@ -1,4 +1,4 @@
-import { optional, object, string as string_, union, parse, number, type InferOutput as Output, custom, instance, array, pipe, transform } from "valibot";
+import { optional, object, string as string_, union, parse, number, type InferOutput as Output, custom, instance, array, pipe, transform, type BaseSchema, type BaseIssue } from "valibot";
 import { RegexSnippet, serializeSnippetLike, Snippet, StringSnippet, VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER, VisualSnippet } from "./snippets";
 import { Options } from "../editor_context/options";
 import { sortSnippets } from "./sort";
@@ -7,6 +7,8 @@ import { api } from "./luasnip_api";
 import { ArrayNode, BaseNode, SnippetStringNode, SnippetTabstopOnlyNode, VisualSnippetNode } from "./luasnip_api/node";
 import { type MacroArea, MacroAreaPipeSchema } from "src/editor_context/default_text_areas";
 import { isMacOS } from "src/editor_extensions/obsidian_utils";
+import picomatch from "picomatch";
+import type { EditorState } from "@codemirror/state";
 
 export type SnippetVariables = Record<string, string>;
 
@@ -127,6 +129,13 @@ export async function parseSnippets(snippetsStr: string, snippetVariables: Snipp
 	return parsedSnippets;
 }
 
+function singleOrArrayScheme<TInput, TOutput, TIssue, T extends BaseSchema<TInput, TOutput, BaseIssue<TIssue>>>(scheme: T) {
+	return union([array(scheme), pipe(scheme, transform(value => [value]))])
+}
+
+type IncludedPathsFunctionOptions = { path: string, state: EditorState };
+export type IncludedPathsFunction = (options: IncludedPathsFunctionOptions) => boolean
+
 /** raw snippet IR */
 
 export const RawSnippetSchema = object({
@@ -149,6 +158,26 @@ export const RawSnippetSchema = object({
 	excludedMacros: MacroAreaPipeSchema,
 	excludedEnvironments: optional(array(string_()), []),
 	includedMacros: MacroAreaPipeSchema,
+	includedPaths: pipe(
+		optional(
+			singleOrArrayScheme(
+				union([
+					pipe(string_(), transform((value): IncludedPathsFunction => {
+						const match = picomatch(value)
+						return ({path}) => match(path)
+					})),
+					custom<UnknownFunction>((x) => typeof x === "function")
+				])
+			),
+			[]
+		),
+		transform((matches): IncludedPathsFunction => {
+			if (matches.length === 0) {
+				return () => true
+			}
+			return (options: IncludedPathsFunctionOptions) => matches.some(match => match(options))
+		})
+	),
 });
 
 type RawSnippet = Output<typeof RawSnippetSchema>;
@@ -184,7 +213,7 @@ function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snip
 		excludedMacros: userExcludedMacros,
 		includedMacros
 	} = raw;
-	const options = Options.fromSource(raw.options, raw.language);
+	const options = Options.fromSource(raw.options, raw.language, raw.includedPaths);
 	const triggerKey = parseKeyName(raw.triggerKey);
 
 	if (raw.trigger === undefined && raw.triggerKey.length === 0) {

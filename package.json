@@ -65,6 +65,8 @@
 	"dependencies": {
 		"@lezer/markdown": "^1.7.2",
 		"@popperjs/core": "2.11.5",
+		"@types/picomatch": "^4.0.3",
+		"picomatch": "^4.0.7",
 		"valibot": "^1.4.2"
 	}
 }

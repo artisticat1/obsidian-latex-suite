@@ -1,4 +1,4 @@
-import { EditorView, ViewPlugin, ViewUpdate, type KeyBinding, runScopeHandlers } from "@codemirror/view";
+import { EditorView, ViewPlugin, ViewUpdate, type KeyBinding, runScopeHandlers, keymap } from "@codemirror/view";
 import { runSnippets } from "./features/run_snippets";
 import { runAutoFraction } from "./features/autofraction";
 import { tabout, shouldTaboutByCloseBracket } from "./features/tabout";
@@ -15,8 +15,11 @@ import { handleUndoRedo } from "./snippets/codemirror/history";
 
 import { handleMathTooltip } from "./editor_extensions/math_tooltip";
 import { isComposing, forceEndComposition } from "./utils/editor_utils";
-import type { LatexSuiteCMSettings } from "./settings/settings";
+import type { GroupedSnippets, LatexSuiteCMSettings } from "./settings/settings";
 import { Type } from "./parser/mathjax-parser";
+import { getFilePathFromState, notice } from "./editor_extensions/obsidian_utils";
+import { EditorState, StateField } from "@codemirror/state";
+import { serializeSnippetLike, type Snippet } from "./snippets/snippets";
 
 export const handleUpdate = (update: ViewUpdate) => {
 	const settings = getLatexSuiteConfig(update.state);
@@ -116,7 +119,7 @@ export const handleKeydown = (key: string, ctrlKey: boolean, isIME: boolean, vie
 	) {
 		return false;
 	}
-	const snippets = settings.snippets.automatic;
+	const snippets = view.state.field(snippetStateField).snippets.automatic;
 	try {
 		const options = {recursive: settings.snippetRecursion, debug: settings.snippetDebug};
 		if (runSnippets(view, {snippets, key}, options)) return true;
@@ -132,9 +135,10 @@ type LatexSuiteKeyBinding = KeyBinding & {scope: "latex-suite"};
 /**
  * Get the keymaps specific for Latex Suite. These keymaps only run in scope `latex-suite`.
  * @param settings The settings with the keybindings to use
+ * @param snippets The snippets to use for generating keymaps
  * @returns The keymaps for the LaTeX suite based on the provided settings
  */
-export function getKeymaps(settings: LatexSuiteCMSettings): LatexSuiteKeyBinding[] {
+function getKeymaps(settings: LatexSuiteCMSettings, snippets: Snippet[]): LatexSuiteKeyBinding[] {
 	// Order matters for keybindings,
 	// as they are checked in order from the beginning of the array to the end
 	const keybindings: KeyBinding[] = [];
@@ -171,11 +175,11 @@ export function getKeymaps(settings: LatexSuiteCMSettings): LatexSuiteKeyBinding
 	}
 
 	const snippet_triggers = new Set(
-		settings.snippets.all.map((s) => s.triggerKey).filter((s) => s !== "")
+		snippets.map((s) => s.triggerKey).filter((s) => s !== "")
 	);
 	snippet_triggers.add(settings.snippetsTrigger);
 	const runMaker = (key: string) => {
-		const snippets = settings.snippets.all.filter(
+		const filtered_snippets = snippets.filter(
 			(s) =>
 				s.triggerKey === key ||
 				(!s.triggerKey &&
@@ -189,7 +193,7 @@ export function getKeymaps(settings: LatexSuiteCMSettings): LatexSuiteKeyBinding
 				return false;
 			try {
 				const options = {recursive: settings.snippetRecursion, debug: settings.snippetDebug};
-				return runSnippets(view, {snippets}, options);
+				return runSnippets(view, {snippets: filtered_snippets}, options);
 			} catch (e) {
 				clearSnippetQueue(view);
 				console.error(e);
@@ -286,3 +290,51 @@ export function getKeymaps(settings: LatexSuiteCMSettings): LatexSuiteKeyBinding
 		scope: "latex-suite",
 	}));
 }
+
+function filterSnippetsByFile(snippets: Snippet[], path: string | null, state: EditorState): GroupedSnippets {
+	const filtered_snippets =  path !== null
+		? snippets.filter((snippet) => {
+			try {
+				return snippet.options.includedPaths({ path, state });
+			} catch (e) {
+				const error_message = `Included paths crashed, skipping snippet: \n${serializeSnippetLike(snippet)}\n\n` 
+				state.field(notice)(`${error_message}\n\n with error ${e as string}`, 5000)
+				console.error(error_message)
+				console.error(e);
+				return false;
+			}
+		})
+		: snippets;
+
+	return {
+		automatic: filtered_snippets.filter((s) => s.options.automatic),
+		all: filtered_snippets
+	};
+}
+
+type SnippetState = {
+	snippets: GroupedSnippets;
+	path: string | null;
+	keymaps: KeyBinding[];
+}
+
+function createSnippetState(state: EditorState): SnippetState {
+	const settings = getLatexSuiteConfig(state);
+	const snippets = settings.snippets;
+	const path = getFilePathFromState(state);
+	const filtered_snippets = filterSnippetsByFile(snippets.all, path, state);
+	const keymaps = getKeymaps(settings, filtered_snippets.all);
+	return { snippets: filtered_snippets, path, keymaps };
+}
+
+export const snippetStateField = StateField.define<SnippetState>({
+	create: createSnippetState,
+	update: (value, tr) => {
+		const path = getFilePathFromState(tr.state);	
+		if (!tr.reconfigured && path === value.path) {
+			return value;
+		}
+		return createSnippetState(tr.state);
+	},
+	provide: (f) => keymap.compute([f], (state) => state.field(f).keymaps),
+})
