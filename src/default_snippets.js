@@ -4,12 +4,19 @@ export default [
 	// and also avoids a lag issues when on an empty line and everything below is suddenly display math for a short second.
 	{trigger: "mk", replacement: "${}$0{}$", options: "tA"},
 	{trigger: "mk", replacement: "\\($0\\)", options: "TA"},
-    {trigger: "dm", replacement: "$$\n$0\n$$", options: "tAw", description: "Display math"},
-	{trigger: /(\S\s*)dm/, replacement: "[[0]]\n$$\n$0\n$$", options: "tAw", priority: 1},
+    {trigger: "dm", replacement: "$$\n$0\n$$", options: "tAw", description: "Display Math on empty line"},
+	// display math behaves like codeblocks, as in no text is allowed on the same line of the opening $$ thus a newline is added.
+	{
+		trigger: /(\S[ \t]*)dm/,
+		replacement: "[[0]]\n$$\n$0\n$$",
+		options: "tAw",
+		priority: 1,
+		description: "Display Math on line with text",
+	},
 	// for the other dm snippet see below in Misc
 
 	{trigger: /([^\\\w])beg/, replacement: "[[0]]\\begin{$0}\n$1\n\\end{$0}", options: "MA"},
-	{trigger: /([^\\]\w)beg/, replacement: "[[0]]\\begin{$0} $1 \\end{$0}", options: "nA"},
+	{trigger: /([^\\\w])beg/, replacement: "[[0]]\\begin{$0} $1 \\end{$0}", options: "nA"},
 
     // Dashes
 	// {trigger: "--", replacement: "–", options: "tA"},
@@ -424,6 +431,7 @@ export default [
 		output = `\\begin{pmatrix}\n${output}\n\\end{pmatrix}`;
 		return output;
 	}, options: "mA", description: "N x N identity matrix"},
+	// start with the correct indentation  of 3 spaces when typing at the start of a list.
 	{
 		trigger: /(?<positive_lookbehind>(?:\n|^)[ \t]*>*)(?<marker>\d+[.)]|[-*+])(?<whitespace>[ \t]+)(?<text>.*)dm/,
 		replacement: (m) => {
