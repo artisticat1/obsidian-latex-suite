@@ -24,15 +24,18 @@
 	"keywords": [],
 	"author": "",
 	"license": "MIT",
-	"devDependencies": {
+	"peerDependencies": {
 		"@codemirror/autocomplete": "^6.0.0",
 		"@codemirror/commands": "^6.0.0",
-		"@codemirror/lang-javascript": "^6.0.0",
 		"@codemirror/language": "https://github.com/lishid/cm-language",
 		"@codemirror/lint": "^6.0.0",
 		"@codemirror/search": "^6.0.0",
 		"@codemirror/state": "^6.0.0",
 		"@codemirror/view": "^6.0.0",
+		"codemirror": "^6.0.0",
+		"i18next": "^26.4.0"
+	},
+	"devDependencies": {
 		"@eslint/eslintrc": "^3.3.3",
 		"@eslint/js": "^9.39.2",
 		"@lezer/common": "^1.0.3",
@@ -42,13 +45,11 @@
 		"@types/node": "^22.20.1",
 		"@typescript-eslint/eslint-plugin": "^8.55.0",
 		"@typescript-eslint/parser": "^8.55.0",
-		"codemirror": "^6.0.0",
 		"esbuild": "^0.20.2",
 		"esbuild-plugin-inline-import": "^1.0.2",
 		"eslint": "^9.39.2",
 		"eslint-plugin-obsidianmd": "^0.4.2",
 		"globals": "^17.3.0",
-		"i18next": "^26.4.0",
 		"jiti": "^2.7.0",
 		"obsidian": "^1.13.1",
 		"obsidian-integration-testing": "^10.3.2",
@@ -63,6 +64,7 @@
 		"vitest": "^4.1.11"
 	},
 	"dependencies": {
+		"@codemirror/lang-javascript": "^6.0.0",
 		"@lezer/markdown": "^1.7.2",
 		"@popperjs/core": "2.11.5",
 		"valibot": "^1.4.2"
