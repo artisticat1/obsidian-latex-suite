@@ -216,7 +216,11 @@ You can [view snippets written by others and share your own snippets here](https
 > [!WARNING]
 > Snippet files are interpreted as JavaScript and can execute arbitrary code.
 > Always be careful with snippets shared from others to avoid running malicious code.
-> Or when sharing the vault with others (files can be placed in places ignored by sync).
+> Or when sharing the vault with others.
+> You can also place them where they can be ignored by sync such as:
+> - the editor in the settings which stores it inside
+> - Inside the `.obsidian` folder
+> - Outside your vault, for which latex suite thus would need access to outside the vault.
 
 
 ## Cheatsheet
