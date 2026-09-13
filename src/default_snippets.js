@@ -445,3 +445,28 @@ export default [
 		description: "Display math when in a list"
 	},
 ]
+
+
+/** 
+ * IME keyboard switching
+const exec = require("child_process").exec;
+const plugin = app.plugins.getPlugin("obsidian-latex-suite");
+window.__latex_suite_math = window.__latex_suite_math || false;
+const switch_path = "C:\\im-select.exe";
+const non_ime_keyboard = "1033"
+plugin.onUpdate(function (update, ctx) {
+	const newMath = ctx.mode.inMath();
+	if (newMath === window.__latex_suite_math) {
+		return;
+	}
+	window.__latex_suite_math = newMath;
+	if (window.__latex_suite_math) {
+		// switch non IME keyboard
+		exec(`"${switch_path}" ${non_ime_keyboard}`)
+	} else {
+		exec(`"${switch_path}"`)
+		// switch to IME
+	}
+
+})
+*/
