@@ -7,6 +7,7 @@ import type { SnippetVariables } from "src/snippets/parse";
 import { EMPTY_MAPPING, fullMappingSchema, MappingSchema, type RawConcealMapping } from "src/editor_extensions/conceal_maps";
 import { createMacroMap, type MappingInfo } from "src/editor_extensions/conceal_fns";
 import { DEFAULT_MATHLESS_ARGS, EMPTY_MATHLESS_ARGS, mathlessArgsSchema, restrictedMacroArgs, textMacroArgs, type MacroArgs } from "src/editor_context/default_text_areas";
+import type { UpdateHandler } from "src/api";
 
 export type snippetDebugLevel = "off" | "info" | "verbose";
 
@@ -97,6 +98,7 @@ export interface LatexSuiteParsedSchemaSettings {
 	snippets: Snippet[];
 	snippetVariables: SnippetVariables;
 	rawConcealMaps: RawConcealMapping[];
+	updateHandlers: UpdateHandler[];
 }
 
 type MathlessMacros = {
@@ -110,6 +112,7 @@ interface LatexSuiteProcessedSchemaSettings {
 	snippetVariables: SnippetVariables;
 	concealMaps: MappingInfo;
 	mathlessMacros: MathlessMacros;
+	updateHandlers: UpdateHandler[];
 }
 
 type GroupedSnippets = {
@@ -221,7 +224,7 @@ export function validateTextMacros(textMacros: string) {
 
 export function processLatexSuiteSettings(
 	settings: LatexSuitePluginSettings,
-	{ snippets, snippetVariables, rawConcealMaps }: LatexSuiteParsedSchemaSettings,
+	{ snippets, snippetVariables, rawConcealMaps, updateHandlers }: LatexSuiteParsedSchemaSettings,
 ): LatexSuiteCMSettings {
 	function strToArray(str: string) {
 		return str.replace(/\s/g, "").split(",");
@@ -285,6 +288,7 @@ export function processLatexSuiteSettings(
 		...settings,
 		snippetVariables,
 
+		updateHandlers,
 		// Override raw settings with parsed settings
 		snippets: groupedSnippets,
 		concealMaps: mappingInfo,

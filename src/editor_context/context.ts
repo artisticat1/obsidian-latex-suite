@@ -72,14 +72,14 @@ export class Context implements PluginValue {
 	codeblockLanguage: string | null = null;
 	boundsCache!: Map<number, Bounds | null>;
 	innerBoundsCache!: Map<number, Bounds | null>;
-	shouldUpdate: boolean = false;
+	shouldUpdate: null | ViewUpdate = null;
 
 	constructor(view: EditorView) {
 		this.updateFromView(view);
 	}
 
 	disableMath() {
-		this.shouldUpdate = false;
+		this.shouldUpdate = null;
 		this.boundsCache.clear();
 		this.innerBoundsCache.clear();
 		this.mode = new Mode({
@@ -95,22 +95,34 @@ export class Context implements PluginValue {
 		const mathBounds = getMathBoundsPlugin(this.view, false);
 		mathBounds.reset();
 	}
+	
+	inMath(): boolean {
+		return this.mode.inMath();
+	}
 
 	/**
 	 * Small optimization to avoid updating the context when no extension is used.
 	 * @param view current view
 	 */
 	init(view: EditorView) {
-		if (this.shouldUpdate) {
+		const update = this.shouldUpdate;
+		if (update) {
 			this.updateFromView(view);
-			this.shouldUpdate = false;
+			this.shouldUpdate = null;
+			
+			const updateHandlers = getLatexSuiteConfig(this.state).updateHandlers;
+			for (const handler of updateHandlers) {
+				handler(this, update);
+			}
 		}
 		return this
 	}
 
 	update(update: ViewUpdate) {
 		if (!(update.docChanged || update.selectionSet || update.viewportChanged)) return;
-		this.shouldUpdate = true;
+		this.shouldUpdate = update;
+		const updateHandlers = getLatexSuiteConfig(this.state).updateHandlers;
+		if (updateHandlers.length > 0) this.init(update.view);
 	}
 	updateFromView(view: EditorView) {
 		const state = view.state;
