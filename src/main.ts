@@ -16,7 +16,7 @@ import { colorPairedBracketsPlugin, colorPairedBracketsPluginLowestPrec, highlig
 import { cursorTooltipBaseTheme, cursorTooltipField, updateTooltipEffect } from "./editor_extensions/math_tooltip";
 import { contextPlugin, getContextPlugin } from "./editor_context/context";
 import { mathBoundsPlugin } from "./editor_context/mathbounds";
-import type { LatexSuitePluginPublicApi } from "./api";
+import type { LatexSuitePluginPublicApi, UpdateHandler } from "./api";
 import * as v from "valibot"
 import { languageExtension, LanguageSetStateEffect, languageStateField, modifiedSyntaxTree, parseWorker } from "./parser/language";
 import { highlight_dollar_extension } from "./editor_extensions/highlight_dollar";
@@ -47,7 +47,17 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 		}
 	};
 	modifiedSyntaxTree = modifiedSyntaxTree;
+	onUpdate = (callback: UpdateHandler) => {
+		this.updateHandlers.push(callback);
+	};
+	beforeImport = (callback: () => void) => {
+		this.beforeImportHandlers.push(callback);
+	}
 	snippet = snippet;
+	updateHandlers: UpdateHandler[] = []
+	beforeImportHandlers: (() => void)[] = [() => {
+		this.updateHandlers.length = 0;
+	}]
 	api = {
 		effects: {
 			snippetInvertedEffects,
@@ -210,6 +220,9 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 		if (!becauseFileLocationUpdated && !becauseFileUpdated) {
 			return this.CMSettings.snippets.all;
 		}
+		this.beforeImportHandlers.forEach((callback) => {
+			callback()
+		})
 		// Get files in snippet/variable folders.
 		// If either is set to be loaded from settings the set will just be empty.
 		const files = await getFileSets(this);
@@ -240,7 +253,7 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 		if (becauseFileLocationUpdated) {
 			this.watchFiles();
 		}
-		this.CMSettings = processLatexSuiteSettings(await this.getSnippets(becauseFileLocationUpdated, becauseFileUpdated), this.settings);
+		this.CMSettings = processLatexSuiteSettings(await this.getSnippets(becauseFileLocationUpdated, becauseFileUpdated), this.settings, this.updateHandlers);
 		this.setEditorExtensions();
 		// Request Obsidian to reconfigure CM extensions
 		this.app.workspace.updateOptions();
