@@ -15,7 +15,7 @@ import type { Environment } from "../snippets/environment";
 import { getLatexSuiteConfig } from "../snippets/codemirror/config";
 import { syntaxTree } from "@codemirror/language";
 import type { SyntaxNode } from "@lezer/common";
-import { allTextAreas, type MacroArea, snippetLessArea } from "./default_text_areas";
+import { type MacroArgs } from "./default_text_areas";
 import { getMathBoundsPlugin } from "./mathbounds";
 
 const OPEN_INLINE_MATH_NODE =
@@ -191,7 +191,7 @@ export class Context implements PluginValue {
 		}
 	}
 
-	isWithinMacros(pos: number, macros: readonly MacroArea[]): StackOutput & { kind: "command" } | null {
+	isWithinMacros(pos: number, macros: readonly MacroArgs[]): StackOutput & { kind: "command" } | null {
 		for (const result of this.getEnvNames(pos)) {
 			if (result.kind=== "environment") continue;
 			if (result.kind === "math") return null;
@@ -346,10 +346,13 @@ export class Context implements PluginValue {
 	}
 
 	inTextEnvironment(): "text" | "none" | null {
-		const result = this.isWithinMacros(this.pos, allTextAreas)
+		const { all: allTextSnippetlessMacros, restricted: snippetlessMacros } = getLatexSuiteConfig(
+			this.state,
+		).mathlessMacros;
+		const result = this.isWithinMacros(this.pos, allTextSnippetlessMacros)
 		if (!result) return null;
 		const openSymbol = result.name;
-		if (snippetLessArea.some(macro => macro.name === openSymbol)) {
+		if (snippetlessMacros.some(macro => macro.name === openSymbol)) {
 			return "none"
 		} else {
 			return "text"
@@ -406,7 +409,7 @@ export const getContextPlugin = (view: EditorView, init: boolean = true): Contex
 }
 
 
-export function isMacroArgumentCount(stack: Readonly<MacroStackOutput>, macros: readonly MacroArea[]): null | MacroStackOutput {
+export function isMacroArgumentCount(stack: Readonly<MacroStackOutput>, macros: readonly MacroArgs[]): null | MacroStackOutput {
 	const macro = macros.find((macro) => macro.name === stack.name);
 	if (!macro) return null;
 	if (!macro.arguments) return stack;

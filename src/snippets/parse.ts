@@ -5,7 +5,7 @@ import { sortSnippets } from "./sort";
 import { EXCLUSIONS } from "./environment";
 import { api, type PluginSnippetApi } from "./luasnip_api";
 import { ArrayNode, BaseNode, SnippetStringNode, SnippetTabstopOnlyNode, VisualSnippetNode } from "./luasnip_api/node";
-import { type MacroArea, MacroAreaPipeSchema } from "src/editor_context/default_text_areas";
+import { type MacroArgs, MacroArgsPipeSchema } from "src/editor_context/default_text_areas";
 import { isMacOS } from "src/editor_extensions/obsidian_utils";
 
 export type SnippetVariables = Record<string, string>;
@@ -146,9 +146,9 @@ export const RawSnippetSchema = object({
 	description: optional(string_(), "no description provided"),
 	triggerKey: optional(string_(), ""),
 	language: optional(string_()),
-	excludedMacros: MacroAreaPipeSchema,
+	excludedMacros: MacroArgsPipeSchema,
 	excludedEnvironments: optional(array(string_()), []),
-	includedMacros: MacroAreaPipeSchema,
+	includedMacros: MacroArgsPipeSchema,
 });
 
 type RawSnippet = Output<typeof RawSnippetSchema>;
@@ -357,8 +357,8 @@ function insertSnippetVariables(trigger: string, variables: SnippetVariables) {
 	return trigger;
 }
 
-function getExcludedMacros(trigger: string): MacroArea[] {
-	const result = [];
+function getExcludedMacros(trigger: string): MacroArgs[] {
+	const result = Array<MacroArgs>();
 	const exclusion = EXCLUSIONS[trigger];
 	if (exclusion) {
 		result.push(...exclusion);

@@ -1,3 +1,4 @@
+import type { MathlessMacroArgs } from "src/editor_context/default_text_areas";
 import type { SnippetVariables } from "../parse";
 import { ALL_MACROS } from "./macros";
 import { ArrayNode, BaseNode, CaptureNode, SnippetStringNode, TabstopNode, TextNode } from "./node";
@@ -32,6 +33,7 @@ function array_node(nodes: BaseNode[]) {
 }
 export type PluginSnippetApi = {
 	addRawConcealMaps: (maps: Record<string, unknown>) => void;
+	addMathlessMacros: (macros: MathlessMacroArgs) => void;
 }
 
 export const api = (snippetVariables: SnippetVariables, pluginApi: PluginSnippetApi) => {

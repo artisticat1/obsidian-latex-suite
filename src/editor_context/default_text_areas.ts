@@ -1,19 +1,19 @@
 import * as v from "valibot"
-const MacroAreaSchema = v.object({
+const MacroArgsSchema = v.object({
 	name: v.string(),
 	arguments: v.optional(v.array(v.number())),
 });
-export type MacroArea = v.InferOutput<typeof MacroAreaSchema>;
+export type MacroArgs = v.InferOutput<typeof MacroArgsSchema>;
 
-export const MacroAreaPipeSchema = v.pipe(
-		v.optional(v.array(v.union([v.string(), MacroAreaSchema])), []),
+export const MacroArgsPipeSchema = v.pipe(
+		v.optional(v.array(v.union([v.string(), MacroArgsSchema])), []),
 		v.mapItems((item) => (typeof item === "string" ? { name: item, arguments: [0] } : item)),
 )
 /**
  * List of environments where math commands are illegal to insert and where the environment is latex text instead.
  * Macros should only take up the arguments they actually take to avoid seeing `$\text{world}{\color{red}\alpha}$` the second argument of `text` as an argument of `text`.
  */
-export const textArea = [
+export const textMacroArgs = [
 	{ name: "text", arguments: [0] },
 	{ name: "textrm", arguments: [0] },
 	{ name: "textup", arguments: [0] },
@@ -32,14 +32,14 @@ export const textArea = [
 	{ name: "framebox", arguments: [0] },
 	{ name: "colorbox", arguments: [1] }, // has 2 inputs \colorbox{color}{text}
 	{ name: "fcolorbox", arguments: [2] }, // has 3 inputs \fcolorbox{color}{background-color}{text}
-] as const satisfies readonly MacroArea[];
+] as const satisfies readonly MacroArgs[];
 
 /**
  * List of environments where math commands are illegal to insert.
  * Here treating them as text also doesn't make sense so autocomplete/snippets are disabled for them.
  * Snippets with `includedMacros` can expand in these.
  */
-export const snippetLessArea = [
+export const restrictedMacroArgs = [
 	{ name: "tag", arguments: [0] },
 	{ name: "begin", arguments: [0] },
 	{ name: "end", arguments: [0] },
@@ -49,12 +49,20 @@ export const snippetLessArea = [
 	{ name: "color", arguments: [0] },
 	{ name: "colorbox", arguments: [0] }, // has two inputs \colorbox{color}{text}, color is snippetless and text is text.
 	{ name: "fcolorbox", arguments: [0, 1] }, // has 3 inputs \fcolorbox{color}{background-color}{text}, of which the first 2 are snippetless and the last one is text.
-	{ name: "operatorname", arguments: [0] },
 	{ name: "style", arguments: [0] },
-] as const satisfies readonly MacroArea[];
+] as const satisfies readonly MacroArgs[];
 
-export const allTextAreas = [...textArea, ...snippetLessArea] as const;
 
+export const DEFAULT_MATHLESS_ARGS: MathlessMacroArgs = {
+	text: [],
+	restricted: [{ name: "operatorname", arguments: [0] }],
+};
+export const EMPTY_MATHLESS_ARGS: MathlessMacroArgs = {text: [], restricted: []};
+export const mathlessArgsSchema = v.object({
+	text: v.optional(MacroArgsPipeSchema, []),
+	restricted: v.optional(MacroArgsPipeSchema, []),
+});
+export type MathlessMacroArgs = v.InferOutput<typeof mathlessArgsSchema>;
 /**
  * List of math fonts/ math commands. I don't know if they should treated as text since they are technically math environments.
  */

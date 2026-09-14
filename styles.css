@@ -70,6 +70,7 @@
 .snippets-editor-validity {
     display: flex;
     align-items: center;
+	text-align: start;
 }
 
 .snippets-editor-validity-indicator {
@@ -107,6 +108,7 @@
 .snippets-editor-buttons {
     display: flex;
     flex-direction: row;
+	margin-left: 1em;
 }
 
 .search-input-container input.latex-suite-location-input-el {

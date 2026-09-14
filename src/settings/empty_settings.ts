@@ -59,4 +59,5 @@ export const EMPTY_SETTINGS: LatexSuitePluginSettings = {
 	matrixShortcutsCellTrigger: "",
 	matrixShortcutsExitTrigger: "",
 	matrixShortcutsNewlineTrigger: "",
+	textMacros: "{\n\n}",
 }

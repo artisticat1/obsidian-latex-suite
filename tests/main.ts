@@ -14,6 +14,8 @@ import { parser } from "./math-only-parser";
 import { minimalSetup } from "codemirror";
 import { getContextPlugin } from "../src/editor_context/context";
 import { getLatexSuiteConfig } from "../src/snippets/codemirror/config";
+import { serializeSnippetLike } from "../src/snippets/snippets";
+import { DEFAULT_SETTINGS } from "../src/settings/settings";
 
 declare global {
 	interface Window {
@@ -47,6 +49,7 @@ export default class TestPlugin extends LatexSuitePlugin {
 		settings_translation,
 		i18next,
 		EditorView,
+		DEFAULT_SETTINGS
 	} as const;	
 	async onload() {
 		await super.onload();
@@ -104,6 +107,11 @@ export default class TestPlugin extends LatexSuitePlugin {
 		// 		view.dispatch(transaction);
 		// 	}
 		// }
+	}
+	
+	serializeSnippets() {
+		const snippets = this.CMSettings.snippets.all;
+		return snippets.map(serializeSnippetLike)
 	}
 }
 

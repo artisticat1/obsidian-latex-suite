@@ -6,6 +6,7 @@ import * as v from "valibot";
 import type { SnippetVariables } from "src/snippets/parse";
 import { EMPTY_MAPPING, fullMappingSchema, MappingSchema, type RawConcealMapping } from "src/editor_extensions/conceal_maps";
 import { createMacroMap, type MappingInfo } from "src/editor_extensions/conceal_fns";
+import { DEFAULT_MATHLESS_ARGS, EMPTY_MATHLESS_ARGS, mathlessArgsSchema, restrictedMacroArgs, textMacroArgs, type MacroArgs } from "src/editor_context/default_text_areas";
 
 export type snippetDebugLevel = "off" | "info" | "verbose";
 
@@ -74,7 +75,6 @@ export interface LatexSuiteRawSettings {
 	taboutClosingSymbols: string;
 	autoEnlargeBracketsTriggers: string;
 	forceMathLanguages: string;
-	concealMaps: string;
 }
 
 interface LatexSuiteParsedSettings {
@@ -84,12 +84,13 @@ interface LatexSuiteParsedSettings {
 	taboutClosingSymbols: Set<string>;
 	autoEnlargeBracketsTriggers: string[];
 	forceMathLanguages: string[];
-	concealMaps: MappingInfo;
 }
 
 interface LatexSuiteRawSchemaSettings {
 	snippets: string;
 	snippetVariables: string;
+	concealMaps: string;
+	textMacros: string;
 }
 
 export interface LatexSuiteParsedSchemaSettings {
@@ -98,10 +99,17 @@ export interface LatexSuiteParsedSchemaSettings {
 	rawConcealMaps: RawConcealMapping[];
 }
 
+type MathlessMacros = {
+	text: MacroArgs[];
+	restricted: MacroArgs[];
+	all: MacroArgs[];
+}
+
 interface LatexSuiteProcessedSchemaSettings {
 	snippets: GroupedSnippets;
 	snippetVariables: SnippetVariables;
 	concealMaps: MappingInfo;
+	mathlessMacros: MathlessMacros;
 }
 
 type GroupedSnippets = {
@@ -182,6 +190,7 @@ export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
 	matrixShortcutsCellTrigger: "Tab",
 	matrixShortcutsNewlineTrigger: "Enter",
 	matrixShortcutsExitTrigger: "Shift-Enter",
+	textMacros: JSON.stringify(DEFAULT_MATHLESS_ARGS, null, "\t"),
 };
 
 export const EnvironmentSchema = v.pipe(
@@ -196,6 +205,19 @@ export const EnvironmentSchema = v.pipe(
 	),
 	v.mapItems(([openSymbol, closeSymbol]) => ({ openSymbol, closeSymbol })),
 );
+
+export function validateTextMacros(textMacros: string) {
+	return v.safeParse(
+		v.pipe(
+			v.string(),
+			v.parseJson(),
+			v.check((obj) => !Array.isArray(obj), "Expected an object with 'text' and 'restricted' properties, but got an array."),
+			mathlessArgsSchema,
+		),
+		textMacros,
+	);
+}
+
 
 export function processLatexSuiteSettings(
 	settings: LatexSuitePluginSettings,
@@ -227,16 +249,36 @@ export function processLatexSuiteSettings(
 			return EMPTY_MAPPING;
 		}
 	}
+	function getMacroAreasFromString(str: string) {
+		const result = validateTextMacros(str);
+		if (!result.success) {
+			console.error("Failed to parse textMacros/snippetlessMacros", result.issues);
+		}
+		const data = result.success ? result.output : EMPTY_MATHLESS_ARGS;
+		return {
+			text: [...data.text, ...textMacroArgs],
+			restricted: [...data.restricted, ...restrictedMacroArgs],	
+		}
+
+	}
 	const groupedSnippets = {
 		automatic: snippets.filter((s) => s.options.automatic),
 		all: snippets,
 	};
+	
 
 	const concatenatedMaps = [...rawConcealMaps, getConcealMaps(settings.concealMaps)];
 	const concealMaps = fullMappingSchema(concatenatedMaps);
 	const mappingInfo = {
 		maps: concealMaps,
 		macroMap: createMacroMap(concealMaps),
+	}
+	
+	const textMacros = getMacroAreasFromString(settings.textMacros);
+	const mathlessMacros = {
+		text: textMacros.text,
+		restricted: textMacros.restricted,
+		all: [...textMacros.text, ...textMacros.restricted],
 	}
 
 	return {
@@ -263,6 +305,7 @@ export function processLatexSuiteSettings(
 			/[A-Za-z]+/.test(trigger) ? `\\${trigger}` : trigger,
 		),
 		forceMathLanguages: strToArray(settings.forceMathLanguages),
+		mathlessMacros: mathlessMacros,
 	};
 }
 

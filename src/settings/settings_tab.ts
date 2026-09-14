@@ -2,17 +2,21 @@ import { EditorView } from "@codemirror/view";
 import { App, Component, Notice, Platform, PluginSettingTab, Setting, type SettingDefinitionItem, debounce, setIcon } from "obsidian";
 import { parseSnippetVariables, parseSnippets } from "src/snippets/parse";
 import LatexSuitePlugin from "../main";
-import { DEFAULT_SETTINGS, type LatexSuitePluginSettings } from "./settings";
+import { DEFAULT_SETTINGS, validateTextMacros, type LatexSuitePluginSettings } from "./settings";
 import { FileSuggest } from "./ui/file_suggest";
 import { getVimSelectModeCommand, type vimCommand, getVimVisualModeCommand, getVimEditorCommands, getVimRunMatrixEnterCommand } from "src/features/editor_commands";
 import { createSnippetsEditor, LatexSuiteSettingsTab2, renderHtml } from "./settings_tab2";
 import { settings_translation as t } from "../i18n/i18n"
+import { MappingSchema } from "src/editor_extensions/conceal_maps";
+import * as v from "valibot";
 
 
 export class LatexSuiteSettingTab extends PluginSettingTab {
 	plugin: LatexSuitePlugin;
 	snippetsEditor: EditorView | null = null;
 	snippetVariablesEditor: EditorView | null = null;
+	textMacrosEditor: EditorView | null = null;
+	concealMapsEditor: EditorView | null = null;
 	snippetsFileLocEl: HTMLElement | undefined = undefined;
 	snippetVariablesFileLocEl: HTMLElement | undefined = undefined;
 	component = new Component()
@@ -25,6 +29,9 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 	hide() {
 		this.snippetsEditor?.destroy();
 		this.snippetVariablesEditor?.destroy();
+		this.concealMapsEditor?.destroy();
+		this.textMacrosEditor?.destroy();
+		
 	}
 	async setControlValue(key: string, value: unknown): Promise<void> {
 		if (!(Object.prototype.hasOwnProperty.call(DEFAULT_SETTINGS, key))) {
@@ -187,6 +194,19 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				})
 			);
 
+		const concealMapsSetting = new Setting(containerEl)
+			.setName(t("conceal.conceal-maps.name"))
+			.setDesc(this.renderHtml(t("conceal.conceal-maps.desc")))
+		this.concealMapsEditor = createSnippetsEditor(concealMapsSetting, this.plugin, {
+			type: "concealMaps",
+			validate: async (value) => {
+				const parsed = v.safeParse(v.pipe(v.string(), v.parseJson(), MappingSchema), value)
+				if (parsed.success) {
+					return
+				}
+				return parsed.issues.map(issue => issue.message)
+			}
+		})
 	}
 
 	private displayColorHighlightBracketsSettings() {
@@ -637,6 +657,20 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				})
 			);
+		const textMacrosSetting = new Setting(containerEl)
+			.setName(t("advanced-snippets.text-macros.name"))
+			.setDesc(this.renderHtml(t("advanced-snippets.text-macros.desc")))
+		this.textMacrosEditor = createSnippetsEditor(textMacrosSetting, this.plugin, {
+			type: "textMacros",
+			validate: async (value) => {
+				const result = validateTextMacros(value);
+				if (!result.success) {
+					const message = result.issues.map(issue => issue.message)
+					console.error("Text macro validation failed:", message.join("\n"));
+					return message;
+				}
+			}
+		});
 		//The toggle both hides the settings and makes the plugin not load the vim commands on startup.
 		// the vim toggle is loaded before the rest since expanding down looks better.
 		const vimEnabled: Setting = new Setting(containerEl)
@@ -743,7 +777,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			["tabout", "taboutTrigger"],
 		] as const;
 		const explanation = new Setting(containerEl)
-			.setDesc(this.renderMarkdown(t("keymap.desc")));
+			.setDesc(this.renderHtml(t("keymap.desc")));
 		explanation.setClass("latex-suite-keymap-list");
 		explanation.settingEl.createEl("ul", {}, ol => {
 			for (const [name, key] of settings) {
@@ -806,7 +840,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			
 		new Setting(containerEl)
 			.setName(t("experimental.excalidraw-enabled.name"))
-			.setDesc(t("experimental.excalidraw-enabled.desc"))
+			.setDesc(this.renderHtml(t("experimental.excalidraw-enabled.desc")))
 			.addToggle((toggle) => toggle
 				.setValue(this.plugin.settings.excalidrawSupportEnabled)
 				.onChange(async (value) => {
@@ -816,7 +850,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			);
 		new Setting(containerEl)
 			.setName(t("experimental.log-level.name"))
-			.setDesc(t("experimental.log-level.desc"))
+			.setDesc(this.renderHtml(t("experimental.log-level.desc")))
 			.addDropdown((dropdown) => dropdown
 				.setValue(this.plugin.settings.logLevel)
 				.addOption("off", t("experimental.log-level.options.off"))
@@ -830,7 +864,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			);
 	}
 
-	renderMarkdown(source: string) {
+	renderHtml(source: string) {
 		return renderHtml(source);
 	}
 }

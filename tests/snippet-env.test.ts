@@ -51,7 +51,7 @@ describe("snippet environment options", () => {
 				}
 				plugin.settings.snippetsFileLocation = context.snippets.path;
 				plugin.settings.loadSnippetsFromFile = true;
-				await plugin.saveSettings(false, true);
+				await plugin.saveSettings(true, true);
 			},
 		});
 	});
@@ -101,7 +101,7 @@ describe("snippet environment options", () => {
 						}
 					}
 				}
-				return results;
+				return results
 			},
 			input: { compiled_raw_snippets, context_snippets, transactionSpec },
 		});
