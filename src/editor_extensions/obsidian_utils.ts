@@ -1,5 +1,6 @@
-import { EditorState, StateField } from "@codemirror/state";
-import { Notice, Platform } from "obsidian";
+import { EditorState, Facet, StateField } from "@codemirror/state";
+import { EditorView } from "@codemirror/view";
+import { editorInfoField, Notice, Platform, TFile } from "obsidian";
 import { Snippet, type SnippetType } from "src/snippets/snippets";
 
 // grouping obsidian apis that obsidian forces in the linter, such that they can be easily replaced.
@@ -68,3 +69,29 @@ export function isMacOS() {
 // normally this should be `&dark` and `&light` but obsidian doesn't have it setup correctly and only does `.theme-dark` and `.theme-light`.
 export const cmDarkClass = ".theme-dark & ";
 export const cmLightClass = ".theme-light & ";
+
+
+
+export const fileConfig = Facet.define<{getFile: () => TFile | null}, {getFile: () => TFile | null}>({
+    combine: (input) => {
+        return input.length > 0 ? input[0] : { getFile: () => null };
+    }
+});
+
+export function getFileConfig(viewOrState: EditorView | EditorState) {
+	const state = viewOrState instanceof EditorView ? viewOrState.state : viewOrState;
+	return state.facet(fileConfig);
+}
+
+export function getFileConfigExtension(getFile: () => TFile | null) {
+	return fileConfig.of({ getFile });
+}
+
+export function getFilePathFromState(state: EditorState): string | null {
+	const fileInfo = state.field(editorInfoField, false);
+	if (fileInfo === undefined) {
+		return getFileConfig(state).getFile()?.path ?? null;
+	}
+	return fileInfo.file?.path ?? null;
+}
+
