@@ -1,7 +1,7 @@
 import { type PluginValue, ViewPlugin, ViewUpdate } from "@codemirror/view";
-import type { SyntaxNode } from "@lezer/common";
+import { NodeProp, type SyntaxNode } from "@lezer/common";
 import { modifiedSyntaxTree } from "./language";
-import { Type } from "./mathjax-parser";
+import { fullMathParser } from "./mathjax-parser";
 import { EditorState } from "@codemirror/state";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
 import { isLogLevelEnabled } from "src/settings/settings";
@@ -31,31 +31,30 @@ class SyntaxTreePrinter implements PluginValue {
 	}
 
 	printMountedTrees(state: EditorState) {
-		const tree = modifiedSyntaxTree(state);
-		const mountedTrees: SyntaxNode[] = [];
-		tree.iterate({
-			enter: (node) => {
-				if (node.name === Type.DollarDisplayBlockMath) {
-					const children = node.node.getChildren(Type.DisplayMath);
-					const last = children.last();
-					if (last) {
-						const tree = node.node.enter(last.to, -1);
-						if (!tree) return;
-						mountedTrees.push(tree);
-					}
-				} else if (node.name === "FencedCode") {
-					const infoNode = node.node.getChild("CodeInfo");
-					if (!infoNode) return;
-					const contentNodes = node.node.getChildren("CodeText");
-					const lastNode = contentNodes.last();
-					if (!lastNode) return;
-					const tree = node.node.enter(lastNode.to, -1);
-					if (tree) mountedTrees.push(tree);
-				}
-			},
-		});
+		// const tree = modifiedSyntaxTree(state);
+		const tree= fullMathParser([]).parse(state.doc.toString())
+		const mountedTrees: SyntaxNode[] = this.getmountedTrees(tree.topNode);
+		
+	
+	
 		const equation = state.doc.sliceString(0, state.doc.length);
 		return mountedTrees.map((node) => _getNodeInfo(node, equation));
+	}
+
+	private getmountedTrees(node: SyntaxNode): SyntaxNode[] {
+		const mountedTrees: SyntaxNode[] = [];
+		node.cursor().iterate((node) => {
+			const tree = node.node.tree?.prop(NodeProp.mounted);
+			const overlay = tree?.overlay
+			if (tree && overlay) {
+				const treeEnter = node.node.enter(overlay[overlay.length - 1].to, -1);
+				if (treeEnter) {
+					mountedTrees.push(treeEnter);
+					mountedTrees.push(...this.getmountedTrees(treeEnter));
+				}
+			}
+		});
+		return mountedTrees;
 	}
 }
 
