@@ -182,6 +182,14 @@
 				"info": "Info",
 				"verbose": "Verbose"
 			}
+		},
+		"text-macros": {
+			"name": "Text macros",
+			"desc": "A list of macros that should be treated as text. Only snippets with `T` option will be expanded in text mode."
+		},
+		"snippetless-macros": {
+			"name": "Snippetless macros",
+			"desc": "A list of macros where no snippets should be expanded except for snippets with `includedMacros` option."
 		}
 	},
 	"vim": {
