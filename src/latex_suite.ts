@@ -27,18 +27,6 @@ export const handleUpdate = (update: ViewUpdate) => {
 	if (handleUndoRedo(update)) {
 		return;
 	}
-
-	const userEvent = update.transactions.filter((tr) => tr.isUserEvent("input.type"));
-	if (userEvent.length === 0 || !settings.snippetIMEVersion) {
-			return;
-	}
-
-	// HACK: reusing logic from handleKeydown with empty string
-	const success = handleKeydown("", false, update.view.composing, update.view);
-	if (success) {
-		console.debug("Handled input event as snippet trigger");
-	}
-
 }
 
 export const keyboardEventPlugin = ViewPlugin.fromClass(class {
@@ -70,6 +58,14 @@ export const keyboardEventPlugin = ViewPlugin.fromClass(class {
 		keydown(event, view) {
 			view.plugin(keyboardEventPlugin)!.onKeydown(event, view);
 		},
+		compositionend(event, view) {
+			const settings = getLatexSuiteConfig(view);
+			if (!settings.snippetIMEVersion) return;
+			if (handleKeydown("", false, false, view)) {
+				event.preventDefault();
+				return true;
+			}
+		}	
 	},
 
 })
