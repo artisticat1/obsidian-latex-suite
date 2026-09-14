@@ -1,6 +1,6 @@
 import { type Extension, Prec } from "@codemirror/state";
 import { Plugin, Notice, loadMathJax, addIcon, debounce } from "obsidian";
-import { getSnippetsFromFiles, getFileSets, getVariablesFromFiles, tryGetVariablesFromUnknownFiles, fileWatch } from "./settings/file_watch";
+import { getSnippetsFromFiles, getFileSets, getVariablesFromFiles, tryGetVariablesFromUnknownFiles, fileWatch, noticeManager } from "./settings/file_watch";
 import { type LatexSuitePluginSettings, DEFAULT_SETTINGS, type LatexSuiteCMSettings, processLatexSuiteSettings, type LatexSuiteBasicSettings, type LatexSuiteRawSettings, isLogLevelEnabled } from "./settings/settings";
 import { isIMESupported, LatexSuiteSettingTab } from "./settings/settings_tab";
 import { ICONS } from "./settings/ui/icons";
@@ -33,10 +33,14 @@ import { runAutoFraction } from "./features/autofraction";
 import { addCellMatrixShortcut, exitMatrixShortCut, newlineMatrixShortcut, priorityTaboutMatrixShortcut } from "./features/matrix_shortcuts";
 import { snippet, tempKeyPress } from "./snippets/snippet_management";
 import { snippetApi } from "./snippets/luasnip_api";
+import { default_mapping, MappingSchema, type RawConcealMapping } from "./editor_extensions/conceal_maps";
+import { serializeSnippetLike } from "./snippets/snippets";
 
 export default class LatexSuitePlugin extends Plugin implements LatexSuitePluginPublicApi {
 	settings: LatexSuitePluginSettings = EMPTY_SETTINGS;
-	CMSettings: LatexSuiteCMSettings = processLatexSuiteSettings([], this.settings);
+	baseRawConcealMaps: RawConcealMapping[] = [default_mapping];
+	rawConcealMaps: RawConcealMapping[] = [];
+	CMSettings: LatexSuiteCMSettings = processLatexSuiteSettings([], this.settings, this.baseRawConcealMaps);
 	editorExtensions: Extension[] = [];
 	watcherCloser?: () => void;
 	disableMath = (view: EditorView) => {
@@ -48,6 +52,17 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 	};
 	modifiedSyntaxTree = modifiedSyntaxTree;
 	snippet = snippet;
+	addRawConcealMaps = (rawConcealMaps: Record<string, unknown>) => {
+		try {
+			const parsedMap = v.parse(MappingSchema, rawConcealMaps);
+			this.rawConcealMaps.push(parsedMap);
+		} catch (err) {
+			const e = err as Error;
+			const error_message = `Value does not resemble a valid conceal mapping. \n${serializeSnippetLike(rawConcealMaps)}\n\n${e}`;
+			console.error(error_message);
+			noticeManager.addNotice(new Notice(error_message, 5000));
+		}
+	}
 	api = {
 		effects: {
 			snippetInvertedEffects,
@@ -210,6 +225,8 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 		if (!becauseFileLocationUpdated && !becauseFileUpdated) {
 			return this.CMSettings.snippets.all;
 		}
+		// reset the maps such that the caller can reinsert them without worrying about duplicates.
+		this.rawConcealMaps = [];
 		// Get files in snippet/variable folders.
 		// If either is set to be loaded from settings the set will just be empty.
 		const files = await getFileSets(this);
@@ -240,7 +257,14 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 		if (becauseFileLocationUpdated) {
 			this.watchFiles();
 		}
-		this.CMSettings = processLatexSuiteSettings(await this.getSnippets(becauseFileLocationUpdated, becauseFileUpdated), this.settings);
+		this.CMSettings = processLatexSuiteSettings(
+			await this.getSnippets(
+				becauseFileLocationUpdated,
+				becauseFileUpdated,
+			),
+			this.settings,
+			[...this.baseRawConcealMaps, ...this.rawConcealMaps],
+		);
 		this.setEditorExtensions();
 		// Request Obsidian to reconfigure CM extensions
 		this.app.workspace.updateOptions();

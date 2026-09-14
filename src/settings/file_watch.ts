@@ -313,7 +313,7 @@ class NoticeManager {
 		}
 	}
 }
-const noticeManager = new NoticeManager();
+export const noticeManager = new NoticeManager();
 
 export async function getVariablesFromFiles(files: FileSets) {
 	const snippetVariables: SnippetVariables = {};

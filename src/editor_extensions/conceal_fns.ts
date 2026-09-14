@@ -2,24 +2,19 @@
 
 import { EditorView } from "@codemirror/view";
 import type { ConcealSpec } from "./conceal";
-import {
-	fractions,
-	not_remap,
-	brackets,
-	mathscrcal,
-	greek,
-	mathbb,
-	operators,
-	cmd_symbols,
-	leftrightBrackets,
-} from "./conceal_maps";
+import { type ConcealMapping } from "./conceal_maps";
 import { type SyntaxNode, TreeCursor } from "@lezer/common";
 import { cumulativeSum } from "src/utils/editor_utils";
 import { EquationText, iterateTreeCursor } from "src/utils/tokenizer";
 import { getMathBoundsPlugin } from "src/editor_context/mathbounds";
 import { latex } from "src/parser/latex-terms";
 
-const ALL_SYMBOLS: Record<string, string> = {...greek, ...cmd_symbols}
+
+
+export type MappingInfo = {
+	maps: ConcealMapping;
+	macroMap: MacroHandlerMap;
+};
 
 const textModifiers = {
 	mathbf: "cm-concealed-bold",
@@ -68,6 +63,28 @@ function extractMathArgument(node: SyntaxNode) {
 	};
 }
 
+function extractMathArgumentStar(node: SyntaxNode, doc: EquationText) {
+	const peekCursor = node.cursor();
+	if (!peekCursor.next()) return null;
+	const mathSpecial = peekCursor.node;
+	if (!mathSpecial.type.is(latex.MathSpecialChar) || doc.slice(mathSpecial.from, mathSpecial.to) !== "*") return null;
+	const group = mathSpecial.nextSibling;
+	if (!group || !group.type.is("Group")) return null;
+	const openBraceNode = group.firstChild;
+	if (!openBraceNode || !openBraceNode.type.is(latex.OpenBrace)) return null;
+	const mathNode = openBraceNode.nextSibling;
+	if (!mathNode || !mathNode.type.is(latex.Math)) return null;
+	const closeBraceNode = mathNode.nextSibling;
+	if (!closeBraceNode || !closeBraceNode.type.is(latex.CloseBrace))
+		return null;
+	return {
+		mathArgumentNode: group,
+		openBraceNode,
+		mathNode,
+		closeBraceNode,
+	};
+}
+
 function extractTextArgument(node: SyntaxNode) {
 	const textArgumentNode = node.nextSibling;
 	if (!textArgumentNode || !textArgumentNode.type.is(latex.TextArgument))
@@ -87,7 +104,7 @@ function extractTextArgument(node: SyntaxNode) {
 	};
 }
 
-function handleFrac(cursor: TreeCursor, doc: EquationText): HandleConcealResult {
+function handleFrac({cursor, doc, maps}: MacroHandlerOptions): HandleConcealResult {
 	const node = cursor.node;
 	const numeratorNode = extractMathArgument(node);
 	if (!numeratorNode) return { spec: [], kind: HandleResultKind.Handled };
@@ -98,13 +115,13 @@ function handleFrac(cursor: TreeCursor, doc: EquationText): HandleConcealResult 
 	const denominatorOpen = denominatorNode.openBraceNode;
 	const denominatorClose = denominatorNode.closeBraceNode;
 	const fractionContent = doc.slice(nominatorOpen.from, denominatorClose.to);
-	if (fractions[fractionContent]) {
+	if (maps.fractions[fractionContent]) {
 		cursor.moveTo(node.to, -1);
 		const spec = [
 			{
 				start: node.from,
 				end: denominatorClose.to,
-				text: fractions[fractionContent],
+				text: maps.fractions[fractionContent],
 			},
 		];
 		return { spec, kind: HandleResultKind.Handled };
@@ -157,7 +174,8 @@ function handleFrac(cursor: TreeCursor, doc: EquationText): HandleConcealResult 
 	return { spec, kind: HandleResultKind.Handled };
 }
 
-function handleModifier(cursor: TreeCursor, doc: EquationText, macro: string): HandleConcealResult {
+function handleModifier({cursor, doc, macro, maps}: MacroHandlerOptions): HandleConcealResult {
+	const greek = maps.greek;
 	const nodeRef = cursor.node;
 	const modifier = modifiers[macro as keyof typeof modifiers];
 	const mathArgumentNode = extractMathArgument(nodeRef);
@@ -197,9 +215,10 @@ function getLimitLength(cursor: TreeCursor, doc: EquationText) {
 	return cursor.to;
 }
 
-function handleBracket(cursor: TreeCursor, _doc: EquationText, macro: string): HandleConcealResult {
-	const symbol = brackets[macro];
-	const spec=[
+function handleBracket({cursor, doc, macro, maps}: MacroHandlerOptions): HandleConcealResult {
+	const symbol = maps.brackets[macro];
+	if (!symbol) return { spec: [], kind: HandleResultKind.Handled };
+	const spec= [
 		{
 			start: cursor.from,
 			end: cursor.to,
@@ -210,7 +229,7 @@ function handleBracket(cursor: TreeCursor, _doc: EquationText, macro: string): H
 	return {spec, kind: HandleResultKind.Handled };
 }
 
-function handleBraKet(cursor: TreeCursor, _doc: EquationText, macro: string): HandleConcealResult {
+function handleBraKet({cursor, macro}: MacroHandlerOptions): HandleConcealResult {
 	const langle = "〈";
 	const rangle = "〉";
 	const vert = "|";
@@ -232,7 +251,7 @@ function handleBraKet(cursor: TreeCursor, _doc: EquationText, macro: string): Ha
 	return {spec, kind: HandleResultKind.Handled };
 }
 
-function handleOperator(cursor: TreeCursor, doc: EquationText, macro: string): HandleConcealResult {
+function handleOperator({cursor, doc, macro}: MacroHandlerOptions): HandleConcealResult {
 	const nodeRef = cursor.node;
 	const end = getLimitLength(cursor, doc);
 	const spec = [
@@ -246,7 +265,8 @@ function handleOperator(cursor: TreeCursor, doc: EquationText, macro: string): H
 	return { spec, kind: HandleResultKind.Handled };
 }
 
-function handleLeftRight(cursor: TreeCursor, doc: EquationText): HandleConcealResult {
+function handleLeftRight({cursor, doc, maps}: MacroHandlerOptions): HandleConcealResult {
+	const {leftrightBrackets, brackets} = maps
 	const from = cursor.from;
 	const peekCursor = cursor.node.cursor();
 	if (!peekCursor.next()) return { spec: [], kind: HandleResultKind.Handled };
@@ -269,7 +289,8 @@ function handleLeftRight(cursor: TreeCursor, doc: EquationText): HandleConcealRe
 	return { spec: [], kind: HandleResultKind.NotHandled };
 }
 
-function handleSubSup(doc: EquationText, nodeRef: SyntaxNode, cursor: TreeCursor): HandleConcealResult {
+function handleSubSup({ doc, cursor, maps, macroMap }: MacroHandlerOptions): HandleConcealResult {
+	const nodeRef = cursor.node;
 	const char = doc.slice(nodeRef.from, nodeRef.to);
 	if (char !== "_" && char !== "^") return { spec: [], kind: HandleResultKind.NotHandled };
 	const type = char === "_" ? "sub" : "sup";
@@ -295,7 +316,7 @@ function handleSubSup(doc: EquationText, nodeRef: SyntaxNode, cursor: TreeCursor
 		doc.offset
 	);
 
-	const recursed_specs = traverseTree(nextNode, newDoc);
+	const recursed_specs = traverseTree(nextNode, newDoc, { maps, macroMap });
 	const isGroup = nextNode.name === "Group";
 	let maxEnd = nextNode.from + Number(isGroup);
 	const textArray: string[] = [];
@@ -332,9 +353,9 @@ function handleSubSup(doc: EquationText, nodeRef: SyntaxNode, cursor: TreeCursor
 	return { spec, kind: HandleResultKind.Handled };
 }
 
-function handleOperatorName(cursor: TreeCursor, doc: EquationText): HandleConcealResult {
+function handleOperatorName({cursor, doc}: MacroHandlerOptions): HandleConcealResult {
 	const nodeRef = cursor.node;
-	const mathArgumentNode = extractMathArgument(nodeRef);
+	const mathArgumentNode = extractMathArgument(nodeRef) || extractMathArgumentStar(nodeRef, doc);
 	if (!mathArgumentNode) return { spec: [], kind: HandleResultKind.Handled };
 	const contentNode = mathArgumentNode.mathNode;
 	const close = mathArgumentNode.closeBraceNode;
@@ -356,7 +377,7 @@ function handleOperatorName(cursor: TreeCursor, doc: EquationText): HandleConcea
 	return { spec, kind: HandleResultKind.Handled };
 }
 
-function handleSet(cursor: TreeCursor, doc: EquationText): HandleConcealResult {
+function handleSet({cursor, doc}: MacroHandlerOptions): HandleConcealResult {
 	const nodeRef = cursor.node;
 	const mathArgumentNode = extractMathArgument(nodeRef);
 	if (!mathArgumentNode) return { spec: [], kind: HandleResultKind.Handled };
@@ -391,7 +412,7 @@ function handleSet(cursor: TreeCursor, doc: EquationText): HandleConcealResult {
 	return { spec, kind: HandleResultKind.Handled };
 }
 
-function handleText(cursor: TreeCursor, doc: EquationText): HandleConcealResult {
+function handleText({cursor, doc}: MacroHandlerOptions): HandleConcealResult {
 	const nodeRef = cursor.node;
 	const textArgumentNode = extractTextArgument(nodeRef);
 	if (!textArgumentNode) return { spec: [], kind: HandleResultKind.Handled };
@@ -415,7 +436,8 @@ function handleText(cursor: TreeCursor, doc: EquationText): HandleConcealResult 
 	return { spec, kind: HandleResultKind.Handled };
 }
 
-function handleMathcal(cursor: TreeCursor, doc: EquationText): HandleConcealResult {
+function handleMathcal({cursor, doc, maps}: MacroHandlerOptions): HandleConcealResult {
+	const mathscrcal = maps.mathscrcal;
 	const nodeRef = cursor.node;
 	const mathArgumentNode = extractMathArgument(nodeRef);
 	if (!mathArgumentNode) return { spec: [], kind: HandleResultKind.Handled };
@@ -441,7 +463,8 @@ function handleMathcal(cursor: TreeCursor, doc: EquationText): HandleConcealResu
 	return { spec, kind: HandleResultKind.Handled };
 }
 
-function handleTextModifiers(cursor: TreeCursor, doc: EquationText, macro: string): HandleConcealResult {
+function handleTextModifiers({cursor, doc, macro, maps}: MacroHandlerOptions): HandleConcealResult {
+	const {greek, mathbb} = maps;
 	const nodeRef = cursor.node;
 	const mathArgumentNode = extractMathArgument(nodeRef);
 	if (!mathArgumentNode) return { spec: [], kind: HandleResultKind.Handled };
@@ -449,14 +472,15 @@ function handleTextModifiers(cursor: TreeCursor, doc: EquationText, macro: strin
 	const sibling = mathArgumentNode.closeBraceNode;
 	let content = doc.slice(contentNode.from, contentNode.to);
 	if (/[^A-Za-z0-9 ]/.test(content)) {
+		let tempContent;
 		if (!(
 			(macro === "underline" || macro === "boldsymbol") &&
 			content[0] === "\\" &&
-			content.slice(1) in greek
+			(tempContent = greek[content.slice(1)])
 		)) {
 			return { spec: [], kind: HandleResultKind.Handled };
 		}
-		content = greek[content.slice(1)];
+		content = tempContent;
 	}
 	if (macro === "mathbb") {
 		content = content
@@ -477,7 +501,8 @@ function handleTextModifiers(cursor: TreeCursor, doc: EquationText, macro: strin
 	return { spec, kind: HandleResultKind.Handled };
 }
 
-function handleNot(cursor: TreeCursor, doc: EquationText): HandleConcealResult {
+function handleNot({cursor, doc, maps}: MacroHandlerOptions): HandleConcealResult {
+	const {not_remap} = maps;
 	const notFrom = cursor.from;
 	const peekCursor = cursor.node.cursor();
 	if (!peekCursor.next()) return { spec: [], kind: HandleResultKind.Handled };
@@ -500,38 +525,67 @@ function handleNot(cursor: TreeCursor, doc: EquationText): HandleConcealResult {
 	return { spec, kind: HandleResultKind.Handled };
 }
 
+function handleAllSymbols({cursor, doc, macro, maps}: MacroHandlerOptions): HandleConcealResult {
+	const { ALL_SYMBOLS } = maps;
+	const symbol = ALL_SYMBOLS[macro];
+	if (!symbol) return { spec: [], kind: HandleResultKind.Handled };
+	const nodeRef = cursor.node;
+	const end = getLimitLength(cursor, doc);
+	const spec = [
+		{
+			start: nodeRef.from,
+			end: end,
+			text: symbol,
+		},
+	];
+	return { spec, kind: HandleResultKind.Handled };
+}
 
 const fractionsMacro = ["frac", "dfrac", "tfrac", "gfrac"];
 const braketMacro = ["bra", "ket", "braket"];
-const macroMap = {
-	"not": handleNot,
-	"left": handleLeftRight,
-	"right": handleLeftRight,
-	"mathcal": handleMathcal,
-	"text": handleText,
-	"set": handleSet,
-	"operatorname": handleOperatorName,
-} as Record<string, (cursor: TreeCursor, doc: EquationText, macro: string) => HandleConcealResult>;
-for (const macro of Object.keys(modifiers)) {
-	macroMap[macro] = handleModifier;
-}
-for (const macro of Object.keys(brackets)) {
-	macroMap[macro] = handleBracket;
-}
-for (const macro of Object.keys(textModifiers)) {
-	macroMap[macro] = handleTextModifiers;
-}
-for (const macro of fractionsMacro) {
-	macroMap[macro] = handleFrac;
-}
-for (const macro of braketMacro) {
-	macroMap[macro] = handleBraKet;
-}
-for (const macro of operators) {
-	macroMap[macro] = handleOperator
+
+type MacroHandlerOptions = {
+	cursor: TreeCursor;
+	doc: EquationText;
+	macro: string;
+} & MappingInfo;
+
+type MacroHandlerMap = Record<string, (options: MacroHandlerOptions) => HandleConcealResult>;
+export function createMacroMap(maps: ConcealMapping) : MacroHandlerMap {
+	const macroMap: MacroHandlerMap = {
+		"not": handleNot,
+		"left": handleLeftRight,
+		"right": handleLeftRight,
+		"mathcal": handleMathcal,
+		"text": handleText,
+		"set": handleSet,
+		"operatorname": handleOperatorName,
+	}	
+	for (const macro of Object.keys(modifiers)) {
+		macroMap[macro] = handleModifier;
+	}
+	for (const macro of Object.keys(maps.brackets)) {
+		macroMap[macro] = handleBracket;
+	}
+	for (const macro of Object.keys(textModifiers)) {
+		macroMap[macro] = handleTextModifiers;
+	}
+	for (const macro of fractionsMacro) {
+		macroMap[macro] = handleFrac;
+	}
+	for (const macro of braketMacro) {
+		macroMap[macro] = handleBraKet;
+	}
+	for (const macro of Object.keys(maps.operators)) {
+		macroMap[macro] = handleOperator
+	}
+	for (const macro of Object.keys(maps.ALL_SYMBOLS)) {
+		macroMap[macro] = handleAllSymbols;
+	}
+	return macroMap
 }
 
-function traverseTree(topNode: SyntaxNode, doc: EquationText): ConcealSpec[] {
+function traverseTree(topNode: SyntaxNode, doc: EquationText, {maps, macroMap}: MappingInfo): ConcealSpec[] {
 	const specs: ConcealSpec[] = [];
 	for (const cursor of iterateTreeCursor(topNode, doc)) {
 		const nodeRef = cursor.node;
@@ -539,25 +593,15 @@ function traverseTree(topNode: SyntaxNode, doc: EquationText): ConcealSpec[] {
 			const macro = doc.slice(nodeRef.from + 1, nodeRef.to);
 			const handler = macroMap[macro];
 			if (handler) {
-				const { spec, kind } = handler(cursor, doc, macro);
+				const { spec, kind } = handler({cursor, doc, macro, maps, macroMap});
 				if (kind === HandleResultKind.Handled) {
 					specs.push(spec);
 					continue;
 				}
 			}
-			const symbol = ALL_SYMBOLS[macro];
-			if (!symbol) continue;
-			const end = getLimitLength(cursor, doc);
-			specs.push([
-				{
-					start: nodeRef.from,
-					end: end,
-					text: symbol,
-				},
-			]);
 			continue;
 		} else if (nodeRef.type.is(latex.MathSpecialChar)) {
-			const subSupSpec = handleSubSup(doc, nodeRef, cursor);
+			const subSupSpec = handleSubSup({ doc, cursor, maps, macroMap, macro: doc.slice(nodeRef.from, nodeRef.to) });
 			if (subSupSpec.kind === HandleResultKind.Handled) {
 				specs.push(subSupSpec.spec);
 				continue;
@@ -571,6 +615,10 @@ export type ConcealCachedEquations = Record<string, ConcealSpec[]>;
 export function conceal(
 	view: EditorView,
 	cached_equations: ConcealCachedEquations,
+	{
+		maps,
+		macroMap
+	}: MappingInfo
 ): { specs: ConcealSpec[]; cached_equations: ConcealCachedEquations } {
 	const boundsPlugin = getMathBoundsPlugin(view);
 	const overlays = boundsPlugin.getEquationOverlays(view.state);
@@ -625,6 +673,7 @@ export function conceal(
 		const localSpecs = traverseTree(
 			bound.tree,
 			new EquationText(eqn.text, eqn.overlay.from, eqn.overlay.to),
+			{ maps, macroMap }
 		);
 		specs.push(...localSpecs);
 		// keep cached equations relative to the overlay start such that duplicates can exists and

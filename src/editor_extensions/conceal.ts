@@ -311,6 +311,7 @@ class Conceal implements PluginValue {
 			this.atomicRanges = this.atomicRanges.map(update.changes);
 			return;
 		}
+		const mappingInfo = getLatexSuiteConfig(update.view).concealMaps;
 
 		// Cancel the delayed revealment whenever we update the concealments
 		this.delayedReveal.cancel();
@@ -319,7 +320,7 @@ class Conceal implements PluginValue {
 		if (!update.docChanged && !update.viewportChanged) {
 			this.updateFromConcealSpecs(this.concealSpecs, update);
 		} else {
-			const {specs: concealSpecs, cached_equations} = conceal(update.view, this.cached_equations);
+			const {specs: concealSpecs, cached_equations} = conceal(update.view, this.cached_equations, mappingInfo);
 			this.cached_equations = cached_equations;
 			this.concealSpecs = concealSpecs;
 			this.updateFromConcealSpecs(concealSpecs, update);
