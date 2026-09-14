@@ -87,6 +87,7 @@ type ExperimentalSettingDefinition = Definition<
 	| "snippetRecursion"
 	| "excalidrawSupportEnabled"
 	| "logLevel"
+	| "snippetIMEVersion"
 >
 
 
@@ -605,6 +606,11 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 						  "vverbose":  t("experimental.log-level.options.vverbose"),
 					},
 				}
+			},
+			{
+				name: t("experimental.snippet-IME-version.name"),
+				desc: this.renderHtml( t("experimental.snippet-IME-version.desc")),
+				control: getToggleControl("snippetIMEVersion")
 			}
 		]
 		
