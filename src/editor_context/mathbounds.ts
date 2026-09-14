@@ -3,7 +3,7 @@ import { type Bounds, type CMBound, MathMode } from "./context";
 import { EditorState } from "@codemirror/state";
 import type { SyntaxNode, SyntaxNodeRef } from "@lezer/common";
 import { modifiedSyntaxTree } from "src/parser/language";
-import { Type } from "src/parser/mathjax-parser";
+import { getClassListFromElement, Type } from "src/parser/mathjax-parser";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
 import { latex } from "src/parser/latex-terms";
 
@@ -66,6 +66,41 @@ export class MathBoundsPlugin implements PluginValue {
 			open,
 			close
 		}
+	}
+
+	getMathBoundsFromHtmlBlock(node: SyntaxNode, state: EditorState): MathBounds[] {
+		const tree = node.enter(node.to, -1);
+		if (!tree) return [];
+		const mathBounds: MathBounds[] = [];
+		tree.cursor().iterate((child) => {
+			let latexTree;
+			if (child.name !== "Element") return;
+			const text = child.node.getChild("Text");
+			if (!(text && (latexTree = child.node.enter(text.to, -1))?.type.is(latex.LaTeX))) {
+				return;
+			}
+			const classListResult = getClassListFromElement(child.node, {
+				read: (from, to) => state.sliceDoc(from, to)
+			})
+			if (classListResult === null) {
+				return;
+			}
+			const {classList, openTag, closeTag} = classListResult;
+			const mode = classList.includes("math-inline") ? MathMode.InlineMath : MathMode.BlockMath;
+
+			mathBounds.push({
+				inner_start: text.from,
+				inner_end: text.to,
+				outer_start: openTag.from,
+				outer_end: closeTag.to,
+				mode,
+				tree: latexTree,
+				overlay: [{ from: text.from, to: child.to }],
+			});	
+			return false;
+		})
+		return mathBounds;
+		
 	}
 
 	updateMathBounds(view: EditorView): void {
@@ -159,6 +194,8 @@ export class MathBoundsPlugin implements PluginValue {
 							tree,
 							overlay: contentNodes,
 						});
+					} else if (nodeRef.name === "HTMLBlock") {
+						ranges.push(...this.getMathBoundsFromHtmlBlock(nodeRef.node, view.state));
 					}
 				},
 			});

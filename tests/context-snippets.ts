@@ -107,6 +107,30 @@ export const transactionSpec: Spec[] = [
 		options: ["m", "M"],
 		names: ["display-math", "math", "math-exclude-pu", "math-exclude-align"],
 	},
+	{
+		text: '<div class="math math-inline">E=mc^a</div>',
+		pos: '<div class="math math-inline">E=mc^a'.length,
+		options: ["n", "m"],
+		names: ["inline-math", "math", "math-exclude-pu", "math-exclude-align"],
+	},
+	{
+		text: '<div class="math math-display">E=mc^a</div>',
+		pos: '<div class="math math-inline">E=mc^a'.length,
+		options: ["M", "m"],
+		names: ["display-math", "math", "math-exclude-pu", "math-exclude-align"],
+	},
+	{
+		text: '<div class="math math-display">E=mc^a</div>',
+		pos: '<div class="math math-display">E=mc^a'.length,
+		options: ["M", "m"],
+		names: ["display-math", "math", "math-exclude-pu", "math-exclude-align"],
+	},
+	{
+		text: '<div class="math">E=mc^a</div>',
+		pos: '<div class="math">E=mc^a'.length,
+		options: ["M", "m"],
+		names: ["display-math", "math", "math-exclude-pu", "math-exclude-align"],
+	}
 ];
 
 let length = normal_name_options.length;
