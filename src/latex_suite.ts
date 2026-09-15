@@ -85,12 +85,13 @@ export const onInput = (view: EditorView, _from: number, _to: number, text: stri
 	if (text === "\0\0") return true;
 	if (text.length == 1 && lastKeyboardEvent) {
 		if (text === "\t") text = "Tab";
+		const event = new KeyboardEvent("keydown", {key: text})
 		const success = handleKeydown(
 			text,
 			lastKeyboardEvent.ctrlKey || lastKeyboardEvent.metaKey,
 			isComposing(view, lastKeyboardEvent),
 			view
-		);
+		) || runScopeHandlers(view, event, "latex-suite")
 		if (success) {
 			forceEndComposition(view);
 			return true;
