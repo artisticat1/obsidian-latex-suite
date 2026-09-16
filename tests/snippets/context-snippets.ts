@@ -1,4 +1,4 @@
-import type { RawSnippet } from "./main";
+import type { RawSnippet } from "../main";
 
 
 export const options = ["T", "Tm", "Tn", "TM", "M", "n", "c", "m"] as const;
@@ -104,60 +104,55 @@ export const transactionSpec: Spec[] = [
 ];
 
 let length = normal_name_options.length;
-const snippets = (
-	[
+let snippetId = 0;
+function getTrigger() {
+	return new RegExp(`(?<!\\d)${snippetId++}`);
+}
+const snippets = [
 		...normal_name_options.slice(0, length).map((value, index) => ({
-			trigger: index.toString(),
+			trigger: getTrigger(),
 			replacement: "",
 			options: value[1],
 			name: value[0],
 		})),
 		{
-			trigger: (length++).toString(),
+			trigger: getTrigger(),
 			replacement: "",
 			options: "m",
 			name: "math-exclude-pu",
 			excludedMacros: ["pu"],
 		},
 		{
-			trigger: (length++).toString(),
+			trigger: getTrigger(),
 			replacement: "",
 			options: "m",
 			name: "math-exclude-align",
 			excludedEnvironments: ["align"],
 		},
 		{
-			trigger: (length++).toString(),
+			trigger: getTrigger(),
 			replacement: "",
 			options: "m",
 			name: "math-include-color",
 			includedMacros: ["color"],
 		},
 		{
-			trigger: (length++).toString(),
+			trigger: getTrigger(),
 			replacement: "",
 			options: "m",
 			name: "math-include-begin",
 			includedMacros: ["begin"],
 		},
 		{
-			trigger: (length++).toString(),
+			trigger: getTrigger(),
 			replacement: "",
 			options: "m",
 			name: "math-include-pu-align",
 			includedMacros: ["pu"],
 		},
+
 	] as const satisfies (Readonly<RawSnippet> & {
 		readonly name: (typeof names)[number]["0"];
 	})[]
-).map(
-	(snippet) =>
-		({
-			...snippet,
-			trigger: new RegExp(`(?<!\\d)${snippet.trigger}`),
-		}) as const,
-) satisfies (Readonly<RawSnippet> & {
-	readonly name: (typeof names)[number]["0"];
-})[];
 
 export default snippets;
