@@ -5,11 +5,11 @@ import { editorLivePreviewField, MarkdownView } from "obsidian";
 import { EditorView } from "@codemirror/view";
 import { RawSnippetSchema } from "../src/snippets/parse";
 import * as v from "valibot"
-import { colorPairedBrackets, colorPairedBracketsPlugin } from "../src/editor_extensions/highlight_brackets";
+import { colorPairedBrackets } from "../src/editor_extensions/highlight_brackets";
 import i18next from "../src/i18n/i18n";
 import { settings_translation } from "../src/i18n/i18n";
 import type {} from "../src/i18n/i18next";
-import { Language, LRLanguage } from "@codemirror/language";
+import { LRLanguage } from "@codemirror/language";
 import { parser } from "./math-only-parser";
 import { minimalSetup } from "codemirror";
 import { getContextPlugin } from "../src/editor_context/context";
