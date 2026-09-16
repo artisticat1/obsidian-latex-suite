@@ -68,6 +68,25 @@ function extractMathArgument(node: SyntaxNode) {
 	};
 }
 
+function extractShortTextArgument(node: SyntaxNode) {
+	const textArgumentNode = node.nextSibling;
+	if (!textArgumentNode || !textArgumentNode.type.is(latex.ShortTextArgument))
+		return null;
+	const openBraceNode = textArgumentNode.firstChild;
+	if (!openBraceNode || !openBraceNode.type.is(latex.OpenBrace)) return null;
+	const textNode = openBraceNode.nextSibling;
+	if (!textNode || !textNode.type.is(latex.ShortArg)) return null;
+	const closeBraceNode = textNode.nextSibling;
+	if (!closeBraceNode || !closeBraceNode.type.is(latex.CloseBrace))
+		return null;
+	return {
+		textArgumentNode,
+		openBraceNode,
+		textNode,
+		closeBraceNode,
+	};
+}
+
 function extractTextArgument(node: SyntaxNode) {
 	const textArgumentNode = node.nextSibling;
 	if (!textArgumentNode || !textArgumentNode.type.is(latex.TextArgument))
@@ -269,6 +288,51 @@ function handleLeftRight(cursor: TreeCursor, doc: EquationText): HandleConcealRe
 	return { spec: [], kind: HandleResultKind.NotHandled };
 }
 
+function handleTextColor(cursor: TreeCursor, doc: EquationText): HandleConcealResult {
+	const shortTextArgumentNode = extractShortTextArgument(cursor.node);
+	if (!shortTextArgumentNode) return { spec: [], kind: HandleResultKind.Handled };
+	const mathArgumentNode = extractMathArgument(shortTextArgumentNode.textArgumentNode);
+	if (!mathArgumentNode) return { spec: [], kind: HandleResultKind.Handled };
+	const contentNode = mathArgumentNode.mathNode;
+	const color = doc.slice(shortTextArgumentNode.textNode.from, shortTextArgumentNode.textNode.to);
+	const newDoc = new EquationText(
+		doc.eqn,
+		contentNode.from,
+		contentNode.to,
+		doc.offset
+	);
+	const mathSpecs = traverseTree(contentNode, newDoc);
+	const flattenedSpecs = mathSpecs.flat();
+	const start = cursor.from;
+	cursor.moveTo(mathArgumentNode.closeBraceNode.to, 1);
+	const replacements = []
+	let startPos = contentNode.from;
+	for (let i = 0; i < flattenedSpecs.length; i++) {
+		replacements.push({
+			start: startPos,
+			end: flattenedSpecs[i].start,
+			text: doc.slice(startPos, flattenedSpecs[i].start),
+		})
+		replacements.push(flattenedSpecs[i]);
+		startPos = flattenedSpecs[i].end;
+	}
+	replacements.push({
+		start: startPos,
+		end: mathArgumentNode.closeBraceNode.from,
+		text: doc.slice(startPos, mathArgumentNode.closeBraceNode.from),
+	});
+	return {
+		spec: [{
+			start: start,
+			end: mathArgumentNode.mathArgumentNode.to,
+			text: doc.slice(mathArgumentNode.mathNode.from, mathArgumentNode.mathNode.to),
+			replacements: replacements.filter((r) => r.text.length > 0),
+			color,
+		}],
+		kind: HandleResultKind.Handled,
+	}
+
+}
 function handleSubSup(doc: EquationText, nodeRef: SyntaxNode, cursor: TreeCursor): HandleConcealResult {
 	const char = doc.slice(nodeRef.from, nodeRef.to);
 	if (char !== "_" && char !== "^") return { spec: [], kind: HandleResultKind.NotHandled };
@@ -506,6 +570,7 @@ const braketMacro = ["bra", "ket", "braket"];
 const macroMap = {
 	"not": handleNot,
 	"left": handleLeftRight,
+	"textcolor": handleTextColor,
 	"right": handleLeftRight,
 	"mathcal": handleMathcal,
 	"text": handleText,
