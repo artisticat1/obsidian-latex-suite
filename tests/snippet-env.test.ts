@@ -77,13 +77,10 @@ describe("snippet environment options", () => {
 				transactionSpec,
 				context_snippets,
 			}) => {
-				await app.workspace.getLeaf(false).openFile(context.file);
 				await app.vault.modify(context.snippets, compiled_raw_snippets);
-				await new Promise((resolve) => setTimeout(resolve, 10));
 				// speed up the test by disabling math preview and conceal.
 				plugin.settings.mathPreviewEnabled = false;
 				plugin.settings.concealEnabled = false;
-				// save immediately as snippets are loaded with a delay.
 				await plugin.saveSettings(false, true);
 				const results = [];
 				for (const spec of transactionSpec) {
@@ -137,7 +134,6 @@ describe("snippet environment options", () => {
 						file = await createNote({ content, path });
 					}
 					await app.workspace.getLeaf(false).openFile(file);
-					await new Promise((resolve) => setTimeout(resolve, 10));
 					return file;
 				}
 				for (const file of files) {

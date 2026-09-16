@@ -88,10 +88,7 @@ if (dev) {
 	}, 5000);
 	fs.watch("src/parser", { recursive: true }, debouncedExec);	
 } else if (prod) {
-	// esbuild.build(args).catch(() => process.exit(1));
-	const result = await esbuild.build({...args, metafile: true}).catch(() => process.exit(1));
-	const analysis = await esbuild.analyzeMetafile(result.metafile, { color: true });
-	console.log(analysis);
+	esbuild.build(args).catch(() => process.exit(1));
 } else if (test) {
 	args.entryPoints = ["tests/main.ts"]
 	args.outfile = "dist/dev/main.js"
