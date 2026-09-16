@@ -136,4 +136,37 @@ X_3$$
 			]
 		})
 	})
+	
+	it("should conceal subscript after parenthesis", async () => {
+		const result = await evalInObsidian({
+			input: {pluginId: "obsidian-latex-suite" },
+			callback: ({app, pluginId, obsidianModule, lib: {plugin, view} }) => {
+				const conceal = plugin.test.conceal
+				const equation = 
+`
+$$
+(x)^{2}
+$$
+`
+				view.setDoc(equation)
+				const equation_result = conceal(view, {}).cached_equations
+				return equation_result
+			}
+		})
+		expect(result).toMatchInlineSnapshot(`
+{
+  "(x)^{2}": [
+    [
+      {
+        "class": "cm-number",
+        "elementType": "sup",
+        "end": 7,
+        "start": 3,
+        "text": "2",
+      },
+    ],
+  ],
+}
+`)
+	})
 })
