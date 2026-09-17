@@ -14,6 +14,8 @@ export type Replacement = {
 	text: string,
 	class?: string,
 	elementType?: string,
+	replacements?: Replacement[],
+	color?: string,
 };
 
 export type ConcealSpec = Replacement[];
@@ -41,11 +43,13 @@ class ConcealWidget extends WidgetType {
 	private readonly className: string;
 	private readonly elementType: string;
 
-	constructor(readonly symbol: string, className?: string, elementType?: string) {
+	constructor(readonly symbol: string, className?: string, elementType?: string, readonly replacements?: Replacement[], private color?: string) {
 		super();
 
 		this.className = className ? className : "";
 		this.elementType = elementType ? elementType : "span";
+		this.replacements = replacements ? replacements : [];
+		this.color = color
 	}
 
 	eq(other: ConcealWidget) {
@@ -55,7 +59,20 @@ class ConcealWidget extends WidgetType {
 	toDOM() {
 		const span = createElement(this.elementType);
 		span.className = "cm-math " + this.className;
-		span.textContent = this.symbol;
+		if (this.color) {
+			span.setCssProps({color: this.color});
+		}
+		if (this.replacements && this.replacements.length > 0) {
+			for (const replacement of this.replacements) {
+				const replacementSpan = createElement(replacement.elementType ? replacement.elementType : "span");
+				replacementSpan.className = "cm-math " + (replacement.class ? replacement.class : "");
+				replacementSpan.textContent = replacement.text;
+				span.appendChild(replacementSpan);
+				replacementSpan.setCssProps({color: "inherit"});
+			}
+		} else {
+			span.textContent = this.symbol;
+		}
 		return span;
 	}
 
@@ -205,7 +222,9 @@ function buildDecoSet(concealments: Concealment[]) {
 						widget: new ConcealWidget(
 							replace.text,
 							replace.class,
-							replace.elementType
+							replace.elementType,
+							replace.replacements,
+							replace.color,
 						),
 						inclusiveStart,
 						inclusiveEnd,
