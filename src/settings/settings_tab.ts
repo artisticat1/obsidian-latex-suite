@@ -785,18 +785,17 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				})
 			);
 
-		// TODO: Doesn't work yet.
-		// new Setting(containerEl)
-		// 	.setName("IME support for automatic snippets")
-		// 	.setDesc("Whether to expand automatic snippets when a key is pressed after IME composition instead of during IME composition. This may solve some issues with IME/Chinese keyboards. Will force end composition after a successful snippet expansion.")
-		// 	.addToggle((toggle) => toggle
-		// 		.setValue(this.plugin.settings.snippetIMEVersion)
-		// 		.onChange(async (value) => {
-		// 			this.plugin.settings.snippetIMEVersion = value;
-		// 			await this.plugin.saveSettings();
-		// 		})
-		// 	);
-		// 	
+		new Setting(containerEl)
+			.setName("IME support for automatic snippets")
+			.setDesc("Whether to expand automatic snippets when a key is pressed after IME composition is completed. This may solve some issues with IME/Chinese keyboards.")
+			.addToggle((toggle) => toggle
+				.setValue(this.plugin.settings.snippetIMEVersion)
+				.onChange(async (value) => {
+					this.plugin.settings.snippetIMEVersion = value;
+					await this.plugin.saveSettings();
+				})
+			);
+			
 		new Setting(containerEl)
 			.setName(t("experimental.excalidraw-enabled.name"))
 			.setDesc(t("experimental.excalidraw-enabled.desc"))

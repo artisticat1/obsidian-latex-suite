@@ -3,8 +3,16 @@ export default [
 	// ${}$0{}$ or ${} $0 {}$ is recommended over $$0$ as this avoids the flickering when typing spaces
 	// and also avoids a lag issues when on an empty line and everything below is suddenly display math for a short second.
 	{trigger: "mk", replacement: "${}$0{}$", options: "tA"},
+	{trigger: "模块", replacement: "${}$0{}$", options: "tA"},
 	{trigger: "mk", replacement: "\\($0\\)", options: "TA"},
     {trigger: "dm", replacement: "$$\n$0\n$$", options: "tAw", description: "Display Math on empty line"},
+	{trigger: "ä", replacement: "${}$0{}$", options: "tA"},
+	{trigger: "ab", replacement: "c", options: "A"},
+	{trigger: /\w\w/, replacement: "c", options: "rA"},
+	{trigger: "ba", replacement: "c", options: "A"},
+{trigger: "^2", replacement: "c", options: "A"},
+{trigger: /\^\\w/, replacement: "c", options: "rA"},
+
 	// display math behaves like codeblocks, as in no text is allowed on the same line of the opening $$ thus a newline is added.
 	{
 		trigger: /(\S[ \t]*)dm/,
