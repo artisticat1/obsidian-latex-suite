@@ -270,9 +270,10 @@ function handleLeftRight(cursor: TreeCursor, doc: EquationText): HandleConcealRe
 }
 
 function handleSubSup(doc: EquationText, nodeRef: SyntaxNode, cursor: TreeCursor): HandleConcealResult {
-	const char = doc.slice(nodeRef.from, nodeRef.to);
-	if (char !== "_" && char !== "^") return { spec: [], kind: HandleResultKind.NotHandled };
-	const type = char === "_" ? "sub" : "sup";
+	const endChar = doc.slice(Math.max(nodeRef.from, nodeRef.to - 1), nodeRef.to);
+	if (endChar !== "_" && endChar !== "^") return { spec: [], kind: HandleResultKind.NotHandled };
+	const start = nodeRef.to - 1;
+	const type = endChar === "_" ? "sub" : "sup";
 	const allowed_names = [
 		"MathCommand",
 		"Group",
@@ -322,7 +323,7 @@ function handleSubSup(doc: EquationText, nodeRef: SyntaxNode, cursor: TreeCursor
 
 	const spec = [
 		{
-			start: nodeRef.from,
+			start,
 			end: nextNode.to,
 			text: textArray.join(""),
 			class: "cm-number",
