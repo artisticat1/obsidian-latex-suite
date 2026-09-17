@@ -35,16 +35,24 @@ export const keyboardEventPlugin = ViewPlugin.fromClass(class {
 	lastKeyboardEvent: KeyboardEvent | null = null;
 
 	onKeydown(event: KeyboardEvent, view: EditorView) {
+		console.log(event.keyCode)
 		if (event.key == "Unidentified" || event.key == "Process" || event.key == "Dead") {
 			this.lastKeyboardEvent = event;
 			return;
-		} else {
+		}
+		// don't process dead keys as they are composing but they don't act like it.
+		if (this.lastKeyboardEvent?.key === "Dead") {
+			this.lastKeyboardEvent = new KeyboardEvent("keydown", {
+				...this.lastKeyboardEvent,
+				key: "Process"
+			});
+			return;
+		} else if (!["Shift", "Control", "Alt", "Meta"].includes(event.key)) {
 			this.lastKeyboardEvent = null;
 		}
-		const snippetIMEVersion = getLatexSuiteConfig(view).snippetIMEVersion;
 
 		const success =
-			(!snippetIMEVersion &&
+			(
 				handleKeydown(
 					event.key,
 					event.ctrlKey || event.metaKey,
@@ -53,11 +61,14 @@ export const keyboardEventPlugin = ViewPlugin.fromClass(class {
 				)) ||
 			runScopeHandlers(view, event, "latex-suite");
 
-		if (success) event.preventDefault();
+		if (success) {
+			event.preventDefault();
+		}
 	}
 }, {
 	eventHandlers: {
 		keydown(event, view) {
+			// console.log("keydown event", event.key, event.code, event, event.repeat);
 			view.plugin(keyboardEventPlugin)!.onKeydown(event, view);
 		},
 		compositionend(event, view) {
@@ -67,16 +78,19 @@ export const keyboardEventPlugin = ViewPlugin.fromClass(class {
 				event.preventDefault();
 				return true;
 			}
-		}	
+		},	
+		
+		compositionstart(event, view) {
+			console.log("compositionstart event", event.data, event);
+		},
+		compositionupdate(event, view) {
+			console.log("compositionupdate event", event.data, event);
+		}
 	},
 
 })
 
 export const onInput = (view: EditorView, _from: number, _to: number, text: string): boolean => {
-	const snippetIMEVersion = getLatexSuiteConfig(view).snippetIMEVersion;
-	if (snippetIMEVersion) {
-		return false;
-	}
 	const lastKeyboardEvent = view.plugin(keyboardEventPlugin)?.lastKeyboardEvent;
 	if (text === "\0\0") return true;
 	if (text.length == 1 && lastKeyboardEvent) {
