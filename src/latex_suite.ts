@@ -36,20 +36,25 @@ export const keyboardEventPlugin = ViewPlugin.fromClass(class {
 		if (event.key == "Unidentified" || event.key == "Process" || event.key == "Dead") {
 			this.lastKeyboardEvent = event;
 			return;
-		} else {
+		}
+		// don't process dead keys as they are composing but they don't act like it.
+		if (this.lastKeyboardEvent?.key === "Dead") {
+			this.lastKeyboardEvent = new KeyboardEvent("keydown", {
+				...this.lastKeyboardEvent,
+				key: "Process"
+			});
+			return;
+		} else if (!["Shift", "Control", "Alt", "Meta"].includes(event.key)) {
 			this.lastKeyboardEvent = null;
 		}
-		const snippetIMEVersion = getLatexSuiteConfig(view).snippetIMEVersion;
 
 		const success =
-			(!snippetIMEVersion &&
-				handleKeydown(
-					event.key,
-					event.ctrlKey || event.metaKey,
-					isComposing(view, event),
-					view,
-				)) ||
-			runScopeHandlers(view, event, "latex-suite");
+			handleKeydown(
+				event.key,
+				event.ctrlKey || event.metaKey,
+				isComposing(view, event),
+				view,
+			) || runScopeHandlers(view, event, "latex-suite");
 
 		if (success) event.preventDefault();
 	}
@@ -65,16 +70,12 @@ export const keyboardEventPlugin = ViewPlugin.fromClass(class {
 				event.preventDefault();
 				return true;
 			}
-		}	
+		},	
 	},
 
 })
 
 export const onInput = (view: EditorView, _from: number, _to: number, text: string): boolean => {
-	const snippetIMEVersion = getLatexSuiteConfig(view).snippetIMEVersion;
-	if (snippetIMEVersion) {
-		return false;
-	}
 	const lastKeyboardEvent = view.plugin(keyboardEventPlugin)?.lastKeyboardEvent;
 	if (text === "\0\0") return true;
 	if (text.length == 1 && lastKeyboardEvent) {
