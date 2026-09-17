@@ -15,7 +15,7 @@ import type { Environment } from "../snippets/environment";
 import { getLatexSuiteConfig } from "../snippets/codemirror/config";
 import { syntaxTree } from "@codemirror/language";
 import type { SyntaxNode } from "@lezer/common";
-import { allTextAreas, type MacroArea, snippetLessArea } from "./default_text_areas";
+import { type MacroArea } from "./default_text_areas";
 import { getMathBoundsPlugin } from "./mathbounds";
 
 const OPEN_INLINE_MATH_NODE =
@@ -346,10 +346,13 @@ export class Context implements PluginValue {
 	}
 
 	inTextEnvironment(): "text" | "none" | null {
-		const result = this.isWithinMacros(this.pos, allTextAreas)
+		const { allTextSnippetlessMacros, snippetlessMacros } = getLatexSuiteConfig(
+			this.state,
+		);
+		const result = this.isWithinMacros(this.pos, allTextSnippetlessMacros)
 		if (!result) return null;
 		const openSymbol = result.name;
-		if (snippetLessArea.some(macro => macro.name === openSymbol)) {
+		if (snippetlessMacros.some(macro => macro.name === openSymbol)) {
 			return "none"
 		} else {
 			return "text"

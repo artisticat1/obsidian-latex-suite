@@ -48,6 +48,7 @@ export const snippetLessArea = [
 	{ name: "color" },
 	{ name: "colorbox" },
 	{ name: "fcolorbox" }, // has two inputs \fcolorbox{color}{background}{text} needs seperate handling
+	{ name: "operatorname" },
 ] as const satisfies readonly MacroArea[];
 
 export const allTextAreas = [...textArea, ...snippetLessArea] as const;

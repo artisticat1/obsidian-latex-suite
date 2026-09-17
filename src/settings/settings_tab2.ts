@@ -1,5 +1,5 @@
 import { App, ButtonComponent, debounce, ExtraButtonComponent, Modal, Platform, sanitizeHTMLToDom, Setting, type SettingDefinition, type SettingDefinitionControl, type SettingDefinitionItem, SettingTab } from "obsidian"
-import { DEFAULT_SETTINGS, EnvironmentSchema, type LatexSuitePluginSettings } from "./settings"
+import { DEFAULT_SETTINGS, EnvironmentSchema, validateTextMacros, type LatexSuitePluginSettings } from "./settings"
 import { settings_translation as t } from "../i18n/i18n"
 import { EditorState, type Extension } from "@codemirror/state"
 import { EditorView, ViewUpdate } from "@codemirror/view"
@@ -30,6 +30,8 @@ type AdvancedSnippetSettingDefinition = Definition<
 	| "suppressSnippetTriggerOnIME"
 	| "forceMathLanguages"
 	| "snippetDebug"
+	| "textMacros"
+	| "snippetlessMacros"
 >
 
 type ConcealSettingDefinition = Definition<
@@ -233,6 +235,16 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 					},
 					defaultValue: DEFAULT_SETTINGS.snippetDebug
 				}
+			},
+			{
+				name: t("advanced-snippets.text-macros.name"),
+				desc: t("advanced-snippets.text-macros.desc"),
+				control: getTextMacroControl("textMacros")
+			},
+			{
+				name: t("advanced-snippets.snippetless-macros.name"),
+				desc: t("advanced-snippets.snippetless-macros.desc"),
+				control: getTextMacroControl("snippetlessMacros")
 			}
 		]
 		return [{
@@ -849,5 +861,22 @@ function getTextControl<T extends textSettings>(key: T): SettingDefinitionContro
 		type: "text",
 		key,
 		defaultValue: DEFAULT_SETTINGS[key],
+	}
+}
+
+function getTextMacroControl<T extends "textMacros" | "snippetlessMacros">(key: T): SettingDefinitionControl<T>["control"] {
+	return {
+		type: "textarea",
+		key,
+		defaultValue: DEFAULT_SETTINGS[key],
+		validate: (value: string) => {
+			const result = validateTextMacros(value);
+			if (!result.success) {
+				const message = result.issues.map(issue => issue.message).join("\n");
+				console.error("Text macro validation failed:", message);
+				return message;
+			}
+		},
+		rows: 4,
 	}
 }
