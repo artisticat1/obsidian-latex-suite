@@ -1,7 +1,7 @@
 import { EditorView, type PluginValue, ViewPlugin, ViewUpdate } from "@codemirror/view";
 import { type Bounds, type CMBound, MathMode } from "./context";
 import { EditorState } from "@codemirror/state";
-import type { SyntaxNode, SyntaxNodeRef } from "@lezer/common";
+import { type SyntaxNode, type SyntaxNodeRef } from "@lezer/common";
 import { modifiedSyntaxTree } from "src/parser/language";
 import { Type } from "src/parser/mathjax-parser";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
@@ -66,6 +66,32 @@ export class MathBoundsPlugin implements PluginValue {
 			open,
 			close
 		}
+	}
+
+	getMathBoundsFromHtmlBlock(node: SyntaxNode): MathBounds[] {
+		if (node.name !== "HTMLBlock") return [];
+		const tree = node.enter(node.to, -1);
+		if (!tree) return [];
+		const mathBounds: MathBounds[] = [];
+		tree.cursor().iterate((child) => {
+			let latexTree;
+			if (child.name !== "Element") return;
+			const text = child.node.getChild("Text");
+			if (text && (latexTree = child.node.enter(text.to, -1))?.type.is(latex.LaTeX)) {
+				mathBounds.push({
+					inner_start: text.from,
+					inner_end: text.to,
+					outer_start: text.from,
+					outer_end: text.to,
+					mode: MathMode.BlockMath,
+					tree: latexTree,
+					overlay: [{ from: text.from, to: child.to }],
+				});	
+				return false;
+			}
+		})
+		return mathBounds;
+		
 	}
 
 	updateMathBounds(view: EditorView) {
@@ -157,6 +183,8 @@ export class MathBoundsPlugin implements PluginValue {
 							tree: nodeRef.node,
 							overlay: [{ from: nodeRef.from, to: nodeRef.to }],
 						});
+					} else {
+						ranges.push(...this.getMathBoundsFromHtmlBlock(nodeRef.node));
 					}
 				},
 			});
