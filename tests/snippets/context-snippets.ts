@@ -1,4 +1,5 @@
-import type { RawSnippet } from "./main";
+import { SyntaxNode } from "@lezer/common";
+import type { RawSnippet } from "../main";
 
 
 export const options = ["T", "Tm", "Tn", "TM", "M", "n", "c", "m"] as const;
@@ -19,6 +20,7 @@ export const names = [
 	// Except the ones that do are generally not allowed inside macros that override their syntax thus environments are ignored
 	// as in most practical cases that makes the most sense. Also applies to math-exclude-pu.
 	["math-include-pu-align", "m"], 
+	["math-context-include-html", ""]
 ] as const;
 
 const normal_name_options = [
@@ -101,62 +103,78 @@ export const transactionSpec: Spec[] = [
 		options: ["m", "M"],
 		names: ["math-include-pu-align", "display-math", "math"],
 	},
+	{
+		text: "<span>\n$$E=mc^a$$\n</span>",
+		pos: "<span>\n$$E=mc^a".length,
+		options: [""],
+		names: ["math-context-include-html"],
+	}
 ];
 
 let length = normal_name_options.length;
-const snippets = (
-	[
-		...normal_name_options.slice(0, length).map((value, index) => ({
-			trigger: index.toString(),
-			replacement: "",
-			options: value[1],
-			name: value[0],
-		})),
-		{
-			trigger: (length++).toString(),
-			replacement: "",
-			options: "m",
-			name: "math-exclude-pu",
-			excludedMacros: ["pu"],
-		},
-		{
-			trigger: (length++).toString(),
-			replacement: "",
-			options: "m",
-			name: "math-exclude-align",
-			excludedEnvironments: ["align"],
-		},
-		{
-			trigger: (length++).toString(),
-			replacement: "",
-			options: "m",
-			name: "math-include-color",
-			includedMacros: ["color"],
-		},
-		{
-			trigger: (length++).toString(),
-			replacement: "",
-			options: "m",
-			name: "math-include-begin",
-			includedMacros: ["begin"],
-		},
-		{
-			trigger: (length++).toString(),
-			replacement: "",
-			options: "m",
-			name: "math-include-pu-align",
-			includedMacros: ["pu"],
-		},
-	] as const satisfies (Readonly<RawSnippet> & {
-		readonly name: (typeof names)[number]["0"];
-	})[]
-).map(
-	(snippet) =>
-		({
-			...snippet,
-			trigger: new RegExp(`(?<!\\d)${snippet.trigger}`),
-		}) as const,
-) satisfies (Readonly<RawSnippet> & {
+let snippetId = 0;
+function getTrigger() {
+	return new RegExp(`(?<!\\d)${snippetId++}`);
+}
+const snippets = [
+	...normal_name_options.slice(0, length).map((value, index) => ({
+		trigger: getTrigger(),
+		replacement: "",
+		options: value[1],
+		name: value[0],
+	})),
+	{
+		trigger: getTrigger(),
+		replacement: "",
+		options: "m",
+		name: "math-exclude-pu",
+		excludedMacros: ["pu"],
+	},
+	{
+		trigger: getTrigger(),
+		replacement: "",
+		options: "m",
+		name: "math-exclude-align",
+		excludedEnvironments: ["align"],
+	},
+	{
+		trigger: getTrigger(),
+		replacement: "",
+		options: "m",
+		name: "math-include-color",
+		includedMacros: ["color"],
+	},
+	{
+		trigger: getTrigger(),
+		replacement: "",
+		options: "m",
+		name: "math-include-begin",
+		includedMacros: ["begin"],
+	},
+	{
+		trigger: getTrigger(),
+		replacement: "",
+		options: "m",
+		name: "math-include-pu-align",
+		includedMacros: ["pu"],
+	},
+	{
+		trigger: getTrigger(),
+		replacement: "",
+		options: "",
+		name: "math-context-include-html",
+		context: ({node}: {node: SyntaxNode}) => {
+			let parent: SyntaxNode | null = node;
+			while (parent) {
+				if (parent.name === "HTMLBlock") {
+					return true
+				}
+				parent = parent.parent;
+			}
+			return false;
+		}
+	}
+] as const satisfies (Readonly<RawSnippet> & {
 	readonly name: (typeof names)[number]["0"];
 })[];
 

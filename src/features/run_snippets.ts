@@ -9,6 +9,7 @@ import type { snippetDebugLevel } from "src/settings/settings";
 import { IncludedEnvironmentResult, Snippet, type SnippetType } from "src/snippets/snippets";
 import { showSnippetInfo } from "src/editor_extensions/obsidian_utils";
 import type { ResultInsert } from "src/snippets/luasnip_api/node";
+import { modifiedSyntaxTree } from "src/parser/language";
 
 type SnippetInfo = {
 	snippets: Snippet<SnippetType>[];
@@ -123,9 +124,15 @@ const runSnippetCursor = (view: EditorView, ctx: Context, snippetInfo: SnippetIn
 	}
 	const envNames = Array.from(ctx.getEnvNames(to))
 	const updatedLine = line + key;
+	const bounds = ctx.getBounds(to);
+	const node =
+		bounds && "tree" in bounds && bounds.tree
+			? bounds.tree
+			: modifiedSyntaxTree(view.state).resolveInner(to, -1);
+	const symbol = Symbol("snippet context update")
 	for (let i=0; i < snippetInfo.snippets.length; i++) {
 		const snippet = snippetInfo.snippets[i];
-		const inIncludedScope = snippet.isWithinIncludedScope(envNames);
+		const inIncludedScope = snippet.isWithinIncludedScope(envNames, ctx, view, node, symbol);
 		if (!snippet.options.snippetShouldRunInMode(ctx.mode, inIncludedScope === IncludedEnvironmentResult.Included)) {
 			continue;
 		}

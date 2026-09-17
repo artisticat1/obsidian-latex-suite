@@ -1,4 +1,4 @@
-import { optional, object, string as string_, union, parse, number, type InferOutput as Output, custom, instance, array, pipe, transform } from "valibot";
+import { optional, object, string as string_, union, parse, number, type InferOutput as Output, custom, instance, array, pipe, transform, type BaseSchema, type BaseIssue } from "valibot";
 import { RegexSnippet, serializeSnippetLike, Snippet, StringSnippet, VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER, VisualSnippet } from "./snippets";
 import { Options } from "../editor_context/options";
 import { sortSnippets } from "./sort";
@@ -7,6 +7,11 @@ import { api } from "./luasnip_api";
 import { ArrayNode, BaseNode, SnippetStringNode, SnippetTabstopOnlyNode, VisualSnippetNode } from "./luasnip_api/node";
 import { type MacroArea, MacroAreaPipeSchema } from "src/editor_context/default_text_areas";
 import { isMacOS } from "src/editor_extensions/obsidian_utils";
+import picomatch from "picomatch";
+import type { EditorState } from "@codemirror/state";
+import type { Context } from "src/editor_context/context";
+import type { EditorView } from "@codemirror/view";
+import type { SyntaxNode } from "@lezer/common";
 
 export type SnippetVariables = Record<string, string>;
 
@@ -127,6 +132,22 @@ export async function parseSnippets(snippetsStr: string, snippetVariables: Snipp
 	return parsedSnippets;
 }
 
+function singleOrArrayScheme<TInput, TOutput, TIssue, T extends BaseSchema<TInput, TOutput, BaseIssue<TIssue>>>(scheme: T) {
+	return union([array(scheme), pipe(scheme, transform(value => [value]))])
+}
+
+type IncludedPathsFunctionOptions = { path: string, state: EditorState };
+export type IncludedPathsFunction = (options: IncludedPathsFunctionOptions) => boolean
+
+type ContextFunctionOptions = { ctx: Context, view: EditorView, node: SyntaxNode };
+export type ContextFunction = {
+	(options: ContextFunctionOptions): boolean
+	_id?: {
+		symbol: symbol,
+		result: boolean
+	}
+}
+
 /** raw snippet IR */
 
 export const RawSnippetSchema = object({
@@ -149,6 +170,36 @@ export const RawSnippetSchema = object({
 	excludedMacros: MacroAreaPipeSchema,
 	excludedEnvironments: optional(array(string_()), []),
 	includedMacros: MacroAreaPipeSchema,
+	includedPaths: pipe(
+		optional(
+			singleOrArrayScheme(
+				union([
+					pipe(
+						string_(),
+						transform((value): IncludedPathsFunction => {
+							const match = picomatch(value);
+							return ({ path }) => match(path);
+						}),
+					),
+					custom<UnknownFunction>((x) => typeof x === "function"),
+				]),
+			),
+			[],
+		),
+		transform((matches): IncludedPathsFunction => {
+			if (matches.length === 0) {
+				return () => true;
+			}
+			return (options: IncludedPathsFunctionOptions) =>
+				matches.some((match) => match(options));
+		}),
+	),
+	context: optional(
+		singleOrArrayScheme(
+			custom<ContextFunction>((x) => typeof x === "function"),
+		),
+		[],
+	),
 });
 
 type RawSnippet = Output<typeof RawSnippetSchema>;
@@ -182,9 +233,10 @@ function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snip
 		description,
 		excludedEnvironments: excludedEnvironments,
 		excludedMacros: userExcludedMacros,
-		includedMacros
+		includedMacros,
+		context,
 	} = raw;
-	const options = Options.fromSource(raw.options, raw.language);
+	const options = Options.fromSource(raw.options, raw.language, raw.includedPaths);
 	const triggerKey = parseKeyName(raw.triggerKey);
 
 	if (raw.trigger === undefined && raw.triggerKey.length === 0) {
@@ -257,7 +309,7 @@ function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snip
 
 		options.regex = true;
 
-		const normalised = { trigger, replacement, options, priority, description, excludedMacros, triggerKey, triggerAfter, excludedEnvironments, includedMacros };
+		const normalised = { trigger, replacement, options, priority, description, excludedMacros, triggerKey, triggerAfter, excludedEnvironments, includedMacros, context };
 		const snippets: Snippet[] = [new RegexSnippet(normalised)]
 		if (triggerKey && options.automatic) {
 			const nonAutomaticOptions = options.copy()
@@ -301,7 +353,7 @@ function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snip
 					? new ArrayNode([new VisualSnippetNode(raw.replacement)])
 					: raw.replacement;
 			options.automatic = false;
-			const normalised = { trigger, replacement, options, priority, description, excludedEnvironments, excludedMacros, includedMacros, triggerKey, triggerAfter };
+			const normalised = { trigger, replacement, options, priority, description, excludedEnvironments, excludedMacros, includedMacros, triggerKey, triggerAfter, context };
 			const snippets = [];
 			if (trigger) {
 				snippets.push(new VisualSnippet({...normalised, triggerKey: trigger, trigger: ""}))
@@ -315,7 +367,7 @@ function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snip
 				typeof raw.replacement === "string"
 					? new ArrayNode([new SnippetTabstopOnlyNode(raw.replacement)])
 					: raw.replacement;
-			const normalised = { trigger, replacement, options, priority, description, excludedEnvironments, excludedMacros, includedMacros, triggerKey, triggerAfter };
+			const normalised = { trigger, replacement, options, priority, description, excludedEnvironments, excludedMacros, includedMacros, triggerKey, triggerAfter, context };
 
 			const snippets = [new StringSnippet(normalised)];
 			if (triggerKey && options.automatic) {

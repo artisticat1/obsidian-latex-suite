@@ -82,7 +82,7 @@ interface LatexSuiteParsedSettings {
 	forceMathLanguages: string[];
 }
 
-type GroupedSnippets = {
+export type GroupedSnippets = {
 	automatic: Snippet[];
 	all: Snippet[];
 };
