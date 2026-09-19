@@ -22,6 +22,7 @@
       "ES5",
       "ES6",
       "ES7",
+	  "ES2018.AsyncGenerator",
       "ES2021.String"
     ],
 	"types": [
