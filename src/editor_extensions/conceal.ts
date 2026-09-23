@@ -304,6 +304,15 @@ class Conceal implements PluginValue {
 	}
 
 	update(update: ViewUpdate) {
+		if (update.transactions.some(tr => tr.reconfigured)) { 
+			const revealTimeout = getLatexSuiteConfig(update.view).concealRevealTimeout;
+			this.delayEnabled = revealTimeout > 0;
+			this.delayedReveal = debounce(
+				this.delayedRevealCallback,
+				revealTimeout,
+				true,
+			);
+		}
 		if (!(update.docChanged || update.viewportChanged || update.selectionSet))
 			return;
 		if (update.transactions.some(tr => tr.annotation(tempKeyPress))) {
@@ -398,11 +407,12 @@ const concealTheme = EditorView.baseTheme({
 	},
 });
 
+const concealPlugin = ViewPlugin.fromClass(Conceal, {
+	decorations: v => v.decorations,
+	provide: plugin => EditorView.atomicRanges.of(view => view.plugin(plugin)?.atomicRanges ?? RangeSet.empty),
+});
+
 export function mkConcealPlugin() {
-	const concealPlugin = ViewPlugin.fromClass(Conceal, {
-		decorations: v => v.decorations,
-		provide: plugin => EditorView.atomicRanges.of(view => view.plugin(plugin)?.atomicRanges ?? RangeSet.empty),
-	});
 	
 	return [concealPlugin, concealTheme];
 }

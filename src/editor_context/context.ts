@@ -16,7 +16,7 @@ import { getLatexSuiteConfig } from "../snippets/codemirror/config";
 import { syntaxTree } from "@codemirror/language";
 import type { SyntaxNode } from "@lezer/common";
 import { allTextAreas, type MacroArea, snippetLessArea } from "./default_text_areas";
-import { getMathBoundsPlugin } from "./mathbounds";
+import { getMathBoundsPlugin, type MathBounds } from "./mathbounds";
 
 const OPEN_INLINE_MATH_NODE =
 	"formatting_formatting-math_formatting-math-begin_keyword_math";
@@ -356,7 +356,7 @@ export class Context implements PluginValue {
 		}
 	}
 
-	getBounds(pos: number = this.pos): Bounds | null {
+	getBounds(pos: number = this.pos): MathBounds | Bounds | null {
 		// yes, I also want the cache to work over the produced range instead of just that one through
 		// a BTree or the like, but that'd be probably overkill
 		const cached = this.boundsCache.get(pos);

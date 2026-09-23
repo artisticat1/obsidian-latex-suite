@@ -5,7 +5,7 @@ import { MarkdownView } from "obsidian";
 import { EditorView } from "@codemirror/view";
 import { RawSnippetSchema } from "../src/snippets/parse";
 import * as v from "valibot"
-import { colorPairedBrackets, colorPairedBracketsPlugin } from "../src/editor_extensions/highlight_brackets";
+import { colorPairedBrackets } from "../src/editor_extensions/highlight_brackets";
 
 declare global {
 	interface Window {
