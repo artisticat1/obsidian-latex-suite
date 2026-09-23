@@ -12,9 +12,9 @@
   flags?: string = "",
   triggerKey?: string = "",
   language?: string,
-  excludedMacros?: string[],
-  excludedEnvironments?: string[],
-  includedMacros?: string[],
+  excludedMacros?: Macro[],
+  excludedEnvironments?: Macro[],
+  includedMacros?: Macro[],
 }
 ```
 
@@ -36,9 +36,9 @@
   - No other shortcut such as obsidians hotkeys, vims keymaps or other plugins can have used the shortcut before this plugin. For example `Ctrl-o` by default will open quick switcher and thus can't be used for `triggerKey`.
 
 - `language` (optional): Which code language to expand this in. Needs to match the text after <code>```</code> exactly.
-- `excludedMacros` (optional): Which macros\commands name to skip expansion in. Could be usefull for commands such as `ce` and `pu`.
+- `excludedMacros` (optional): Which macros\commands name to skip expansion in. Could be usefull for commands such as `ce` and `pu`, for more info see [macro scopes](#macro-scopes).
 - `excludedEnvironments` (optional): Which environment names such as `pmatrix` to skip expansion in.
-- `includedMacros` (optional): Which macros\commands name to only do expansion in. Could be useful for commands such as `color` and `unicode`.
+- `includedMacros` (optional): Which macros\commands name to only do expansion in. Could be useful for commands such as `color` and `unicode`, for more info see [macro scopes](#macro-scopes).
 
 ### Options
 - `t` : Text mode. Only run this snippet outside math
@@ -344,8 +344,45 @@ const fraction = {
 }
 ```
 
+
+### Macro scopes
+
+In order to scope snippets inside more accurately, you can use `excludedMacros`, `excludedEnvironments` and `includedMacros` to avoid expansion when not needed or to only expand when needed.
+Like the snippet below
+```ts
+const arrow = {trigger: "->", replacement: "\\to", options: "mA", excludedMacros: ["ce"]},
+```
+where `->` already renders as an arrow inside `\ce`, thus doesn't need to expand inside `\ce{}`.
+
+Some snippets like `\color` accept a custom syntax, in this case a color code, and expanding any snippets wouldn't make sense.
+Thus snippets are disabled except for snippets where `includedMacros` includes the macro.
+Or for more complicated macros like `\fcolorbox` which accepts a color code in the first and second argument you can use the following snippet to replace `li` with `lime` inside color scopes.
+```ts
+const lime = {
+	trigger: "li",
+	replacement: "lime",
+	options: "mA",
+	includedMacros: ["color", { name: "fcolorbox", arguments: [0, 1] }],
+};
+```
+Strings like `"color"` for macro scopes only match the first argument.
+
+The full type that is accepted is:
+```ts
+type Macro =
+	| string
+	| {
+			// name of the macro/environment
+			name: string;
+			// which arguments to target, this is 0-index based. Undefined means to match all.
+			arguments?: number[];
+	  };
+```
+For the default text macros and snippetless macros see [here](./src/editor_context/default_text_areas.ts)
+
+
 ### IME keyboards
-By defaults snippets won't automatically expand for [Input Method Editor](https://en.wikipedia.org/wiki/Input_method)(IME) keyboards when they are in the middle of a composition because of `Advanced Settings > Don't trigger snippets when IME is active`. Keyboards like gboard are almost always in composition, making automatic unusable. Currently there is only support for keyboards like gboard, so turning that setting off will enable all automatic snippets. But due to the way french/german/chinese keyboards behave, there will still be automatic snippets that don't work (like `trigger: "^"`) when this setting is turned off. 
+By default snippets won't automatically expand for [Input Method Editor](https://en.wikipedia.org/wiki/Input_method)(IME) keyboards when they are in the middle of a composition because of `Advanced Settings > Don't trigger snippets when IME is active`. Keyboards like gboard are almost always in composition, making automatic snippets unusable. Currently there is only support for keyboards like gboard, so turning that setting off will enable all automatic snippets. But due to the way french/german/chinese keyboards behave, there will still be automatic snippets that don't work (like `trigger: "^"`) when this setting is turned off. 
 
 On mobile devices a warning is shown that this setting is turned on, notifying that the keyboard is supported. If you use a different keyboard than swipe/touch keyboard thats IME, e.g. a physical keyboard with pinyin or if `Don't trigger snippets when IME is active` is turned on intentionally, you can turn that warning off.
 
