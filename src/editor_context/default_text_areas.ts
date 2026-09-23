@@ -7,47 +7,50 @@ export type MacroArea = v.InferOutput<typeof MacroAreaSchema>;
 
 export const MacroAreaPipeSchema = v.pipe(
 		v.optional(v.array(v.union([v.string(), MacroAreaSchema])), []),
-		v.mapItems((item) => (typeof item === "string" ? { name: item } : item)),
+		v.mapItems((item) => (typeof item === "string" ? { name: item, arguments: [0] } : item)),
 )
 /**
- * List of environments where math commands are illegal to insert.
- * this is a mix of text and color environments where for example \color{#1} computes #1 as colorcode
- * and \textrm{#1} computes #1 as text.
- * All of these follow the same pattern of \command{#1} where #1 is the input. In rare cases it can be \command{#1}{#2}{#3}. These need to be handled seperately. So the Environment would be {openSymbol: `\command{`, closeSymbol: "}"}
+ * List of environments where math commands are illegal to insert and where the environment is latex text instead.
+ * Macros should only take up the arguments they actually take to avoid seeing `$\text{world}{\color{red}\alpha}$` the second argument of `text` as an argument of `text`.
  */
 export const textArea = [
-	{ name: "text" },
-	{ name: "textrm" },
-	{ name: "textup" },
-	{ name: "textit" },
-	{ name: "textbf" },
-	{ name: "textsf" },
-	{ name: "texttt" },
-	{ name: "textnormal" },
-	{ name: "clap" },
-	{ name: "textllap" },
-	{ name: "textrlap" },
-	{ name: "textclap" },
-	{ name: "hbox" },
-	{ name: "mbox" },
-	{ name: "fbox" },
-	{ name: "framebox" },
+	{ name: "text", arguments: [0] },
+	{ name: "textrm", arguments: [0] },
+	{ name: "textup", arguments: [0] },
+	{ name: "textit", arguments: [0] },
+	{ name: "textbf", arguments: [0] },
+	{ name: "textsf", arguments: [0] },
+	{ name: "texttt", arguments: [0] },
+	{ name: "textnormal", arguments: [0] },
+	{ name: "clap", arguments: [0] },
+	{ name: "textllap", arguments: [0] },
+	{ name: "textrlap", arguments: [0] },
+	{ name: "textclap", arguments: [0] },
+	{ name: "hbox", arguments: [0] },
+	{ name: "mbox", arguments: [0] },
+	{ name: "fbox", arguments: [0] },
+	{ name: "framebox", arguments: [0] },
+	{ name: "colorbox", arguments: [1] }, // has 2 inputs \colorbox{color}{text}
+	{ name: "fcolorbox", arguments: [2] }, // has 3 inputs \fcolorbox{color}{background-color}{text}
 ] as const satisfies readonly MacroArea[];
 
 /**
  * List of environments where math commands are illegal to insert.
  * Here treating them as text also doesn't make sense so autocomplete/snippets are disabled for them.
+ * Snippets with `includedMacros` can expand in these.
  */
 export const snippetLessArea = [
-	{ name: "tag" },
-	{ name: "begin" },
-	{ name: "end" },
-	{ name: "mmlToken" }, // MathML token, also has two inputs
-	{ name: "unicode" },
+	{ name: "tag", arguments: [0] },
+	{ name: "begin", arguments: [0] },
+	{ name: "end", arguments: [0] },
+	{ name: "mmlToken", arguments: [0, 1] }, // MathML token, also has two inputs
+	{ name: "unicode", arguments: [0] },
 	{ name: "textcolor", arguments: [0] }, // only the first argument is text/color, the second argument is math
-	{ name: "color" },
-	{ name: "colorbox" },
-	{ name: "fcolorbox" }, // has two inputs \fcolorbox{color}{background}{text} needs seperate handling
+	{ name: "color", arguments: [0] },
+	{ name: "colorbox", arguments: [0] }, // has two inputs \colorbox{color}{text}, color is snippetless and text is text.
+	{ name: "fcolorbox", arguments: [0, 1] }, // has 3 inputs \fcolorbox{color}{background-color}{text}, of which the first 2 are snippetless and the last one is text.
+	{ name: "operatorname", arguments: [0] },
+	{ name: "style", arguments: [0] },
 ] as const satisfies readonly MacroArea[];
 
 export const allTextAreas = [...textArea, ...snippetLessArea] as const;

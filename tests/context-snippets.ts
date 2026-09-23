@@ -101,6 +101,12 @@ export const transactionSpec: Spec[] = [
 		options: ["m", "M"],
 		names: ["math-include-pu-align", "display-math", "math"],
 	},
+	{
+		text: "$$\\pu{He2}{\\color{red}}$$",
+		pos: "$$\\pu{He2}{".length,
+		options: ["m", "M"],
+		names: ["display-math", "math", "math-exclude-pu", "math-exclude-align"],
+	},
 ];
 
 let length = normal_name_options.length;
