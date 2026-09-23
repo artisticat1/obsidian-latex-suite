@@ -49,7 +49,7 @@ describe("snippet environment options", () => {
 				}
 				plugin.settings.snippetsFileLocation = context.snippets.path;
 				plugin.settings.loadSnippetsFromFile = true;
-				await plugin.saveSettings();
+				await plugin.saveSettings(false, true);
 			},
 		});
 	});
@@ -76,7 +76,7 @@ describe("snippet environment options", () => {
 				// speed up the test by disabling math preview and conceal.
 				plugin.settings.mathPreviewEnabled = false;
 				plugin.settings.concealEnabled = false;
-				await plugin.saveSettings();
+				await plugin.saveSettings(false, true);
 				const results = [];
 				for (const spec of transactionSpec) {
 					for (let i=0; i < context_snippets.length; i++) {
