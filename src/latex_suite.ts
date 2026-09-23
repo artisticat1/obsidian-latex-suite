@@ -85,7 +85,11 @@ export const onInput = (view: EditorView, _from: number, _to: number, text: stri
 	if (text === "\0\0") return true;
 	if (text.length == 1 && lastKeyboardEvent) {
 		if (text === "\t") text = "Tab";
-		const event = new KeyboardEvent("keydown", {key: text})
+		const event = new KeyboardEvent("keydown", {
+			...lastKeyboardEvent,
+			key: text,
+			keyCode: undefined,
+		});
 		const success = handleKeydown(
 			text,
 			lastKeyboardEvent.ctrlKey || lastKeyboardEvent.metaKey,
