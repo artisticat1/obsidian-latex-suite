@@ -3,6 +3,7 @@ import type { Environment } from "../snippets/environment";
 import { DEFAULT_SNIPPETS } from "src/utils/default_snippets";
 import { DEFAULT_SNIPPET_VARIABLES } from "src/utils/default_snippet_variables";
 import * as v from "valibot";
+import { MacroAreaPipeSchema, type MacroArea } from "src/editor_context/default_text_areas";
 
 export type snippetDebugLevel = "off" | "info" | "verbose";
 
@@ -71,6 +72,8 @@ export interface LatexSuiteRawSettings {
 	taboutClosingSymbols: string;
 	autoEnlargeBracketsTriggers: string;
 	forceMathLanguages: string;
+	textMacros: string;
+	snippetlessMacros: string;
 }
 
 interface LatexSuiteParsedSettings {
@@ -80,6 +83,9 @@ interface LatexSuiteParsedSettings {
 	taboutClosingSymbols: Set<string>;
 	autoEnlargeBracketsTriggers: string[];
 	forceMathLanguages: string[];
+	textMacros: MacroArea[];
+	snippetlessMacros: MacroArea[];
+	allTextSnippetlessMacros: MacroArea[];
 }
 
 type GroupedSnippets = {
@@ -162,6 +168,11 @@ export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
 	matrixShortcutsCellTrigger: "Tab",
 	matrixShortcutsNewlineTrigger: "Enter",
 	matrixShortcutsExitTrigger: "Shift-Enter",
+	textMacros: "[\n\n]",
+	snippetlessMacros: 
+`[
+	"operatorname"
+]`,
 };
 
 export const EnvironmentSchema = v.pipe(
@@ -176,6 +187,11 @@ export const EnvironmentSchema = v.pipe(
 	),
 	v.mapItems(([openSymbol, closeSymbol]) => ({ openSymbol, closeSymbol })),
 );
+
+export function validateTextMacros(textMacros: string) {
+	return v.safeParse(v.pipe(v.string(), v.parseJson(), MacroAreaPipeSchema), textMacros);
+}
+
 
 export function processLatexSuiteSettings(
 	snippets: Snippet[],
@@ -196,10 +212,24 @@ export function processLatexSuiteSettings(
 
 		return envs;
 	}
+	
+	function getMacroAreasFromString(str: string): MacroArea[] {
+		const result = validateTextMacros(str);
+		if (!result.success) {
+			console.error("Failed to parse textMacros/snippetlessMacros", result.issues);
+			return [];
+		}
+		return result.output;
+	}
 	const groupedSnippets = {
 		automatic: snippets.filter((s) => s.options.automatic),
 		all: snippets,
 	}
+	
+	const textMacros = getMacroAreasFromString(settings.textMacros);
+	const snippetlessMacros = getMacroAreasFromString(settings.snippetlessMacros);
+
+	const allTextSnippetlessMacros = [...textMacros, ...snippetlessMacros];
 
 	return {
 		...settings,
@@ -223,6 +253,9 @@ export function processLatexSuiteSettings(
 			/[A-Za-z]+/.test(trigger) ? `\\${trigger}` : trigger,
 		),
 		forceMathLanguages: strToArray(settings.forceMathLanguages),
+		textMacros,
+		snippetlessMacros,
+		allTextSnippetlessMacros,
 	};
 }
 
