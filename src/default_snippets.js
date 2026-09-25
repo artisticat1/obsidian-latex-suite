@@ -4,16 +4,9 @@ export default [
 	// and also avoids a lag issues when on an empty line and everything below is suddenly display math for a short second.
 	{trigger: "mk", replacement: "${}$0{}$", options: "tA"},
 	{trigger: "mk", replacement: "\\($0\\)", options: "TA"},
-    {trigger: "dm", replacement: "$$\n$0\n$$", options: "tAw", description: "Display Math on empty line"},
 	// display math behaves like codeblocks, as in no text is allowed on the same line of the opening $$ thus a newline is added.
-	{
-		trigger: /(\S[ \t]*)dm/,
-		replacement: "[[0]]\n$$\n$0\n$$",
-		options: "tAw",
-		priority: 1,
-		description: "Display Math on line with text",
-	},
-	// for the other dm snippet see below in Misc
+    {trigger: "dm", replacement: "\n$$\n$0\n$$", options: "tAw", description: "Display Math on empty line"},
+	// the other dm snippets are more advanced thus they are sectioned below in Misc
 
 	{trigger: /([^\\\w])beg/, replacement: "[[0]]\\begin{$0}\n$1\n\\end{$0}", options: "MA"},
 	{trigger: /([^\\\w])beg/, replacement: "[[0]]\\begin{$0} $1 \\end{$0}", options: "nA"},
@@ -443,5 +436,22 @@ export default [
 		options: "rtA",
 		priority: 2,
 		description: "Display math when in a list"
+	},
+	{
+		// positive lookbehind is not available on ios <16.4 and inline flags like (?m:$) are not since ios <26, using this as a workaround.
+		// otherwise the regex would be /(?<=\n|^)([ \t]*(?:> ?)*[ \t])*dm/
+		// or /(?m:^)([ \t]*(?:> ?)*[ \t])*dm/
+		trigger: new (class extends RegExp {
+			exec(source) {
+				const result = super.exec(source);
+				if (result === null) return result;
+				result
+				return /([ \t]*(?:> ?)*[ \t]*)dm$/.exec(source);
+			}
+		})(/(\n|^)[ \t]*(?:> ?)*[ \t]*dm/.source),
+		replacement: "[[0]]$$\n$0\n$$",
+		options: "tAw",
+		description: "Display Math on empty line",
+		priority: 2,
 	},
 ]
