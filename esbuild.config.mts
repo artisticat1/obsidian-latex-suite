@@ -93,5 +93,6 @@ if (dev) {
 	args.entryPoints = ["tests/main.ts"]
 	args.outfile = "dist/dev/main.js"
 	fs.copyFileSync("manifest.json", "dist/dev/manifest.json");
+	fs.copyFileSync("styles.css", "dist/dev/styles.css");
 	await esbuild.build(args).catch(() => process.exit(1));
 }

@@ -52,7 +52,7 @@
 		"globals": "^17.3.0",
 		"jiti": "^2.7.0",
 		"obsidian": "^1.13.1",
-		"obsidian-integration-testing": "^10.3.2",
+		"obsidian-integration-testing": "^17.2.0",
 		"obsidian-typings": "^6.35.0",
 		"remark-parse": "^11.0.0",
 		"remark-stringify": "^11.0.0",
