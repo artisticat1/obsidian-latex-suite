@@ -17,7 +17,9 @@ describe("snippet editor ui", async () => {
 	beforeAll(async () => {
 		await evalInObsidian({
 			contextId,
-			callback: async ({ app, context, obsidianModule }) => {
+			callback: async ({ app, context, obsidianModule, lib: { plugin } }) => {
+				plugin.settings.loadSnippetsFromFile = false;
+				await plugin.saveSettings();
 				context.pressKey = (
 					pressParams: PressKeyParams,
 					window?: Window,
