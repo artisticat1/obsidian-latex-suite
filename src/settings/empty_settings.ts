@@ -1,8 +1,8 @@
 import type { LatexSuitePluginSettings } from "./settings";
 
 export const EMPTY_SETTINGS: LatexSuitePluginSettings = {
-	snippets: "",
-	snippetVariables: "",
+	snippets: "export default []",
+	snippetVariables: "export default {}",
 
 	// Basic settings
 	snippetsEnabled: false,

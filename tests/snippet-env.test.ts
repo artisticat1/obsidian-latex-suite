@@ -36,10 +36,12 @@ describe("snippet environment options", () => {
 					context.file = await createNote({content: "", path: "test.md"});
 				}
 				const snippets = app.vault.getFileByPath("snippets.js");
+				const content = "export default [];";
 				if (snippets) {
 					context.snippets = snippets;
+					await app.vault.modify(context.snippets, content);
 				} else {
-					context.snippets = await createNote({content: "", path: "snippets.js"});
+					context.snippets = await createNote({content, path: "snippets.js"});
 				}
 				const leaf = app.workspace.getLeaf(false);
 				await leaf.openFile(context.file);
