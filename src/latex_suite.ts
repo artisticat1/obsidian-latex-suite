@@ -5,8 +5,6 @@ import { tabout, shouldTaboutByCloseBracket } from "./features/tabout";
 import { addCellMatrixShortcut, exitMatrixShortCut, newlineMatrixShortcut, priorityTaboutMatrixShortcut } from "./features/matrix_shortcuts";
 
 import { getContextPlugin } from "./editor_context/context";
-import { getMathBoundsPlugin } from "./editor_context/mathbounds";
-import { replaceRange } from "./utils/editor_utils";
 import { setSelectionToNextTabstop, tempKeyPress } from "./snippets/snippet_management";
 import { getLatexSuiteConfig } from "./snippets/codemirror/config";
 import { clearSnippetQueue } from "./snippets/codemirror/snippet_queue_state_field";
@@ -15,7 +13,7 @@ import { handleUndoRedo } from "./snippets/codemirror/history";
 import { handleMathTooltip } from "./editor_extensions/math_tooltip";
 import { isComposing, forceEndComposition } from "./utils/editor_utils";
 import type { LatexSuiteCMSettings } from "./settings/settings";
-import { Type } from "./parser/mathjax-parser";
+import { autoDelete$ } from "./editor_extensions/autoDelete$";
 
 export const handleUpdate = (update: ViewUpdate) => {
 	const settings = getLatexSuiteConfig(update.state);
@@ -150,38 +148,7 @@ export function getKeymaps(settings: LatexSuiteCMSettings): LatexSuiteKeyBinding
 	if (settings.autoDelete$) {
 		keybindings.push({
 			key: "Backspace",
-			run: function autoDelete$(view: EditorView) {
-				if (!getLatexSuiteConfig(view).autoDelete$) return false;
-				const boundPlugin = getMathBoundsPlugin(view)
-				const pos = view.state.selection.main.head
-				// check if the cursor is surrounded by Dollar Dollar or only one Dollar.
-				const tree = boundPlugin.getTree(view.state)
-				const node = tree.resolveInner(pos, -1)
-				if (node.name !== Type.Dollar) return false;
-				const prevSibling = node.prevSibling;
-				const nextSibling = node.nextSibling
-				const nextNextSibling = nextSibling?.nextSibling;
-				const parent = node.parent
-				if (
-					!nextNextSibling && !prevSibling && !nextSibling && parent && parent.name === Type.DollarDisplayBlockMath
-				) {
-					view.dispatch({
-						changes: {from: parent.from, to: parent.to, insert: ""},
-					});
-					return true;
-				}
-				if (
-					prevSibling ||
-					!nextNextSibling ||
-					!parent ||
-					nextNextSibling.name !== Type.Dollar ||
-					parent.name !== Type.DollarInlineMath ||
-					node.to !== nextNextSibling.from
-				)
-					return false;
-				replaceRange(view, node.from, nextNextSibling.to, "");
-				return true;
-			},
+			run: autoDelete$
 		});
 	}
 
