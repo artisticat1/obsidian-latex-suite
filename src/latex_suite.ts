@@ -159,18 +159,27 @@ export function getKeymaps(settings: LatexSuiteCMSettings): LatexSuiteKeyBinding
 				const node = tree.resolveInner(pos, -1)
 				if (node.name !== Type.Dollar) return false;
 				const prevSibling = node.prevSibling;
-				const nextSibling = node.nextSibling?.nextSibling;
+				const nextSibling = node.nextSibling
+				const nextNextSibling = nextSibling?.nextSibling;
 				const parent = node.parent
 				if (
+					!nextNextSibling && !prevSibling && !nextSibling && parent && parent.name === Type.DollarDisplayBlockMath
+				) {
+					view.dispatch({
+						changes: {from: parent.from, to: parent.to, insert: ""},
+					});
+					return true;
+				}
+				if (
 					prevSibling ||
-					!nextSibling ||
+					!nextNextSibling ||
 					!parent ||
-					nextSibling.name !== Type.Dollar ||
+					nextNextSibling.name !== Type.Dollar ||
 					parent.name !== Type.DollarInlineMath ||
-					node.to !== nextSibling.from
+					node.to !== nextNextSibling.from
 				)
 					return false;
-				replaceRange(view, node.from, nextSibling.to, "");
+				replaceRange(view, node.from, nextNextSibling.to, "");
 				return true;
 			},
 		});
