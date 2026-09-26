@@ -67,4 +67,49 @@ describe("autodelete $ in inline math", async () => {
 		})
 		expect(result).toBe("some *text* ")
 	})
+
+	it("should delete both $ for `$$  some text`", async () => {
+		const result = await evalInObsidian({
+			callback: async ({lib}) => {
+				const { view, pressKey } = lib;
+				view.setDoc("$$  some text", "$".length)
+				pressKey({
+					key: "Backspace"
+				})
+				await new Promise(resolve => setTimeout(resolve, 0))
+				return view.state.doc.toString()
+			}
+		})
+		expect(result).toBe("  some text")
+	})
+
+	it("should not delete both $ for `${}{}$`  when not in the middle`", async () => {
+		const result = await evalInObsidian({
+			callback: async ({lib}) => {
+				const { view, pressKey } = lib;
+				view.setDoc("${}{}$", "$".length)
+				pressKey({
+					key: "Backspace"
+				})
+				await new Promise(resolve => setTimeout(resolve, 0))
+				return view.state.doc.toString()
+			}
+		})
+		expect(result).toBe("{}{}$")
+	})
+
+	it("should not delete both $ for `${}{}$`  when not in the middle2`", async () => {
+		const result = await evalInObsidian({
+			callback: async ({lib}) => {
+				const { view, pressKey } = lib;
+				view.setDoc("${}{}$", "${}{".length)
+				pressKey({
+					key: "Backspace"
+				})
+				await new Promise(resolve => setTimeout(resolve, 0))
+				return view.state.doc.toString()
+			}
+		})
+		expect(result).toBe("${}$")
+	})
 })
