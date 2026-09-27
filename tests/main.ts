@@ -1,7 +1,7 @@
 import LatexSuitePlugin from "../src/main";
 import { fullMathParser } from "../src/parser/mathjax-parser";
 import { conceal } from "../src/editor_extensions/conceal_fns";
-import { MarkdownView } from "obsidian";
+import { editorLivePreviewField, MarkdownView } from "obsidian";
 import { EditorView } from "@codemirror/view";
 import { RawSnippetSchema } from "../src/snippets/parse";
 import * as v from "valibot"
@@ -9,6 +9,9 @@ import { colorPairedBrackets, colorPairedBracketsPlugin } from "../src/editor_ex
 import i18next from "../src/i18n/i18n";
 import { settings_translation } from "../src/i18n/i18n";
 import type {} from "../src/i18n/i18next";
+import { LRLanguage } from "@codemirror/language";
+import { parser } from "./math-only-parser";
+import { minimalSetup } from "codemirror";
 
 declare global {
 	interface Window {
@@ -50,6 +53,20 @@ export default class TestPlugin extends LatexSuitePlugin {
 		this.registerEvent(this.app.workspace.on("active-leaf-change", () => {
 			this.setLib();
 		}))
+	}
+	
+	createExcalidrawView() {
+		const extensions = [
+			LRLanguage.define({parser}),
+			minimalSetup,
+			editorLivePreviewField.init(() => false),
+			EditorView.editorAttributes.of({ class: "multi-select-container" }),
+			this.editorExtensions,
+		]
+		const view = new EditorView({
+			extensions,
+		})
+		return view;
 	}
 	
 	setLib() {
