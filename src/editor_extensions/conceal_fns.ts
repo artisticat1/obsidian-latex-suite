@@ -278,7 +278,6 @@ function handleSubSup(doc: EquationText, nodeRef: SyntaxNode, cursor: TreeCursor
 		"MathCommand",
 		"Group",
 		"MathDelimitedGroup",
-		"MathCommand",
 		"MathChar",
 		"Number",
 	];
@@ -287,6 +286,22 @@ function handleSubSup(doc: EquationText, nodeRef: SyntaxNode, cursor: TreeCursor
 	const nextNode = peekCursor.node;
 	if (!allowed_names.includes(nextNode.name)) {
 		return { spec: [], kind: HandleResultKind.NotHandled };
+	}
+	if (nextNode.name === "MathChar" || nextNode.name === "Number") {
+		const end = Math.min(nextNode.to, nextNode.from + 1);
+		cursor.moveTo(nextNode.to, 1);
+		doc.skipCursorMove = true;
+		const spec = {
+			start,
+			end,
+			text: doc.slice(nextNode.from, end),
+			class: "cm-number",
+			elementType: type,
+		};
+		return {
+			spec: [spec],
+			kind: HandleResultKind.Handled
+		}
 	}
 
 	const newDoc = new EquationText(
