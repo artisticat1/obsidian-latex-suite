@@ -169,4 +169,101 @@ $$
 }
 `)
 	})
+	it("should only subscript the first character (#666)", async () => {
+		const result = await evalInObsidian({
+			input: {pluginId: "obsidian-latex-suite" },
+			callback: ({app, pluginId, obsidianModule, lib: {plugin, view} }) => {
+				const conceal = plugin.test.conceal
+				const equation = 
+`
+$$
+A_bCD⊗EFG
+$$
+`
+				view.setDoc(equation)
+				const equation_result = conceal(view, {}).cached_equations
+				return equation_result
+			}
+		})
+		expect(result).toMatchInlineSnapshot(`
+{
+  "A_bCD⊗EFG": [
+    [
+      {
+        "class": "cm-number",
+        "elementType": "sub",
+        "end": 3,
+        "start": 1,
+        "text": "b",
+      },
+    ],
+  ],
+}
+`);
+	})
+	it("should only subscript the first number (#666)", async () => {
+		const result = await evalInObsidian({
+			input: {pluginId: "obsidian-latex-suite" },
+			callback: ({app, pluginId, obsidianModule, lib: {plugin, view} }) => {
+				const conceal = plugin.test.conceal
+				const equation = 
+`
+$$
+A_1234
+$$
+`
+				view.setDoc(equation)
+				const equation_result = conceal(view, {}).cached_equations
+				return equation_result
+			}
+		})
+		expect(result).toMatchInlineSnapshot(`
+{
+  "A_1234": [
+    [
+      {
+        "class": "cm-number",
+        "elementType": "sub",
+        "end": 3,
+        "start": 1,
+        "text": "1",
+      },
+    ],
+  ],
+}
+`);
+	})
+	
+	it("should subscript \\left and \\right", async () => {
+		const result = await evalInObsidian({
+			input: {pluginId: "obsidian-latex-suite" },
+			callback: ({app, pluginId, obsidianModule, lib: {plugin, view} }) => {
+				const conceal = plugin.test.conceal
+				const equation = 
+`
+$$
+A_\\left(1\\alpha 234\\right)
+$$
+`
+				view.setDoc(equation)
+				const equation_result = conceal(view, {}).cached_equations
+				return equation_result
+			}
+		})
+		expect(result).toMatchInlineSnapshot(`
+{
+  "A_\\left(1\\alpha 234\\right)": [
+    [
+      {
+        "class": "cm-number",
+        "elementType": "sub",
+        "end": 26,
+        "start": 1,
+        "text": "\\left(1α 234\\right)",
+      },
+    ],
+  ],
+}
+`);
+	})
 })
