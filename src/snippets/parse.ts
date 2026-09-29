@@ -359,8 +359,9 @@ function insertSnippetVariables(trigger: string, variables: SnippetVariables) {
 
 function getExcludedMacros(trigger: string): MacroArea[] {
 	const result = [];
-	if (trigger in EXCLUSIONS) {
-		result.push(...EXCLUSIONS[trigger]);
+	const exclusion = EXCLUSIONS[trigger];
+	if (exclusion) {
+		result.push(...exclusion);
 	}
 	return result;
 }
@@ -375,7 +376,7 @@ function normalizeKeyName(name: string) {
 	if (result === "Space") result = " ";
 	let alt, ctrl, shift, meta;
 	for (let i = 0; i < parts.length - 1; ++i) {
-		const mod = parts[i];
+		const mod = parts[i]!;
 		if (/^(cmd|meta|m)$/i.test(mod)) meta = true;
 		else if (/^a(lt)?$/i.test(mod)) alt = true;
 		else if (/^(c|ctrl|control)$/i.test(mod)) ctrl = true;

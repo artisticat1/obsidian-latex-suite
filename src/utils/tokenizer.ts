@@ -11,10 +11,8 @@ export interface Token {
 
 export const tokenize = (latexString: string): Token[] => {
 	const tokens: Token[] = [];
-	let index = 0;
-
-	while (index < latexString.length) {
-		const char = latexString[index];
+	for (let index = 0; index < latexString.length;) {
+		const char = latexString[index]!;
 
 		if (/\s/.test(char)) {
 			index++;
@@ -66,13 +64,13 @@ const readEscapeToken = (latexString: string, start: number): { token: Token; ne
 	const length = latexString.length;
 	let current = start + 1;
 
-	const nextChar = latexString[current];
+	const nextChar = latexString[current]!;
 
 	// Case: Command token (e.g., \sin, \frac)
 	if (/[A-Za-z]/.test(nextChar)) {
 		do {
 			current++;
-		} while (current < length && /[A-Za-z]/.test(latexString[current]));
+		} while (current < length && /[A-Za-z]/.test(latexString[current]!));
 	}
 	// Case: Symbol token (e.g., \%, \_, \{)
 	else {
@@ -103,7 +101,7 @@ const readSingleCharacterToken = (latexString: string, start: number): { token: 
 
 export function findIndexReverse<T>(array: T[], predicate: (value: T, index: number, array: T[]) => boolean): number | null {
 	for (let i = array.length - 1; i >= 0; i--) {
-		if (predicate(array[i], i, array)) {
+		if (predicate(array[i]!, i, array)) {
 			return i;
 		}
 	}

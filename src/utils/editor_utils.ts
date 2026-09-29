@@ -220,3 +220,10 @@ export function cumulativeSum(arr: number[]) {
 	}
 	return result;
 }
+
+export function* enumerate<T>(iterable: Iterable<T>) {
+	let i = 0;
+	for (const item of iterable) {
+		yield [i++, item] as const;
+	}
+}

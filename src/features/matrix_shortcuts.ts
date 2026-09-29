@@ -11,7 +11,7 @@ const newlineMatrixShortcutCallback = (view: EditorView, bounds: Bounds): boolea
 	const ctx = getContextPlugin(view);
 	const cur_line = view.state.doc.lineAt(ctx.pos);
 	const current_matrix_line = cur_line.text.match(/(\\begin{[^]]*}|\\\\|^)((?:\s|&)+)/);
-	const added_cells = current_matrix_line?.[2].trimStart() ?? ""
+	const added_cells = current_matrix_line?.[2]!.trimStart() ?? ""
 	if (isBoundMultiline(view, bounds)) {
 		const snippet = new ArrayNode([new TextNode(" \\\\\n" + added_cells), new TabstopNode(0,"")]);
 		// Keep current indentation and callout characters

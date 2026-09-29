@@ -4,7 +4,7 @@ import { type LatexSuiteCMSettings, processLatexSuiteSettings, DEFAULT_SETTINGS 
 
 export const latexSuiteConfig = Facet.define<LatexSuiteCMSettings, LatexSuiteCMSettings>({
     combine: (input) => {
-        const settings = input.length > 0 ? input[0] : processLatexSuiteSettings([], DEFAULT_SETTINGS);
+        const settings = input[0] ?? processLatexSuiteSettings([], DEFAULT_SETTINGS);
         return settings;
     }
 });

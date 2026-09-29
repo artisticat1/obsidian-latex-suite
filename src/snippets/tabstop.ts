@@ -144,7 +144,7 @@ export function tabstopSpecsToTabstopGroups(tabstops: TabstopSpec[], color: numb
 	const sortedTabstops = tabstops.slice().sort((a,b) => {
 		for (let i = 0; i < Math.min(a.index.length, b.index.length); i++) {
 			if (a.index[i] != b.index[i]) {
-				return a.index[i] - b.index[i];
+				return a.index[i]! - b.index[i]!;
 			}
 		}
 		return a.index.length - b.index.length;
@@ -153,8 +153,8 @@ export function tabstopSpecsToTabstopGroups(tabstops: TabstopSpec[], color: numb
 			return {...ts, index: currentIndex};
 		}
 		const isEqualIndex =
-			ts.index.length === arr[i - 1].index.length &&
-			ts.index.every((value, index) => value === arr[i - 1].index[index]);
+			ts.index.length === arr[i - 1]!.index.length &&
+			ts.index.every((value, index) => value === arr[i - 1]!.index[index]);
 		currentIndex += isEqualIndex ? 0 : 1;
 		return {...ts, index: currentIndex};
 	})
@@ -172,8 +172,8 @@ export function tabstopSpecsToTabstopGroups(tabstops: TabstopSpec[], color: numb
 
     const result = [];
 
-    for (let number = 0; number < tabstopsByNumber.length; number++) {
-        const grp = new TabstopGroup(tabstopsByNumber[number], color);
+	for (const tabstops of tabstopsByNumber) {
+        const grp = new TabstopGroup(tabstops, color);
         result.push(grp);
     }
 

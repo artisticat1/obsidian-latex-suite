@@ -71,7 +71,7 @@ export const runAutoFractionCursor = (view: EditorView, ctx: Context, range: Sel
 
 			if ([")", "]", "}"].contains(curChar)) {
 				const closeBracket = curChar;
-				const openBracket = getOpenBracket(closeBracket);
+				const openBracket = getOpenBracket(closeBracket)!;
 
 				const j = findMatchingBracket(curLine, i, openBracket, closeBracket, true);
 

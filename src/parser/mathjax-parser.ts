@@ -153,13 +153,13 @@ type CustomElement = Element | {
 }
 
 function addDisplayMath(markers: CustomElement[], from: number, to: number) {
-	const last = markers.length - 1;
+	const last = markers.at(-1)
 	if (
-		last >= 0 &&
-		markers[last].to === from &&
-		!(markers[last] instanceof Element)
+		last &&
+		last.to === from &&
+		!(last instanceof Element)
 	) {
-		markers[last].to = to
+		last.to = to
 	} else {
 		markers.push({ from, to, kind: Type.DisplayMath });
 	}

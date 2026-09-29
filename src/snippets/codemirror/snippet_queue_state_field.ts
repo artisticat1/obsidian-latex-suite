@@ -43,8 +43,8 @@ const keepIndentAndCallout = (state: EditorState, _from: number, to: number, rep
 	const lineText = line.text;
 	const calloutAndIndent = lineText.match(/^(>*)(\s*)/);
 	if (!calloutAndIndent) return replacement;
-	const callouts = calloutAndIndent[1];
-	const indentation = calloutAndIndent[2];
+	const callouts = calloutAndIndent[1]!;
+	const indentation = calloutAndIndent[2]!;
 	const originalColIndent = countColumn(indentation, state.tabSize);
 	const indentUnitSize = getIndentUnit(state);
 	const misalignment = originalColIndent % indentUnitSize;
@@ -56,7 +56,7 @@ const keepIndentAndCallout = (state: EditorState, _from: number, to: number, rep
 	const replacementInsert: Replacement[] = []
 	let offset = 0;
 	for (const match of matches) {
-		const p1 = match[1];
+		const p1 = match[1]!;
 		// not preserving misalignment when indent level is increased
 		const newColIndent =
 			p1.length * indentUnitSize +

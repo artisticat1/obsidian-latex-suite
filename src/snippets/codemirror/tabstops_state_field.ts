@@ -53,7 +53,7 @@ export const tabstopsStateField = StateField.define<TabstopsState>({
 				index = 0;
 				color = 0;
 			} else {
-				tabstopGroups[0].hideFromEditor();
+				tabstopGroups[0]!.hideFromEditor();
 			}
 		}
 
@@ -84,8 +84,7 @@ function getCurrentTabstopGroupIndex(
 	tabstopGroups: TabstopGroup[],
 	sel: EditorSelection
 ): number {
-	for (let i = 0; i < tabstopGroups.length; i++) {
-		const tabstopGroup = tabstopGroups[i];
+	for (const [i, tabstopGroup] of tabstopGroups.entries()) {
 		if (tabstopGroup.containsSelection(sel)) return i;
 	}
 	return tabstopGroups.length;

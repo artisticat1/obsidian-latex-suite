@@ -93,7 +93,7 @@ export class MathBoundsPlugin implements PluginValue {
 							return;
 						}
 
-						const tree = nodeRef.node.enter(children[children.length - 1].to, -1);
+						const tree = nodeRef.node.enter(children[children.length - 1]!.to, -1);
 						if (!tree) {
 							return;
 						}
@@ -137,7 +137,7 @@ export class MathBoundsPlugin implements PluginValue {
 						const tree = nodeRef.node.enter(lastNode.to, -1);
 						if (tree === null || !tree.type.is(latex.LaTeX)) return;
 						ranges.push({
-							inner_start: contentNodes[0].from,
+							inner_start: contentNodes[0]!.from,
 							inner_end: lastNode.to,
 							outer_start: nodeRef.node.from,
 							outer_end: nodeRef.node.to,
@@ -166,10 +166,8 @@ export class MathBoundsPlugin implements PluginValue {
 
 	inMathBound(_state: EditorState, pos: number): MathBounds | null {
 		const bounds = this._mathBounds;
-		if (
-			pos < bounds[0]?.outer_start ||
-			pos > bounds[bounds.length - 1]?.outer_end
-		) {
+		const firstBound = bounds[0];
+		if (!firstBound || pos < firstBound.outer_start || pos > bounds[bounds.length - 1]!.outer_end) {
 			return null;
 		}
 		// Use binary search to efficiently find if pos is within any math bound
@@ -177,7 +175,7 @@ export class MathBoundsPlugin implements PluginValue {
 			right = bounds.length - 1;
 		while (left <= right) {
 			const mid = (left + right) >> 1;
-			const bound = bounds[mid];
+			const bound = bounds[mid]!;
 			if (pos < bound.outer_start) {
 				right = mid - 1;
 			// excalidraw doesn't have delimiters thus they have 0 length and should be ignored for this check
@@ -215,8 +213,8 @@ export class MathBoundsPlugin implements PluginValue {
 			bound.overlay.length === 0 || bound.tree === null ? null :
 			{
 				bound,
-				overlay: {from: bound.overlay[0].from, to: bound.overlay[bound.overlay.length - 1].to},
-				text: state.sliceDoc(bound.overlay[0].from, bound.overlay[bound.overlay.length - 1].to),
+				overlay: {from: bound.overlay[0]!.from, to: bound.overlay[bound.overlay.length - 1]!.to},
+				text: state.sliceDoc(bound.overlay[0]!.from, bound.overlay[bound.overlay.length - 1]!.to),
 			}		
 		).filter((x): x is EquationInfo => x !== null);
 		return this.equationsOverlays;

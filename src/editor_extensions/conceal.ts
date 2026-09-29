@@ -92,17 +92,19 @@ class TextWidget extends WidgetType {
  */
 function atSamePosAfter(
 	update: ViewUpdate,
-	oldConceal: ConcealSpec,
-	newConceal: ConcealSpec,
+	oldConceals: ConcealSpec,
+	newConceals: ConcealSpec,
 ): boolean {
-	if (oldConceal.length !== newConceal.length) return false;
+	if (oldConceals.length !== newConceals.length) return false;
 
-	for (let i = 0; i < oldConceal.length; ++i) {
+	for (let i = 0; i < oldConceals.length; ++i) {
+		const oldConceal = oldConceals[i]!;
+		const newConceal = newConceals[i]!;
 		// Set associativity to ensure that insertions on either side of the
 		// concealed region do not expand the region
-		const oldStartUpdated = update.changes.mapPos(oldConceal[i].start, 1);
-		const oldEndUpdated = update.changes.mapPos(oldConceal[i].end, -1);
-		const b = oldStartUpdated == newConceal[i].start && oldEndUpdated == newConceal[i].end;
+		const oldStartUpdated = update.changes.mapPos(oldConceal.start, 1);
+		const oldEndUpdated = update.changes.mapPos(oldConceal.end, -1);
+		const b = oldStartUpdated == newConceal.start && oldEndUpdated == newConceal.end;
 		if (!b) return false;
 	}
 
@@ -233,15 +235,17 @@ function buildAtomicRanges(concealments: Concealment[]) {
 	const fakeval = new (class extends RangeValue {});
 	const builder = new RangeSetBuilder();
 	for (let i = 0; i < repls.length; i++) {
-		if (repls[i].text === "") {
-			if (i+1 != repls.length && repls[i].end == repls[i+1].start) {
-				builder.add(repls[i].start, repls[i+1].end, fakeval);
+		const replace = repls[i]!;
+		const nextReplace = repls[i + 1];
+		if (replace.text === "") {
+			if (nextReplace && replace.end == nextReplace.start) {
+				builder.add(replace.start, nextReplace.end, fakeval);
 				i++;
 			} else {
-				builder.add(repls[i].start, repls[i].end + 1, fakeval);
+				builder.add(replace.start, replace.end + 1, fakeval);
 			}
 		} else {
-			builder.add(repls[i].start, repls[i].end, fakeval);
+			builder.add(replace.start, replace.end, fakeval);
 		}
 	}
 	return builder.finish();

@@ -518,7 +518,7 @@ type CodeblockLangInfo = Bounds & { codeblockLanguage: string };
 const langIfWithinCodeblock = (
 	state: EditorState,
 ): CodeblockLangInfo | null => {
-	const pos = state.selection.ranges[0].from;
+	const pos = state.selection.main.from;
 	const coddeblockBounds = getCodeblockBoundNodes(state, pos);
 	if (!coddeblockBounds) return null;
 	const { begin: codeblockBegin, end: codeblockEnd } = coddeblockBounds;
@@ -543,7 +543,7 @@ function getLangFromCodeblockNode(
 	return state
 		.sliceDoc(node.from, node.to)
 		.replace(/`+|~+/g, "")
-		.split(" ")[0];
+		.split(" ")[0]!;
 }
 
 const withingCode = (state: EditorState): boolean => {

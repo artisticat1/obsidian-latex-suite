@@ -52,11 +52,9 @@ const isDelimiterToken = (token: Token): boolean => DELIMITERS.has(token.text);
 const isClosingSymbolToken = (token: Token, closingSymbols: Set<string>): boolean => closingSymbols.has(token.text);
 
 
-const isClosingDelimiterToken = (tokens: Token[], index: number, closingSymbols: Set<string>): boolean => {
-	const current = tokens[index];
-
+const isClosingDelimiterToken = (tokens: Token[], index: number, closingSymbols: Set<string>, current: Token): boolean => {
 	if (index > 0) {
-		const prev = tokens[index - 1];
+		const prev = tokens[index - 1]!;
 
 		if (isRightCommandToken(prev) && isDelimiterToken(current)) return true;
 		if (isLeftCommandToken(prev) && isDelimiterToken(current)) return false;
@@ -66,15 +64,15 @@ const isClosingDelimiterToken = (tokens: Token[], index: number, closingSymbols:
 };
 
 
-const isUnmatchedRightCommand = (tokens: Token[], index: number): boolean => {
-	const current = tokens[index];
+
+const isUnmatchedRightCommand = (tokens: Token[], index: number, current: Token): boolean => {
 	if (!isRightCommandToken(current)) return false;
 
 	if (index + 1 >= tokens.length) {
 		return true;
 	}
 
-	const next = tokens[index + 1];
+	const next = tokens[index + 1]!;
 	return !isDelimiterToken(next);
 };
 
@@ -102,9 +100,10 @@ export const tabout = (view: EditorView, ctx: Context): boolean => {
 	// If no token exists after the cursor, set start index to length to skip the loop entirely.
     const startIndex = foundIndex === -1 ? tokens.length : foundIndex;
     for (let i = startIndex; i < tokens.length; i++) {
+		const token = tokens[i]!;
 		// Case 1: Normal Navigation
-		if (isClosingDelimiterToken(tokens, i, closingSymbols)) {
-			setCursor(view, inner_start + tokens[i].end);
+		if (isClosingDelimiterToken(tokens, i, closingSymbols, token)) {
+			setCursor(view, inner_start + token.end);
 
 			return true;
 		}
@@ -113,10 +112,10 @@ export const tabout = (view: EditorView, ctx: Context): boolean => {
 		// While the action (setCursor) is the same as above, the intent here is different:
 		// we navigate the user directly to the location of the error (immediately after the unfinished "\right")
         // so they can simply type the missing delimiter right there.
-		if (isUnmatchedRightCommand(tokens, i)) {
-			console.warn("[tabout] Found right command without following delimiter:", tokens[i].text, "at index", inner_start + tokens[i].start);
+		if (isUnmatchedRightCommand(tokens, i, token)) {
+			console.warn("[tabout] Found right command without following delimiter:", token.text, "at index", inner_start + token.start);
 
-			setCursor(view, inner_start + tokens[i].end);
+			setCursor(view, inner_start + token.end);
 
 			return true;
 		}
@@ -189,8 +188,7 @@ export const taboutByEnclosedBrackets = (view: EditorView, latexString: string):
 			closing_delimiters.has(DELIMITERS_MAP[key as keyof typeof DELIMITERS_MAP]),
 		),
 	);
-	for (let i = 0; i < tokens.length; i++) {
-		const token = tokens[i];
+	for (const token of tokens) {
 		if (closing_delimiters.has(token.text)) {
 			if (delimiter_stack.length === 0) {
 				return token.end;

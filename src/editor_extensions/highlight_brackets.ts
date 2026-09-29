@@ -194,7 +194,7 @@ function handleMathSpecialChar(cursor: TreeCursor, doc: EquationText): BracketRe
 	const chars = doc.slice(cursor.from, cursor.to)
 	const brackets: BracketResult[] = []
 	for (let i=0; i < chars.length; i++) {
-		const char = chars[i];
+		const char = chars[i]!;
 		const bound = {from: cursor.from + i, to: cursor.from + i + 1};
 		const isOpen = char in bracket_delimiters;
 		const isClose = char in reverse_bracket_delimiters;
@@ -264,9 +264,8 @@ export function pairBrackets(specs: BracketResult[]) {
 	const paired: PairedBrackets[] = [];
 	let parent: PairedBracketParent = null;
 	const openStack: (PairedBrackets & {kind: "error_open"})[] = [];
-	for (let i=0; i < specs.length; i++) {
+	for (const spec of specs) {
 		const children = parent?.children ?? paired;
-		const spec = specs[i];
 		const pairedSpec: PairedBrackets = {
 			...spec,
 			parent,
@@ -277,11 +276,11 @@ export function pairBrackets(specs: BracketResult[]) {
 			children.push(pairedSpec);
 			parent = pairedSpec;
 		} else if (pairedSpec.kind === "error_close") {
-			const bracket: string = reverse_bracket_delimiters[pairedSpec.bracket];
+			const bracket: string = reverse_bracket_delimiters[pairedSpec.bracket]!;
 			const index = findIndexReverse(openStack, (open) => open.bracket === bracket);
 
 			if (index !== null) {
-				const open = openStack[index];
+				const open = openStack[index]!;
 				parent = open
 				openStack.length = index;
 				Object.assign(open, {
@@ -318,9 +317,10 @@ export function colorPairedBrackets(view: EditorView, cached_equations: ColorBra
 	const new_equations: typeof cached_equations = {};
 	const widgets: Range<Decoration>[] = [];
 	for (const eqn_info of overlays) {
-		if (eqn_info.text in cached_equations) {
-			new_equations[eqn_info.text] = cached_equations[eqn_info.text];
-			for (const spec of cached_equations[eqn_info.text]) {
+		const cached = cached_equations[eqn_info.text];
+		if (cached) {
+			new_equations[eqn_info.text] = cached
+			for (const spec of cached) {
 				widgets.push(getHighlightBracketMark(spec.pos + eqn_info.overlay.from, spec.className, spec.bracket));
 			}
 			continue

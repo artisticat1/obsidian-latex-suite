@@ -122,9 +122,9 @@ export function handleMathTooltip(update: ViewUpdate) {
 	// a little optimization: if the tooltip is currently shown and the equation with decorations is the same as the one in the tooltip, we don't need to update it.
 	if (
 		oldTooltips.length === 1 &&
-		oldTooltips[0].equation === eqnWithDecorations &&
-		oldTooltips[0].bounds.inner_start === eqnBounds.inner_start &&
-		oldTooltips[0].bounds.inner_end === eqnBounds.inner_end
+		oldTooltips[0]!.equation === eqnWithDecorations &&
+		oldTooltips[0]!.bounds.inner_start === eqnBounds.inner_start &&
+		oldTooltips[0]!.bounds.inner_end === eqnBounds.inner_end
 	) {
 		return;
 	}
@@ -139,7 +139,7 @@ export function handleMathTooltip(update: ViewUpdate) {
 		if (ctx.mode.blockMath) {
 			// check if every newline is followed by the same amount of > as the line of the opening delimiters
 			// if so hide them. A maximum  of 3 spaces can be at the beginning of the line before its not a block-quote.
-			const blockQuoteCount = update.state.doc.lineAt(eqnBounds.inner_start).text.match(/^ {0,3}(>+)/)?.[1].length;
+			const blockQuoteCount = update.state.doc.lineAt(eqnBounds.inner_start).text.match(/^ {0,3}(>+)/)?.[1]!.length;
 			if (blockQuoteCount) {
 				const regex = new RegExp(`^ {0,3}>{${blockQuoteCount}}`, "gm");
 				if (regex.test(eqn)) {

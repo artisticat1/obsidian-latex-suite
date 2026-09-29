@@ -75,8 +75,8 @@ const getParsedSelection = (view: EditorView, original_range: CMBound) => {
 	if (!startCalloutMatch) {
 		return originalResult;
 	}
-	const calloutCount = startCalloutMatch[1].split(">").length - 1;
-	const indentation = startCalloutMatch[2];
+	const calloutCount = startCalloutMatch[1]!.split(">").length - 1;
+	const indentation = startCalloutMatch[2]!;
 	let exit = false;
 	parsedSel = original_sel.replaceAll(
 		new RegExp("\\n((?:> ?)*)(\\s*)", "g"),
@@ -123,8 +123,7 @@ const runSnippetCursor = (view: EditorView, ctx: Context, snippetInfo: SnippetIn
 	}
 	const envNames = Array.from(ctx.getEnvNames(to))
 	const updatedLine = line + key;
-	for (let i=0; i < snippetInfo.snippets.length; i++) {
-		const snippet = snippetInfo.snippets[i];
+	for (const [i, snippet] of snippetInfo.snippets.entries()) {
 		const inIncludedScope = snippet.isWithinIncludedScope(envNames);
 		if (!snippet.options.snippetShouldRunInMode(ctx.mode, inIncludedScope === IncludedEnvironmentResult.Included)) {
 			continue;

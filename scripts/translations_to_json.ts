@@ -59,7 +59,7 @@ async function parseNodes(tree: Root, source: string) {
 
 		const children = node.children
 		const textNode = children[0]
-		if (children.length !== 1 || textNode.type !== "text") {
+		if (!textNode || children.length !== 1 || textNode.type !== "text") {
 			throw new Error("Headings must only contain text")
 		}
 		keys.length = node.depth
@@ -73,11 +73,11 @@ async function parseNodes(tree: Root, source: string) {
 main()
 function insert_text(result: RecursiveRecord, keys: string[], source: string, start: number, start_offset: number) {
 	let obj: RecursiveRecord = result;
-	let key: string = keys[0];
+	let key: string = keys[0]!;
 	for (let i = 0; i < keys.length - 1; i++) {
-		key = keys[i];
+		key = keys[i]!;
 		obj[key] = obj[key] ?? {};
-		const value = obj[key];
+		const value = obj[key]!;
 		if (typeof value === "string") {
 			console.log(obj, key);
 			throw "Unexpected string value in object, expected nested object. Headers can only contain other headers or text, not both.";
@@ -85,5 +85,5 @@ function insert_text(result: RecursiveRecord, keys: string[], source: string, st
 			obj = value;
 		}
 	}
-	obj[keys[keys.length - 1]] = source.slice(start, start_offset).trim();
+	obj[keys[keys.length - 1]!] = source.slice(start, start_offset).trim();
 }

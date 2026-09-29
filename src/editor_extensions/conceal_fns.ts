@@ -198,8 +198,8 @@ function getLimitLength(cursor: TreeCursor, doc: EquationText) {
 }
 
 function handleBracket(cursor: TreeCursor, _doc: EquationText, macro: string): HandleConcealResult {
-	const symbol = brackets[macro];
-	const spec=[
+	const symbol = brackets[macro]!;
+	const spec = [
 		{
 			start: cursor.from,
 			end: cursor.to,
@@ -450,14 +450,15 @@ function handleTextModifiers(cursor: TreeCursor, doc: EquationText, macro: strin
 	const sibling = mathArgumentNode.closeBraceNode;
 	let content = doc.slice(contentNode.from, contentNode.to);
 	if (/[^A-Za-z0-9 ]/.test(content)) {
+		let tempContent: string | undefined;
 		if (!(
 			(macro === "underline" || macro === "boldsymbol") &&
 			content[0] === "\\" &&
-			content.slice(1) in greek
+			(tempContent = greek[content.slice(1)])
 		)) {
 			return { spec: [], kind: HandleResultKind.Handled };
 		}
-		content = greek[content.slice(1)];
+		content = tempContent;
 	}
 	if (macro === "mathbb") {
 		content = content
@@ -586,10 +587,10 @@ export function conceal(
 		return eqn.bound.overlay.map((overlay) => {
 			const arr = [];
 			for (;lines_start < lines_lengths.length - 1; lines_start++) {
-				if (lines_lengths[lines_start] + eqn.overlay.from >= overlay.to) break;
+				if (lines_lengths[lines_start]! + eqn.overlay.from >= overlay.to) break;
 				// substract newline character from the end of the line, as it is not part of the overlay
-				const line_end = Math.min(lines_lengths[lines_start + 1] + eqn.overlay.from - 1, overlay.to);
-				const start = Math.max(lines_lengths[lines_start] + eqn.overlay.from, overlay.from)
+				const line_end = Math.min(lines_lengths[lines_start + 1]! + eqn.overlay.from - 1, overlay.to);
+				const start = Math.max(lines_lengths[lines_start]! + eqn.overlay.from, overlay.from)
 				arr.push({
 					text: eqn.text.slice(start - eqn.overlay.from, line_end - eqn.overlay.from),
 					bound: eqn.bound,
@@ -606,10 +607,11 @@ export function conceal(
 	const specs: ConcealSpec[] = [];
 
 	for (const eqn of overlays_by_line) {
-		if (eqn.text in cached_equations) {
-			new_equations[eqn.text] = cached_equations[eqn.text];
+		const cached = cached_equations[eqn.text];
+		if (cached) {
+			new_equations[eqn.text] = cached
 			specs.push(
-				...cached_equations[eqn.text].map((specs) =>
+				...cached.map((specs) =>
 					specs.map((spec) => ({
 						...spec,
 						start: spec.start + eqn.overlay.from,

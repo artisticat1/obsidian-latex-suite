@@ -106,7 +106,7 @@ function expandTabstops(
 	const frozenTabstopGroups = tabstopGroups.map(grp => grp.copy())
 	// Insert the replacements
 	const effects = addTabstops(tabstopGroups).effects;
-	const firstGrp = tabstopGroups[0];
+	const firstGrp = tabstopGroups[0]!;
 	const sel = firstGrp.toEditorSelection();
 	const spec = {
 		selection: sel,

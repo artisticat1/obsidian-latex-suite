@@ -60,18 +60,20 @@ class HighlightDollarPlugin implements PluginValue {
 								node.getChild(latex.CloseParenMath),
 							].filter(child => child !== null);
 					if (dollars.length === 1) {
-						const child = dollars[0];
+						const child = dollars[0]!;
 						dollar_ranges.push({
 							from: child.from,
 							to: child.to,
 							kind: "error",
 						});
 					} else if (dollars.length === 2) {
+						const open = dollars[0]!;
+						const close = dollars[1]!;
 						dollar_ranges.push({
-							outer_start: dollars[0].from,
-							inner_start: dollars[0].to,
-							inner_end: dollars[1].from,
-							outer_end: dollars[1].to,
+							outer_start: open.from,
+							inner_start: open.to,
+							inner_end: close.from,
+							outer_end: close.to,
 							kind: "pair",
 							mode: MathMode.InlineMath,
 						});
