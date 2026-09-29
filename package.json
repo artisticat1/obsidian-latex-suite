@@ -27,7 +27,7 @@
 	"peerDependencies": {
 		"@codemirror/autocomplete": "^6.0.0",
 		"@codemirror/commands": "^6.0.0",
-		"@codemirror/language": "https://github.com/lishid/cm-language",
+		"@codemirror/language": "^6.0.0",
 		"@codemirror/lint": "^6.0.0",
 		"@codemirror/search": "^6.0.0",
 		"@codemirror/state": "^6.0.0",
