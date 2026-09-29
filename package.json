@@ -12,7 +12,8 @@
 	"scripts": {
 		"dev": "jiti esbuild.config.mts",
 		"build": "tsc -noEmit -skipLibCheck && jiti esbuild.config.mts production",
-		"version": "npm run lint && npm run build && jiti version-bump.mts && git add manifest.json versions.json",
+		"version": "npm test && npm run lint && npm run build && jiti version-bump.mts && git add manifest.json versions.json",
+		"postversion": "jiti scripts/postversion.ts",
 		"lint": "tsc --noEmit -skipLibCheck && eslint",
 		"tsc": "tsc --noEmit -skipLibCheck",
 		"eslint": "eslint --fix",
