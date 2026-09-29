@@ -1,5 +1,5 @@
 import { AnnotationType, ChangeDesc, EditorSelection, EditorState, Extension, Range, SelectionRange, StateEffectType, StateField } from "@codemirror/state";
-import { Decoration, DecorationSet, EditorView, PluginValue, ViewPlugin } from "@codemirror/view";
+import { Decoration, DecorationSet, EditorView, PluginValue, ViewPlugin, ViewUpdate } from "@codemirror/view";
 import { Tree } from "@lezer/common";
 import { Plugin } from "obsidian";
 
@@ -41,6 +41,7 @@ export type SnippetChangeSpecApi = {
 }
 
 declare class BaseNode {}
+export type UpdateHandler = (ctx: this, update: ViewUpdate) => void;
 
 /**
  * @public
@@ -68,6 +69,13 @@ export interface LatexSuitePluginPublicApi extends Plugin{
 	 * @since 1.13.0
 	 */
 	snippet: (view: EditorView, snippetChangeSpec: SnippetChangeSpecApi) => boolean,
+	
+	/**
+	 * Called on each codemirror update after context is computed and math bounds are updated. Won't run if `disableMath` is called.
+	 * @public
+	 * @since 1.13.2
+	 */
+	onUpdate: (callback: UpdateHandler) => void
 	
 
 	/**

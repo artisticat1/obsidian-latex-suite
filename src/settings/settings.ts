@@ -3,6 +3,7 @@ import type { Environment } from "../snippets/environment";
 import { DEFAULT_SNIPPETS } from "src/utils/default_snippets";
 import { DEFAULT_SNIPPET_VARIABLES } from "src/utils/default_snippet_variables";
 import * as v from "valibot";
+import type { UpdateHandler } from "src/api";
 
 export type snippetDebugLevel = "off" | "info" | "verbose";
 
@@ -95,6 +96,7 @@ export type LatexSuitePluginSettings = {
 	LatexSuiteCMKeymapSettings;
 export type LatexSuiteCMSettings = {
 	snippets: GroupedSnippets;
+	updateHandlers: UpdateHandler[];
 } & LatexSuiteBasicSettings &
 	LatexSuiteParsedSettings &
 	LatexSuiteCMKeymapSettings;
@@ -180,6 +182,7 @@ export const EnvironmentSchema = v.pipe(
 export function processLatexSuiteSettings(
 	snippets: Snippet[],
 	settings: LatexSuitePluginSettings,
+	updateHandlers: UpdateHandler[] = [],
 ): LatexSuiteCMSettings {
 	function strToArray(str: string) {
 		return str.replace(/\s/g, "").split(",");
@@ -203,7 +206,7 @@ export function processLatexSuiteSettings(
 
 	return {
 		...settings,
-
+		updateHandlers,
 		// Override raw settings with parsed settings
 		snippets: groupedSnippets,
 		autofractionExcludedEnvs: getAutofractionExcludedEnvs(
