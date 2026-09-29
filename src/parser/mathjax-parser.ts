@@ -12,6 +12,7 @@ import {
 	type DelimiterType,
 	parseCode,
 } from "@lezer/markdown";
+import { parser } from "@lezer/html";
 
 export class Type {
 	static readonly InlineMath = "InlineMath";
@@ -397,6 +398,32 @@ export const fullMathParser = (mathLang: string[]) =>
 			parseCode({
 				codeParser: (lang: string) =>
 					mathLang.includes(lang) ? mathJaxParser : null,
+				htmlParser: parser.configure({
+					wrap: parseMixed((node, input) => {
+						if (node.name !== "Element") return null;
+						const openTag = node.node.getChild("OpenTag");
+						const closeTag = node.node.getChild("CloseTag");
+						if (!openTag || !closeTag) return null;
+						if (openTag.to === closeTag.from) return null;
+						const attributes = openTag.getChildren("Attribute");
+						for (const attr of attributes) {
+							const nameNode = attr.getChild("AttributeName");
+							const valueNode = attr.getChild("AttributeValue");
+							if (!nameNode || !valueNode) continue;
+							const name = input.read(nameNode.from, nameNode.to);
+							if (name !== "class") continue
+							const classList = input.read(valueNode.from + 1, valueNode.to - 1).split(/\s+/);
+							if (classList.includes("math")) {
+								return {
+									parser: mathJaxParser,
+									overlay: [{from: openTag.to, to: closeTag.from}],
+									bracketed: true,
+								};
+							}
+						}
+						return null;	
+					})
+				})
 			}),
 		);
 export const testBaseParser = baseParser.configure({
