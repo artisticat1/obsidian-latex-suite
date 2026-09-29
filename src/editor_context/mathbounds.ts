@@ -68,10 +68,24 @@ export class MathBoundsPlugin implements PluginValue {
 		}
 	}
 
-	updateMathBounds(view: EditorView) {
+	updateMathBounds(view: EditorView): void {
 		const tree = modifiedSyntaxTree(view.state);
 		const ranges: MathBounds[] = [];
 		const settings = getLatexSuiteConfig(view.state);
+		// for excalidraw the topnode is LaTeX, e.g. the whole document is in math mode.
+		if (tree.topNode.type.is(latex.LaTeX)) {
+			const mathBound = {
+				inner_start: tree.topNode.from,
+				inner_end: tree.topNode.to,
+				outer_start: tree.topNode.from,
+				outer_end: tree.topNode.to,
+				mode: MathMode.BlockMath,
+				tree: tree.topNode,
+				overlay: [{ from: tree.topNode.from, to: tree.topNode.to }],
+			};
+			this._mathBounds = [mathBound];
+			return
+		}
 		for (const { from, to } of view.visibleRanges) {
 			tree.iterate({
 				from,
@@ -144,18 +158,6 @@ export class MathBoundsPlugin implements PluginValue {
 							mode: MathMode.CodeMath,
 							tree,
 							overlay: contentNodes,
-						});
-					// for excalidraw the topnode is LaTeX but it's also a topnode in the mounted tree
-					// thus check if it has a parent instead.
-					} else if (nodeRef.type.is(latex.LaTeX) && nodeRef.node.parent === null) {
-						ranges.push({
-							inner_start: nodeRef.node.from,
-							inner_end: nodeRef.node.to,
-							outer_start: nodeRef.node.from,
-							outer_end: nodeRef.node.to,
-							mode: MathMode.BlockMath,
-							tree: nodeRef.node,
-							overlay: [{ from: nodeRef.from, to: nodeRef.to }],
 						});
 					}
 				},

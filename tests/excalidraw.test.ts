@@ -185,5 +185,21 @@ X_3
 }
 `);
 	});
+	
+	it("should be math for empty equation", async () => {
+		const result = await evalInObsidian({
+			contextId,
+			input: { pluginId: "obsidian-latex-suite" },
+			callback: ({
+				lib: { plugin}, context: { view }
+			}) => {
+				const equation = ``;
+				view.setDoc(equation);
+				const ctx = plugin.test.getContextPlugin(view);
+				return ctx.mode.blockMath;
+			},
+		});
+		expect(result).toBe(true);
+	})
 
 })
