@@ -3,7 +3,6 @@ import { Vault, TFile, TFolder, TAbstractFile, Notice, debounce, Platform } from
 import { Snippet } from "../snippets/snippets";
 import { parseSnippets, parseSnippetVariables, type SnippetVariables } from "../snippets/parse";
 import { sortSnippets } from "src/snippets/sort";
-import { difference, intersection } from "src/utils/prototype_utils";
 
 type FSWatcher = ReturnType<typeof import("fs").watch>
 
@@ -176,46 +175,44 @@ type FsLike = {
 	read: (path: string) => Promise<string>;
 }
 
-async function walkRecursive(path: string, fsLike: FsLike): Promise<File[]> {
+async function* walkRecursive(path: string, fsLike: FsLike): AsyncGenerator<File, void, void> {
 	const stat = await fsLike.stat(path);
 	if (stat?.type === "file") {
 		const name = path.split("/").pop() || path;
 		const read = () => fsLike.read(path);
-		return [{ name, path, read }];
+		yield { name, path, read };
 	} else if (stat?.type === "folder") {
 		const files = await fsLike.list(path);
-		const promises = files.files.map(
-			async (file) => await walkRecursive(file, fsLike),
-		);
-		return (await Promise.all(promises)).flat();
+		// this is intentionally sequential instead of async, otherwise the walk couldn't be stopped.
+		// and the safety of not importing a lot of files is more important than speed.
+		for (const file of files.files) {
+			yield* walkRecursive(file, fsLike);
+		}
 	}
-	return [];
 }
 
-// Async helper functions such as Array.fromAsync still are not widely supported/in proposal stages.
-async function generateFilesWithinHidden(vault: Vault, path: string): Promise<File[] | null> {
+async function* generateFilesWithinHidden(vault: Vault, path: string)  {
 	const hiddenFileOrFolder = await vault.adapter.exists(path);
 	if (hiddenFileOrFolder === null) {
 		return null;
 	}
-	const files = await walkRecursive(path, vault.adapter);
-	return files
+	yield* walkRecursive(path, vault.adapter);
 }
 
-async function genereteFilesWithinAbsolutePaths(path: string): Promise<File[] | null> {
+async function genereteFilesWithinAbsolutePaths(path: string) {
 	if (!Platform.isDesktop) {
-		return null
+		return;
 	}
 	const nodeLibs = await AbsolutePath(path);
 	if (nodeLibs === null) {
-		return null;
+		return;
 	}
 	const fs = nodeLibs.fs.promises;
 	const node_path = nodeLibs.node_path;
 	path = nodeLibs.path;
 	const fileStat = await fs.stat(path).catch(() => null);
 	if (fileStat === null) {
-		return null;
+		return;
 	}
 	async function stat(path: string) {
 		const fileStat = await fs.stat(path).catch(() => null);
@@ -234,29 +231,27 @@ async function genereteFilesWithinAbsolutePaths(path: string): Promise<File[] | 
 		const files = await fs.readdir(path);
 		return { files: files.map((file) => node_path.join(path, file)) };
 	};
-	const files = await walkRecursive(path, { stat, list, read });
-	return files
+	return walkRecursive(path, { stat, list, read });
 }
 
-async function getFilesWithin(vault: Vault, path: string): Promise<File[]> {
+async function* getFilesWithin(vault: Vault, path: string): AsyncGenerator<File> {
 	const fileOrFolder = vault.getAbstractFileByPath(path);
 	if (fileOrFolder) {
 		const files = generateFilesWithin(fileOrFolder);
-		return Array.from(files).map((file) => ({
-			path: file.path,
-			name: file.name,
-			read: () => vault.cachedRead(file),
-		}));
+		for (const file of files) {
+			yield {
+				path: file.path,
+				name: file.name,
+				read: () => vault.cachedRead(file),
+			}
+		}
 	}
 	const absoluteFiles = await genereteFilesWithinAbsolutePaths(path);
 	if (absoluteFiles) {
-		return absoluteFiles;
+		yield* absoluteFiles;
+	} else {
+		yield* generateFilesWithinHidden(vault, path);
 	}
-	const hiddenFiles = await generateFilesWithinHidden(vault, path);
-	if (hiddenFiles) {
-		return hiddenFiles;
-	}
-	return [];
 }
 
 /**
@@ -269,37 +264,62 @@ type File = {
 	read: () => Promise<string>;
 }
 
-interface FileSets {
-	definitelyVariableFiles: Set<File>;
-	definitelySnippetFiles: Set<File>;
-	snippetOrVariableFiles: Set<File>;
+type FileSetKind = "variable" | "snippet" | "unknown";
+type FileSet<T extends FileSetKind = FileSetKind> = {
+	kind: T;
+	file: File;
+};
+
+type SnippetVariableFileGenerator = AsyncGenerator<FileSet, void, void>;
+
+export async function* getSnippetVariableFiles(plugin: LatexSuitePlugin): SnippetVariableFileGenerator {
+	if (!plugin.settings.loadSnippetVariablesFromFile) {
+		return;
+	}
+	const variablesFolder = getFilesWithin(
+		plugin.app.vault,
+		plugin.settings.snippetVariablesFileLocation,
+	);
+	const snippetFolder = plugin.settings.loadSnippetsFromFile ? plugin.settings.snippetsFileLocation : null;
+	const unknownFiles: FileSet<"unknown">[] = [];
+
+	for await (const variableFile of variablesFolder) {
+		if (snippetFolder && variableFile.path.startsWith(snippetFolder)) {
+			yield {
+				kind: "unknown",
+				file: variableFile,
+			};
+			unknownFiles.push({
+				kind: "unknown",
+				file: variableFile,
+			});
+		} else {
+			yield {
+				kind: "variable",
+				file: variableFile,
+			};
+		}
+	}
 }
 
-export async function getFileSets(plugin: LatexSuitePlugin): Promise<FileSets> {
-	const variablesFolder =
-		plugin.settings.loadSnippetVariablesFromFile
-		? await getFilesWithin(plugin.app.vault, plugin.settings.snippetVariablesFileLocation)
-		: [];
+export async function* getSnippetFiles(plugin: LatexSuitePlugin) {
+	if (!plugin.settings.loadSnippetsFromFile) {
+		return;
+	}
+	const snippetFolder = getFilesWithin(plugin.app.vault, plugin.settings.snippetsFileLocation)
+	const variableFolder = plugin.settings.loadSnippetVariablesFromFile ? plugin.settings.snippetVariablesFileLocation : null;
 
-	const snippetsFolder =
-		plugin.settings.loadSnippetsFromFile
-		? await getFilesWithin(plugin.app.vault, plugin.settings.snippetsFileLocation)
-		: [];
-	const variablePathSet = new Set(variablesFolder.map(file => file.path));
-	const snippetPathSet = new Set(snippetsFolder.map(file => file.path));	
-
-	const definitelyVariablePaths = difference(variablePathSet, snippetPathSet);
-	const definitelyVariableFiles = new Set(variablesFolder.filter(file => definitelyVariablePaths.has(file.path)))
-
-	const definitelySnippetPaths = difference(snippetPathSet, variablePathSet);
-	const definitelySnippetFiles = new Set(snippetsFolder.filter(file => definitelySnippetPaths.has(file.path)))
-
-	const snippetOrVariablePaths = intersection(variablePathSet, snippetPathSet);
-	const snippetOrVariableFiles = new Set(variablesFolder.filter(file => snippetOrVariablePaths.has(file.path)))
-
-	return {definitelyVariableFiles, definitelySnippetFiles, snippetOrVariableFiles};
+	for await (const snippetFile of snippetFolder) {
+		if (variableFolder && snippetFile.path.startsWith(variableFolder)) {
+			continue;
+		} else {
+			yield {
+				kind: "snippet",
+				file: snippetFile,
+			} as const;
+		}
+	}
 }
-
 
 class NoticeManager {
 	notices: Notice[] = [];
@@ -312,54 +332,74 @@ class NoticeManager {
 			first?.hide();
 		}
 	}
+	
+	clearNotices() {
+		for (const notice of this.notices) {
+			notice.hide();
+		}
+		this.notices = [];
+	}
 }
 const noticeManager = new NoticeManager();
+const MAX_FAILURES = 50;
 
-export async function getVariablesFromFiles(files: FileSets) {
+function isMaxFailuresReached(failures: number, kind: "snippet variables" | "snippets") {
+	if (failures >= MAX_FAILURES) {
+		const message = `Too many failures (${failures}) while parsing snippet/variable files. Further parsing will be stopped and loading from files for ${kind} will be  turned off.`
+		const notice = new Notice(message);
+		noticeManager.clearNotices();
+		noticeManager.addNotice(notice);
+		console.error(message);
+		return true;
+	}
+	return false;
+}
+
+export async function getVariablesFromFiles(files: SnippetVariableFileGenerator) {
 	const snippetVariables: SnippetVariables = {};
+	const unknownFiles: FileSet[] = [];
+	let failures = 0;
 
-	for (const file of files.definitelyVariableFiles) {
+	for await (const fileSet of files) {
+		if (!["variable", "unknown"].includes(fileSet.kind)) {
+			continue;
+		}
+		const file = fileSet.file;
 		const content = await file.read();
 		try {
 			Object.assign(snippetVariables, await parseSnippetVariables(content, file.path));
 		} catch (err) {
+			// if the file is unknown, it might be a snippet file so we skip it.
+			if (fileSet.kind === "unknown") {
+				unknownFiles.push(fileSet);
+				continue;
+			}
 			const e = err as Error;
 			const notice = new Notice(`Failed to parse variable file ${file.name}: ${e}`);
 			noticeManager.addNotice(notice);
 			console.error(`Failed to parse variable file ${file.name}: ${e}`);
-			files.definitelyVariableFiles.delete(file);
+			failures++;
+			if (isMaxFailuresReached(failures, "snippet variables")) {
+				return null;
+			}
 		}
 	}
 
-	return snippetVariables;
-}
-
-export async function tryGetVariablesFromUnknownFiles(files: FileSets) {
-	const snippetVariables: SnippetVariables = {};
-
-	for (const file of files.snippetOrVariableFiles) {
-		const content = await file.read();
-		try {
-			Object.assign(snippetVariables, await parseSnippetVariables(content, file.path));
-			files.definitelyVariableFiles.add(file);
-		} catch {
-			// No error here, we just assume this is a snippets file.
-			// If it's not, then an error will be raised later, while parsing it.
-			files.definitelySnippetFiles.add(file);
-		}
-		files.snippetOrVariableFiles.delete(file);
+	return {
+		snippetVariables,
+		failures,
+		unknownFiles
 	}
-
-	return snippetVariables;
 }
 
 export async function getSnippetsFromFiles(
-	files: FileSets,
-	snippetVariables: SnippetVariables
+	files: AsyncIterable<FileSet>,
+	snippetVariables: SnippetVariables,
+	failures: number,
 ) {
 	const snippets: Snippet[] = [];
 
-	for (const file of files.definitelySnippetFiles) {
+	for await (const {file} of files) {
 		const content = await file.read();
 		try {
 			snippets.push(...await parseSnippets(content, snippetVariables, file.path));
@@ -368,7 +408,10 @@ export async function getSnippetsFromFiles(
 			const notice = new Notice(`Failed to parse snippet file ${file.name}: ${e}`);
 			noticeManager.addNotice(notice);
 			console.error(`Failed to parse snippet file ${file.name}: ${e}`);
-			files.definitelySnippetFiles.delete(file);
+			failures++;
+			if (isMaxFailuresReached(failures, "snippets")) {
+				return null;
+			}
 		}
 	}
 
