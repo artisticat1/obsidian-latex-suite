@@ -12,6 +12,7 @@ import type {} from "../src/i18n/i18next";
 import { LRLanguage } from "@codemirror/language";
 import { parser } from "./math-only-parser";
 import { minimalSetup } from "codemirror";
+import { getContextPlugin } from "../src/editor_context/context";
 
 declare global {
 	interface Window {
@@ -40,6 +41,7 @@ export default class TestPlugin extends LatexSuitePlugin {
 	test = {
 		parser: fullMathParser,
 		conceal,
+		getContextPlugin,
 		colorPairedBrackets,
 		settings_translation,
 		i18next,
