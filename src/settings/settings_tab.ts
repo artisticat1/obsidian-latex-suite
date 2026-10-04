@@ -889,7 +889,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 						this.plugin.settings.snippets = DEFAULT_SNIPPETS;
 
-						await this.plugin.saveSettings();
+						await this.plugin.saveSettings(false, true);
 					}
 				).open();
 			});
@@ -910,7 +910,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 						updateValidityIndicator(true);
 
 						this.plugin.settings.snippets = value;
-						await this.plugin.saveSettings();
+						await this.plugin.saveSettings(false, true);
 					}
 				).open();
 			});

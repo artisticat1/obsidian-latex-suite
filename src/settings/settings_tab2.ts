@@ -747,7 +747,7 @@ function createSnippetsEditor(
 					plugin.settings[config.type] =
 						DEFAULT_SETTINGS[config.type];
 
-					await plugin.saveSettings();
+					await plugin.saveSettings(false, true);
 				},
 			).open();
 		});
