@@ -269,6 +269,20 @@ function handleLeftRight(cursor: TreeCursor, doc: EquationText): HandleConcealRe
 	return { spec: [], kind: HandleResultKind.NotHandled };
 }
 
+/**
+ * helper for getting the first unicode grapheme cluster, 
+ * works on ios 14.5+ and obsidian 1.1.0 still supports ios 12+ thus
+ * using `String.codePointAt` as an alternative if the built in `Intl.Segmenter` isn't available.
+ * @param text the text to get the first unicode grapheme cluster from.
+ */
+function getFirstUnicodeCharacter(text: string): string {
+	if (!window?.Intl?.Segmenter) {
+		return String.fromCodePoint(text.codePointAt(0)!)
+	}
+	const segmenter = new Intl.Segmenter("en", {granularity: "grapheme"})
+	return segmenter.segment(text)[Symbol.iterator]().next().value!.segment
+}
+
 function handleSubSup(doc: EquationText, nodeRef: SyntaxNode, cursor: TreeCursor): HandleConcealResult {
 	const endChar = doc.slice(Math.max(nodeRef.from, nodeRef.to - 1), nodeRef.to);
 	if (endChar !== "_" && endChar !== "^") return { spec: [], kind: HandleResultKind.NotHandled };
@@ -288,13 +302,14 @@ function handleSubSup(doc: EquationText, nodeRef: SyntaxNode, cursor: TreeCursor
 		return { spec: [], kind: HandleResultKind.NotHandled };
 	}
 	if (nextNode.name === "MathChar" || nextNode.name === "Number") {
-		const end = Math.min(nextNode.to, nextNode.from + 1);
+		const fullText = doc.slice(nextNode.from, nextNode.to)
+		const firstUnicodeChar = getFirstUnicodeCharacter(fullText)
 		cursor.moveTo(nextNode.to, 1);
 		doc.skipCursorMove = true;
 		const spec = {
 			start,
-			end,
-			text: doc.slice(nextNode.from, end),
+			end: nextNode.from + firstUnicodeChar.length,
+			text: firstUnicodeChar,
 			class: "cm-number",
 			elementType: type,
 		};
