@@ -1,4 +1,4 @@
-import { parseMixed, type SyntaxNodeRef } from "@lezer/common";
+import { parseMixed, type SyntaxNode, type SyntaxNodeRef } from "@lezer/common";
 import { parser as mathJaxParser } from "./mathjax/latex-parser";
 import {
 	BlockContext,
@@ -12,6 +12,7 @@ import {
 	type DelimiterType,
 	parseCode,
 } from "@lezer/markdown";
+import { parser } from "@lezer/html";
 
 export class Type {
 	static readonly InlineMath = "InlineMath";
@@ -386,6 +387,56 @@ const obsidianCommentParser: MarkdownConfig = {
 	]
 };
 
+
+type ClassListResult = {
+	classList: string[];
+	openTag: SyntaxNode;
+	closeTag: SyntaxNode;
+}
+
+export function getClassListFromElement(node: SyntaxNode, input: {read: (from: number, to: number) => string}): ClassListResult | null {
+	const openTag = node.getChild("OpenTag");
+	const closeTag = node.getChild("CloseTag");
+	if (!openTag || !closeTag) return null;
+	if (openTag.to === closeTag.from) return null;
+	const attributes = openTag.getChildren("Attribute");
+	for (const attr of attributes) {
+		const nameNode = attr.getChild("AttributeName");
+		const valueNode = attr.getChild("AttributeValue");
+		if (!nameNode || !valueNode) continue;
+		const name = input.read(nameNode.from, nameNode.to);
+		if (name !== "class") continue;
+		const classList = input
+			.read(valueNode.from + 1, valueNode.to - 1)
+			.split(/\s+/);
+		return {
+			classList,
+			openTag,
+			closeTag,
+		}
+	}
+	return null;
+}
+const htmlParser = parser.configure({
+	wrap: parseMixed((node, input) => {
+		if (node.name !== "Element") return null;
+		const result = getClassListFromElement(node.node, input)
+		if (!result) {
+			return null;
+		}
+		const {openTag, closeTag, classList} = result;
+		if (!classList.includes("math")) {
+			return null;
+		}
+
+		return {
+			parser: mathJaxParser,
+			overlay: [{ from: openTag.to, to: closeTag.from }],
+			bracketed: true,
+		};
+	}),
+});
+
 export const fullMathParser = (mathLang: string[]) =>
 	baseParser
 		.configure(GFM)
@@ -397,6 +448,7 @@ export const fullMathParser = (mathLang: string[]) =>
 			parseCode({
 				codeParser: (lang: string) =>
 					mathLang.includes(lang) ? mathJaxParser : null,
+				htmlParser,
 			}),
 		);
 export const testBaseParser = baseParser.configure({
