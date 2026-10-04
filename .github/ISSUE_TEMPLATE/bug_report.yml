@@ -1,0 +1,67 @@
+name: Bug report
+description: Create a report to fix a bug you encountered.
+title: "[BUG] "
+labels: bug
+body:
+    - type: input
+      id: plugin-version
+      attributes:
+          label: Plugin version
+          description: "Check **Settings > Community plugins > Latex Suite**"
+          placeholder: "1.13.4"
+      validations:
+          required: true
+    - type: input
+      id: obsidian-version
+      attributes:
+          label: Obsidian version
+          description: "Found in **Settings > General > Current version**"
+          placeholder: "1.13.7"
+      validations:
+          required: true
+    - type: checkboxes
+      id: preflight
+      attributes:
+          label: Pre-submission checklist
+          options:
+              - label: I have checked this inside a sandbox/empty vault with and without latex suite and its caused by latex suite. (For desktop only you can use the command `Open sandbox vault` to open a sandbox vault, install latex suite and quickly test the issue)
+              - label: This is not related to the functionality of the  default snippets and default snippet variables, use the `Default Snippets` template.
+              - label: If applicable, I have checked that latex suite parses the math/code/text/etc wrong according to reading mode and not the syntax highlighter in editor mode.
+    - type: dropdown
+      id: platform
+      attributes:
+          label: Platform
+          options:
+              - Windows
+              - macOS
+              - Linux
+              - Android
+              - IOS/IPadOs
+              - other
+    - type: textarea
+      id: description
+      attributes:
+          label: Description
+          description: A clear and concise description of what the bug is.
+      validations:
+          required: true
+    - type: textarea
+      id: steps
+      attributes:
+          label: To Reproduce
+          description: Steps to reproduce the behaviour, please include the text in codeblocks of the images or videos if applicable.
+    - type: textarea
+      id: expecation
+      attributes:
+          label: Expected behaviour
+          description: A clear and concise description of what you expected to happen.
+    - type: textarea
+      id: extra-info
+      attributes:
+          label: Additional Info
+          description: |
+              any additional you want to add if applicable such as
+              - screenshots/videos
+              - codeblocks of such screenshots/videos
+              - other plugins
+              - console errors or warnings, to open console, press `Cmd+shift+i` for mac and `Ctrl+shift+I` for windows/linux
