@@ -266,4 +266,37 @@ $$
 }
 `);
 	})
+
+	it("should subscript A_a\u0304 a full grapheme cluster", async () => {
+		const result = await evalInObsidian({
+			input: {pluginId: "obsidian-latex-suite" },
+			callback: ({app, pluginId, obsidianModule, lib: {plugin, view} }) => {
+				const conceal = plugin.test.conceal
+				const equation = 
+`
+$$
+A_a\u0304
+$$
+`
+				view.setDoc(equation)
+				const equation_result = conceal(view, {}).cached_equations
+				return equation_result
+			}
+		})
+		expect(result).toMatchInlineSnapshot(`
+{
+  "A_a\u0304": [
+    [
+      {
+        "class": "cm-number",
+        "elementType": "sub",
+        "end": 4,
+        "start": 1,
+        "text": "a\u0304",
+      },
+    ],
+  ],
+}
+`);
+	})
 })

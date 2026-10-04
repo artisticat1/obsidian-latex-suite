@@ -23,6 +23,7 @@
       "ES5",
       "ES6",
       "ES7",
+	  "ES2022.Intl",
       "ES2021.String"
     ],
 	"types": [
