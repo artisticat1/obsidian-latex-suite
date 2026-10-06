@@ -3,6 +3,7 @@ import { Vault, TFile, TFolder, TAbstractFile, Notice, debounce, Platform } from
 import { Snippet } from "../snippets/snippets";
 import { parseSnippets, parseSnippetVariables, type SnippetVariables } from "../snippets/parse";
 import { sortSnippets } from "src/snippets/sort";
+import type { PluginSnippetApi } from "src/snippets/luasnip_api";
 
 type FSWatcher = ReturnType<typeof import("fs").watch>
 
@@ -337,7 +338,7 @@ class NoticeManager {
 		this.notices = [];
 	}
 }
-const noticeManager = new NoticeManager();
+export const noticeManager = new NoticeManager();
 const MAX_FAILURES = 50;
 
 function isMaxFailuresReached(failures: number, kind: "snippet variables" | "snippets") {
@@ -393,13 +394,14 @@ export async function getSnippetsFromFiles(
 	files: AsyncIterable<FileSet>,
 	snippetVariables: SnippetVariables,
 	failures: number,
+	pluginApi: PluginSnippetApi
 ) {
 	const snippets: Snippet[] = [];
 
 	for await (const {file} of files) {
 		const content = await file.read();
 		try {
-			snippets.push(...await parseSnippets(content, snippetVariables, file.path));
+			snippets.push(...await parseSnippets(content, snippetVariables, file.path, pluginApi));
 		} catch (err) {
 			const e = err as Error;
 			const notice = new Notice(`Failed to parse snippet file ${file.name}: ${e}`);

@@ -3,7 +3,7 @@ import { RegexSnippet, serializeSnippetLike, Snippet, StringSnippet, VISUAL_SNIP
 import { Options } from "../editor_context/options";
 import { sortSnippets } from "./sort";
 import { EXCLUSIONS } from "./environment";
-import { api } from "./luasnip_api";
+import { api, type PluginSnippetApi } from "./luasnip_api";
 import { ArrayNode, BaseNode, SnippetStringNode, SnippetTabstopOnlyNode, VisualSnippetNode } from "./luasnip_api/node";
 import { type MacroArea, MacroAreaPipeSchema } from "src/editor_context/default_text_areas";
 import { isMacOS } from "src/editor_extensions/obsidian_utils";
@@ -82,8 +82,8 @@ function require(module) {
 }
 `
 
-function latex_suite_require(default_snippets: SnippetVariables) {
-	const parsed_api = api(default_snippets);
+function latex_suite_require(default_snippets: SnippetVariables, pluginApi: PluginSnippetApi) {
+	const parsed_api = api(default_snippets, pluginApi);
 	const original_require = require;
 	return function require(module: string): unknown {
 		if (module === "latex-suite") {
@@ -98,8 +98,8 @@ declare global {
 	var __latex_suite_require: ReturnType<typeof latex_suite_require>;
 }
 
-export async function parseSnippets(snippetsStr: string, snippetVariables: SnippetVariables, identifier: string) {
-	window.__latex_suite_require = latex_suite_require(snippetVariables);
+export async function parseSnippets(snippetsStr: string, snippetVariables: SnippetVariables, identifier: string, pluginApi: PluginSnippetApi) {
+	window.__latex_suite_require = latex_suite_require(snippetVariables, pluginApi);
 	const rawSnippets = await importRaw(snippetsStr + preamble, identifier);
 
 	let parsedSnippets;

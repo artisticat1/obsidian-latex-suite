@@ -1,6 +1,6 @@
 import { type Extension, Prec } from "@codemirror/state";
 import { Plugin, Notice, loadMathJax, addIcon, debounce } from "obsidian";
-import { getSnippetsFromFiles, getVariablesFromFiles, fileWatch, getSnippetVariableFiles, getSnippetFiles } from "./settings/file_watch";
+import { getSnippetsFromFiles, getVariablesFromFiles, fileWatch, getSnippetVariableFiles, getSnippetFiles, noticeManager } from "./settings/file_watch";
 import { type LatexSuitePluginSettings, DEFAULT_SETTINGS, type LatexSuiteCMSettings, processLatexSuiteSettings, type LatexSuiteBasicSettings, type LatexSuiteRawSettings, isLogLevelEnabled } from "./settings/settings";
 import { isIMESupported, LatexSuiteSettingTab } from "./settings/settings_tab";
 import { ICONS } from "./settings/ui/icons";
@@ -32,14 +32,19 @@ import { autoEnlargeBrackets } from "./features/auto_enlarge_brackets";
 import { runAutoFraction } from "./features/autofraction";
 import { addCellMatrixShortcut, exitMatrixShortCut, newlineMatrixShortcut, priorityTaboutMatrixShortcut } from "./features/matrix_shortcuts";
 import { snippet, tempKeyPress } from "./snippets/snippet_management";
-import { snippetApi } from "./snippets/luasnip_api";
+import { snippetApi, type PluginSnippetApi } from "./snippets/luasnip_api";
+import { default_mapping, MappingSchema, type RawConcealMapping } from "./editor_extensions/conceal_maps";
+import { serializeSnippetLike } from "./snippets/snippets";
 
 export default class LatexSuitePlugin extends Plugin implements LatexSuitePluginPublicApi {
 	settings: LatexSuitePluginSettings = EMPTY_SETTINGS;
 	CMSettings: LatexSuiteCMSettings = processLatexSuiteSettings(this.settings, {
 		snippets: [],
 		snippetVariables: {},
+		rawConcealMaps: [],
 	});
+	baseRawConcealMaps: RawConcealMapping[] = [default_mapping];
+	rawConcealMaps: RawConcealMapping[] = [];
 	editorExtensions: Extension[] = [];
 	watcherCloser?: () => void;
 	disableMath = (view: EditorView) => {
@@ -51,6 +56,20 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 	};
 	modifiedSyntaxTree = modifiedSyntaxTree;
 	snippet = snippet;
+	addRawConcealMaps = (rawConcealMaps: Record<string, unknown>) => {
+		try {
+			const parsedMap = v.parse(MappingSchema, rawConcealMaps);
+			this.rawConcealMaps.push(parsedMap);
+		} catch (err) {
+			const e = err as Error;
+			const error_message = `Value does not resemble a valid conceal mapping. \n${serializeSnippetLike(rawConcealMaps)}\n\n${e}`;
+			console.error(error_message);
+			noticeManager.addNotice(new Notice(error_message, 5000));
+		}
+	}
+	pluginSnippetApi: PluginSnippetApi = {
+		addRawConcealMaps: this.addRawConcealMaps
+	}
 	api = {
 		effects: {
 			snippetInvertedEffects,
@@ -206,7 +225,7 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 
 	async getSettingsSnippets(snippetVariables: SnippetVariables) {
 		try {
-			return await parseSnippets(this.settings.snippets, snippetVariables, "snippets.js");
+			return await parseSnippets(this.settings.snippets, snippetVariables, "snippets.js", this.pluginSnippetApi);
 		} catch (err) {
 			const e = err as Error;
 			new Notice(`Failed to load snippets from settings: ${e}`);
@@ -223,6 +242,8 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 				snippetVariables: this.CMSettings.snippetVariables,
 			};
 		}
+		// reset the maps such that the caller can reinsert them without worrying about duplicates.
+		this.rawConcealMaps = [];
 		// Get files in snippet/variable folders.
 		// If either is set to be loaded from settings the generator will just be empty.
 		const variableFiles = getSnippetVariableFiles(this);
@@ -250,7 +271,8 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 			? await getSnippetsFromFiles(
 					allSnippetFiles(),
 					snippetVariables.snippetVariables,
-					snippetVariables.failures
+					snippetVariables.failures,
+					this.pluginSnippetApi
 				)
 			: await this.getSettingsSnippets(snippetVariables.snippetVariables);
 		if (snippets === null) {
@@ -275,7 +297,8 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 			snippetVariables: {},
 		}
 		this.CMSettings = processLatexSuiteSettings(this.settings, {
-			...snippetAndVariables
+			...snippetAndVariables,
+			rawConcealMaps: [...this.baseRawConcealMaps, ...this.rawConcealMaps]
 		});
 		this.setEditorExtensions();
 		// Request Obsidian to reconfigure CM extensions

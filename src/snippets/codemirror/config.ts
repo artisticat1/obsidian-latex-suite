@@ -6,7 +6,8 @@ export const latexSuiteConfig = Facet.define<LatexSuiteCMSettings, LatexSuiteCMS
     combine: (input) => {
         const settings = input[0] ?? processLatexSuiteSettings(DEFAULT_SETTINGS, {
 			snippets: [],
-			snippetVariables: {}
+			snippetVariables: {},
+			rawConcealMaps: []
 		});
         return settings;
     }

@@ -30,14 +30,18 @@ function snippet_node(snippet: string) {
 function array_node(nodes: BaseNode[]) {
 	return new ArrayNode(nodes);
 }
+export type PluginSnippetApi = {
+	addRawConcealMaps: (maps: Record<string, unknown>) => void;
+}
 
-export const api = (snippetVariables: SnippetVariables) => {
+export const api = (snippetVariables: SnippetVariables, pluginApi: PluginSnippetApi) => {
 	return {
 		snippetVariables,
 		tabstop_node,
 		text_node,
 		capture_node,
-		ALL_MACROS
+		ALL_MACROS,
+		...pluginApi,
 	}
 }
 
