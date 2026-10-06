@@ -80,7 +80,7 @@ class HighlightDollarPlugin implements PluginValue {
 					}
 					const last = dollars.last();
 					if (last) {
-						cursor.moveTo(last.to, -1);
+						doc.moveTo(cursor, last.to, -1);
 					}
 				} else if (type.is(latex.Dollar) || type.is(latex.OpenParenMath) || type.is(latex.CloseParenMath)) {
 					dollar_ranges.push({

@@ -36,7 +36,7 @@ describe("conceal excalidraw", async () => {
 						insert: basic_display,
 					},
 				});
-				const basic_output = conceal(view, {});
+				const basic_output = conceal(view);
 				return basic_output
 			},
 		});
@@ -68,7 +68,7 @@ X_{1}
 X_{2}
 `;
 				view.setDoc(equation);
-				const equation_result = conceal(view, {}).cached_equations;
+				const equation_result = conceal(view).cached_equations;
 				return [equation_result];
 			},
 		});
@@ -114,7 +114,7 @@ X_2
 X_3
 `;
 				view.setDoc(start_end_equation);
-				const equation_result = conceal(view, {}).cached_equations;
+				const equation_result = conceal(view).cached_equations;
 				return equation_result;
 			},
 		});
@@ -165,7 +165,7 @@ X_3
 				const conceal = plugin.test.conceal;
 				const equation = `(x)^{2}`;
 				view.setDoc(equation);
-				const equation_result = conceal(view, {}).cached_equations;
+				const equation_result = conceal(view).cached_equations;
 				return equation_result;
 			},
 		});
