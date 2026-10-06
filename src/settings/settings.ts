@@ -3,6 +3,7 @@ import type { Environment } from "../snippets/environment";
 import { DEFAULT_SNIPPETS } from "src/utils/default_snippets";
 import { DEFAULT_SNIPPET_VARIABLES } from "src/utils/default_snippet_variables";
 import * as v from "valibot";
+import type { SnippetVariables } from "src/snippets/parse";
 
 export type snippetDebugLevel = "off" | "info" | "verbose";
 
@@ -82,20 +83,32 @@ interface LatexSuiteParsedSettings {
 	forceMathLanguages: string[];
 }
 
+interface LatexSuiteRawSchemaSettings {
+	snippets: string;
+	snippetVariables: string;
+}
+
+export interface LatexSuiteParsedSchemaSettings {
+	snippets: Snippet[];
+	snippetVariables: SnippetVariables;
+}
+
+interface LatexSuiteProcessedSchemaSettings {
+	snippets: GroupedSnippets;
+	snippetVariables: SnippetVariables;
+}
+
 type GroupedSnippets = {
 	automatic: Snippet[];
 	all: Snippet[];
 };
 
-export type LatexSuitePluginSettings = {
-	snippets: string;
-	snippetVariables: string;
-} & LatexSuiteBasicSettings &
+export type LatexSuitePluginSettings = LatexSuiteRawSchemaSettings &
+	LatexSuiteBasicSettings &
 	LatexSuiteRawSettings &
 	LatexSuiteCMKeymapSettings;
-export type LatexSuiteCMSettings = {
-	snippets: GroupedSnippets;
-} & LatexSuiteBasicSettings &
+export type LatexSuiteCMSettings = LatexSuiteProcessedSchemaSettings &
+	LatexSuiteBasicSettings &
 	LatexSuiteParsedSettings &
 	LatexSuiteCMKeymapSettings;
 
@@ -178,8 +191,8 @@ export const EnvironmentSchema = v.pipe(
 );
 
 export function processLatexSuiteSettings(
-	snippets: Snippet[],
 	settings: LatexSuitePluginSettings,
+	{ snippets, snippetVariables }: LatexSuiteParsedSchemaSettings,
 ): LatexSuiteCMSettings {
 	function strToArray(str: string) {
 		return str.replace(/\s/g, "").split(",");
@@ -199,10 +212,11 @@ export function processLatexSuiteSettings(
 	const groupedSnippets = {
 		automatic: snippets.filter((s) => s.options.automatic),
 		all: snippets,
-	}
+	};
 
 	return {
 		...settings,
+		snippetVariables,
 
 		// Override raw settings with parsed settings
 		snippets: groupedSnippets,

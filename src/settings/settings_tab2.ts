@@ -1,4 +1,4 @@
-import { App, ButtonComponent, debounce, ExtraButtonComponent, Modal, Platform, sanitizeHTMLToDom, Setting, type SettingDefinition, type SettingDefinitionControl, type SettingDefinitionItem, SettingTab } from "obsidian"
+import { App, ButtonComponent, debounce, ExtraButtonComponent, Modal, Platform, requireApiVersion, sanitizeHTMLToDom, Setting, type SettingDefinition, type SettingDefinitionControl, type SettingDefinitionItem, SettingTab } from "obsidian"
 import { DEFAULT_SETTINGS, EnvironmentSchema, type LatexSuitePluginSettings } from "./settings"
 import { settings_translation as t } from "../i18n/i18n"
 import { EditorState, type Extension } from "@codemirror/state"
@@ -8,7 +8,7 @@ import { basicSetup } from "./ui/snippets_editor/extensions"
 import LatexSuitePlugin from "src/main"
 import { FileSuggest } from "./ui/file_suggest"
 import * as v from "valibot"
-import { buttonSetWarning } from "./settings_tab"
+import { EMPTY_SETTINGS } from "./empty_settings"
 
 
 type Definition<K> = K extends keyof LatexSuitePluginSettings ? SettingDefinition<K> : never
@@ -135,10 +135,8 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 					this.snippetsEditor = createSnippetsEditor(setting, this.plugin, {
 						type: "snippets",
 						validate: async (value) => {
-							const snippetVariables = await parseSnippetVariables(this.plugin.settings.snippetVariables, "snippet-variables.js");
-							await parseSnippets(value, snippetVariables, "snippets.js");
+							await parseSnippets(value, this.plugin.CMSettings.snippetVariables, "snippets.js");
 						},
-						deleted: "export default [\n\n]"
 					});
 				},
 				visible: () => !this.plugin.settings.loadSnippetsFromFile,
@@ -168,7 +166,6 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 						validate: async (value) => {
 							await parseSnippetVariables(value, "snippet-variables.js")
 						},
-						deleted: "export default {\n\n}"
 					})
 				},
 				visible: () => !this.plugin.settings.loadSnippetVariablesFromFile
@@ -654,13 +651,12 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 	}
 }
 
-function createSnippetsEditor(
+export function createSnippetsEditor(
 	snippetsSetting: Setting,
 	plugin: LatexSuitePlugin,
 	config: {
 		type: "snippets" | "snippetVariables";
 		validate: (value: string) => Promise<void>;
-		deleted: string;
 	},
 ): EditorView {
 	snippetsSetting.setClass("snippets-text-area");
@@ -770,7 +766,7 @@ function createSnippetsEditor(
 					void buttonSetWarning(button)
 					.setButtonText("Remove all snippets"),
 				async () => {
-					const value = config.deleted
+					const value = EMPTY_SETTINGS[config.type];
 					snippetsEditor.setState(
 						EditorState.create({
 							doc: value,
@@ -857,3 +853,14 @@ function getTextControl<T extends textSettings>(key: T): SettingDefinitionContro
 		defaultValue: DEFAULT_SETTINGS[key],
 	}
 }
+
+export function buttonSetWarning(button: ButtonComponent): ButtonComponent {
+	if (requireApiVersion("1.13.0")) {
+		button.setDestructive().setCta();
+	} else {
+		const button2: { setWarning: () => void; } = button;
+		button2.setWarning();
+	}
+	return button;
+}
+

@@ -36,7 +36,10 @@ import { snippetApi } from "./snippets/luasnip_api";
 
 export default class LatexSuitePlugin extends Plugin implements LatexSuitePluginPublicApi {
 	settings: LatexSuitePluginSettings = EMPTY_SETTINGS;
-	CMSettings: LatexSuiteCMSettings = processLatexSuiteSettings([], this.settings);
+	CMSettings: LatexSuiteCMSettings = processLatexSuiteSettings(this.settings, {
+		snippets: [],
+		snippetVariables: {},
+	});
 	editorExtensions: Extension[] = [];
 	watcherCloser?: () => void;
 	disableMath = (view: EditorView) => {
@@ -215,7 +218,10 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 	async getSnippets(becauseFileLocationUpdated: boolean, becauseFileUpdated: boolean) {
 		// don't recompute if unnecessary.
 		if (!becauseFileLocationUpdated && !becauseFileUpdated) {
-			return this.CMSettings.snippets.all;
+			return {
+				snippets: this.CMSettings.snippets.all,
+				snippetVariables: this.CMSettings.snippetVariables,
+			};
 		}
 		// Get files in snippet/variable folders.
 		// If either is set to be loaded from settings the generator will just be empty.
@@ -229,7 +235,7 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 				: await this.getSettingsSnippetVariables();
 		if (snippetVariables === null) {
 			this.settings.loadSnippetVariablesFromFile = false;
-			return [];
+			return null;
 		}
 		const allSnippetFiles = async function* () {
 			for await (const file of snippetFiles) {
@@ -249,19 +255,28 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 			: await this.getSettingsSnippets(snippetVariables.snippetVariables);
 		if (snippets === null) {
 			this.settings.loadSnippetsFromFile = false;
-			return [];
+			return null;
 		}
 
-		this.showSnippetsLoadedNotice(snippets.length, Object.keys(snippetVariables).length,  becauseFileLocationUpdated, becauseFileUpdated);
+		this.showSnippetsLoadedNotice(snippets.length, Object.keys(snippetVariables.snippetVariables).length,  becauseFileLocationUpdated);
 
-		return snippets;
+		return {
+			snippets,
+			snippetVariables: snippetVariables.snippetVariables,
+		}
 	}
 
 	async processSettings(becauseFileLocationUpdated = false, becauseFileUpdated = false) {
 		if (becauseFileLocationUpdated) {
 			this.watchFiles();
 		}
-		this.CMSettings = processLatexSuiteSettings(await this.getSnippets(becauseFileLocationUpdated, becauseFileUpdated), this.settings);
+		const snippetAndVariables = await this.getSnippets(becauseFileLocationUpdated, becauseFileUpdated) ?? {
+			snippets: [],
+			snippetVariables: {},
+		}
+		this.CMSettings = processLatexSuiteSettings(this.settings, {
+			...snippetAndVariables
+		});
 		this.setEditorExtensions();
 		// Request Obsidian to reconfigure CM extensions
 		this.app.workspace.updateOptions();
@@ -314,10 +329,7 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 		}
 	}
 
-	showSnippetsLoadedNotice(nSnippets: number, nSnippetVariables: number, becauseFileLocationUpdated: boolean, becauseFileUpdated: boolean) {
-		if (!(becauseFileLocationUpdated || becauseFileUpdated))
-			return;
-
+	showSnippetsLoadedNotice(nSnippets: number, nSnippetVariables: number, becauseFileLocationUpdated: boolean) {
 		const prefix = becauseFileLocationUpdated ? "Loaded " : "Successfully reloaded ";
 		const body = [];
 

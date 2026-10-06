@@ -1,20 +1,18 @@
-import { EditorState, type Extension } from "@codemirror/state";
-import { EditorView, ViewUpdate } from "@codemirror/view";
-import { App, ButtonComponent, Component, ExtraButtonComponent, Modal, Notice, Platform, PluginSettingTab, Setting, type SettingDefinitionItem, debounce, requireApiVersion, setIcon } from "obsidian";
+import { EditorView } from "@codemirror/view";
+import { App, Component, Notice, Platform, PluginSettingTab, Setting, type SettingDefinitionItem, debounce, setIcon } from "obsidian";
 import { parseSnippetVariables, parseSnippets } from "src/snippets/parse";
-import { DEFAULT_SNIPPETS } from "src/utils/default_snippets";
 import LatexSuitePlugin from "../main";
 import { DEFAULT_SETTINGS, type LatexSuitePluginSettings } from "./settings";
 import { FileSuggest } from "./ui/file_suggest";
-import { basicSetup } from "./ui/snippets_editor/extensions";
 import { getVimSelectModeCommand, type vimCommand, getVimVisualModeCommand, getVimEditorCommands, getVimRunMatrixEnterCommand } from "src/features/editor_commands";
-import { LatexSuiteSettingsTab2, renderHtml } from "./settings_tab2";
+import { createSnippetsEditor, LatexSuiteSettingsTab2, renderHtml } from "./settings_tab2";
 import { settings_translation as t } from "../i18n/i18n"
 
 
 export class LatexSuiteSettingTab extends PluginSettingTab {
 	plugin: LatexSuitePlugin;
 	snippetsEditor: EditorView | null = null;
+	snippetVariablesEditor: EditorView | null = null;
 	snippetsFileLocEl: HTMLElement | undefined = undefined;
 	snippetVariablesFileLocEl: HTMLElement | undefined = undefined;
 	component = new Component()
@@ -26,11 +24,18 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 	hide() {
 		this.snippetsEditor?.destroy();
+		this.snippetVariablesEditor?.destroy();
 	}
 	async setControlValue(key: string, value: unknown): Promise<void> {
+		if (!(Object.prototype.hasOwnProperty.call(DEFAULT_SETTINGS, key))) {
+			console.error(`Invalid setting key: ${key}`);
+			return;
+		}
 		const settings = this.plugin.settings as unknown as Record<string, unknown>
 		settings[key] = value;
-		await this.plugin.saveSettings();
+		const verifiedKey = key as keyof LatexSuitePluginSettings;
+		const didFileLocationChange = verifiedKey === "loadSnippetsFromFile" || verifiedKey === "loadSnippetVariablesFromFile";
+		await this.plugin.saveSettings(didFileLocationChange, false);
 	}
 
 	getSettingDefinitions(): SettingDefinitionItem[] {
@@ -91,7 +96,12 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			.setClass("snippets-text-area");
 
 
-		this.createSnippetsEditor(snippetsSetting);
+		this.snippetsEditor = createSnippetsEditor(snippetsSetting, this.plugin, {
+			type: "snippets",
+			validate: async (value) => {
+				await parseSnippets(value, this.plugin.CMSettings.snippetVariables, "snippets.js");
+			}
+		});
 
 
 		new Setting(containerEl)
@@ -106,7 +116,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					if (this.snippetsFileLocEl != undefined)
 						this.snippetsFileLocEl.toggleClass("hidden", !value);
 
-					await this.plugin.saveSettings();
+					await this.plugin.saveSettings(true);
 				}));
 
 
@@ -491,14 +501,12 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		const snippetVariablesSetting = new Setting(containerEl)
 			.setName("Snippet variables")
 			.setDesc("Assign snippet variables that can be used as shortcuts when writing snippets.")
-			.addTextArea(text => text
-				.setValue(this.plugin.settings.snippetVariables)
-				.onChange(async (value) => {
-					this.plugin.settings.snippetVariables = value;
-					await this.plugin.saveSettings(false, true);
-				})
-				.setPlaceholder(DEFAULT_SETTINGS.snippetVariables))
-			.setClass("latex-suite-snippet-variables-setting");
+		this.snippetVariablesEditor = createSnippetsEditor(snippetVariablesSetting, this.plugin, {
+			type: "snippetVariables",
+			validate: async (value) => {
+				await parseSnippetVariables(value, "snippetVariables.js");
+			}
+		})
 
 		new Setting(containerEl)
 			.setName("Load snippet variables from file or folder")
@@ -512,7 +520,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					if (this.snippetVariablesFileLocEl != undefined)
 						this.snippetVariablesFileLocEl.toggleClass("hidden", !value);
 
-					await this.plugin.saveSettings();
+					await this.plugin.saveSettings(true);
 				}));
 
 		const snippetVariablesFileLocDesc = new DocumentFragment();
@@ -822,134 +830,9 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			);
 	}
 
-	createSnippetsEditor(snippetsSetting: Setting) {
-		const customCSSWrapper = snippetsSetting.controlEl.createDiv("snippets-editor-wrapper");
-		const snippetsFooter = snippetsSetting.controlEl.createDiv("snippets-footer");
-		const validity = snippetsFooter.createDiv("snippets-editor-validity");
-
-		const validityIndicator = new ExtraButtonComponent(validity);
-		validityIndicator.setIcon("checkmark")
-			.extraSettingsEl.addClass("snippets-editor-validity-indicator");
-
-		const validityText = validity.createDiv("snippets-editor-validity-text");
-		validityText.addClass("setting-item-description");
-
-		function updateValidityIndicator(success: boolean) {
-			validityIndicator.setIcon(success ? "checkmark" : "cross");
-			validityIndicator.extraSettingsEl.removeClass(success ? "invalid" : "valid");
-			validityIndicator.extraSettingsEl.addClass(success ? "valid" : "invalid");
-			validityText.setText(success ? "Saved" : "Invalid syntax. Changes not saved");
-		}
-
-
-		const extensions = basicSetup;
-
-		const change = EditorView.updateListener.of((v: ViewUpdate) => void (async () => {
-			if (v.docChanged) {
-				const snippets = v.state.doc.toString();
-				let success = true;
-
-				let snippetVariables;
-				try {
-					snippetVariables = await parseSnippetVariables(this.plugin.settings.snippetVariables, "snippet-variables.js");
-					await parseSnippets(snippets, snippetVariables, "snippets.js");
-				}
-				catch {
-					success = false;
-				}
-
-				updateValidityIndicator(success);
-
-				if (!success) return;
-
-				this.plugin.settings.snippets = snippets;
-				await this.plugin.saveSettings(false, true);
-			}
-		})());
-
-		extensions.push(change);
-
-		const snippetsEditor = createCMEditor(this.plugin.settings.snippets, extensions, customCSSWrapper);
-		this.snippetsEditor = snippetsEditor;
-
-
-		const buttonsDiv = snippetsFooter.createDiv("snippets-editor-buttons");
-		const reset = new ButtonComponent(buttonsDiv);
-		reset.setIcon("switch")
-			.setTooltip("Reset to default snippets")
-			.onClick(async () => {
-				new ConfirmationModal(this.plugin.app,
-					"Are you sure? This will delete any custom snippets you have written.",
-					button => void buttonSetWarning(button)
-						.setButtonText("Reset to default snippets"),
-					async () => {
-						snippetsEditor.setState(EditorState.create({ doc: DEFAULT_SNIPPETS, extensions: extensions }));
-						updateValidityIndicator(true);
-
-						this.plugin.settings.snippets = DEFAULT_SNIPPETS;
-
-						await this.plugin.saveSettings(false, true);
-					}
-				).open();
-			});
-
-		const remove = new ButtonComponent(buttonsDiv);
-		remove.setIcon("trash")
-			.setTooltip("Remove all snippets")
-			.onClick(async () => {
-				new ConfirmationModal(this.plugin.app,
-					"Are you sure? This will delete any custom snippets you have written.",
-					button => void buttonSetWarning(button)
-						.setButtonText("Remove all snippets"),
-					async () => {
-						const value = `[
-
-]`;
-						snippetsEditor.setState(EditorState.create({ doc: value, extensions: extensions }));
-						updateValidityIndicator(true);
-
-						this.plugin.settings.snippets = value;
-						await this.plugin.saveSettings(false, true);
-					}
-				).open();
-			});
-	}
-
 	renderMarkdown(source: string) {
 		return renderHtml(source);
 	}
-}
-
-class ConfirmationModal extends Modal {
-
-	constructor(app: App, body: string, buttonCallback: (button: ButtonComponent) => void, clickCallback: () => Promise<void>) {
-		super(app);
-
-		this.contentEl.addClass("latex-suite-confirmation-modal");
-		this.contentEl.createEl("p", { text: body });
-
-
-		new Setting(this.contentEl)
-			.addButton(button => {
-				buttonCallback(button);
-				button.onClick(async () => {
-					await clickCallback();
-					this.close();
-				});
-			})
-			.addButton(button => button
-				.setButtonText("Cancel")
-				.onClick(() => this.close()));
-	}
-}
-
-function createCMEditor(content: string, extensions: Extension[], node: Element) {
-	const view = new EditorView({
-		state: EditorState.create({ doc: content, extensions }),
-		parent: node,
-	});
-
-	return view;
 }
 
 /**
@@ -958,14 +841,4 @@ function createCMEditor(content: string, extensions: Extension[], node: Element)
  */
 export function isIMESupported(): boolean {
 	return Platform.isMobileApp
-}
-
-export function buttonSetWarning(button: ButtonComponent): ButtonComponent {
-	if (requireApiVersion("1.13.0")) {
-		button.setDestructive().setCta();
-	} else {
-		const button2: {setWarning: () => void} = button;
-		button2.setWarning();
-	}
-	return button;
 }
