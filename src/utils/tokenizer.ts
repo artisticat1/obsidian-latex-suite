@@ -1,5 +1,5 @@
 import { Text } from "@codemirror/state";
-import type { SyntaxNode } from "@lezer/common";
+import type { SyntaxNode, TreeCursor } from "@lezer/common";
 import type { PairedBrackets } from "src/editor_extensions/highlight_brackets";
 
 export interface Token {
@@ -133,10 +133,11 @@ export function* iterateTreeCursor(topNode: SyntaxNode, doc: EquationText) {
 		doc.skipCursorMove = false;
 		if (cursor.to > doc.to) continue
 		yield cursor;	
-	} while ((doc.skipCursorMove || cursor.next()) && cursor.from <= doc.to && cursor.node !== topNode);
+	} while ((doc.skipCursorMove || cursor.next()) && cursor.from <= doc.to && cursor.node !== topNode && !doc.exit);
 }
 export class EquationText {
 	public skipCursorMove: boolean = false;
+	public exit: boolean = false;
 
 	constructor(
 		public readonly eqn: string,
@@ -151,5 +152,12 @@ export class EquationText {
 	
 	static fromNode(node: SyntaxNode, doc: Text) {
 		return new EquationText(doc.sliceString(node.from, node.to), node.from, node.to);
+	}
+	
+	moveTo = (cursor: TreeCursor, pos: number, side: -1 | 0 | 1) => {
+		cursor.moveTo(pos, side);
+		if (side === 1 && cursor.from < this.from || cursor.node.type.isTop) {
+			this.exit = true;
+		}
 	}
 }

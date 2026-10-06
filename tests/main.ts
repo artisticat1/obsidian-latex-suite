@@ -9,10 +9,11 @@ import { colorPairedBrackets, colorPairedBracketsPlugin } from "../src/editor_ex
 import i18next from "../src/i18n/i18n";
 import { settings_translation } from "../src/i18n/i18n";
 import type {} from "../src/i18n/i18next";
-import { LRLanguage } from "@codemirror/language";
+import { Language, LRLanguage } from "@codemirror/language";
 import { parser } from "./math-only-parser";
 import { minimalSetup } from "codemirror";
 import { getContextPlugin } from "../src/editor_context/context";
+import { getLatexSuiteConfig } from "../src/snippets/codemirror/config";
 
 declare global {
 	interface Window {
@@ -40,7 +41,7 @@ declare module "@codemirror/view" {
 export default class TestPlugin extends LatexSuitePlugin {
 	test = {
 		parser: fullMathParser,
-		conceal,
+		conceal: (view: EditorView) => conceal(view, {}, getLatexSuiteConfig(view).concealMaps), 
 		getContextPlugin,
 		colorPairedBrackets,
 		settings_translation,
@@ -67,6 +68,21 @@ export default class TestPlugin extends LatexSuitePlugin {
 		]
 		const view = new EditorView({
 			extensions,
+		})
+		return view;
+	}
+	
+	createNormalView(doc: string) {
+		const extensions = [
+			LRLanguage.define({parser, name: "hypermd"}),
+			minimalSetup,
+			editorLivePreviewField.init(() => false),
+			EditorView.editorAttributes.of({ class: "multi-select-container" }),
+			this.editorExtensions,
+		]
+		const view = new EditorView({
+			extensions,
+			doc
 		})
 		return view;
 	}

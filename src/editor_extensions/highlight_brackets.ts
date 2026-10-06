@@ -80,7 +80,7 @@ function handleDelimitedGroup(cursor: TreeCursor, doc: EquationText): BracketRes
 	}
 	const to = close?.to ?? open.to;
 	if (to) {
-		cursor.moveTo(to, -1)
+		doc.moveTo(cursor, to, -1)
 	}
 	let bracket: BracketResult
 	if (open && close) {

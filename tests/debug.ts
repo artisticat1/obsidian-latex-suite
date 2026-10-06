@@ -1,8 +1,9 @@
 import { snippet } from "@codemirror/autocomplete";
 import { Prec } from "@codemirror/state";
 import { EditorView, keymap } from "@codemirror/view";
-import { Bounds, getContextPlugin, getMathBoundsPlugin } from "src/utils/context"
 import { editorLivePreviewField, MarkdownView } from "obsidian";
+import { Bounds, getContextPlugin } from "../src/editor_context/context";
+import { getMathBoundsPlugin } from "../src/editor_context/mathbounds";
 /*
 check math environments in markdown of hypermd syntaxtree.
 prototype for e2e tests and util tests.
@@ -167,7 +168,6 @@ $$
 $$
 `
 	const isLivePreview = view.state.field(editorLivePreviewField);
-	// @ts-expect-error
 	const mdView = app.workspace.getActiveViewOfType(MarkdownView);
 	if (mdView && !isLivePreview) {
 		//@ts-ignore

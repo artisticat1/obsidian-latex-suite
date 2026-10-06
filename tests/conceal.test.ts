@@ -55,11 +55,11 @@ $$
 				view.dispatch({
 					changes: {from: 0, to: view.state.doc.length, insert: basic_display}
 				})
-				const basic_output = conceal(view, {})
+				const basic_output = conceal(view)
 				view.dispatch({
 					changes: {from: 0, to: view.state.doc.length, insert: callout_display}
 				})
-				const callout_output = conceal(view, {})
+				const callout_output = conceal(view)
 				return [basic_output, callout_output]
 			}
 		})
@@ -90,7 +90,7 @@ X_{2}
 $$
 `
 				view.setDoc(equation)
-				const equation_result = conceal(view, {}).cached_equations
+				const equation_result = conceal(view).cached_equations
 				return [equation_result]
 			}
 		})
@@ -120,7 +120,7 @@ X_2
 X_3$$
 `
 				view.setDoc(start_end_equation)
-				const equation_result = conceal(view, {}).cached_equations
+				const equation_result = conceal(view).cached_equations
 				return equation_result
 			}
 		})
@@ -149,7 +149,7 @@ $$
 $$
 `
 				view.setDoc(equation)
-				const equation_result = conceal(view, {}).cached_equations
+				const equation_result = conceal(view).cached_equations
 				return equation_result
 			}
 		})
@@ -181,7 +181,7 @@ A_bCD⊗EFG
 $$
 `
 				view.setDoc(equation)
-				const equation_result = conceal(view, {}).cached_equations
+				const equation_result = conceal(view).cached_equations
 				return equation_result
 			}
 		})
@@ -213,7 +213,7 @@ A_1234
 $$
 `
 				view.setDoc(equation)
-				const equation_result = conceal(view, {}).cached_equations
+				const equation_result = conceal(view).cached_equations
 				return equation_result
 			}
 		})
@@ -246,7 +246,7 @@ A_\\left(1\\alpha 234\\right)
 $$
 `
 				view.setDoc(equation)
-				const equation_result = conceal(view, {}).cached_equations
+				const equation_result = conceal(view).cached_equations
 				return equation_result
 			}
 		})
@@ -279,7 +279,7 @@ A_a\u0304
 $$
 `
 				view.setDoc(equation)
-				const equation_result = conceal(view, {}).cached_equations
+				const equation_result = conceal(view).cached_equations
 				return equation_result
 			}
 		})
@@ -298,5 +298,21 @@ $$
   ],
 }
 `);
+	})
+	it("should subscript stop in a reasonable time for a long equation when the parser is not done yet.", async () => {
+		const inside_equation = "a_{\\alpha\\epsilon\\omega\\omega\\omega \\omega }".repeat(100)
+		const equation = "${}" + inside_equation + "{}$"
+		// explicitly not testing the output as the parser may finish at different points in time due to cpu load, ram load, etc.
+		// main point is that it doesn't timeout.
+		await evalInObsidian({
+			input: {pluginId: "obsidian-latex-suite", equation},
+			contextId,
+			callback: async ({app, pluginId, obsidianModule, lib: {plugin}, equation, context}) => {
+				const conceal = plugin.test.conceal
+				// have to create it this way, as view.setDoc will make the parser parse the full equation as it parses the whole viewport synchronous.
+				const view = plugin.createNormalView(equation);
+				conceal(view).cached_equations
+			},
+		})
 	})
 })
