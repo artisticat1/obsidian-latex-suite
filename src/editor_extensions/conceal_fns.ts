@@ -44,6 +44,11 @@ type HandleConcealResult = {
 	kind: HandleResultKind;
 };
 
+type HandleConcealResults = {
+	spec: ConcealSpec[];
+	kind: HandleResultKind;
+}
+
 function extractMathArgument(node: SyntaxNode) {
 	const mathArgumentNode = node.nextSibling;
 	if (!mathArgumentNode || !mathArgumentNode.type.is(latex.MathArgument))
@@ -303,7 +308,7 @@ function getFirstUnicodeCharacter(text: string): string {
 	return segmenter.segment(text)[Symbol.iterator]().next().value!.segment
 }
 
-function handleSubSup({ doc, cursor, maps, macroMap }: MacroHandlerOptions): HandleConcealResult {
+function handleSubSup({ doc, cursor, maps, macroMap }: MacroHandlerOptions): HandleConcealResults {
 	const nodeRef = cursor.node;
 	const endChar = doc.slice(Math.max(nodeRef.from, nodeRef.to - 1), nodeRef.to);
 	if (endChar !== "_" && endChar !== "^") return { spec: [], kind: HandleResultKind.NotHandled };
@@ -335,7 +340,7 @@ function handleSubSup({ doc, cursor, maps, macroMap }: MacroHandlerOptions): Han
 			elementType: type,
 		};
 		return {
-			spec: [spec],
+			spec: [[spec]],
 			kind: HandleResultKind.Handled
 		}
 	}
@@ -363,14 +368,14 @@ function handleSubSup({ doc, cursor, maps, macroMap }: MacroHandlerOptions): Han
 		textArray.push(doc.slice(maxEnd, spec.start), spec.text);
 		maxEnd = spec.end;
 	}
+	doc.moveTo(cursor, nextNode.to, 1);
+	doc.skipCursorMove = true;
 	if (skipFull) {
-		return { spec: [], kind: HandleResultKind.Handled };
+		return { spec: [...recursed_specs], kind: HandleResultKind.Handled };
 	}
 	textArray.push(
 		doc.slice(maxEnd, nextNode.to - Number(isGroup))
 	);
-	doc.moveTo(cursor, nextNode.to, 1);
-	doc.skipCursorMove = true;
 
 	const spec = [
 		{
@@ -381,7 +386,7 @@ function handleSubSup({ doc, cursor, maps, macroMap }: MacroHandlerOptions): Han
 			elementType: type,
 		},
 	];
-	return { spec, kind: HandleResultKind.Handled };
+	return { spec: [spec, ...recursed_specs], kind: HandleResultKind.Handled };
 }
 
 function handleOperatorName({cursor, doc}: MacroHandlerOptions): HandleConcealResult {
@@ -634,7 +639,7 @@ function traverseTree(topNode: SyntaxNode, doc: EquationText, {maps, macroMap}: 
 		} else if (nodeRef.type.is(latex.MathSpecialChar)) {
 			const subSupSpec = handleSubSup({ doc, cursor, maps, macroMap, macro: doc.slice(nodeRef.from, nodeRef.to) });
 			if (subSupSpec.kind === HandleResultKind.Handled) {
-				specs.push(subSupSpec.spec);
+				specs.push(...subSupSpec.spec);
 				continue;
 			}
 		}
