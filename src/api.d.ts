@@ -1,5 +1,5 @@
 import { AnnotationType, ChangeDesc, EditorSelection, EditorState, Extension, Range, SelectionRange, StateEffectType, StateField } from "@codemirror/state";
-import { Decoration, DecorationSet, EditorView, PluginValue, ViewPlugin } from "@codemirror/view";
+import { Decoration, DecorationSet, EditorView, PluginValue, ViewPlugin, ViewUpdate } from "@codemirror/view";
 import { Tree } from "@lezer/common";
 import { Plugin } from "obsidian";
 
@@ -41,6 +41,7 @@ export type SnippetChangeSpecApi = {
 }
 
 declare class BaseNode {}
+export type UpdateHandler = (ctx: this, update: ViewUpdate) => void;
 
 /**
  * @public

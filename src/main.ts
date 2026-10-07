@@ -16,7 +16,7 @@ import { colorPairedBracketsPlugin, colorPairedBracketsPluginLowestPrec, highlig
 import { cursorTooltipBaseTheme, cursorTooltipField, updateTooltipEffect } from "./editor_extensions/math_tooltip";
 import { contextPlugin, getContextPlugin } from "./editor_context/context";
 import { mathBoundsPlugin } from "./editor_context/mathbounds";
-import type { LatexSuitePluginPublicApi } from "./api";
+import type { LatexSuitePluginPublicApi, UpdateHandler } from "./api";
 import * as v from "valibot"
 import { languageExtension, LanguageSetStateEffect, languageStateField, modifiedSyntaxTree, parseWorker } from "./parser/language";
 import { highlight_dollar_extension } from "./editor_extensions/highlight_dollar";
@@ -43,6 +43,7 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 		snippets: [],
 		snippetVariables: {},
 		rawConcealMaps: [],
+		updateHandlers: [],
 	});
 	baseRawConcealMaps: RawConcealMapping[] = [default_mapping];
 	rawConcealMaps: RawConcealMapping[] = [];
@@ -57,6 +58,12 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 		}
 	};
 	modifiedSyntaxTree = modifiedSyntaxTree;
+	onUpdate = (callback: UpdateHandler) => {
+		this.updateHandlers.push(callback);
+	};
+	beforeImport = (callback: () => void) => {
+		this.beforeImportHandlers.push(callback);
+	}
 	snippet = snippet;
 	addRawConcealMaps = (rawConcealMaps: Record<string, unknown>) => {
 		try {
@@ -82,8 +89,15 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 	}
 	pluginSnippetApi: PluginSnippetApi = {
 		addRawConcealMaps: this.addRawConcealMaps,
-		addMathlessMacros: this.addMathlessMacros
+		addMathlessMacros: this.addMathlessMacros,
+		addUpdateHandler: this.onUpdate,
 	}
+	updateHandlers: UpdateHandler[] = []
+	beforeImportHandlers: (() => void)[] = [() => {
+		this.updateHandlers.length = 0;
+		this.rawConcealMaps.length = 0;
+		this.rawMacroArgs.length = 0;
+	}]
 	api = {
 		effects: {
 			snippetInvertedEffects,
@@ -257,8 +271,7 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 			};
 		}
 		// reset the maps such that the caller can reinsert them without worrying about duplicates.
-		this.rawConcealMaps = [];
-		this.rawMacroArgs = [];
+		this.beforeImportHandlers.forEach(callback => callback());
 		// Get files in snippet/variable folders.
 		// If either is set to be loaded from settings the generator will just be empty.
 		const variableFiles = getSnippetVariableFiles(this);
@@ -313,7 +326,8 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 		}
 		this.CMSettings = processLatexSuiteSettings(this.settings, {
 			...snippetAndVariables,
-			rawConcealMaps: [...this.baseRawConcealMaps, ...this.rawConcealMaps]
+			rawConcealMaps: [...this.baseRawConcealMaps, ...this.rawConcealMaps],
+			updateHandlers: this.updateHandlers,
 		});
 		this.setEditorExtensions();
 		// Request Obsidian to reconfigure CM extensions
