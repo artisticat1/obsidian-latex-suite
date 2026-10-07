@@ -307,7 +307,7 @@ export default [
         description: "Matrix environments with new lines",
     },
     {
-        trigger: /(matrix|cases|align|array)/,
+        trigger: /(matrix|cases|array)/,
         replacement: "\\begin{[[0]]}\n$0\n\\end{[[0]]}",
         options: "rMA",
         description: "Miscellaneous environments with new lines",
@@ -321,6 +321,17 @@ export default [
         trigger: /(matrix|cases|align|array)/,
         replacement: "\\begin{[[0]]}$0\\end{[[0]]}",
         options: "rnA",
+    },
+	// since mathjax v4, aligned is less strict than align.
+    {
+        trigger: "align",
+        replacement: "\\begin{aligned}\n$0\n\\end{aligned}",
+        options: "rMA",
+    },
+    {
+        trigger: "align",
+        replacement: "\\begin{aligned}$0\\end{aligned}",
+        options: "nA",
     },
 
     // Brackets

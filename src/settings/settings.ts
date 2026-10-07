@@ -173,7 +173,7 @@ export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
 		["\\\\pu{", "}"]
 	]`,
 	matrixShortcutsEnvNames:
-		"pmatrix, cases, align, gather, bmatrix, Bmatrix, vmatrix, Vmatrix, array, matrix",
+		"pmatrix, cases, align, gather, bmatrix, Bmatrix, vmatrix, Vmatrix, array, matrix, aligned",
 	matrixShortcutsMacroNames: "eqalign",
 	taboutClosingSymbols:
 		"), ], \\rbrack, \\}, \\rbrace, \\rangle, \\rvert, \\rVert, \\rfloor, \\rceil, \\urcorner, }",
