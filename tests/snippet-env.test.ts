@@ -7,8 +7,6 @@ import { readFileSync } from "fs";
 import * as ts from "typescript"
 import { getTemporaryVault } from "obsidian-integration-testing/vitest-global-setup-plugin";
 import context_snippets, { transactionSpec } from "./snippets/context-snippets"
-import { EditorState } from "@codemirror/state";
-import { RawSnippet } from "./main";
 import folder_snippets, { files } from "./snippets/folder-snippets";
 interface FileContext {
 	file: TFile;
