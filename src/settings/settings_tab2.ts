@@ -1,5 +1,5 @@
 import { App, ButtonComponent, debounce, ExtraButtonComponent, Modal, Platform, requireApiVersion, sanitizeHTMLToDom, Setting, type SettingDefinition, type SettingDefinitionControl, type SettingDefinitionItem, SettingTab } from "obsidian"
-import { DEFAULT_SETTINGS, EnvironmentSchema, type LatexSuitePluginSettings } from "./settings"
+import { DEFAULT_SETTINGS, EnvironmentSchema, validateTextMacros, type LatexSuitePluginSettings } from "./settings"
 import { settings_translation as t } from "../i18n/i18n"
 import { EditorState, type Extension } from "@codemirror/state"
 import { EditorView, ViewUpdate } from "@codemirror/view"
@@ -31,6 +31,7 @@ type AdvancedSnippetSettingDefinition = Definition<
 	| "suppressSnippetTriggerOnIME"
 	| "forceMathLanguages"
 	| "snippetDebug"
+	| "textMacros"
 >
 
 type ConcealSettingDefinition = Definition<
@@ -97,6 +98,7 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 	snippetsEditor: EditorView | null = null;
 	snippetVariablesEditor: EditorView | null = null;
 	concealMapEditor: EditorView | null = null;
+	textMacrosEditor: EditorView | null = null;
 
 	constructor(
 		public app: App,
@@ -234,7 +236,25 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 					},
 					defaultValue: DEFAULT_SETTINGS.snippetDebug
 				}
-			}
+			},
+			{
+				name: t("advanced-snippets.text-macros.name"),
+				desc: this.renderHtml(t("advanced-snippets.text-macros.desc")),
+				render: (setting) => {
+					this.textMacrosEditor?.destroy();
+					this.textMacrosEditor = createSnippetsEditor(setting, this.plugin, {
+						type: "textMacros",
+						validate: async (value) => {
+							const result = validateTextMacros(value);
+							if (!result.success) {
+								const message = result.issues.map(issue => issue.message)
+								console.error("Text macro validation failed:", message.join("\n"));
+								return message;
+							}
+						}
+					})
+				}
+			},
 		]
 		return [{
 			type: "page",
@@ -272,7 +292,11 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 					this.concealMapEditor = createSnippetsEditor(setting, this.plugin, {
 						type: "concealMaps",
 						validate: async (value) => {
-							v.parse(v.pipe(v.string(), v.parseJson(), MappingSchema), value)
+							const parsed = v.safeParse(v.pipe(v.string(), v.parseJson(), MappingSchema), value)
+							if (parsed.success) {
+								return
+							}
+							return parsed.issues.map(issue => issue.message)
 						}
 					})
 				}
@@ -671,8 +695,8 @@ export function createSnippetsEditor(
 	snippetsSetting: Setting,
 	plugin: LatexSuitePlugin,
 	config: {
-		type: "snippets" | "snippetVariables" | "concealMaps";
-		validate: (value: string) => Promise<void>;
+		type: "snippets" | "snippetVariables" | "concealMaps" | "textMacros";
+		validate: (value: string) => Promise<void | string[]>;
 	},
 ): EditorView {
 	snippetsSetting.setClass("snippets-text-area");
@@ -691,7 +715,7 @@ export function createSnippetsEditor(
 	const validityText = validity.createDiv("snippets-editor-validity-text");
 	validityText.addClass("setting-item-description");
 
-	function updateValidityIndicator(success: boolean) {
+	function updateValidityIndicator(success: boolean, errorMessage?: string[]) {
 		validityIndicator.setIcon(success ? "checkmark" : "cross");
 		validityIndicator.extraSettingsEl.removeClass(
 			success ? "invalid" : "valid",
@@ -699,29 +723,39 @@ export function createSnippetsEditor(
 		validityIndicator.extraSettingsEl.addClass(
 			success ? "valid" : "invalid",
 		);
-		validityText.setText(
-			success ? "Saved" : "Invalid syntax. Changes not saved",
-		);
+		validityText.replaceChildren();
+		validityText.createDiv({
+			text: success ? "Saved" : "Invalid syntax. Changes not saved",
+		});
+		if (!success && errorMessage) {
+			errorMessage.forEach((msg) => {
+				validityText.createDiv({
+					text: msg,
+				});
+			});
+		}
 	}
 
 	const extensions = [...basicSetup];
-	
+	const didSnippetFileUpdate = config.type === "snippets"	 || config.type === "snippetVariables";
 	const debouncedValidityIndicator = debounce(async (state: EditorState) => {
 		const snippets = state.doc.toString();
 		let success = true;
+		let errorMessage: string[] | undefined = undefined;
 
 		try {
-			await config.validate(snippets);
+			errorMessage = await config.validate(snippets) ?? undefined;
+			success = errorMessage === undefined || errorMessage.length === 0;
 		} catch {
 			success = false;
 		}
 
-		updateValidityIndicator(success);
+		updateValidityIndicator(success, errorMessage);
 
 		if (!success) return;
 
 		plugin.settings[config.type] = snippets;
-		await plugin.saveSettings(false, true);
+		await plugin.saveSettings(false, didSnippetFileUpdate);
 	}, 500, true);
 
 	const change = EditorView.updateListener.of(
@@ -741,12 +775,19 @@ export function createSnippetsEditor(
 		customCSSWrapper,
 	);
 
-	const type =
-		config.type === "snippets"
-			? "snippets"
-			: config.type === "snippetVariables"
-				? "snippet variables"
-				: "conceal maps";
+	const type = (() => {
+		switch (config.type) {
+			case "snippets":
+				return "snippets";
+			case "snippetVariables":
+				return "snippet variables";
+			case "concealMaps":
+				return "conceal maps";
+			case "textMacros":
+				return "text macros";
+		}
+	})();
+
 	const buttonsDiv = snippetsFooter.createDiv("snippets-editor-buttons");
 	const reset = new ButtonComponent(buttonsDiv);
 	reset
@@ -771,7 +812,7 @@ export function createSnippetsEditor(
 					plugin.settings[config.type] =
 						DEFAULT_SETTINGS[config.type];
 
-					await plugin.saveSettings(false, true);
+					await plugin.saveSettings(false, didSnippetFileUpdate);
 				},
 			).open();
 		});
@@ -798,7 +839,7 @@ export function createSnippetsEditor(
 					updateValidityIndicator(true);
 
 					plugin.settings[config.type] = value;
-					await plugin.saveSettings(false, true);
+					await plugin.saveSettings(false, didSnippetFileUpdate);
 				},
 			).open();
 		});
@@ -885,4 +926,3 @@ export function buttonSetWarning(button: ButtonComponent): ButtonComponent {
 	}
 	return button;
 }
-

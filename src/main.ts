@@ -35,6 +35,7 @@ import { snippet, tempKeyPress } from "./snippets/snippet_management";
 import { snippetApi, type PluginSnippetApi } from "./snippets/luasnip_api";
 import { default_mapping, MappingSchema, type RawConcealMapping } from "./editor_extensions/conceal_maps";
 import { serializeSnippetLike } from "./snippets/snippets";
+import { mathlessArgsSchema, type MathlessMacroArgs } from "./editor_context/default_text_areas";
 
 export default class LatexSuitePlugin extends Plugin implements LatexSuitePluginPublicApi {
 	settings: LatexSuitePluginSettings = EMPTY_SETTINGS;
@@ -45,6 +46,7 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 	});
 	baseRawConcealMaps: RawConcealMapping[] = [default_mapping];
 	rawConcealMaps: RawConcealMapping[] = [];
+	rawMacroArgs: MathlessMacroArgs[] = [];
 	editorExtensions: Extension[] = [];
 	watcherCloser?: () => void;
 	disableMath = (view: EditorView) => {
@@ -67,8 +69,20 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 			noticeManager.addNotice(new Notice(error_message, 5000));
 		}
 	}
+	addMathlessMacros = (macros: MathlessMacroArgs) => {
+		try {
+			const parsedMacros = v.parse(mathlessArgsSchema, macros);
+			this.rawMacroArgs.push(parsedMacros);
+		} catch (err) {
+			const e = err as Error;
+			const error_message = `Value does not resemble a valid mathless macro. \n${serializeSnippetLike(macros)}\n\n${e}`;
+			console.error(error_message);
+			noticeManager.addNotice(new Notice(error_message, 5000));
+		}
+	}
 	pluginSnippetApi: PluginSnippetApi = {
-		addRawConcealMaps: this.addRawConcealMaps
+		addRawConcealMaps: this.addRawConcealMaps,
+		addMathlessMacros: this.addMathlessMacros
 	}
 	api = {
 		effects: {
@@ -244,6 +258,7 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 		}
 		// reset the maps such that the caller can reinsert them without worrying about duplicates.
 		this.rawConcealMaps = [];
+		this.rawMacroArgs = [];
 		// Get files in snippet/variable folders.
 		// If either is set to be loaded from settings the generator will just be empty.
 		const variableFiles = getSnippetVariableFiles(this);

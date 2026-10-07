@@ -1,7 +1,7 @@
 import { Options } from "../editor_context/options";
 import { BaseNode, type ResultInsert, ArrayNode, SnippetTabstopOnlyNode, type Options as InsertOptions } from "./luasnip_api/node";
 import * as v from "valibot";
-import type { MacroArea } from "src/editor_context/default_text_areas";
+import type { MacroArgs } from "src/editor_context/default_text_areas";
 import { type CMBound, type StackOutput, isMacroArgumentCount } from "src/editor_context/context";
 import { EditorView } from "@codemirror/view";
 
@@ -118,8 +118,8 @@ export abstract class Snippet<T extends SnippetType = SnippetType> {
 	triggerKey: string;
 
 	excludedEnvironments: string[];
-	excludedMacros: MacroArea[] = [];
-	includedMacros: MacroArea[] = [];
+	excludedMacros: MacroArgs[] = [];
+	includedMacros: MacroArgs[] = [];
 
 	constructor(
 		type: T,
@@ -129,8 +129,8 @@ export abstract class Snippet<T extends SnippetType = SnippetType> {
 		priority: number = 0,
 		description: string = "no description provided",
 		excludedEnvironments: string[] = [],
-		excludedMacros: MacroArea[] = [],
-		includedMacros: MacroArea[] = [],
+		excludedMacros: MacroArgs[] = [],
+		includedMacros: MacroArgs[] = [],
 		triggerKey: string = "",
 	) {
 		this.type = type;
@@ -343,8 +343,8 @@ type CreateSnippet<T extends SnippetType> = {
 	priority?: number;
 	description?: string;
 	excludedEnvironments?: string[];
-	excludedMacros?: MacroArea[];
-	includedMacros?: MacroArea[];
+	excludedMacros?: MacroArgs[];
+	includedMacros?: MacroArgs[];
 	triggerKey?: string;
 } & SnippetData<T>
 

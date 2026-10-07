@@ -186,6 +186,14 @@
 				"info": "Info",
 				"verbose": "Verbose"
 			}
+		},
+		"text-macros": {
+			"name": "Text macros",
+			"desc": "A list of macros that should be treated as text. <ul><li>\"text\" macros will be treated as latex text mode, and thus snippets with option <code>T</code> will be expanded.</li><li> \"restricted\" macros will be treated like <code>\\begin</code> and <code>\\end</code> macros. Thus snippets will only expand in these if they have the <code>includedMacros</code> option set to include these macros.</li></ul><br>They follow the same format as <code>includedMacros</code> in snippets, see <a href=\"https://github.com/artisticat1/obsidian-latex-suite/blob/main/DOCS.md#macro-scopes\">here</a> for more info.<br><br>Only JSON is allowed, so no comments or trailing commas are allowed."
+		},
+		"snippetless-macros": {
+			"name": "Snippetless macros",
+			"desc": "A list of macros where no snippets should be expanded except for snippets with `includedMacros` option."
 		}
 	},
 	"vim": {
