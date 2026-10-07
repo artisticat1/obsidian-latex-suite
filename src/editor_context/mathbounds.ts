@@ -12,7 +12,7 @@ type EquationInfo = { text: string; bound: MathBoundWithTree; overlay: CMBound; 
 
 type MathBoundWithTree = MathBounds & { tree: SyntaxNode; };
 
-type MathBounds = Bounds & {
+export type MathBounds = Bounds & {
 	mode: MathMode;
 	tree: SyntaxNode | null;
 	overlay: CMBound[];

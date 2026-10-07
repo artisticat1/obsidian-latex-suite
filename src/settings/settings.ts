@@ -115,7 +115,7 @@ interface LatexSuiteProcessedSchemaSettings {
 	updateHandlers: UpdateHandler[];
 }
 
-type GroupedSnippets = {
+export type GroupedSnippets = {
 	automatic: Snippet[];
 	all: Snippet[];
 };

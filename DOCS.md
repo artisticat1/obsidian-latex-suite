@@ -15,6 +15,8 @@
   excludedMacros?: Macro[],
   excludedEnvironments?: string[],
   includedMacros?: Macro[],
+  includedPaths?: string[] | string,
+  context?: (options) => boolean | ((options) => boolean)[],
 }
 ```
 
@@ -39,6 +41,8 @@
 - `excludedMacros` (optional): Which macros\commands name to skip expansion in. Could be usefull for commands such as `ce` and `pu`, for more info see [macro scopes](#macro-scopes).
 - `excludedEnvironments` (optional): Which environment names such as `pmatrix` to skip expansion in.
 - `includedMacros` (optional): Which macros\commands name to only do expansion in. Could be useful for commands such as `color` and `unicode`, for more info see [macro scopes](#macro-scopes).
+- `includedPaths` (optional): File paths relative to the vault in which the snippets are enabled in. Can also be a function, see [context](#context).
+- `context` (optional): Custom context function, can be used to scope snippets inside syntax tokens like codeblocks. Functions are cached per loop, so reuse functions when possible.
 
 ### Options
 - `t` : Text mode. Only run this snippet outside math
@@ -380,6 +384,48 @@ type Macro =
 ```
 For the default text macros and snippetless macros see [here](./src/editor_context/default_text_areas.ts)
 
+### Files and context
+
+Some mathematical areas use the same A-Z letter, but with a different to indicate a different meaning. For example `\mathbb{E}` or `\mathbf{E}`.
+Then to only turn on a snippet in any folder named `statistics`, you can give a bash glob like `**/statistics/*`.
+It also allows a function, if you organize your notes differently than using folders. These functions are only executed on opening the note, not during editing.
+the type of function is as follows
+
+```ts
+type FileFunction = (options: FileOptions) => boolean
+type FileOptions = {
+	// path of the current note
+	path: string;
+	// codemirror/state representation of the note.
+	state: EditorState
+}
+```
+
+If you can't specify the context easily through things like `options`, regex, `excludedMacros`, etc, you can create your own context function.
+For example to create callout context you can do the following:
+
+```ts
+const calloutContext = ({node}) => {
+	for (let parent = node; parent !== null; parent = node.parent) {
+		if (parent.name === "Blockqoute") {
+			return true
+		}
+	}
+	return false
+}
+```
+
+the function is of the following type:
+```ts
+type aContextFunction = (options: {
+	// current token/node from @lezer/common
+	node: SyntaxNode;
+	// current editor from @codemirror/view
+	view: EditorView;
+	// internal context of latex suite
+	ctx: Context;
+}) => boolean;
+```
 
 ### IME keyboards
 By default snippets won't automatically expand for [Input Method Editor](https://en.wikipedia.org/wiki/Input_method)(IME) keyboards when they are in the middle of a composition because of `Advanced Settings > Don't trigger snippets when IME is active`. Keyboards like gboard are almost always in composition, making automatic snippets unusable. Currently there is only support for keyboards like gboard, so turning that setting off will enable all automatic snippets. But due to the way french/german/chinese keyboards behave, there will still be automatic snippets that don't work (like `trigger: "^"`) when this setting is turned off. 
