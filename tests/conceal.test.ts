@@ -2,17 +2,13 @@ import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { ContextId, evalInObsidian, registerLibResolver } from "obsidian-integration-testing";
 // import "obsidian-integration-testing/vitest/typings";
 import { getTemporaryVault } from "obsidian-integration-testing/vitest-global-setup-plugin";
-import TestPlugin  from "./main";
 import { TFile } from "obsidian";
 
 interface FileContext {
 	file: TFile
 }
 
-describe("conceal", async () => {
-	const vault = getTemporaryVault();
-	const contextId = new ContextId<FileContext>()
-	registerLibResolver(() => window.__latex_suite_test_library)
+async function createContextId<R extends FileContext, T extends ContextId<R>>(contextId: T) {
 	await evalInObsidian({
 	    contextId,
 	    callback: async ({ app, context, obsidianModule, lib }) => {
@@ -24,10 +20,21 @@ describe("conceal", async () => {
 			if (window.__latex_suite_test_library.view?.state.field(obsidianModule.editorLivePreviewField)) {
 				app.commands.executeCommandById("editor:toggle-source");
 			}
+			console.log(lib.plugin.settings)
 			lib.plugin.settings.concealEnabled = true;	
 			lib.plugin.saveSettings();
 	    }
 	});
+}
+
+describe("conceal", async () => {
+	getTemporaryVault();
+	const contextId = new ContextId<FileContext>()
+	beforeAll(async () => {
+		registerLibResolver(() => window.__latex_suite_test_library)
+		await createContextId(contextId)
+		registerLibResolver(() => window.__latex_suite_test_library)
+	})
 	beforeEach(() => {
 		registerLibResolver(() => window.__latex_suite_test_library)
 	})
@@ -153,21 +160,19 @@ $$
 				return equation_result
 			}
 		})
-		expect(result).toMatchInlineSnapshot(`
-{
-  "(x)^{2}": [
-    [
-      {
-        "class": "cm-number",
-        "elementType": "sup",
-        "end": 7,
-        "start": 3,
-        "text": "2",
-      },
-    ],
-  ],
-}
-`)
+		expect(result).toStrictEqual({
+			"(x)^{2}": [
+				[
+					{
+						class: "cm-number",
+						elementType: "sup",
+						end: 7,
+						start: 3,
+						text: "2",
+					},
+				],
+			],
+		});
 	})
 	it("should only subscript the first character (#666)", async () => {
 		const result = await evalInObsidian({
@@ -185,21 +190,19 @@ $$
 				return equation_result
 			}
 		})
-		expect(result).toMatchInlineSnapshot(`
-{
-  "A_bCD⊗EFG": [
-    [
-      {
-        "class": "cm-number",
-        "elementType": "sub",
-        "end": 3,
-        "start": 1,
-        "text": "b",
-      },
-    ],
-  ],
-}
-`);
+		expect(result).toStrictEqual({
+			"A_bCD⊗EFG": [
+				[
+					{
+						class: "cm-number",
+						elementType: "sub",
+						end: 3,
+						start: 1,
+						text: "b",
+					},
+				],
+			],
+		});
 	})
 	it("should only subscript the first number (#666)", async () => {
 		const result = await evalInObsidian({
@@ -217,21 +220,19 @@ $$
 				return equation_result
 			}
 		})
-		expect(result).toMatchInlineSnapshot(`
-{
-  "A_1234": [
-    [
-      {
-        "class": "cm-number",
-        "elementType": "sub",
-        "end": 3,
-        "start": 1,
-        "text": "1",
-      },
-    ],
-  ],
-}
-`);
+		expect(result).toStrictEqual({
+			A_1234: [
+				[
+					{
+						class: "cm-number",
+						elementType: "sub",
+						end: 3,
+						start: 1,
+						text: "1",
+					},
+				],
+			],
+		});
 	})
 	
 	it("should subscript \\left and \\right", async () => {
@@ -250,21 +251,28 @@ $$
 				return equation_result
 			}
 		})
-		expect(result).toMatchInlineSnapshot(`
-{
-  "A_\\left(1\\alpha 234\\right)": [
-    [
-      {
-        "class": "cm-number",
-        "elementType": "sub",
-        "end": 26,
-        "start": 1,
-        "text": "\\left(1α 234\\right)",
-      },
-    ],
-  ],
-}
-`);
+		expect(result).toStrictEqual({
+			"A_\\left(1\\alpha 234\\right)": [
+				[
+					{
+						class: "cm-number",
+						elementType: "sub",
+						end: 26,
+						start: 1,
+						text: "\\left(1α 234\\right)",
+					},
+				],
+				[],
+				[
+					{
+						end: 15,
+						start: 9,
+						text: "α",
+					},
+				],
+				[],
+			],
+		});
 	})
 
 	it("should subscript A_a\u0304 a full grapheme cluster", async () => {
@@ -283,21 +291,19 @@ $$
 				return equation_result
 			}
 		})
-		expect(result).toMatchInlineSnapshot(`
-{
-  "A_a\u0304": [
-    [
-      {
-        "class": "cm-number",
-        "elementType": "sub",
-        "end": 4,
-        "start": 1,
-        "text": "a\u0304",
-      },
-    ],
-  ],
-}
-`);
+		expect(result).toStrictEqual({
+			"A_a\u0304": [
+				[
+					{
+						class: "cm-number",
+						elementType: "sub",
+						end: 4,
+						start: 1,
+						text: "a\u0304",
+					},
+				],
+			],
+		});
 	})
 	it("should subscript stop in a reasonable time for a long equation when the parser is not done yet.", async () => {
 		const inside_equation = "a_{\\alpha\\epsilon\\omega\\omega\\omega \\omega }".repeat(100)
