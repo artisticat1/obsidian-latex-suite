@@ -104,8 +104,8 @@ export interface LatexSuiteParsedSchemaSettings {
 type MathlessMacros = {
 	text: MacroArgs[];
 	restricted: MacroArgs[];
-	all: MacroArgs[];
-}
+	all: (MacroArgs & { kind: "text" | "restricted" })[];
+};
 
 interface LatexSuiteProcessedSchemaSettings {
 	snippets: GroupedSnippets;
@@ -278,11 +278,14 @@ export function processLatexSuiteSettings(
 	}
 	
 	const textMacros = getMacroAreasFromString(settings.textMacros);
-	const mathlessMacros = {
+	const mathlessMacros: MathlessMacros = {
 		text: textMacros.text,
 		restricted: textMacros.restricted,
-		all: [...textMacros.text, ...textMacros.restricted],
-	}
+		all: [
+			...textMacros.text.map((m) => ({ ...m, kind: "text" } as const)),
+			...textMacros.restricted.map((m) => ({ ...m, kind: "restricted" } as const)),
+		],
+	};
 
 	return {
 		...settings,

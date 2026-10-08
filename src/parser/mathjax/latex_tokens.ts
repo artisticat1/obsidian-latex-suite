@@ -334,6 +334,7 @@ const textCommands = {
 // specializer for control sequences
 // return new tokens for specific control sequences
 export const specializeCtrlSeq = (name: string, _stack: Stack) => {
+  if (name.endsWith("*")) name = name.slice(0, -1);
   if (name === "\\begin") return Begin
   if (name === "\\end") return End
   if (refCommands.has(name)) {

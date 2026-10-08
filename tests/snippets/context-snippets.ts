@@ -20,6 +20,7 @@ export const names = [
 	// Except the ones that do are generally not allowed inside macros that override their syntax thus environments are ignored
 	// as in most practical cases that makes the most sense. Also applies to math-exclude-pu.
 	["math-include-pu-align", "m"], 
+	["math-include-fcolorbox", "m"],
 	["math-context-include-html", ""]
 ] as const;
 
@@ -53,6 +54,18 @@ export const transactionSpec: Spec[] = [
 		pos: "$\\text{".length,
 		options: ["T", "Tn", "Tm"],
 		names: ["math-text", "inline-math-text", "math-text-specified"],
+	},
+	{
+		text: "$\\fcolorbox{red}{blue}{green}$",
+		pos: "$\\fcolorbox{red}{blue}{green".length,
+		options: ["T", "Tn", "Tm"],
+		names: ["math-text", "inline-math-text", "math-text-specified"],
+	},
+	{
+		text: "$\\fcolorbox{red}{blue}{green}$",
+		pos: "$\\fcolorbox{red}{blue".length,
+		options: ["m"],
+		names: ["math-include-fcolorbox"],
 	},
 	{
 		text: "$$E=mc^a$$",
@@ -178,6 +191,13 @@ const snippets = [
 		trigger: getTrigger(),
 		replacement: "",
 		options: "m",
+		name: "math-include-fcolorbox",
+		includedMacros: [{ name: "fcolorbox", arguments: [0, 1] }],
+	},
+	{
+		trigger: getTrigger(),
+		replacement: "",
+		options: "m",
 		name: "math-include-begin",
 		includedMacros: ["begin"],
 	},
@@ -193,17 +213,17 @@ const snippets = [
 		replacement: "",
 		options: "",
 		name: "math-context-include-html",
-		context: ({node}: {node: SyntaxNode}) => {
+		context: ({ node }: { node: SyntaxNode }) => {
 			let parent: SyntaxNode | null = node;
 			while (parent) {
 				if (parent.name === "HTMLBlock") {
-					return true
+					return true;
 				}
 				parent = parent.parent;
 			}
 			return false;
-		}
-	}
+		},
+	},
 ] as const satisfies (Readonly<RawSnippet> & {
 	readonly name: (typeof names)[number]["0"];
 })[];
