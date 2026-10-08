@@ -98,7 +98,7 @@
 }
 
 @tokens {
-    CtrlSeq { "\\" $[a-zA-Z]+ }
+    CtrlSeq { "\\" $[a-zA-Z]+"*"? }
     CtrlSym { "\\" ![a-zA-Z] }
 
     // tokens for paragraphs
@@ -206,7 +206,7 @@ KnownCommand<ArgumentType> {
         LabelCtrlSeq optionalWhitespace? LabelArgument
     } |
     Ref {
-        (RefCtrlSeq | RefStarrableCtrlSeq "*"?) optionalWhitespace? OptionalArgument? optionalWhitespace? OptionalArgument? optionalWhitespace? RefArgument
+        (RefCtrlSeq | RefStarrableCtrlSeq) optionalWhitespace? OptionalArgument? optionalWhitespace? OptionalArgument? optionalWhitespace? RefArgument
     } |
     Def {
         // allow more general Csname argument to \def commands, since other symbols such as '@' are often used in definitions
@@ -242,7 +242,7 @@ KnownCommand<ArgumentType> {
         DefinitionArgument
     } |
     MathTextCommand {
-        MathTextCtrlSeq optionalWhitespace? "*"? TextArgument
+        MathTextCtrlSeq optionalWhitespace? TextArgument
     } |
 	HorizontalLine {
         (HLineCtrlSeq | TopRuleCtrlSeq | MidRuleCtrlSeq | BottomRuleCtrlSeq) optionalWhitespace?

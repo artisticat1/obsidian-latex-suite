@@ -55,6 +55,12 @@ export type StackOutput = (
 	Bounds & { node: SyntaxNode };
 
 export type MacroStackOutput = StackOutput & { kind: "command" };
+type MacroStackOutputWithCount<T extends MacroArgs> = {
+	stack: MacroStackOutput;
+	macro: T;
+	count?: number;
+}
+
 export interface Bounds {
 	inner_start: number;
 	inner_end: number;
@@ -203,7 +209,7 @@ export class Context implements PluginValue {
 		}
 	}
 
-	isWithinMacros(pos: number, macros: readonly MacroArgs[]): StackOutput & { kind: "command" } | null {
+	isWithinMacros<T extends MacroArgs>(pos: number, macros: readonly T[]): null | MacroStackOutputWithCount<T> {
 		for (const result of this.getEnvNames(pos)) {
 			if (result.kind=== "environment") continue;
 			if (result.kind === "math") return null;
@@ -260,6 +266,25 @@ export class Context implements PluginValue {
 				outer_end: closeBraced.to,
 				node,
 			};
+		} else if (value === "Group") {
+			for (let prevSibling = node.prevSibling; prevSibling; prevSibling = prevSibling.prevSibling) {
+				const name = prevSibling.name;
+				if (name.endsWith("Argument") || name === "EnvNameGroup" || name === "Group" || name === "Whitespace") continue;
+				if (name !== "MathCommand") return null;
+				const ctrlSeq = prevSibling.resolveInner(prevSibling.from, 1)
+				if (!ctrlSeq?.name.endsWith("CtrlSeq")) {
+					return null;
+				}
+				return {
+					kind: "command",
+					name: doc.sliceString(ctrlSeq.from + 1, ctrlSeq.to),
+					inner_start: node.from + 1,
+					inner_end: node.to - 1,
+					outer_start: node.from,
+					outer_end: node.to,
+					node,
+				};
+			}
 		} else if (value === "ParenMath" || value === "DollarInlineMath") {
 			value satisfies "ParenMath" | "DollarInlineMath";
 			let openNode: SyntaxNode | null = null;
@@ -358,16 +383,13 @@ export class Context implements PluginValue {
 	}
 
 	inTextEnvironment(): "text" | "none" | null {
-		const { all: allTextSnippetlessMacros, restricted: snippetlessMacros } = getLatexSuiteConfig(
-			this.state,
-		).mathlessMacros;
-		const result = this.isWithinMacros(this.pos, allTextSnippetlessMacros)
+		const { all } = getLatexSuiteConfig(this.state).mathlessMacros;
+		const result = this.isWithinMacros(this.pos, all);
 		if (!result) return null;
-		const openSymbol = result.name;
-		if (snippetlessMacros.some(macro => macro.name === openSymbol)) {
-			return "none"
+		if (result.macro.kind === "restricted") {
+			return "none";
 		} else {
-			return "text"
+			return "text";
 		}
 	}
 
@@ -421,22 +443,26 @@ export const getContextPlugin = (view: EditorView, init: boolean = true): Contex
 }
 
 
-export function isMacroArgumentCount(stack: Readonly<MacroStackOutput>, macros: readonly MacroArgs[]): null | MacroStackOutput {
-	const macro = macros.find((macro) => macro.name === stack.name);
-	if (!macro) return null;
-	if (!macro.arguments) return stack;
+export function isMacroArgumentCount<T extends MacroArgs>(stack: Readonly<MacroStackOutput>, macros: readonly T[]): null | MacroStackOutputWithCount<T> {
+	const filtered_macros = macros.filter((macro) => macro.name === stack.name);
+	if (filtered_macros.length === 0) return null;
+	for (const macro of filtered_macros) {
+		if (!macro.arguments) return { stack, macro };
+	}
 
 	let sibling_count: number = 0;
 	let sibling: SyntaxNode | null = stack.node
 	while ((sibling = sibling.prevSibling) !== null) {
-		if (sibling.name.endsWith("Argument")) {
+		if (sibling.name.endsWith("Argument") || sibling.name === "EnvNameGroup" || sibling.name === "Group" || sibling.name === "MathCommand") {
 			sibling_count++;
 		}
 	}
-	if (!macro.arguments.includes(sibling_count)) {
-		return null
+	for (const macro of filtered_macros) {
+		if (macro.arguments?.includes(sibling_count)) {
+			return { stack, macro, count: sibling_count };
+		}
 	}
-	return stack
+	return null;
 }
 
 export enum MathMode {
