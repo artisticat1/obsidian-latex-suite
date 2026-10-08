@@ -89,6 +89,24 @@ function extractMathArgumentStar(node: SyntaxNode, doc: EquationText) {
 		closeBraceNode,
 	};
 }
+function extractShortTextArgument(node: SyntaxNode) {
+	const textArgumentNode = node.nextSibling;
+	if (!textArgumentNode || !textArgumentNode.type.is(latex.ShortTextArgument))
+		return null;
+	const openBraceNode = textArgumentNode.firstChild;
+	if (!openBraceNode || !openBraceNode.type.is(latex.OpenBrace)) return null;
+	const textNode = openBraceNode.nextSibling;
+	if (!textNode || !textNode.type.is(latex.ShortArg)) return null;
+	const closeBraceNode = textNode.nextSibling;
+	if (!closeBraceNode || !closeBraceNode.type.is(latex.CloseBrace))
+		return null;
+	return {
+		textArgumentNode,
+		openBraceNode,
+		textNode,
+		closeBraceNode,
+	};
+}
 
 function extractTextArgument(node: SyntaxNode) {
 	const textArgumentNode = node.nextSibling;
@@ -294,6 +312,54 @@ function handleLeftRight({cursor, doc, maps}: MacroHandlerOptions): HandleConcea
 	return { spec: [], kind: HandleResultKind.NotHandled };
 }
 
+
+
+function handleTextColor({cursor, doc,  maps, macroMap}: MacroHandlerOptions): HandleConcealResult {
+	const shortTextArgumentNode = extractShortTextArgument(cursor.node);
+	if (!shortTextArgumentNode) return { spec: [], kind: HandleResultKind.Handled };
+	const mathArgumentNode = extractMathArgument(shortTextArgumentNode.textArgumentNode);
+	if (!mathArgumentNode) return { spec: [], kind: HandleResultKind.Handled };
+	const contentNode = mathArgumentNode.mathNode;
+	const color = doc.slice(shortTextArgumentNode.textNode.from, shortTextArgumentNode.textNode.to);
+	const newDoc = new EquationText(
+		doc.eqn,
+		contentNode.from,
+		contentNode.to,
+		doc.offset
+	);
+	const mathSpecs = traverseTree(contentNode, newDoc, { maps, macroMap });
+	const flattenedSpecs = mathSpecs.flat();
+	const start = cursor.from;
+	const replacements = []
+	let startPos = contentNode.from;
+	for (const spec of flattenedSpecs) {
+		replacements.push({
+			start: startPos,
+			end: spec.start,
+			text: doc.slice(startPos, spec.start),
+		})
+		replacements.push(spec);
+		startPos = spec.end;
+	}
+	replacements.push({
+		start: startPos,
+		end: mathArgumentNode.closeBraceNode.from,
+		text: doc.slice(startPos, mathArgumentNode.closeBraceNode.from),
+	});
+	return {
+		spec: [{
+			start: start,
+			end: mathArgumentNode.mathArgumentNode.to,
+			text: doc.slice(mathArgumentNode.mathNode.from, mathArgumentNode.mathNode.to),
+			replacements: replacements.filter((r) => r.text.length > 0),
+			style: {
+				color,
+			}
+		}],
+		kind: HandleResultKind.Handled,
+	}
+
+}
 /**
  * helper for getting the first unicode grapheme cluster, 
  * works on ios 14.5+ and obsidian 1.1.0 still supports ios 12+ thus
@@ -596,6 +662,7 @@ export function createMacroMap(maps: ConcealMapping) : MacroHandlerMap {
 		"text": handleText,
 		"set": handleSet,
 		"operatorname": handleOperatorName,
+		"textcolor": handleTextColor,
 	}	
 	for (const macro of Object.keys(modifiers)) {
 		macroMap[macro] = handleModifier;

@@ -321,4 +321,44 @@ $$
 			},
 		})
 	})
+	it("should conceal textcolor", async () => {
+		const result = await evalInObsidian({
+			input: {pluginId: "obsidian-latex-suite" },
+			callback: ({app, pluginId, obsidianModule, lib: {plugin, view} }) => {
+				const conceal = plugin.test.conceal
+				const equation = "$$\\textcolor{red}{\\alpha}$$"
+				view.setDoc(equation)
+				const equation_result = conceal(view).cached_equations
+				return equation_result
+			}
+		})
+		expect(result).toStrictEqual({
+			"\\textcolor{red}{\\alpha}": [
+				[
+					{
+						end: 23,
+						replacements: [
+							{
+								end: 24,
+								start: 18,
+								text: "α",
+							},
+						],
+						start: 0,
+						style: {
+							color: "red",
+						},
+						text: "\\alpha",
+					},
+				],
+				[
+					{
+						end: 22,
+						start: 16,
+						text: "α",
+					},
+				],
+			],
+		});
+	})
 })
