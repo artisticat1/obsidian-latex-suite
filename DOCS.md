@@ -430,6 +430,37 @@ type aContextFunction = (options: {
 ### IME keyboards
 By default snippets won't automatically expand for [Input Method Editor](https://en.wikipedia.org/wiki/Input_method)(IME) keyboards when they are in the middle of a composition because of `Advanced Settings > Don't trigger snippets when IME is active`. Keyboards like gboard are almost always in composition, making automatic snippets unusable. Currently there is only support for keyboards like gboard, so turning that setting off will enable all automatic snippets. But due to the way french/german/chinese keyboards behave, there will still be automatic snippets that don't work (like `trigger: "^"`) when this setting is turned off. 
 
+You can use https://github.com/daipeihust/im-select to automatically switch to an english keyboard when inside math and back when outside math.
+You would add the following to your snippet file:
+
+```js
+const exec = require("child_process").execSync;
+const ls = require("latex-suite");
+window.__latex_suite_math = window.__latex_suite_math || false;
+const switch_path = "C:\\im-select.exe";
+const non_ime_keyboard = "1033"
+const ime_keyboard = () => "2052"
+const ime_keyboard_alternative = () => exec(`"${switch_path}"`).toString().trim();
+ls.addUpdateHandler(function (ctx, update) {
+	// needed for tables and canvas.
+	if (!update.view.hasFocus) return;
+	const newMath = ctx.inMath();
+	if (newMath === window.__latex_suite_math) {
+		return;
+	}
+	window.__latex_suite_math = newMath;
+	try {
+		if (window.__latex_suite_math) {
+			exec(`"${switch_path}" ${non_ime_keyboard}`)
+		} else {
+			exec(`"${switch_path} ${ime_keyboard()}"`)
+		}
+	} catch (e) {
+		console.error("Error switching keyboard:", error);
+	}
+})
+```
+
 On mobile devices a warning is shown that this setting is turned on, notifying that the keyboard is supported. If you use a different keyboard than swipe/touch keyboard thats IME, e.g. a physical keyboard with pinyin or if `Don't trigger snippets when IME is active` is turned on intentionally, you can turn that warning off.
 
 ## Snippet files
