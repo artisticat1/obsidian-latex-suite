@@ -1,4 +1,4 @@
-import { type Tooltip, showTooltip, EditorView, ViewUpdate } from "@codemirror/view";
+import { type Tooltip, showTooltip, EditorView, ViewUpdate, tooltips } from "@codemirror/view";
 import { StateField, EditorState, EditorSelection, StateEffect } from "@codemirror/state";
 import { renderMath, finishRenderMath, editorLivePreviewField } from "obsidian";
 import { type Bounds, Context, getContextPlugin } from "src/editor_context/context";
@@ -13,7 +13,8 @@ type MathTooltip = {
 	pos: number,
 	tooltip: Tooltip,
 }
-const HIGHLIGHT_CLASS = "latex-suite-math-preview-highlight";
+const HIGHLIGHT_CLASS = "mjx-latex-suite-math-preview-highlight";
+const CURSOR_CLASS = "mjx-latex-suite-cursor";
 export const updateTooltipEffect = StateEffect.define<MathTooltip[]>();
 
 export const cursorTooltipField = StateField.define<readonly MathTooltip[]>({
@@ -95,9 +96,12 @@ export function handleMathTooltip(update: ViewUpdate) {
 	let eqnWithDecorations: string;
 	// skip \{\} as thats not an argument to a macro
 	const tempEscapedEqn = eqn.replaceAll(/\\[\\{}]/g, "\\R")
-	const { left, right } = settings.mathPreviewBracketHighlighting
+	const { left, right } = settings.mathPreviewBracketHighlighting && !ctx.mode.snippetlessEnv
 		? findMatchingBrackets(tempEscapedEqn, eqnPos, "{", "}")
 		: { left: -1, right: -1 };
+	const mathPreviewCursor = !ctx.mode.snippetlessEnv && settings.mathPreviewCursor !== ""
+		? ` \\class{${CURSOR_CLASS}}{}` + settings.mathPreviewCursor
+		: "";
 
 	if (right !== -1 && left !== -1) {
 		// If the cursor is next to a bracket, move it inside the bracket pair
@@ -105,17 +109,16 @@ export function handleMathTooltip(update: ViewUpdate) {
 		const maxPosOrLeft = Math.max(left + 1, eqnPos);
 		eqnWithDecorations =
 			eqn.slice(0, left + 1) +
-			// `\class` doesn't work, so using style and adding it back in as workaround.
-			`\\style{background-color: var(--${HIGHLIGHT_CLASS});}{` +
+			`\\class{${HIGHLIGHT_CLASS}}{` +
 			eqn.slice(left + 1, maxPosOrLeft) +
-			settings.mathPreviewCursor +
+			mathPreviewCursor +
 			eqn.slice(maxPosOrLeft, right) +
 			"}" +
 			eqn.slice(right);
 	} else {
 		eqnWithDecorations =
 			eqn.slice(0, eqnPos) +
-			settings.mathPreviewCursor +
+			mathPreviewCursor +
 			eqn.slice(eqnPos);
 	}
 	const oldTooltips = update.state.field(cursorTooltipField);
@@ -149,13 +152,19 @@ export function handleMathTooltip(update: ViewUpdate) {
 		}
 		try {
 			const renderedEqn = renderMath(eqnWithDecorations, ctx.mode.inDisplayMath());
-			const highlight = renderedEqn.querySelector(
-				`[style*="background-color: var(--${HIGHLIGHT_CLASS})"]`,
-			) as HTMLElement;
-			highlight?.addClass(HIGHLIGHT_CLASS);
-			highlight?.style.removeProperty("background-color");
+			const cursor = renderedEqn.querySelector<HTMLElement>(`.${CURSOR_CLASS}`)
 			dom.appendChild(renderedEqn);
-			void finishRenderMath();
+			const scrollIntoView = () => {
+				window.requestAnimationFrame(() => {
+					if (!cursor?.isConnected) return;
+					cursor.scrollIntoView({
+						behavior: "instant",
+						block: "nearest"
+					});
+				});
+			}
+			scrollIntoView();
+			void finishRenderMath().then(scrollIntoView)
 		} catch (e) {
 			console.error("Error rendering math in tooltip:", e);
 			dom.textContent = eqn
@@ -259,7 +268,7 @@ export const cursorTooltipBaseTheme = EditorView.baseTheme({
 		},
 		"&.cm-tooltip-above > .MathJax": {
 			overflowY: "auto",
-			maxHeight: "70%",
+			maxHeight: "80%",
 			display: "inline-block",
 			alignSelf: "flex-end",
 		},
@@ -280,3 +289,20 @@ export const cursorTooltipBaseTheme = EditorView.baseTheme({
 
 });
 
+export const mathTooltipExtension = [
+	cursorTooltipField.extension,
+	cursorTooltipBaseTheme,
+	tooltips({
+		position: "absolute",
+		tooltipSpace(view) {
+			const dom = view.dom;
+			const rect = dom.getBoundingClientRect();
+			return {
+				top: rect.top,
+				left: rect.left,
+				bottom: rect.bottom,
+				right: rect.right,
+			};
+		},
+	}),
+]
