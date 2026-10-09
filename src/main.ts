@@ -9,11 +9,11 @@ import { getEditorCommands, getVimEditorCommands, getVimRunMatrixEnterCommand } 
 import { getLatexSuiteConfigExtension } from "./snippets/codemirror/config";
 import { type SnippetVariables, parseSnippetVariables, parseSnippets } from "./snippets/parse";
 import { handleUpdate, onInput, keyboardEventPlugin, snippetStateField } from "./latex_suite";
-import { EditorView, tooltips } from "@codemirror/view";
+import { EditorView } from "@codemirror/view";
 import { snippetExtensions } from "./snippets/codemirror/extensions";
 import { mkConcealPlugin } from "./editor_extensions/conceal";
 import { colorPairedBracketsPlugin, colorPairedBracketsPluginLowestPrec, highlightCursorBracketsExtension, highlightCursorBracketsPlugin } from "./editor_extensions/highlight_brackets";
-import { cursorTooltipBaseTheme, cursorTooltipField, mathTooltipExtension, updateTooltipEffect } from "./editor_extensions/math_tooltip";
+import { cursorTooltipField, mathTooltipExtension, updateTooltipEffect } from "./editor_extensions/math_tooltip";
 import { contextPlugin, getContextPlugin } from "./editor_context/context";
 import { mathBoundsPlugin } from "./editor_context/mathbounds";
 import type { LatexSuitePluginPublicApi, UpdateHandler } from "./api";
