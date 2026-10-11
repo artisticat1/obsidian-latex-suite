@@ -120,13 +120,14 @@ function determineCursorPosType(
 	let cursorPosType: Concealment["cursorPosType"] = "apart";
 
 	for (const range of sel.ranges) {
+		const empty = range.empty
 		for (const replace of concealSpec) {
 			// 'cursorPosType' is guaranteed to be "edge" or "apart" at this point
 			const overlapRangeFrom = Math.max(range.from, replace.start);
 			const overlapRangeTo = Math.min(range.to, replace.end);
 
 			if (
-				overlapRangeFrom === overlapRangeTo &&
+				(overlapRangeFrom === overlapRangeTo || !empty) &&
 				(overlapRangeFrom === replace.start || overlapRangeFrom === replace.end)
 			) {
 				cursorPosType = "edge";
