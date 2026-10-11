@@ -1,0 +1,274 @@
+import { EditorView, type PluginValue, ViewPlugin, ViewUpdate } from "@codemirror/view";
+import { type Bounds, type CMBound, MathMode } from "./context";
+import { EditorState } from "@codemirror/state";
+import type { SyntaxNode, SyntaxNodeRef } from "@lezer/common";
+import { modifiedSyntaxTree } from "src/parser/language";
+import { getClassListFromElement, Type } from "src/parser/mathjax-parser";
+import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
+import { latex } from "src/parser/latex-terms";
+
+
+type EquationInfo = { text: string; bound: MathBoundWithTree; overlay: CMBound; };
+
+type MathBoundWithTree = MathBounds & { tree: SyntaxNode; };
+
+export type MathBounds = Bounds & {
+	mode: MathMode;
+	tree: SyntaxNode | null;
+	overlay: CMBound[];
+};
+
+export class MathBoundsPlugin implements PluginValue {
+	private _mathBounds: MathBounds[] = [];
+	private equationsOverlays: EquationInfo[] | null = null;
+	shouldUpdate: boolean = false;
+
+	get mathBounds() {
+		return this._mathBounds
+	}
+
+	constructor(view: EditorView) {
+		this.updateMathBounds(view);
+	}
+
+	reset() {
+		this._mathBounds = [];
+		this.equationsOverlays = null;
+		this.shouldUpdate = false;
+	}
+
+	getTree(state: EditorState) {
+		return modifiedSyntaxTree(state);
+	}
+
+	init(view: EditorView) {
+		if (this.shouldUpdate) {
+			this.equationsOverlays = null;
+			this.updateMathBounds(view);
+			this.shouldUpdate = false;
+		}
+		return this;
+	}
+
+	update(update: ViewUpdate) {
+		if (update.docChanged || update.viewportChanged) {
+			this.shouldUpdate = true;
+		}
+	}
+
+	getDollarBounds(node: SyntaxNode): {open: CMBound, close: CMBound} {
+		const open = node.firstChild!;
+		const close =
+			node.lastChild!.name === "Dollar" && open.nextSibling
+				? node.lastChild!
+				: { from: node.to, to: node.to };
+		return {
+			open,
+			close
+		}
+	}
+
+	getMathBoundsFromHtmlBlock(node: SyntaxNode, state: EditorState): MathBounds[] {
+		const tree = node.enter(node.to, -1);
+		if (!tree) return [];
+		const mathBounds: MathBounds[] = [];
+		tree.cursor().iterate((child) => {
+			let latexTree;
+			if (child.name !== "Element") return;
+			const text = child.node.getChild("Text");
+			if (!(text && (latexTree = child.node.enter(text.to, -1))?.type.is(latex.LaTeX))) {
+				return;
+			}
+			const classListResult = getClassListFromElement(child.node, {
+				read: (from, to) => state.sliceDoc(from, to)
+			})
+			if (classListResult === null) {
+				return;
+			}
+			const {classList, openTag, closeTag} = classListResult;
+			const mode = classList.includes("math-inline") ? MathMode.InlineMath : MathMode.BlockMath;
+
+			mathBounds.push({
+				inner_start: text.from,
+				inner_end: text.to,
+				outer_start: openTag.from,
+				outer_end: closeTag.to,
+				mode,
+				tree: latexTree,
+				overlay: [{ from: text.from, to: child.to }],
+			});	
+			return false;
+		})
+		return mathBounds;
+		
+	}
+
+	updateMathBounds(view: EditorView): void {
+		const tree = modifiedSyntaxTree(view.state);
+		const ranges: MathBounds[] = [];
+		const settings = getLatexSuiteConfig(view.state);
+		// for excalidraw the topnode is LaTeX, e.g. the whole document is in math mode.
+		if (tree.topNode.type.is(latex.LaTeX)) {
+			const mathBound = {
+				inner_start: tree.topNode.from,
+				inner_end: tree.topNode.to,
+				outer_start: tree.topNode.from,
+				outer_end: tree.topNode.to,
+				mode: MathMode.BlockMath,
+				tree: tree.topNode,
+				overlay: [{ from: tree.topNode.from, to: tree.topNode.to }],
+			};
+			this._mathBounds = [mathBound];
+			return
+		}
+		for (const { from, to } of view.visibleRanges) {
+			tree.iterate({
+				from,
+				to,
+				enter: (nodeRef: SyntaxNodeRef) => {
+					if (nodeRef.name === Type.DollarDisplayBlockMath) {
+						const { open, close } = this.getDollarBounds(nodeRef.node);
+						const children = nodeRef.node.getChildren("DisplayMath")
+						if (children.length === 0) {
+							ranges.push({
+								inner_start: open.to,
+								inner_end: close.from,
+								outer_start: open.from,
+								outer_end: close.to,
+								mode: MathMode.BlockMath,
+								tree: null,
+								overlay: [],
+							})
+							return;
+						}
+
+						const tree = nodeRef.node.enter(children[children.length - 1]!.to, -1);
+						if (!tree) {
+							return;
+						}
+
+						ranges.push({
+							inner_start: open.to,
+							inner_end: close.from,
+							outer_start: open.from,
+							outer_end: close.to,
+							mode: MathMode.BlockMath,
+							tree,
+							overlay: children,
+						});
+					} else if (
+						nodeRef.name === Type.DollarInlineMath ||
+						nodeRef.name === Type.DollarDisplayMath
+					) {
+						const { open, close } = this.getDollarBounds(nodeRef.node);
+						const tree = nodeRef.node.getChild("LaTeX");
+						if (!tree) {
+							return
+						}
+						const mode = nodeRef.name === Type.DollarInlineMath ? MathMode.InlineMath : MathMode.BlockMath;
+						ranges.push({
+							inner_start: open.to,
+							inner_end: close.from,
+							outer_start: open.from,
+							outer_end: close.to,
+							mode,
+							tree,
+							overlay: [tree],
+						});
+					} else if (nodeRef.name === "FencedCode") {
+						const infoNode = nodeRef.node.getChild("CodeInfo");
+						if (!infoNode) return;
+						const language = view.state.sliceDoc(infoNode.from, infoNode.to)
+						if (!settings.forceMathLanguages.includes(language)) return;
+						const contentNodes = nodeRef.node.getChildren("CodeText");
+						const lastNode = contentNodes.last();
+						if (!lastNode) return;
+						const tree = nodeRef.node.enter(lastNode.to, -1);
+						if (tree === null || !tree.type.is(latex.LaTeX)) return;
+						ranges.push({
+							inner_start: contentNodes[0]!.from,
+							inner_end: lastNode.to,
+							outer_start: nodeRef.node.from,
+							outer_end: nodeRef.node.to,
+							mode: MathMode.CodeMath,
+							tree,
+							overlay: contentNodes,
+						});
+					} else if (nodeRef.name === "HTMLBlock") {
+						ranges.push(...this.getMathBoundsFromHtmlBlock(nodeRef.node, view.state));
+					}
+				},
+			});
+		}
+		this._mathBounds = ranges;
+	}
+
+	inMathBound(_state: EditorState, pos: number): MathBounds | null {
+		const bounds = this._mathBounds;
+		const firstBound = bounds[0];
+		if (!firstBound || pos < firstBound.outer_start || pos > bounds[bounds.length - 1]!.outer_end) {
+			return null;
+		}
+		// Use binary search to efficiently find if pos is within any math bound
+		let left = 0,
+			right = bounds.length - 1;
+		while (left <= right) {
+			const mid = (left + right) >> 1;
+			const bound = bounds[mid]!;
+			if (pos < bound.outer_start) {
+				right = mid - 1;
+			// excalidraw doesn't have delimiters thus they have 0 length and should be ignored for this check
+			} else if (pos >= bound.outer_end && bound.outer_end !== bound.inner_end) {
+				left = mid + 1;
+			} else if (
+				pos < bound.inner_start &&
+				bound.mode == MathMode.BlockMath &&
+				bound.inner_start - bound.outer_start == 2
+			) {
+				return {
+					outer_start: bound.outer_start,
+					inner_start: bound.outer_start + 1,
+					inner_end: bound.outer_start + 1,
+					outer_end: bound.outer_start + 2,
+					mode: MathMode.InlineMath,
+					tree: null,
+					overlay: [],
+				};
+			} else if (pos < bound.inner_start || pos > bound.inner_end) {
+				break;
+			} else {
+				return bound;
+			}
+		}
+		return null;
+	};
+
+	// TODO: maybe support math bounds outside viewport. But not sure if its needed.
+
+	getEquationOverlays(state: EditorState) {
+		if (this.equationsOverlays)
+			return this.equationsOverlays;
+		this.equationsOverlays = this._mathBounds.map((bound) =>
+			bound.overlay.length === 0 || bound.tree === null ? null :
+			{
+				bound,
+				overlay: {from: bound.overlay[0]!.from, to: bound.overlay[bound.overlay.length - 1]!.to},
+				text: state.sliceDoc(bound.overlay[0]!.from, bound.overlay[bound.overlay.length - 1]!.to),
+			}		
+		).filter((x): x is EquationInfo => x !== null);
+		return this.equationsOverlays;
+	}
+}
+
+export const mathBoundsPlugin = ViewPlugin.fromClass(MathBoundsPlugin);
+
+export const getMathBoundsPlugin = (view: EditorView, init: boolean = true) => {
+	const plugin = view.plugin(mathBoundsPlugin);
+	if (!plugin) {
+		throw new Error(
+			"MathBoundsPlugin not found, something went wrong with the plugin initialization"
+		);
+	}
+	return init ? plugin.init(view) : plugin;
+};
+

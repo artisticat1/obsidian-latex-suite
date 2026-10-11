@@ -1,0 +1,594 @@
+import { EditorState, SelectionRange, Text } from "@codemirror/state";
+import {
+	EditorView,
+	type PluginValue,
+	ViewPlugin,
+	ViewUpdate,
+} from "@codemirror/view";
+import {
+	findMatchingBracket,
+	getCloseBracket,
+	stackResolveNodeIterate,
+} from "src/utils/editor_utils";
+import { Mode } from "./options";
+import type { Environment } from "../snippets/environment";
+import { getLatexSuiteConfig } from "../snippets/codemirror/config";
+import { syntaxTree } from "@codemirror/language";
+import type { SyntaxNode } from "@lezer/common";
+import { type MacroArgs } from "./default_text_areas";
+import { getMathBoundsPlugin, type MathBounds } from "./mathbounds";
+
+const OPEN_INLINE_MATH_NODE =
+	"formatting_formatting-math_formatting-math-begin_keyword_math";
+const CLOSE_INLINE_MATH_NODE =
+	"formatting_formatting-math_formatting-math-end_keyword_math_math-";
+
+const OPEN_DISPLAY_MATH_NODE =
+	"formatting_formatting-math_formatting-math-begin_keyword_math_math-block";
+const CLOSE_DISPLAY_MATH_NODE =
+	"formatting_formatting-math_formatting-math-end_keyword_math_math-";
+export const open_math_nodes = new Set([
+	OPEN_INLINE_MATH_NODE,
+	OPEN_DISPLAY_MATH_NODE,
+]);
+export const close_math_nodes = new Set([
+	CLOSE_INLINE_MATH_NODE,
+	CLOSE_DISPLAY_MATH_NODE,
+]);
+const OPEN_CODEBLOCK_NODE =
+	"HyperMD-codeblock_HyperMD-codeblock-begin_HyperMD-codeblock-begin-bg_HyperMD-codeblock-bg";
+const CLOSE_CODEBLOCK_NODE =
+	"HyperMD-codeblock_HyperMD-codeblock-bg_HyperMD-codeblock-end_HyperMD-codeblock-end-bg";
+const CODE_NODE = "inline-code";
+
+export type StackOutput = (
+	| {
+			kind: "command";
+			name: string;
+	  }
+	| {
+			kind: "environment";
+			name: string;
+	  }
+	| { kind: "math" }
+) &
+	Bounds & { node: SyntaxNode };
+
+export type MacroStackOutput = StackOutput & { kind: "command" };
+type MacroStackOutputWithCount<T extends MacroArgs> = {
+	stack: MacroStackOutput;
+	macro: T;
+	count?: number;
+}
+
+export interface Bounds {
+	inner_start: number;
+	inner_end: number;
+	outer_start: number;
+	outer_end: number;
+}
+
+export type CMBound = { from: number; to: number };
+export class Context implements PluginValue {
+	view!: EditorView;
+	state!: EditorState;
+	mode!: Mode;
+	pos!: number;
+	ranges!: SelectionRange[];
+	codeblockLanguage: string | null = null;
+	boundsCache!: Map<number, Bounds | null>;
+	innerBoundsCache!: Map<number, Bounds | null>;
+	shouldUpdate: null | ViewUpdate = null;
+
+	constructor(view: EditorView) {
+		this.updateFromView(view);
+	}
+
+	disableMath() {
+		this.shouldUpdate = null;
+		this.boundsCache.clear();
+		this.innerBoundsCache.clear();
+		this.mode = new Mode({
+			text: false,
+			inlineMath: false,
+			blockMath: false,
+			codeMath: false,
+			codeBlock: false,
+			code: false,
+			textEnv: false,
+			snippetlessEnv: false,
+		})
+		const mathBounds = getMathBoundsPlugin(this.view, false);
+		mathBounds.reset();
+	}
+	
+	inMath(): boolean {
+		return this.mode.inMath();
+	}
+
+	/**
+	 * Small optimization to avoid updating the context when no extension is used.
+	 * @param view current view
+	 */
+	init(view: EditorView) {
+		const update = this.shouldUpdate;
+		if (update) {
+			this.updateFromView(view);
+			this.shouldUpdate = null;
+			
+			const updateHandlers = getLatexSuiteConfig(this.state).updateHandlers;
+			for (const handler of updateHandlers) {
+				handler(this, update);
+			}
+		}
+		return this
+	}
+
+	update(update: ViewUpdate) {
+		if (!(update.docChanged || update.selectionSet || update.viewportChanged)) return;
+		this.shouldUpdate = update;
+		const updateHandlers = getLatexSuiteConfig(this.state).updateHandlers;
+		if (updateHandlers.length > 0) this.init(update.view);
+	}
+	updateFromView(view: EditorView) {
+		const state = view.state;
+		const sel = state.selection;
+		this.view = view;
+		this.state = state;
+		this.pos = sel.main.to;
+		this.ranges = Array.from(sel.ranges).reverse(); // Last to first
+		this.mode = new Mode({
+			text: false,
+			inlineMath: false,
+			blockMath: false,
+			codeMath: false,
+			codeBlock: false,
+			code: false,
+			textEnv: false,
+			snippetlessEnv: false,
+		});
+		this.boundsCache = new Map();
+		this.innerBoundsCache = new Map();
+		this.codeblockLanguage = null;
+
+		const codeBlockInfo = langIfWithinCodeblock(state);
+		const codeblockLanguage = codeBlockInfo?.codeblockLanguage ?? null;
+		const inCodeBlock = codeblockLanguage !== null;
+		const inCode = inCodeBlock ? false : withingCode(state)
+		this.mode.code = inCode;
+
+		const settings = getLatexSuiteConfig(state);
+		const forceMath =
+			inCodeBlock &&
+			settings.forceMathLanguages.contains(codeblockLanguage);
+		this.mode.codeMath = forceMath;
+		this.mode.codeBlock = inCodeBlock && !forceMath ? codeblockLanguage : false;
+		if (inCodeBlock && this.mode.codeBlock !== false) {
+			this.codeblockLanguage = codeblockLanguage;
+			this.boundsCache.set(this.pos, codeBlockInfo);
+		}
+
+		// first, check if math mode should be "generally" on
+		const mathBoundsCache = getMathBoundsPlugin(view);
+		const inMath = mathBoundsCache.inMathBound(state, this.pos);
+
+		if (inMath !== null) {
+			this.mode.blockMath = inMath.mode === MathMode.BlockMath;
+			this.mode.inlineMath = inMath.mode === MathMode.InlineMath;
+			this.boundsCache.set(this.pos, inMath);
+		}
+
+		if (inMath) {
+			const textEnv = this.inTextEnvironment();
+			if (textEnv === "text") {
+				this.mode.textEnv = true;
+			} else if (textEnv === "none") {
+				this.mode.snippetlessEnv = true;
+			}
+		}
+
+		this.mode.text = !inCodeBlock && !inMath;
+
+	}
+
+	*getEnvNames(pos: number = this.pos): Generator<StackOutput, void, unknown> {
+		const boundsPlugin = getMathBoundsPlugin(this.view);
+		const bound = boundsPlugin.inMathBound(this.state, pos)
+		if (!bound) return
+		const treeNode = bound.tree
+		if (!treeNode) return
+	
+		for (const node of stackResolveNodeIterate(treeNode, pos, -1)) {
+			if (node.to <= pos) continue;
+			if (node.name === "LaTeX") {
+				// _printNode2(node, this.state.doc.toString())
+			}
+			const result = this.getEnvNameFromNode(node, this.state.doc);
+			if (!result) continue;
+			yield result;
+		}
+	}
+
+	isWithinMacros<T extends MacroArgs>(pos: number, macros: readonly T[]): null | MacroStackOutputWithCount<T> {
+		for (const result of this.getEnvNames(pos)) {
+			if (result.kind=== "environment") continue;
+			if (result.kind === "math") return null;
+			const verifiedResult = isMacroArgumentCount(result, macros);
+			if (verifiedResult) {
+				return verifiedResult;
+			}
+		}
+		return null;
+	}
+	getEnvNameFromNode(node: SyntaxNode, doc: Text): null | StackOutput {
+		const value = node.name;
+		function createEnvironment(
+			envNode: SyntaxNode | null,
+		): null | StackOutput {
+			const beginNode = envNode?.getChild("BeginEnv");
+			const envNameNode = beginNode?.getChild("EnvNameGroup");
+			const contentNode = envNode?.getChild("Content");
+			if (!envNameNode || !contentNode || !envNode) {
+				return null;
+			}
+			return {
+				kind: "environment",
+				name: doc.sliceString(
+					envNameNode.from + 1,
+					envNameNode.to - 1,
+				),
+				inner_start: contentNode.from,
+				inner_end: contentNode.to,
+				outer_start: envNode.from,
+				outer_end: envNode.to,
+				node,
+			};
+		}
+
+		if (value === "Environment") {
+			return createEnvironment(node);
+		} else if (value === "KnownEnvironment") {
+			return createEnvironment(node.firstChild);
+		} else if (value.endsWith("Argument") || value === "EnvNameGroup") {
+			const parent = node.parent;
+			const command = parent?.firstChild;
+			const openBraced = node?.firstChild;
+			const closeBraced = node?.lastChild;
+			if (!command || !openBraced || !closeBraced) {
+				return null;
+			}
+			return {
+				kind: "command",
+				name: doc.sliceString(command.from + 1, command.to),
+				inner_start: openBraced.to,
+				inner_end: closeBraced.from,
+				outer_start: node.from,
+				outer_end: closeBraced.to,
+				node,
+			};
+		} else if (value === "Group") {
+			for (let prevSibling = node.prevSibling; prevSibling; prevSibling = prevSibling.prevSibling) {
+				const name = prevSibling.name;
+				if (name.endsWith("Argument") || name === "EnvNameGroup" || name === "Group" || name === "Whitespace") continue;
+				if (name !== "MathCommand") return null;
+				const ctrlSeq = prevSibling.resolveInner(prevSibling.from, 1)
+				if (!ctrlSeq?.name.endsWith("CtrlSeq")) {
+					return null;
+				}
+				return {
+					kind: "command",
+					name: doc.sliceString(ctrlSeq.from + 1, ctrlSeq.to),
+					inner_start: node.from + 1,
+					inner_end: node.to - 1,
+					outer_start: node.from,
+					outer_end: node.to,
+					node,
+				};
+			}
+		} else if (value === "ParenMath" || value === "DollarInlineMath") {
+			value satisfies "ParenMath" | "DollarInlineMath";
+			let openNode: SyntaxNode | null = null;
+			let closeNode: SyntaxNode | null = null;
+			if (value === "ParenMath") {
+				openNode = node.getChild("OpenParenMath")!;
+				closeNode = node.getChild("CloseParenMath")!;
+			} else if (value === "DollarInlineMath") {
+				const dollars = node.getChildren("Dollar")
+				openNode = dollars[0] ?? null;
+				closeNode = dollars[1] ?? null;
+			}
+			if (!openNode || !closeNode) {
+				return null;
+			}
+			return {
+				kind: "math",
+				inner_end: closeNode.from,
+				inner_start: openNode.to,
+				outer_start: node.from,
+				outer_end: node.to,
+				node,
+			}
+		}
+		return null;
+	}
+
+	isWithinEnvironment<T extends Environment>(pos: number, envs: T | T[]): T & Bounds | null {
+		if (!this.mode.inMath()) return null;
+
+		const bounds = this.getInnerBounds();
+		if (!bounds) return null;
+
+		const {inner_start: start, inner_end: end} = bounds;
+		const text = this.state.sliceDoc(start, end);
+
+		// pos referred to the absolute position in the whole document, but we just sliced the text
+		// so now pos must be relative to the start in order to be any useful
+		pos -= start;
+
+		if (!Array.isArray(envs)) {
+			envs = [envs];
+		}
+		outer_loop: for (const env of envs) {
+			const openBracket = env.openSymbol.slice(-1);
+			const closeBracket = getCloseBracket(openBracket);
+
+			// Take care when the open symbol ends with a bracket {, [, or (
+			// as then the closing symbol, }, ] or ), is not unique to this open symbol
+			let offset;
+			let openSearchSymbol;
+
+			if (
+				["{", "[", "("].contains(openBracket) &&
+				env.closeSymbol === closeBracket
+			) {
+				offset = env.openSymbol.length - 1;
+				openSearchSymbol = openBracket;
+			} else {
+				offset = 0;
+				openSearchSymbol = env.openSymbol;
+			}
+
+			let left = text.lastIndexOf(env.openSymbol, pos - 1);
+
+			while (left != -1) {
+				const right = findMatchingBracket(
+					text,
+					left + offset,
+					openSearchSymbol,
+					env.closeSymbol,
+					false,
+				);
+
+				if (right === null) continue outer_loop;
+
+				// Check whether the cursor lies inside the environment symbols
+				if (right >= pos && pos >= left + env.openSymbol.length) {
+					return {
+						...env,
+						inner_start: left + env.openSymbol.length + start,
+						inner_end: right + start,
+						outer_start: left + start,
+						outer_end: right + env.closeSymbol.length + start,
+					};
+				}
+
+				if (left <= 0) continue outer_loop;
+
+				// Find the next open symbol
+				left = text.lastIndexOf(env.openSymbol, left - 1);
+			}
+		}
+
+		return null;
+	}
+
+	inTextEnvironment(): "text" | "none" | null {
+		const { all } = getLatexSuiteConfig(this.state).mathlessMacros;
+		const result = this.isWithinMacros(this.pos, all);
+		if (!result) return null;
+		if (result.macro.kind === "restricted") {
+			return "none";
+		} else {
+			return "text";
+		}
+	}
+
+	getBounds(pos: number = this.pos): MathBounds | Bounds | null {
+		// yes, I also want the cache to work over the produced range instead of just that one through
+		// a BTree or the like, but that'd be probably overkill
+		const cached = this.boundsCache.get(pos);
+		if (cached !== undefined) {
+			return cached;
+		}
+
+		let bounds: Bounds | null;
+		if (this.mode.codeMath) {
+			// means a codeblock language triggered the math mode -> use the codeblock bounds instead
+			bounds = getCodeblockBounds(this.state, pos);
+		} else {
+			bounds = getMathBoundsPlugin(this.view).inMathBound(this.state, pos);
+		}
+
+		this.boundsCache.set(pos, bounds);
+		return bounds;
+	}
+
+	// Accounts for equations within text environments, e.g. $$\text{... $...$}$$
+	getInnerBounds(pos: number = this.pos): Bounds | null {
+		let bounds: Bounds | null;
+		const cached = this.innerBoundsCache.get(pos);
+		if (cached !== undefined) {
+			return cached;
+		}
+		if (this.mode.codeMath) {
+			// means a codeblock language triggered the math mode -> use the codeblock bounds instead
+			bounds = this.getBounds(pos);
+		} else {
+			bounds = getInnerEquationBounds(this.view);
+		}
+		this.innerBoundsCache.set(pos, bounds);
+
+		return bounds;
+	}
+
+}
+
+export const contextPlugin = ViewPlugin.fromClass(Context);
+export const getContextPlugin = (view: EditorView, init: boolean = true): Context => {
+	const plugin = view.plugin(contextPlugin)
+	if (!plugin) {
+		throw new Error("Context plugin not found, something went wrong with the plugin initialization");
+	}
+	return init ? plugin.init(view) : plugin;
+}
+
+
+export function isMacroArgumentCount<T extends MacroArgs>(stack: Readonly<MacroStackOutput>, macros: readonly T[]): null | MacroStackOutputWithCount<T> {
+	const filtered_macros = macros.filter((macro) => macro.name === stack.name);
+	if (filtered_macros.length === 0) return null;
+	for (const macro of filtered_macros) {
+		if (!macro.arguments) return { stack, macro };
+	}
+
+	let sibling_count: number = 0;
+	let sibling: SyntaxNode | null = stack.node
+	while ((sibling = sibling.prevSibling) !== null) {
+		if (sibling.name.endsWith("Argument") || sibling.name === "EnvNameGroup" || sibling.name === "Group" || sibling.name === "MathCommand") {
+			sibling_count++;
+		}
+	}
+	for (const macro of filtered_macros) {
+		if (macro.arguments?.includes(sibling_count)) {
+			return { stack, macro, count: sibling_count };
+		}
+	}
+	return null;
+}
+
+export enum MathMode {
+	InlineMath,
+	BlockMath,
+	CodeMath
+}
+
+// Accounts for equations within text environments, e.g. $$\text{... $...$}$$
+const getInnerEquationBounds = (view: EditorView, pos?: number ):Bounds | null => {
+	if (!pos) pos = view.state.selection.main.to;
+	const bounds = getMathBoundsPlugin(view).inMathBound(view.state, pos);
+	if (!bounds) return null;
+	let text = view.state.sliceDoc(bounds.inner_start, bounds.inner_end);
+
+	// ignore \$
+	text = text.replaceAll("\\$", "\\R");
+
+	const left = text.lastIndexOf("$", pos - 1);
+	const right = text.indexOf("$", pos);
+
+	if (left === -1 || right === -1) return bounds;
+
+	return {
+		inner_start: left + 1,
+		inner_end: right,
+		outer_start: left,
+		outer_end: right + 1,
+	};
+};
+
+/**
+ * Figures out where this codeblock starts and where it ends.
+ *
+ * **Note:** If you intend to use this directly, check out Context.getBounds instead, which caches and also takes care of codeblock languages which should behave like math mode.
+ */
+const getCodeblockBounds = (
+	state: EditorState,
+	pos: number = state.selection.main.from,
+): Bounds | null => {
+	const bounds = getCodeblockBoundNodes(state, pos);
+	if (!bounds) return null;
+	const { begin: blockBegin, end: blockEnd } = bounds;
+	return {
+		inner_start: blockBegin.to,
+		inner_end: blockEnd.from,
+		outer_start: blockBegin.from,
+		outer_end: blockEnd.to,
+	};
+};
+
+const getCodeblockBoundNodes = (
+	state: EditorState,
+	pos: number = state.selection.main.from,
+): { begin: SyntaxNode; end: SyntaxNode } | null => {
+	const tree = syntaxTree(state);
+	const cursor = tree.cursor();
+	cursor.childBefore(pos);
+
+	if (!cursor.name.contains("codeblock")) {
+		return null;
+	}
+	// If we're directly on a codeblock than it should be treated as not being in a codeblock.
+	// since childBefore, we only have to check if pos is not outside the opening node.
+	if (
+		(cursor.name === OPEN_CODEBLOCK_NODE && pos <= cursor.to) ||
+		cursor.name === CLOSE_CODEBLOCK_NODE
+	) {
+		return null;
+	}
+	do {
+		if (cursor.name === OPEN_CODEBLOCK_NODE) {
+			break;
+		}
+	} while (cursor.prev());
+	const begin = cursor.node;
+	if (!begin) {
+		return null;
+	}
+	cursor.childAfter(pos);
+	do {
+		if (cursor.name === CLOSE_CODEBLOCK_NODE) {
+			break;
+		}
+	} while (cursor.next());
+	const end = cursor.node;
+	if (!end || end.name !== CLOSE_CODEBLOCK_NODE) {
+		return null;
+	}
+	return { begin, end };
+};
+
+type CodeblockLangInfo = Bounds & { codeblockLanguage: string };
+const langIfWithinCodeblock = (
+	state: EditorState,
+): CodeblockLangInfo | null => {
+	const pos = state.selection.main.from;
+	const coddeblockBounds = getCodeblockBoundNodes(state, pos);
+	if (!coddeblockBounds) return null;
+	const { begin: codeblockBegin, end: codeblockEnd } = coddeblockBounds;
+
+	// extract the language
+	// codeblocks may start and end with an arbitrary number of backticks
+	const language = getLangFromCodeblockNode(state, codeblockBegin);
+
+	return {
+		inner_start: codeblockBegin.to,
+		inner_end: codeblockEnd.from,
+		outer_start: codeblockBegin.from,
+		outer_end: codeblockEnd.to,
+		codeblockLanguage: language,
+	};
+};
+
+function getLangFromCodeblockNode(
+	state: EditorState,
+	node: SyntaxNode,
+): string {
+	return state
+		.sliceDoc(node.from, node.to)
+		.replace(/`+|~+/g, "")
+		.split(" ")[0]!;
+}
+
+const withingCode = (state: EditorState): boolean => {
+	const pos = state.selection.main.head;
+	const tree = syntaxTree(state);
+	return tree.resolveInner(pos, -1).name.contains(CODE_NODE);
+};

@@ -1,500 +1,729 @@
 // Conceal functions
 
-import { syntaxTree } from "@codemirror/language";
 import { EditorView } from "@codemirror/view";
-import { getEquationBounds } from "src/utils/context";
-import { findMatchingBracket } from "src/utils/editor_utils";
-import { ConcealSpec, mkConcealSpec } from "./conceal";
-import { greek, cmd_symbols, map_super, map_sub, fractions, brackets, mathscrcal, mathbb, operators } from "./conceal_maps";
+import type { ConcealSpec } from "./conceal";
+import { type ConcealMapping } from "./conceal_maps";
+import { type SyntaxNode, TreeCursor } from "@lezer/common";
+import { cumulativeSum } from "src/utils/editor_utils";
+import { EquationText, iterateTreeCursor } from "src/utils/tokenizer";
+import { getMathBoundsPlugin } from "src/editor_context/mathbounds";
+import { latex } from "src/parser/latex-terms";
 
 
-function escapeRegex(regex: string) {
-	const escapeChars = ["\\", "(", ")", "+", "-", "[", "]", "{", "}"];
 
-	for (const escapeChar of escapeChars) {
-		regex = regex.replaceAll(escapeChar, "\\" + escapeChar);
-	}
+export type MappingInfo = {
+	maps: ConcealMapping;
+	macroMap: MacroHandlerMap;
+};
 
-	return regex;
+const textModifiers = {
+	mathbf: "cm-concealed-bold",
+	boldsymbol: "cm-concealed-bold",
+	underline: "cm-concealed-underline",
+	mathrm: "cm-concealed-mathrm",
+	mathbb: undefined,
+} satisfies Record<string, string | undefined>;
+
+const modifiers = {
+	hat: "\u0302",
+	dot: "\u0307",
+	ddot: "\u0308",
+	overline: "\u0304",
+	bar: "\u0304",
+	tilde: "\u0303",
+	vec: "\u20D7",
+} satisfies Record<string, string>;
+
+enum HandleResultKind {
+	NotHandled,
+	Handled,
 }
 
-/**
- * gets the updated end index to include "\\limits" in the concealed text of some conceal match,
- * if said match is directly followed by "\\limits"
- *
- * @param eqn source text
- * @param end index of eqn corresponding to the end of a match to conceal
- * @returns the updated end index to conceal
- */
-function getEndIncludingLimits(eqn: string, end: number): number {
-	const LIMITS = "\\limits";
-	if (eqn.substring(end, end + LIMITS.length) === LIMITS) {
-		return end + LIMITS.length;
-	}
-	return end;
+type HandleConcealResult = {
+	spec: ConcealSpec;
+	kind: HandleResultKind;
+};
+
+type HandleConcealResults = {
+	spec: ConcealSpec[];
+	kind: HandleResultKind;
 }
 
-function concealSymbols(eqn: string, prefix: string, suffix: string, symbolMap: {[key: string]: string}, className?: string, allowSucceedingLetters = true): ConcealSpec[] {
-	const symbolNames = Object.keys(symbolMap);
-
-	const regexStr = prefix + "(" + escapeRegex(symbolNames.join("|")) + ")" + suffix;
-	const symbolRegex = new RegExp(regexStr, "g");
-
-
-	const matches = [...eqn.matchAll(symbolRegex)];
-
-	const specs: ConcealSpec[] = [];
-
-	for (const match of matches) {
-		const symbol = match[1];
-
-		if (!allowSucceedingLetters) {
-			// If the symbol match is succeeded by a letter (e.g. "pm" in "pmatrix" is succeeded by "a"), don't conceal
-
-			const end = match.index + match[0].length;
-			if (eqn.charAt(end).match(/[a-zA-Z]/)) {
-				continue;
-			}
-		}
-
-		const end = getEndIncludingLimits(eqn, match.index + match[0].length);
-
-		specs.push(mkConcealSpec({
-			start: match.index,
-			end: end,
-			text: symbolMap[symbol],
-			class: className,
-		}));
-	}
-
-	return specs;
+function extractMathArgument(node: SyntaxNode) {
+	const mathArgumentNode = node.nextSibling;
+	if (!mathArgumentNode || !mathArgumentNode.type.is(latex.MathArgument))
+		return null;
+	const openBraceNode = mathArgumentNode.firstChild;
+	if (!openBraceNode || !openBraceNode.type.is(latex.OpenBrace)) return null;
+	const mathNode = openBraceNode.nextSibling;
+	if (!mathNode || !mathNode.type.is(latex.Math)) return null;
+	const closeBraceNode = mathNode.nextSibling;
+	if (!closeBraceNode || !closeBraceNode.type.is(latex.CloseBrace))
+		return null;
+	return {
+		mathArgumentNode,
+		openBraceNode,
+		mathNode,
+		closeBraceNode,
+	};
 }
 
-function concealModifier(eqn: string, modifier: string, combiningCharacter: string): ConcealSpec[] {
+function extractMathArgumentStar(node: SyntaxNode, doc: EquationText) {
+	const peekCursor = node.cursor();
+	if (!peekCursor.next()) return null;
+	const mathSpecial = peekCursor.node;
+	if (!mathSpecial.type.is(latex.MathSpecialChar) || doc.slice(mathSpecial.from, mathSpecial.to) !== "*") return null;
+	const group = mathSpecial.nextSibling;
+	if (!group || !group.type.is("Group")) return null;
+	const openBraceNode = group.firstChild;
+	if (!openBraceNode || !openBraceNode.type.is(latex.OpenBrace)) return null;
+	const mathNode = openBraceNode.nextSibling;
+	if (!mathNode || !mathNode.type.is(latex.Math)) return null;
+	const closeBraceNode = mathNode.nextSibling;
+	if (!closeBraceNode || !closeBraceNode.type.is(latex.CloseBrace))
+		return null;
+	return {
+		mathArgumentNode: group,
+		openBraceNode,
+		mathNode,
+		closeBraceNode,
+	};
+}
 
-	const regexStr = ("\\\\" + modifier + "{([A-Za-z])}");
-	const symbolRegex = new RegExp(regexStr, "g");
+function extractTextArgument(node: SyntaxNode) {
+	const textArgumentNode = node.nextSibling;
+	if (!textArgumentNode || !textArgumentNode.type.is(latex.TextArgument))
+		return null;
+	const openBraceNode = textArgumentNode.firstChild;
+	if (!openBraceNode || !openBraceNode.type.is(latex.OpenBrace)) return null;
+	const textNode = openBraceNode.nextSibling;
+	if (!textNode || !textNode.type.is(latex.LongArg)) return null;
+	const closeBraceNode = textNode.nextSibling;
+	if (!closeBraceNode || !closeBraceNode.type.is(latex.CloseBrace))
+		return null;
+	return {
+		textArgumentNode,
+		openBraceNode,
+		textNode,
+		closeBraceNode,
+	};
+}
 
+function handleFrac({cursor, doc, maps}: MacroHandlerOptions): HandleConcealResult {
+	const node = cursor.node;
+	const numeratorNode = extractMathArgument(node);
+	if (!numeratorNode) return { spec: [], kind: HandleResultKind.Handled };
+	const denominatorNode = extractMathArgument(numeratorNode.mathArgumentNode);
+	if (!denominatorNode) return { spec: [], kind: HandleResultKind.Handled };
+	const nominatorOpen = numeratorNode.openBraceNode;
+	const nominatorClose = numeratorNode.closeBraceNode;
+	const denominatorOpen = denominatorNode.openBraceNode;
+	const denominatorClose = denominatorNode.closeBraceNode;
+	const fractionContent = doc.slice(nominatorOpen.from, denominatorClose.to);
+	if (maps.fractions[fractionContent]) {
+		doc.moveTo(cursor, node.to, -1);
+		const spec = [
+			{
+				start: node.from,
+				end: denominatorClose.to,
+				text: maps.fractions[fractionContent],
+			},
+		];
+		return { spec, kind: HandleResultKind.Handled };
+	}
 
-	const matches = [...eqn.matchAll(symbolRegex)];
+	const hideFrac = {
+		start: node.from,
+		end: node.to,
+		text: "",
+	};
+	const convertOpenSibling = {
+		start: nominatorOpen.from,
+		end: nominatorOpen.to,
+		text: "(",
+		class: "cm-bracket",
+	};
+	const convertCloseSibling = {
+		start: nominatorClose.from,
+		end: nominatorClose.to,
+		text: ")",
+		class: "cm-bracket",
+	};
+	const betweenSlash = {
+		start: nominatorClose.to,
+		end: nominatorClose.to,
+		text: "/",
+		class: "cm-bracket",
+	};
+	const convertOpenSecondSibling = {
+		start: denominatorOpen.from,
+		end: denominatorOpen.to,
+		text: "(",
+		class: "cm-bracket",
+	};
+	const convertCloseSecondSibling = {
+		start: denominatorClose.from,
+		end: denominatorClose.to,
+		text: ")",
+		class: "cm-bracket",
+	};
 
-	const specs: ConcealSpec[] = [];
+	const spec = [
+		hideFrac,
+		convertOpenSibling,
+		convertCloseSibling,
+		betweenSlash,
+		convertOpenSecondSibling,
+		convertCloseSecondSibling,
+	];
+	return { spec, kind: HandleResultKind.Handled };
+}
 
-	for (const match of matches) {
-		const symbol = match[1];
-
-		specs.push(mkConcealSpec({
-			start: match.index,
-			end: match.index + match[0].length,
-			text: symbol + combiningCharacter,
+function handleModifier({cursor, doc, macro, maps}: MacroHandlerOptions): HandleConcealResult {
+	const greek = maps.greek;
+	const nodeRef = cursor.node;
+	const modifier = modifiers[macro as keyof typeof modifiers];
+	const mathArgumentNode = extractMathArgument(nodeRef);
+	if (!mathArgumentNode) return { spec: [], kind: HandleResultKind.Handled };
+	const contentNode = mathArgumentNode.mathNode;
+	const sibling = mathArgumentNode.closeBraceNode;
+	const content = doc.slice(contentNode.from, contentNode.to);
+	const symbol = /^[A-Za-z]$/.test(content)
+		? content
+		: content[0] === "\\" && greek[content.slice(1)];
+	if (!symbol) return { spec: [], kind: HandleResultKind.Handled };
+	doc.moveTo(cursor, sibling.to, 1);
+	doc.skipCursorMove = true;
+	const spec = [
+		{
+			start: nodeRef.from,
+			end: sibling.to,
+			text: symbol + modifier,
 			class: "latex-suite-unicode",
-		}));
-	}
-
-	return specs;
+		},
+	];
+	return { spec, kind: HandleResultKind.Handled };
 }
 
-function concealSupSub(eqn: string, superscript: boolean, symbolMap: {[key: string]:string}): ConcealSpec[] {
-
-	const prefix = superscript ? "\\^" : "_";
-	const regexStr = prefix + "{([A-Za-z0-9\\()\\[\\]/+-=<>':;\\\\ *]+)}";
-	const regex = new RegExp(regexStr, "g");
-
-	const matches = [...eqn.matchAll(regex)];
-
-
-	const specs: ConcealSpec[] = [];
-
-	for (const match of matches) {
-
-		const exponent = match[1];
-		const elementType = superscript ? "sup" : "sub";
-
-
-		// Conceal super/subscript symbols as well
-		const symbolNames = Object.keys(symbolMap);
-
-		const symbolRegexStr = "\\\\(" + escapeRegex(symbolNames.join("|")) + ")";
-		const symbolRegex = new RegExp(symbolRegexStr, "g");
-
-		const replacement = exponent.replace(symbolRegex, (a, b) => {
-			return symbolMap[b];
-		});
-
-
-		specs.push(mkConcealSpec({
-			start: match.index,
-			end: match.index + match[0].length,
-			text: replacement,
-			class: "cm-number",
-			elementType: elementType,
-		}));
+function getLimitLength(cursor: TreeCursor, doc: EquationText) {
+	const peekCursor = cursor.node.cursor();
+	peekCursor.next();
+	const sibling = peekCursor.node;
+	if (
+		(sibling.type.is(latex.MathCommand)) &&
+		doc.slice(sibling.from + 1, sibling.to) === "limits"
+	) {
+		doc.moveTo(cursor, sibling.to, 1);
+		doc.skipCursorMove = true;
+		return sibling.to;
 	}
-
-	return specs;
+	return cursor.to;
 }
 
-function concealModified_A_to_Z_0_to_9(eqn: string, mathBBsymbolMap: {[key: string]:string}): ConcealSpec[] {
-
-	const regexStr = "\\\\(mathbf|boldsymbol|underline|mathrm|text|mathbb){([A-Za-z0-9 ]+)}";
-	const regex = new RegExp(regexStr, "g");
-
-	const matches = [...eqn.matchAll(regex)];
-
-	const specs: ConcealSpec[] = [];
-
-	for (const match of matches) {
-		const type = match[1];
-		const value = match[2];
-
-		const start = match.index;
-		const end = start + match[0].length;
-
-		if (type === "mathbf" || type === "boldsymbol") {
-			specs.push(mkConcealSpec({
-				start: start,
-				end: end,
-				text: value,
-				class: "cm-concealed-bold",
-			}));
+function handleBracket({cursor, macro, maps}: MacroHandlerOptions): HandleConcealResult {
+	const symbol = maps.brackets[macro];
+	if (!symbol) return { spec: [], kind: HandleResultKind.Handled };
+	const spec= [
+		{
+			start: cursor.from,
+			end: cursor.to,
+			text: symbol,
+			class: "cm-bracket",
 		}
-		else if (type === "underline") {
-			specs.push(mkConcealSpec({
-				start: start,
-				end: end,
-				text: value,
-				class: "cm-concealed-underline",
-			}));
-		}
-		else if (type === "mathrm") {
-			specs.push(mkConcealSpec({
-				start: start,
-				end: end,
-				text: value,
-				class: "cm-concealed-mathrm",
-			}));
-		}
-		else if (type === "text") {
-			// Conceal _\text{}
-			if (start > 0 && eqn.charAt(start - 1) === "_") {
-				specs.push(mkConcealSpec({
-					start: start - 1,
-					end: end,
-					text: value,
-					class: "cm-concealed-mathrm",
-					elementType: "sub",
-				}));
-			}
-		}
-		else if (type === "mathbb") {
-			const letters = Array.from(value);
-			const replacement = letters.map(el => mathBBsymbolMap[el]).join("");
-			specs.push(mkConcealSpec({start: start, end: end, text: replacement}));
-		}
-
-	}
-
-	return specs;
+	]
+	return {spec, kind: HandleResultKind.Handled };
 }
 
-function concealModifiedGreekLetters(eqn: string, greekSymbolMap: {[key: string]:string}): ConcealSpec[] {
-
-	const greekSymbolNames = Object.keys(greekSymbolMap);
-	const regexStr = "\\\\(underline|boldsymbol){\\\\(" + escapeRegex(greekSymbolNames.join("|"))  + ")}";
-	const regex = new RegExp(regexStr, "g");
-
-	const matches = [...eqn.matchAll(regex)];
-
-	const specs: ConcealSpec[] = [];
-
-	for (const match of matches) {
-		const type = match[1];
-		const value = match[2];
-
-		const start = match.index;
-		const end = start + match[0].length;
-
-		if (type === "underline") {
-			specs.push(mkConcealSpec({
-				start: start,
-				end: end,
-				text: greekSymbolMap[value],
-				class: "cm-concealed-underline",
-			}));
-		}
-		else if (type === "boldsymbol") {
-			specs.push(mkConcealSpec({
-				start: start,
-				end: end,
-				text: greekSymbolMap[value],
-				class: "cm-concealed-bold",
-			}));
-		}
-	}
-
-	return specs;
-}
-
-function concealText(eqn: string): ConcealSpec[] {
-
-	const regexStr = "\\\\text{([A-Za-z0-9-.!?() ]+)}";
-	const regex = new RegExp(regexStr, "g");
-
-	const matches = [...eqn.matchAll(regex)];
-
-	const specs: ConcealSpec[] = [];
-
-	for (const match of matches) {
-		const value = match[1];
-
-		const start = match.index;
-		const end = start + match[0].length;
-
-		specs.push(mkConcealSpec({
-			start: start,
-			end: end,
-			text: value,
-			class: "cm-concealed-mathrm cm-variable-2",
-		}));
-
-	}
-
-	return specs;
-}
-
-function concealOperators(eqn: string, symbols: string[]): ConcealSpec[] {
-
-	const regexStr = "(\\\\(" + symbols.join("|") + "))([^a-zA-Z]|$)";
-	const regex = new RegExp(regexStr, "g");
-
-	const matches = [...eqn.matchAll(regex)];
-
-	const specs: ConcealSpec[] = [];
-
-	for (const match of matches) {
-		const value = match[2];
-
-		const start = match.index;
-		const end = getEndIncludingLimits(eqn, start + match[1].length);
-
-		specs.push(mkConcealSpec({
-			start: start,
-			end: end,
-			text: value,
-			class: "cm-concealed-mathrm cm-variable-2",
-		}));
-	}
-
-	return specs;
-}
-
-function concealAtoZ(eqn: string, prefix: string, suffix: string, symbolMap: {[key: string]: string}, className?: string): ConcealSpec[] {
-
-	const regexStr = prefix + "([A-Z]+)" + suffix;
-	const symbolRegex = new RegExp(regexStr, "g");
-
-
-	const matches = [...eqn.matchAll(symbolRegex)];
-
-	const specs: ConcealSpec[] = [];
-
-	for (const match of matches) {
-		const symbol = match[1];
-		const letters = Array.from(symbol);
-		const replacement = letters.map(el => symbolMap[el]).join("");
-
-		specs.push(mkConcealSpec({
-			start: match.index,
-			end: match.index + match[0].length,
-			text: replacement,
-			class: className,
-		}));
-	}
-
-	return specs;
-}
-
-function concealBraKet(eqn: string): ConcealSpec[] {
+function handleBraKet({cursor, macro}: MacroHandlerOptions): HandleConcealResult {
 	const langle = "〈";
 	const rangle = "〉";
 	const vert = "|";
+	const node = cursor.node;
+	const mathArgument = extractMathArgument(node);
+	if (!mathArgument) return { spec: [], kind: HandleResultKind.Handled };
+	const close = mathArgument.closeBraceNode;
+	const open = mathArgument.openBraceNode;
 
-	const specs: ConcealSpec[] = [];
+	const left = macro === "ket" ? vert : langle;
+	const right = macro === "bra" ? vert : rangle;
 
-	for (const match of eqn.matchAll(/\\(braket|bra|ket){/g)) {
-		// index of the "}"
-		const contentEnd = findMatchingBracket(eqn, match.index, "{", "}", false);
-		if (contentEnd === -1) continue;
+	const spec = [
+		{ start: node.from, end: open.from, text: "" },
+		{ start: open.from, end: open.to, text: left },
+		{ start: close.from, end: close.to, text: right },
+	];
 
-		const commandStart = match.index;
-		// index of the "{"
-		const contentStart = commandStart + match[0].length - 1;
-
-		const type = match[1];
-		const left = type === "ket" ? vert : langle;
-		const right = type === "bra" ? vert : rangle;
-
-		specs.push(mkConcealSpec(
-			// Hide the command
-			{ start: commandStart, end: contentStart, text: "" },
-			// Replace the "{"
-			{ start: contentStart, end: contentStart + 1, text: left, class: "cm-bracket" },
-			// Replace the "}"
-			{ start: contentEnd, end: contentEnd + 1, text: right, class: "cm-bracket" },
-		));
-	}
-
-	return specs;
+	return {spec, kind: HandleResultKind.Handled };
 }
 
-function concealSet(eqn: string): ConcealSpec[] {
-	const specs: ConcealSpec[] = [];
-
-	for (const match of eqn.matchAll(/\\set\{/g)) {
-		const commandStart = match.index;
-		// index of the "{"
-		const contentStart = commandStart + match[0].length - 1;
-
-		// index of the "}"
-		const contentEnd = findMatchingBracket(eqn, commandStart, "{", "}", false);
-		if (contentEnd === -1) continue;
-
-		specs.push(mkConcealSpec(
-			// Hide "\set"
-			{ start: commandStart, end: contentStart, text: "" },
-			// Replace the "{"
-			{ start: contentStart, end: contentStart + 1, text: "{", class: "cm-bracket" },
-			// Replace the "}"
-			{ start: contentEnd, end: contentEnd + 1, text: "}", class: "cm-bracket" },
-		));
-	}
-
-	return specs;
+function handleOperator({cursor, doc, macro}: MacroHandlerOptions): HandleConcealResult {
+	const nodeRef = cursor.node;
+	const end = getLimitLength(cursor, doc);
+	const spec = [
+		{
+			start: nodeRef.from,
+			end: end,
+			text: macro,
+			class: "cm-concealed-mathrm cm-variable-2",
+		},
+	];
+	return { spec, kind: HandleResultKind.Handled };
 }
 
-function concealFraction(eqn: string): ConcealSpec[] {
-	const concealSpecs: ConcealSpec[] = [];
-
-	for (const match of eqn.matchAll(/\\(frac|dfrac|tfrac|gfrac){/g)) {
-		// index of the closing bracket of the numerator
-		const numeratorEnd = findMatchingBracket(eqn, match.index, "{", "}", false);
-		if (numeratorEnd === -1) continue;
-
-		// Expect there are no spaces between the closing bracket of the numerator
-		// and the opening bracket of the denominator
-		if (eqn.charAt(numeratorEnd + 1) !== "{") continue;
-
-		// index of the closing bracket of the denominator
-		const denominatorEnd = findMatchingBracket(eqn, numeratorEnd + 1, "{", "}", false);
-		if (denominatorEnd === -1) continue;
-
-		const commandStart = match.index;
-		const numeratorStart = commandStart + match[0].length - 1;
-		const denominatorStart = numeratorEnd + 1;
-
-		concealSpecs.push(mkConcealSpec(
-			// Hide "\frac"
-			{ start: commandStart, end: numeratorStart, text: "" },
-			// Replace brackets of the numerator
-			{ start: numeratorStart, end: numeratorStart + 1, text: "(", class: "cm-bracket" },
-			{ start: numeratorEnd, end: numeratorEnd + 1, text: ")", class: "cm-bracket"},
-			// Add a slash
-			{ start: numeratorEnd + 1, end: numeratorEnd + 1, text: "/", class: "cm-bracket" },
-			// Replace brackets of the denominator
-			{ start: denominatorStart, end: denominatorStart + 1, text: "(", class: "cm-bracket" },
-			{ start: denominatorEnd, end: denominatorEnd + 1, text: ")", class: "cm-bracket" },
-		));
-	}
-
-	return concealSpecs;
-}
-
-function concealOperatorname(eqn: string): ConcealSpec[] {
-	const regexStr = "\\\\operatorname{([A-Za-z]+)}";
-	const regex = new RegExp(regexStr, "g");
-	const matches = [...eqn.matchAll(regex)];
-	const specs: ConcealSpec[] = [];
-
-	for (const match of matches) {
-		const value = match[1];
-		const start2 = match.index!;
-		const end2 = start2 + match[0].length;
-
-		specs.push(mkConcealSpec({
-			start: start2,
-			end: end2,
-			text: value,
-			class: "cm-concealed-mathrm cm-variable-2"
-		}));
-	}
-
-	return specs;
-}
-
-export function conceal(view: EditorView): ConcealSpec[] {
-	const specs: ConcealSpec[] = [];
-
-	for (const { from, to } of view.visibleRanges) {
-
-		syntaxTree(view.state).iterate({
-			from,
-			to,
-			enter: (node) => {
-				const type = node.type;
-				const to = node.to;
-
-				if (!(type.name.contains("begin") && type.name.contains("math"))) {
-					return;
-				}
-
-				const bounds = getEquationBounds(view.state, to);
-				if (!bounds) return;
-
-
-				const eqn = view.state.doc.sliceString(bounds.start, bounds.end);
-
-
-				const ALL_SYMBOLS = {...greek, ...cmd_symbols};
-
-				const localSpecs = [
-					...concealSymbols(eqn, "\\^", "", map_super),
-					...concealSymbols(eqn, "_", "", map_sub),
-					...concealSymbols(eqn, "\\\\frac", "", fractions),
-					...concealSymbols(eqn, "\\\\", "", ALL_SYMBOLS, undefined, false),
-					...concealSupSub(eqn, true, ALL_SYMBOLS),
-					...concealSupSub(eqn, false, ALL_SYMBOLS),
-					...concealModifier(eqn, "hat", "\u0302"),
-					...concealModifier(eqn, "dot", "\u0307"),
-					...concealModifier(eqn, "ddot", "\u0308"),
-					...concealModifier(eqn, "overline", "\u0304"),
-					...concealModifier(eqn, "bar", "\u0304"),
-					...concealModifier(eqn, "tilde", "\u0303"),
-					...concealModifier(eqn, "vec", "\u20D7"),
-					...concealSymbols(eqn, "\\\\", "", brackets, "cm-bracket"),
-					...concealAtoZ(eqn, "\\\\mathcal{", "}", mathscrcal),
-					...concealModifiedGreekLetters(eqn, greek),
-					...concealModified_A_to_Z_0_to_9(eqn, mathbb),
-					...concealText(eqn),
-					...concealBraKet(eqn),
-					...concealSet(eqn),
-					...concealFraction(eqn),
-					...concealOperators(eqn, operators),
-					...concealOperatorname(eqn)
-				];
-
-				// Make the 'start' and 'end' fields represent positions in the entire
-				// document (not in a math expression)
-				for (const spec of localSpecs) {
-					for (const replace of spec) {
-						replace.start += bounds.start;
-						replace.end += bounds.start;
-					}
-				}
-
-				specs.push(...localSpecs);
+function handleLeftRight({cursor, doc, maps}: MacroHandlerOptions): HandleConcealResult {
+	const {leftrightBrackets, brackets} = maps
+	const from = cursor.from;
+	const peekCursor = cursor.node.cursor();
+	if (!peekCursor.next()) return { spec: [], kind: HandleResultKind.Handled };
+	const rawSymbol = doc.slice(peekCursor.from, peekCursor.to);
+	const symbol = leftrightBrackets[rawSymbol] ||
+		(rawSymbol[0] === "\\" && brackets[rawSymbol.slice(1)]);
+	if (symbol) {
+		doc.moveTo(cursor, peekCursor.to, 1);
+		doc.skipCursorMove = true;
+		const spec = [
+			{
+				start: from,
+				end: peekCursor.to,
+				text: symbol,
+				class: "cm-bracket",
 			},
-		});
+		]
+		return {spec, kind: HandleResultKind.Handled };
+	}
+	return { spec: [], kind: HandleResultKind.NotHandled };
+}
+
+/**
+ * helper for getting the first unicode grapheme cluster, 
+ * works on ios 14.5+ and obsidian 1.1.0 still supports ios 12+ thus
+ * using `String.codePointAt` as an alternative if the built in `Intl.Segmenter` isn't available.
+ * @param text the text to get the first unicode grapheme cluster from.
+ */
+function getFirstUnicodeCharacter(text: string): string {
+	if (!window?.Intl?.Segmenter) {
+		return String.fromCodePoint(text.codePointAt(0)!)
+	}
+	const segmenter = new Intl.Segmenter("en", {granularity: "grapheme"})
+	return segmenter.segment(text)[Symbol.iterator]().next().value!.segment
+}
+
+function handleSubSup({ doc, cursor, maps, macroMap }: MacroHandlerOptions): HandleConcealResults {
+	const nodeRef = cursor.node;
+	const endChar = doc.slice(Math.max(nodeRef.from, nodeRef.to - 1), nodeRef.to);
+	if (endChar !== "_" && endChar !== "^") return { spec: [], kind: HandleResultKind.NotHandled };
+	const start = nodeRef.to - 1;
+	const type = endChar === "_" ? "sub" : "sup";
+	const allowed_names = [
+		"MathCommand",
+		"Group",
+		"MathDelimitedGroup",
+		"MathChar",
+		"Number",
+	];
+	const peekCursor = cursor.node.cursor();
+	if (!peekCursor.next()) return { spec: [], kind: HandleResultKind.Handled };
+	const nextNode = peekCursor.node;
+	if (!allowed_names.includes(nextNode.name)) {
+		return { spec: [], kind: HandleResultKind.NotHandled };
+	}
+	if (nextNode.name === "MathChar" || nextNode.name === "Number") {
+		const fullText = doc.slice(nextNode.from, nextNode.to)
+		const firstUnicodeChar = getFirstUnicodeCharacter(fullText)
+		doc.moveTo(cursor, nextNode.to, 1);
+		doc.skipCursorMove = true;
+		const spec = {
+			start,
+			end: nextNode.from + firstUnicodeChar.length,
+			text: firstUnicodeChar,
+			class: "cm-number",
+			elementType: type,
+		};
+		return {
+			spec: [[spec]],
+			kind: HandleResultKind.Handled
+		}
 	}
 
+	const newDoc = new EquationText(
+		doc.eqn,
+		nextNode.from,
+		nextNode.to,
+		doc.offset
+	);
+
+	const recursed_specs = traverseTree(nextNode, newDoc, { maps, macroMap });
+	const isGroup = nextNode.name === "Group";
+	let maxEnd = nextNode.from + Number(isGroup);
+	const textArray: string[] = [];
+	const sorted_recursed_specs = recursed_specs.flat().sort((a,b) => a.start - b.start);
+	let skipFull = false;
+	for (const spec of sorted_recursed_specs) {
+		if (spec.end < maxEnd) {
+			continue;
+		} else if ("elementType" in spec || "class" in spec) {
+			skipFull = true;
+			break
+		}
+		textArray.push(doc.slice(maxEnd, spec.start), spec.text);
+		maxEnd = spec.end;
+	}
+	doc.moveTo(cursor, nextNode.to, 1);
+	doc.skipCursorMove = true;
+	if (skipFull) {
+		return { spec: [...recursed_specs], kind: HandleResultKind.Handled };
+	}
+	textArray.push(
+		doc.slice(maxEnd, nextNode.to - Number(isGroup))
+	);
+
+	const spec = [
+		{
+			start,
+			end: nextNode.to,
+			text: textArray.join(""),
+			class: "cm-number",
+			elementType: type,
+		},
+	];
+	return { spec: [spec, ...recursed_specs], kind: HandleResultKind.Handled };
+}
+
+function handleOperatorName({cursor, doc}: MacroHandlerOptions): HandleConcealResult {
+	const nodeRef = cursor.node;
+	const mathArgumentNode = extractMathArgument(nodeRef) || extractMathArgumentStar(nodeRef, doc);
+	if (!mathArgumentNode) return { spec: [], kind: HandleResultKind.Handled };
+	const contentNode = mathArgumentNode.mathNode;
+	const close = mathArgumentNode.closeBraceNode;
+	const text = doc.slice(contentNode.from, contentNode.to);
+	if (/[^A-Za-z]/.test(text)) {
+		return { spec: [], kind: HandleResultKind.Handled };
+	}
+	doc.moveTo(cursor, close.to, 1);
+	doc.skipCursorMove = true;
+
+	const spec = [
+		{
+			start: nodeRef.from,
+			end: close.to,
+			text,
+			class: "cm-concealed-mathrm cm-variable-2",
+		},
+	];
+	return { spec, kind: HandleResultKind.Handled };
+}
+
+function handleSet({cursor, doc}: MacroHandlerOptions): HandleConcealResult {
+	const nodeRef = cursor.node;
+	const mathArgumentNode = extractMathArgument(nodeRef);
+	if (!mathArgumentNode) return { spec: [], kind: HandleResultKind.Handled };
+	const open = mathArgumentNode.openBraceNode;
+	const close = mathArgumentNode.closeBraceNode;
+	doc.moveTo(cursor, open.to, 1);
+	doc.skipCursorMove = true;
+
+	const hideSet = {
+		start: nodeRef.from,
+		end: nodeRef.to,
+		text: "",
+	};
+	const openBrace = {
+		start: open.from,
+		end: open.to,
+		text: "{",
+		class: "cm-bracket",
+	};
+	const closeBrace = {
+		start: close.from,
+		end: close.to,
+		text: "}",
+		class: "cm-bracket",
+	};
+
+	const spec = [
+		hideSet,
+		openBrace,
+		closeBrace,
+	];
+	return { spec, kind: HandleResultKind.Handled };
+}
+
+function handleText({cursor, doc}: MacroHandlerOptions): HandleConcealResult {
+	const nodeRef = cursor.node;
+	const textArgumentNode = extractTextArgument(nodeRef);
+	if (!textArgumentNode) return { spec: [], kind: HandleResultKind.Handled };
+	const contentNode = textArgumentNode.textNode;
+	const close = textArgumentNode.closeBraceNode;
+	const textContent = doc.slice(contentNode.from, contentNode.to);
+	if (/[^A-Za-z0-9-.!?() ]/.test(textContent)) {
+		return { spec: [], kind: HandleResultKind.Handled };
+	}
+	doc.moveTo(cursor, close.to, 1);
+	doc.skipCursorMove = true;
+
+	const spec =  [
+		{
+			start: nodeRef.from,
+			end: close.to,
+			text: textContent,
+			class: "cm-concealed-mathrm cm-variable-2",
+		},
+	];
+	return { spec, kind: HandleResultKind.Handled };
+}
+
+function handleMathcal({cursor, doc, maps}: MacroHandlerOptions): HandleConcealResult {
+	const mathscrcal = maps.mathscrcal;
+	const nodeRef = cursor.node;
+	const mathArgumentNode = extractMathArgument(nodeRef);
+	if (!mathArgumentNode) return { spec: [], kind: HandleResultKind.Handled };
+	const contentNode = mathArgumentNode.mathNode;
+	const close = mathArgumentNode.closeBraceNode;
+	const mappedChars = doc
+		.slice(contentNode.from, contentNode.to)
+		.split("")
+		.map((char) => mathscrcal[char]);
+	if (mappedChars.some((char) => !char)) {
+		return { spec: [], kind: HandleResultKind.Handled };
+	}
+	doc.moveTo(cursor, close.to, 1);
+	doc.skipCursorMove = true;
+
+	const spec = [
+		{
+			start: nodeRef.from,
+			end: close.to,
+			text: mappedChars.join(""),
+		},
+	];
+	return { spec, kind: HandleResultKind.Handled };
+}
+
+function handleTextModifiers({cursor, doc, macro, maps}: MacroHandlerOptions): HandleConcealResult {
+	const {greek, mathbb} = maps;
+	const nodeRef = cursor.node;
+	const mathArgumentNode = extractMathArgument(nodeRef);
+	if (!mathArgumentNode) return { spec: [], kind: HandleResultKind.Handled };
+	const contentNode = mathArgumentNode.mathNode;
+	const sibling = mathArgumentNode.closeBraceNode;
+	let content = doc.slice(contentNode.from, contentNode.to);
+	if (/[^A-Za-z0-9 ]/.test(content)) {
+		let tempContent: string | undefined;
+		if (!(
+			(macro === "underline" || macro === "boldsymbol") &&
+			content[0] === "\\" &&
+			(tempContent = greek[content.slice(1)])
+		)) {
+			return { spec: [], kind: HandleResultKind.Handled };
+		}
+		content = tempContent;
+	}
+	if (macro === "mathbb") {
+		content = content
+			.split("")
+			.map((char) => mathbb[char])
+			.join("");
+	}
+	doc.moveTo(cursor, sibling.to, 1);
+	doc.skipCursorMove = true;
+	const spec = [
+		{
+			start: nodeRef.from,
+			end: sibling.to,
+			text: content,
+			class: textModifiers[macro as keyof typeof textModifiers],
+		},
+	];
+	return { spec, kind: HandleResultKind.Handled };
+}
+
+function handleNot({cursor, doc, maps}: MacroHandlerOptions): HandleConcealResult {
+	const {not_remap} = maps;
+	const notFrom = cursor.from;
+	const peekCursor = cursor.node.cursor();
+	if (!peekCursor.next()) return { spec: [], kind: HandleResultKind.Handled };
+	const sibling = peekCursor.node;
+	const to = cursor.to;
+	const symbol = doc.slice(sibling.from + 1, sibling.to);
+	const notSymbol = not_remap[symbol];
+	if (!notSymbol) {
+		return { spec: [], kind: HandleResultKind.Handled };
+	}
+	doc.moveTo(cursor, sibling.to, 1);
+	doc.skipCursorMove = true;
+	const spec = [
+		{
+			start: notFrom,
+			end: to,
+			text: notSymbol,
+		},
+	];
+	return { spec, kind: HandleResultKind.Handled };
+}
+
+function handleAllSymbols({cursor, doc, macro, maps}: MacroHandlerOptions): HandleConcealResult {
+	const { ALL_SYMBOLS } = maps;
+	const symbol = ALL_SYMBOLS[macro];
+	if (!symbol) return { spec: [], kind: HandleResultKind.Handled };
+	const nodeRef = cursor.node;
+	const end = getLimitLength(cursor, doc);
+	const spec = [
+		{
+			start: nodeRef.from,
+			end: end,
+			text: symbol,
+		},
+	];
+	return { spec, kind: HandleResultKind.Handled };
+}
+
+const fractionsMacro = ["frac", "dfrac", "tfrac", "gfrac"];
+const braketMacro = ["bra", "ket", "braket"];
+
+type MacroHandlerOptions = {
+	cursor: TreeCursor;
+	doc: EquationText;
+	macro: string;
+} & MappingInfo;
+
+type MacroHandlerMap = Record<string, (options: MacroHandlerOptions) => HandleConcealResult>;
+export function createMacroMap(maps: ConcealMapping) : MacroHandlerMap {
+	const macroMap: MacroHandlerMap = {
+		"not": handleNot,
+		"left": handleLeftRight,
+		"right": handleLeftRight,
+		"mathcal": handleMathcal,
+		"text": handleText,
+		"set": handleSet,
+		"operatorname": handleOperatorName,
+	}	
+	for (const macro of Object.keys(modifiers)) {
+		macroMap[macro] = handleModifier;
+	}
+	for (const macro of Object.keys(maps.brackets)) {
+		macroMap[macro] = handleBracket;
+	}
+	for (const macro of Object.keys(textModifiers)) {
+		macroMap[macro] = handleTextModifiers;
+	}
+	for (const macro of fractionsMacro) {
+		macroMap[macro] = handleFrac;
+	}
+	for (const macro of braketMacro) {
+		macroMap[macro] = handleBraKet;
+	}
+	for (const macro of Object.keys(maps.operators)) {
+		macroMap[macro] = handleOperator
+	}
+	for (const macro of Object.keys(maps.ALL_SYMBOLS)) {
+		macroMap[macro] = handleAllSymbols;
+	}
+	return macroMap
+}
+
+function traverseTree(topNode: SyntaxNode, doc: EquationText, {maps, macroMap}: MappingInfo): ConcealSpec[] {
+	const specs: ConcealSpec[] = [];
+	for (const cursor of iterateTreeCursor(topNode, doc)) {
+		const nodeRef = cursor.node;
+		if (nodeRef.name.endsWith("CtrlSeq")) {
+			const macro = doc.slice(nodeRef.from + 1, nodeRef.to);
+			const handler = macroMap[macro];
+			if (handler) {
+				const { spec, kind } = handler({cursor, doc, macro, maps, macroMap});
+				if (kind === HandleResultKind.Handled) {
+					specs.push(spec);
+					continue;
+				}
+			}
+			continue;
+		} else if (nodeRef.type.is(latex.MathSpecialChar)) {
+			const subSupSpec = handleSubSup({ doc, cursor, maps, macroMap, macro: doc.slice(nodeRef.from, nodeRef.to) });
+			if (subSupSpec.kind === HandleResultKind.Handled) {
+				specs.push(...subSupSpec.spec);
+				continue;
+			}
+		}
+	}
 	return specs;
+}
+
+export type ConcealCachedEquations = Record<string, ConcealSpec[]>;
+export function conceal(
+	view: EditorView,
+	cached_equations: ConcealCachedEquations,
+	{
+		maps,
+		macroMap
+	}: MappingInfo
+): { specs: ConcealSpec[]; cached_equations: ConcealCachedEquations } {
+	const boundsPlugin = getMathBoundsPlugin(view);
+	const overlays = boundsPlugin.getEquationOverlays(view.state);
+	// get the all the lines from each overlay and their respective bounds, so that we can cache them separately
+	// as concealments happen on a per-line basis. Technically an overlay should only span a single line or the full equation.
+	// but on errorous syntax, the parser might not do that.
+	const overlays_by_line = overlays.map((eqn) => {
+		const lines = eqn.text.split("\n");
+		const lines_lengths = cumulativeSum(lines.map(l => l.length + 1))
+		lines_lengths.unshift(0)
+		let lines_start = 0;
+		return eqn.bound.overlay.map((overlay) => {
+			const arr = [];
+			for (;lines_start < lines_lengths.length - 1; lines_start++) {
+				if (lines_lengths[lines_start]! + eqn.overlay.from >= overlay.to) break;
+				// substract newline character from the end of the line, as it is not part of the overlay
+				const line_end = Math.min(lines_lengths[lines_start + 1]! + eqn.overlay.from - 1, overlay.to);
+				const start = Math.max(lines_lengths[lines_start]! + eqn.overlay.from, overlay.from)
+				arr.push({
+					text: eqn.text.slice(start - eqn.overlay.from, line_end - eqn.overlay.from),
+					bound: eqn.bound,
+					overlay: {
+						from: start,
+						to: line_end,
+					},
+				})
+			}
+			return arr
+		})
+	}).flat(2);
+	const new_equations: typeof cached_equations = {};
+	const specs: ConcealSpec[] = [];
+
+	for (const eqn of overlays_by_line) {
+		const cached = cached_equations[eqn.text];
+		if (cached) {
+			new_equations[eqn.text] = cached
+			specs.push(
+				...cached.map((specs) =>
+					specs.map((spec) => ({
+						...spec,
+						start: spec.start + eqn.overlay.from,
+						end: spec.end + eqn.overlay.from,
+					})),
+				),
+			);
+			continue;
+		} else if (eqn.text.trim() === "") {
+			continue;
+		}
+		const bound = eqn.bound;
+		new_equations[eqn.text] = [];
+		const localSpecs = traverseTree(
+			bound.tree,
+			new EquationText(eqn.text, eqn.overlay.from, eqn.overlay.to),
+			{ maps, macroMap }
+		);
+		specs.push(...localSpecs);
+		// keep cached equations relative to the overlay start such that duplicates can exists and
+		// be retrieved regardless of their position in the document
+		new_equations[eqn.text] = localSpecs.map((specs) =>
+			specs.map((spec) => ({
+				...spec,
+				start: spec.start - eqn.overlay.from,
+				end: spec.end - eqn.overlay.from,
+			})),
+		);
+	}
+	cached_equations = new_equations;
+
+	return { specs, cached_equations };
 }

@@ -1,0 +1,160 @@
+import { Prec, Range } from "@codemirror/state";
+import {
+	Decoration,
+	type DecorationSet,
+	EditorView,
+	type PluginValue,
+	ViewPlugin,
+	ViewUpdate,
+} from "@codemirror/view";
+import { type Bounds, MathMode } from "src/editor_context/context";
+import { getMathBoundsPlugin } from "src/editor_context/mathbounds";
+import { latex } from "src/parser/latex-terms";
+import { EquationText, iterateTreeCursor } from "src/utils/tokenizer";
+
+type DollarBounds =
+	| (Bounds & { kind: "pair", mode: MathMode })
+	| { from: number; to: number; kind: "error" };
+
+const ERROR_CLASS = "latex-suite-error-dollar";
+const INLINE_CLASS = "latex-suite-highlighted-dollar-inline";
+const BLOCK_CLASS = "latex-suite-highlighted-dollar-block";
+const CODE_CLASS = "latex-suite-highlighted-dollar-code";
+class HighlightDollarPlugin implements PluginValue {
+	decorations: DecorationSet = Decoration.none;
+
+	update(update: ViewUpdate) {
+		if (!update.docChanged && !update.viewportChanged) return;
+		this.decorations = this.computeDecorations(update.view);
+	}
+
+	computeDecorations(view: EditorView): DecorationSet {
+		const boundsPlugin = getMathBoundsPlugin(view);
+		const dollar_ranges: DollarBounds[] = [];
+		const mathBounds = boundsPlugin.mathBounds;
+		mathBounds.forEach((bound) => {
+			if (bound.inner_end === bound.outer_end && bound.inner_start !== bound.outer_start) {
+				dollar_ranges.push({
+					from: bound.outer_start,
+					to: bound.inner_start,
+					kind: "error",
+				});
+				return;
+			}
+			dollar_ranges.push({
+				...bound,
+				kind: "pair",
+				mode: bound.mode
+			});
+			if (!bound.tree) {
+				return;
+			}
+			const doc = EquationText.fromNode(bound.tree, view.state.doc);
+			for (const cursor of iterateTreeCursor(bound.tree, doc)) {
+				const { type, node } = cursor;
+				if (type.is(latex.DollarInlineMath) || type.is(latex.ParenMath)) {
+					const dollars = type.is(latex.DollarInlineMath)
+						? node.getChildren(latex.Dollar)
+						: [
+								node.getChild(latex.OpenParenMath),
+								node.getChild(latex.CloseParenMath),
+							].filter(child => child !== null);
+					if (dollars.length === 1) {
+						const child = dollars[0]!;
+						dollar_ranges.push({
+							from: child.from,
+							to: child.to,
+							kind: "error",
+						});
+					} else if (dollars.length === 2) {
+						const open = dollars[0]!;
+						const close = dollars[1]!;
+						dollar_ranges.push({
+							outer_start: open.from,
+							inner_start: open.to,
+							inner_end: close.from,
+							outer_end: close.to,
+							kind: "pair",
+							mode: MathMode.InlineMath,
+						});
+					}
+					const last = dollars.last();
+					if (last) {
+						doc.moveTo(cursor, last.to, -1);
+					}
+				} else if (type.is(latex.Dollar) || type.is(latex.OpenParenMath) || type.is(latex.CloseParenMath)) {
+					dollar_ranges.push({
+						from: node.from,
+						to: node.to,
+						kind: "error",
+					});
+				}
+			}
+		});
+
+		const widgets: Range<Decoration>[] = [];
+		for (const bounds of dollar_ranges) {
+			if (
+				(bounds.kind === "error" && bounds.from === bounds.to) ||
+				(bounds.kind === "pair" &&
+					bounds.outer_start === bounds.inner_start &&
+					bounds.inner_end === bounds.outer_end)
+			) {
+				continue;
+			}
+			if (bounds.kind === "error") {
+				widgets.push(
+					Decoration.mark({
+						class: ERROR_CLASS,
+					}).range(bounds.from, bounds.to),
+				);
+			} else {
+				let modeClass: typeof INLINE_CLASS | typeof BLOCK_CLASS | typeof CODE_CLASS;
+				if (bounds.mode === MathMode.InlineMath || (bounds.mode === MathMode.BlockMath && bounds.outer_start - bounds.outer_end < 4)) {
+					modeClass = INLINE_CLASS;
+				} else if (bounds.mode === MathMode.BlockMath) {
+					modeClass = BLOCK_CLASS;
+				} else {
+					modeClass = CODE_CLASS;
+				}
+				widgets.push(
+					Decoration.mark({
+						class: modeClass,
+					}).range(bounds.outer_start, bounds.inner_start),
+					Decoration.mark({
+						class: modeClass,
+					}).range(bounds.inner_end, bounds.outer_end),
+				);
+			}
+		}
+		// should be sorted already.
+		return Decoration.set(widgets, true);
+	}
+}
+
+const highlight_dollar_theme = EditorView.baseTheme({
+	[`.${ERROR_CLASS}`]: {
+		color: "#f00",
+	},
+
+	[`.${INLINE_CLASS}`]: {
+		color: "#61ae08",
+	},
+
+	[`.${BLOCK_CLASS}`]: {
+		color: "#3e7202",
+	},
+
+	[`.${CODE_CLASS}`]: {
+		color: "#54940b",
+	},
+})
+
+export const highlight_dollar_extension = [
+	Prec.highest(
+		ViewPlugin.fromClass(HighlightDollarPlugin, {
+			decorations: (v) => v.decorations,
+		}),
+	),
+	highlight_dollar_theme,
+];

@@ -1,71 +1,130 @@
-import { optional, object, string as string_, union, instance, parse, number, Output, special } from "valibot";
-import { encode } from "js-base64";
+import { optional, object, string as string_, union, parse, number, type InferOutput as Output, custom, instance, array, pipe, transform, type BaseSchema, type BaseIssue } from "valibot";
 import { RegexSnippet, serializeSnippetLike, Snippet, StringSnippet, VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER, VisualSnippet } from "./snippets";
-import { Options } from "./options";
+import { Options } from "../editor_context/options";
 import { sortSnippets } from "./sort";
-import { EXCLUSIONS, Environment } from "./environment";
+import { EXCLUSIONS } from "./environment";
+import { api, type PluginSnippetApi } from "./luasnip_api";
+import { ArrayNode, BaseNode, SnippetStringNode, SnippetTabstopOnlyNode, VisualSnippetNode } from "./luasnip_api/node";
+import { type MacroArgs, MacroArgsPipeSchema } from "src/editor_context/default_text_areas";
+import { isMacOS } from "src/editor_extensions/obsidian_utils";
+import picomatch from "picomatch";
+import type { EditorState } from "@codemirror/state";
+import type { Context } from "src/editor_context/context";
+import type { EditorView } from "@codemirror/view";
+import type { SyntaxNode } from "@lezer/common";
 
 export type SnippetVariables = Record<string, string>;
 
-async function importRaw(maybeJavaScriptCode: string) {
-	let raw;
-	try {
-		try {
-			// first, try to import as a plain js module
-			// js-base64.encode is needed over builtin `window.btoa` because the latter errors on unicode
-			raw = await importModuleDefault(`data:text/javascript;base64,${encode(maybeJavaScriptCode)}`);
-		} catch {
-			// otherwise, try to import as a standalone js object
-			raw = await importModuleDefault(`data:text/javascript;base64,${encode(`export default ${maybeJavaScriptCode}`)}`);
-		}
-	} catch (e) {
-		throw "Invalid format.";
-	}
-	return raw;
+function importModule(source: string, identifier: string): Promise<object> {
+	const sourceWithSourceURL = `${source}\n//# sourceURL=latex-suite:${identifier}`;
+	const blob = new Blob([sourceWithSourceURL], { type: "text/javascript" });
+	const url = URL.createObjectURL(blob);
+	// eslint-disable-next-line no-unsanitized/method -- needed to import snippets
+	const result = import(url);
+	URL.revokeObjectURL(url);
+	return result;
 }
 
-export async function parseSnippetVariables(snippetVariablesStr: string) {
-	const rawSnippetVariables = await importRaw(snippetVariablesStr) as SnippetVariables;
+async function importRaw(module: string, identifier: string, catchDefaultExportError: boolean = false): Promise<unknown> {
+	let data: object;
+	try {
+		data = await importModule(module, identifier);
+	} catch (e) {
+		console.error(e)
+		if (!catchDefaultExportError) {
+			throw new Error("Invalid format. Make sure its a valid javascript file and has a default export. See https://github.com/artisticat1/obsidian-latex-suite/blob/main/DOCS.md#snippet-files")
+		}
+		data = {}
+	}
+	if ("default" in data) {
+		return data.default;
+	}
+	console.warn("No default export found. Please add `export default` to your snippet file. See https://github.com/artisticat1/obsidian-latex-suite/blob/main/DOCS.md#snippet-files.")
+
+	try {
+		data = await importModule("export default " + module, identifier);
+	} catch (e) {
+		console.error(e)
+		throw new Error("Invalid format (with `export default` added). Make sure its a valid javascript file and has a default export. See https://github.com/artisticat1/obsidian-latex-suite/blob/main/DOCS.md#snippet-files");
+	}
+
+	if ("default" in data) {
+		return data.default
+	} else {
+		throw new Error("No default export found (with `export default` added to the source). Make sure its a valid javascript file and has a default export. See https://github.com/artisticat1/obsidian-latex-suite/blob/main/DOCS.md#snippet-files");
+	}
+}
+
+export async function parseSnippetVariables(snippetVariablesStr: string, identifier: string) {
+	const rawSnippetVariables = await importRaw(snippetVariablesStr, identifier, true) as SnippetVariables;
 
 	if (Array.isArray(rawSnippetVariables))
-		throw "Cannot parse an array as a variables object";
+		throw new Error("Cannot parse an array as a variables object");
 
 	const snippetVariables: SnippetVariables = {};
 	for (const [variable, value] of Object.entries(rawSnippetVariables)) {
 		if (variable.startsWith("${")) {
 			if (!variable.endsWith("}")) {
-				throw `Invalid snippet variable name '${variable}': Starts with '\${' but does not end with '}'. You need to have both or neither.`;
+				throw new Error(`Invalid snippet variable name '${variable}': Starts with '\${' but does not end with '}'. You need to have both or neither.`);
 			}
 			snippetVariables[variable] = value;
 		} else {
 			if (variable.endsWith("}")) {
-				throw `Invalid snippet variable name '${variable}': Ends with '}' but does not start with '\${'. You need to have both or neither.`;
+				throw new Error(`Invalid snippet variable name '${variable}': Ends with '}' but does not start with '\${'. You need to have both or neither.`);
 			}
 			snippetVariables["${" + variable + "}"] = value;
 		}
 	}
 	return snippetVariables;
 }
+const preamble = String.raw`
+var __latex_suite_require = window.__latex_suite_require;
+function require(module) {
+	if (!__latex_suite_require) {
+		__latex_suite_require = window.__latex_suite_require;
+	}
+	return __latex_suite_require(module);
+}
+`
 
-export async function parseSnippets(snippetsStr: string, snippetVariables: SnippetVariables) {
-	let rawSnippets = await importRaw(snippetsStr) as RawSnippet[];
+function latex_suite_require(default_snippets: SnippetVariables, pluginApi: PluginSnippetApi) {
+	const parsed_api = api(default_snippets, pluginApi);
+	const original_require = require;
+	return function require(module: string): unknown {
+		if (module === "latex-suite") {
+			return parsed_api
+		} else {
+			return original_require(module)
+		}
+	}
+}
+
+declare global {
+	var __latex_suite_require: ReturnType<typeof latex_suite_require>;
+}
+
+export async function parseSnippets(snippetsStr: string, snippetVariables: SnippetVariables, identifier: string, pluginApi: PluginSnippetApi) {
+	window.__latex_suite_require = latex_suite_require(snippetVariables, pluginApi);
+	const rawSnippets = await importRaw(snippetsStr + preamble, identifier);
 
 	let parsedSnippets;
 	try {
 		// validate the shape of the raw snippets
-		rawSnippets = validateRawSnippets(rawSnippets);
+		const rawValidatedSnippets = validateRawSnippets(rawSnippets);
 
-		parsedSnippets = rawSnippets.map((raw) => {
+		parsedSnippets = rawValidatedSnippets.flatMap((raw) => {
 			try {
 				// Normalize the raw snippet and convert it into a Snippet
 				return parseSnippet(raw, snippetVariables);
-			} catch (e) {
+			} catch (err) {
+				const e = err as Error;
 				// provide context of which snippet errored
-				throw `${e}\nErroring snippet:\n${serializeSnippetLike(raw)}`;
+				throw new Error(`${e}\nErroring snippet:\n${serializeSnippetLike(raw)}`);
 			}
 		});
-	} catch(e) {
-		throw `Invalid snippet format: ${e}`;
+	} catch(err) {
+		const e = err as Error;
+		throw new Error(`Invalid snippet format: ${e}`);
 	}
 
 	parsedSnippets = sortSnippets(parsedSnippets);
@@ -73,41 +132,74 @@ export async function parseSnippets(snippetsStr: string, snippetVariables: Snipp
 	return parsedSnippets;
 }
 
-/** load snippet string as module */
+function singleOrArrayScheme<TInput, TOutput, TIssue, T extends BaseSchema<TInput, TOutput, BaseIssue<TIssue>>>(scheme: T) {
+	return union([array(scheme), pipe(scheme, transform(value => [value]))])
+}
 
-/**
- * imports the default export of a given module.
- *
- * @param module the module to import. this can be a resource path, data url, etc
- * @returns the default export of said module
- * @throws if import fails or default export is undefined
- */
-async function importModuleDefault(module: string): Promise<unknown> {
-	let data;
-	try {
-		data = await import(module);
-	} catch (e) {
-		throw `failed to import module ${module}`;
+type IncludedPathsFunctionOptions = { path: string, state: EditorState };
+export type IncludedPathsFunction = (options: IncludedPathsFunctionOptions) => boolean
+
+type ContextFunctionOptions = { ctx: Context, view: EditorView, node: SyntaxNode };
+export type ContextFunction = {
+	(options: ContextFunctionOptions): boolean
+	_id?: {
+		symbol: symbol,
+		result: boolean
 	}
-
-	// it's safe to use `in` here - it has a null prototype, so `Object.hasOwnProperty` isn't available,
-	// but on the other hand we don't need to worry about something further up the prototype chain messing with this check
-	if (!("default" in data)) {
-		throw `No default export provided for module ${module}`;
-	}
-
-	return data.default;
 }
 
 /** raw snippet IR */
 
-const RawSnippetSchema = object({
-	trigger: union([string_(), instance(RegExp)]),
-	replacement: union([string_(), special<AnyFunction>(x => typeof x === "function")]),
+export const RawSnippetSchema = object({
+	trigger: optional(union([string_(), instance(RegExp)])),
+	triggerAfter: optional(union([string_(), instance(RegExp)])),
+	replacement: union([
+		string_(),
+		pipe(
+			array(instance(BaseNode)),
+			transform((nodes) => new ArrayNode(nodes)),
+		),
+		custom<UnknownFunction>((x) => typeof x === "function"),
+	]),
 	options: string_(),
-	flags: optional(string_()),
-	priority: optional(number()),
-	description: optional(string_()),
+	flags: optional(string_(), ""),
+	priority: optional(number(), 0),
+	description: optional(string_(), "no description provided"),
+	triggerKey: optional(string_(), ""),
+	language: optional(string_()),
+	excludedMacros: MacroArgsPipeSchema,
+	excludedEnvironments: optional(array(string_()), []),
+	includedMacros: MacroArgsPipeSchema,
+	includedPaths: pipe(
+		optional(
+			singleOrArrayScheme(
+				union([
+					pipe(
+						string_(),
+						transform((value): IncludedPathsFunction => {
+							const match = picomatch(value);
+							return ({ path }) => match(path);
+						}),
+					),
+					custom<UnknownFunction>((x) => typeof x === "function"),
+				]),
+			),
+			[],
+		),
+		transform((matches): IncludedPathsFunction => {
+			if (matches.length === 0) {
+				return () => true;
+			}
+			return (options: IncludedPathsFunctionOptions) =>
+				matches.some((match) => match(options));
+		}),
+	),
+	context: optional(
+		singleOrArrayScheme(
+			custom<ContextFunction>((x) => typeof x === "function"),
+		),
+		[],
+	),
 });
 
 type RawSnippet = Output<typeof RawSnippetSchema>;
@@ -117,12 +209,12 @@ type RawSnippet = Output<typeof RawSnippetSchema>;
  * @throws if the value does not adhere to the raw snippet array schema
  */
 function validateRawSnippets(snippets: unknown): RawSnippet[] {
-	if (!Array.isArray(snippets)) { throw "Expected snippets to be an array"; }
-	return snippets.map((raw) => {
+	if (!Array.isArray(snippets)) { throw new Error("Expected snippets to be an array"); }
+	return snippets.flat().map((raw) => {
 		try {
 			return parse(RawSnippetSchema, raw);
-		} catch (e) {
-			throw `Value does not resemble snippet.\nErroring snippet:\n${serializeSnippetLike(raw)}`;
+		} catch {
+			throw new Error(`Value does not resemble snippet.\nErroring snippet:\n${serializeSnippetLike(raw)}`);
 		}
 	})
 }
@@ -134,68 +226,157 @@ function validateRawSnippets(snippets: unknown): RawSnippet[] {
  * - `options.regex` and `options.visual` are set properly
  * - if it is a regex snippet, the trigger is represented as a RegExp instance with flags set
  */
-function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snippet {
-	const { replacement, priority, description } = raw;
-	const options = Options.fromSource(raw.options);
-	let trigger;
-	let excludedEnvironments;
+function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snippet[] {
+	const {
+		replacement: replacementRaw,
+		priority,
+		description,
+		excludedEnvironments: excludedEnvironments,
+		excludedMacros: userExcludedMacros,
+		includedMacros,
+		context,
+	} = raw;
+	const options = Options.fromSource(raw.options, raw.language, raw.includedPaths);
+	const triggerKey = parseKeyName(raw.triggerKey);
+
+	if (raw.trigger === undefined && raw.triggerKey.length === 0) {
+		throw new Error("Either trigger has to be defined or triggerKey must be non-zero length")
+	}
+	raw.trigger ??= "";
+
 
 	// we have a regex snippet
 	if (options.regex || raw.trigger instanceof RegExp) {
+		const replacement =
+			typeof raw.replacement === "string"
+				? new ArrayNode([new SnippetStringNode(raw.replacement)])
+				: raw.replacement;
 		let triggerStr: string;
+		let triggerAfterStr: string | undefined;
 		// normalize flags to a string
-		let flags = raw.flags ?? "";
+		let flags = raw.flags;
+		let triggerAfterFlags = flags;
 
 		// extract trigger string from trigger,
 		// and merge flags, if trigger is a regexp already
 		if (raw.trigger instanceof RegExp) {
 			triggerStr = raw.trigger.source;
-			flags = `${(raw.trigger as RegExp).flags}${flags}`;
+			flags = `${raw.trigger.flags}${flags}`;
 		} else {
 			triggerStr = raw.trigger;
 		}
+		if (raw.triggerAfter instanceof RegExp) {
+			triggerAfterStr = raw.triggerAfter.source;
+			triggerAfterFlags = `${raw.triggerAfter.flags}${triggerAfterFlags}`;
+		} else {
+			triggerAfterStr = raw.triggerAfter;
+		}
 		// filter out invalid flags
 		flags = filterFlags(flags);
+		triggerAfterFlags = filterFlags(triggerAfterFlags);
 
 		// substitute snippet variables
 		triggerStr = insertSnippetVariables(triggerStr, snippetVariables);
+		triggerAfterStr = triggerAfterStr && insertSnippetVariables(triggerAfterStr, snippetVariables);
 
 		// get excluded environment(s) for this trigger, if any
-		excludedEnvironments = getExcludedEnvironments(triggerStr);
+		const excludedMacros = [...getExcludedMacros(triggerStr), ...userExcludedMacros];
 
 		// Add $ so regex matches end of string
 		// i.e. look for a match at the cursor's current position
-		triggerStr = `${triggerStr}$`;
+		triggerStr = `(?:${triggerStr})$`;
+
+		// allow inheritance/ fake/custom RegExp such as pcre2 regex (regex++ package).
+		const TriggerRegExpConstructor =
+			typeof raw.trigger === "string"
+				? RegExp
+				: (raw.trigger.constructor as typeof RegExp);
+		const AfterTriggerRegExpConstructor =
+			typeof raw.triggerAfter === "string" || raw.triggerAfter === undefined
+				? RegExp
+				: (raw.triggerAfter.constructor as typeof RegExp);
 
 		// convert trigger into RegExp instance
-		trigger = new RegExp(triggerStr, flags);
+		const trigger = new TriggerRegExpConstructor(triggerStr, flags);
+		// Add ^ to triggerAfter so it matches the start of the string
+		triggerAfterStr = triggerAfterStr ? `^(?:${triggerAfterStr})` : undefined;
+		const triggerAfter = triggerAfterStr
+			? new AfterTriggerRegExpConstructor(
+					triggerAfterStr,
+					triggerAfterFlags,
+				)
+			: undefined;
 
 		options.regex = true;
 
-		const normalised = { trigger, replacement, options, priority, description, excludedEnvironments };
+		const normalised = { trigger, replacement, options, priority, description, excludedMacros, triggerKey, triggerAfter, excludedEnvironments, includedMacros, context };
+		const snippets: Snippet[] = [new RegexSnippet(normalised)]
+		if (triggerKey && options.automatic) {
+			const nonAutomaticOptions = options.copy()
+			nonAutomaticOptions.automatic = false;
+			const triggerKeyNormalized = {...normalised, trigger: new RegExp(""), options: nonAutomaticOptions}
+			snippets.push(new RegexSnippet(triggerKeyNormalized))
+		}
 
-		return new RegexSnippet(normalised);
+		return snippets
 	}
 	else {
-		let trigger = raw.trigger as string;
 		// substitute snippet variables
-		trigger = insertSnippetVariables(trigger, snippetVariables);
+		const trigger = insertSnippetVariables(raw.trigger, snippetVariables);
+
+		let triggerAfter = raw.triggerAfter;
+		if (triggerAfter !== undefined && typeof triggerAfter === "string") {
+			triggerAfter = insertSnippetVariables(triggerAfter, snippetVariables);
+		} else if (triggerAfter instanceof RegExp) {
+			throw new Error("triggerAfter cannot be a RegExp for non-regex snippets");
+		}
 
 		// get excluded environment(s) for this trigger, if any
-		excludedEnvironments = getExcludedEnvironments(trigger);
+		const excludedMacros = [...getExcludedMacros(trigger), ...userExcludedMacros];
 
 		// normalize visual replacements
-		if (typeof replacement === "string" && replacement.includes(VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER)) {
+		if (typeof replacementRaw === "string" && replacementRaw.includes(VISUAL_SNIPPET_MAGIC_SELECTION_PLACEHOLDER) && trigger.length <= 1) {
 			options.visual = true;
 		}
 
-		const normalised = { trigger, replacement, options, priority, description, excludedEnvironments };
 
 		if (options.visual) {
-			return new VisualSnippet(normalised);
+			if (trigger.length > 1) {
+				throw new Error("trigger should be a single character for visual snippets")
+			} else if (trigger.length === 1 && triggerKey.length > 0) {
+				throw new Error("trigger and triggerKey can't both be defined for visual snippets")
+			} else if (trigger.length === 0 && triggerKey.length === 0) {
+				throw new Error("Either trigger or triggerKey have to be defined for visual snippets")
+			}
+			const replacement =
+				typeof raw.replacement === "string"
+					? new ArrayNode([new VisualSnippetNode(raw.replacement)])
+					: raw.replacement;
+			options.automatic = false;
+			const normalised = { trigger, replacement, options, priority, description, excludedEnvironments, excludedMacros, includedMacros, triggerKey, triggerAfter, context };
+			const snippets = [];
+			if (trigger) {
+				snippets.push(new VisualSnippet({...normalised, triggerKey: trigger, trigger: ""}))
+			} else {
+				snippets.push(new VisualSnippet(normalised))
+			}
+			return snippets;
 		}
 		else {
-			return new StringSnippet(normalised);
+			const replacement =
+				typeof raw.replacement === "string"
+					? new ArrayNode([new SnippetTabstopOnlyNode(raw.replacement)])
+					: raw.replacement;
+			const normalised = { trigger, replacement, options, priority, description, excludedEnvironments, excludedMacros, includedMacros, triggerKey, triggerAfter, context };
+
+			const snippets = [new StringSnippet(normalised)];
+			if (triggerKey && options.automatic) {
+				const nonAutomaticOptions = options.copy()
+				nonAutomaticOptions.automatic = false;
+				const triggerKeyNormalized = {...normalised, trigger: "", options: nonAutomaticOptions}
+				snippets.push(new StringSnippet(triggerKeyNormalized))
+			}
+			return snippets
 		}
 	}
 }
@@ -222,21 +403,46 @@ function filterFlags(flags: string): string {
 
 function insertSnippetVariables(trigger: string, variables: SnippetVariables) {
 	for (const [variable, replacement] of Object.entries(variables)) {
-		trigger = trigger.replace(variable, replacement);
+		trigger = trigger.replaceAll(variable, replacement);
 	}
 
 	return trigger;
 }
 
-function getExcludedEnvironments(trigger: string): Environment[] {
-	const result = [];
-	if (EXCLUSIONS.hasOwnProperty(trigger)) {
-		result.push(EXCLUSIONS[trigger]);
+function getExcludedMacros(trigger: string): MacroArgs[] {
+	const result = Array<MacroArgs>();
+	const exclusion = EXCLUSIONS[trigger];
+	if (exclusion) {
+		result.push(...exclusion);
 	}
 	return result;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Fn<Args extends readonly any[], Ret> = (...args: Args) => Ret;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyFunction = Fn<any, any>;
+export function parseKeyName(name: string): string {
+	return name.split(/ (?!$)/).map(part => normalizeKeyName(part)).join(" ");
+}
+
+function normalizeKeyName(name: string) {
+	const parts = name.split(/-(?!$)/);
+	let result = parts[parts.length - 1];
+	if (result === "Space") result = " ";
+	let alt, ctrl, shift, meta;
+	for (let i = 0; i < parts.length - 1; ++i) {
+		const mod = parts[i]!;
+		if (/^(cmd|meta|m)$/i.test(mod)) meta = true;
+		else if (/^a(lt)?$/i.test(mod)) alt = true;
+		else if (/^(c|ctrl|control)$/i.test(mod)) ctrl = true;
+		else if (/^s(hift)?$/i.test(mod)) shift = true;
+		else if (/^mod$/i.test(mod)) {
+			if (isMacOS()) meta = true;
+			else ctrl = true;
+		} else throw new Error("Unrecognized modifier name: " + mod);
+	}
+	if (alt) result = "Alt-" + result;
+	if (ctrl) result = "Ctrl-" + result;
+	if (meta) result = "Meta-" + result;
+	if (shift) result = "Shift-" + result;
+	return result;
+}
+
+type UnknownFunction = (arg: unknown) => unknown

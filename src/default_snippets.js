@@ -1,8 +1,15 @@
-[
+export default [
     // Math mode
-	{trigger: "mk", replacement: "$$0$", options: "tA"},
-	{trigger: "dm", replacement: "$$\n$0\n$$", options: "tAw"},
-	{trigger: "beg", replacement: "\\begin{$0}\n$1\n\\end{$0}", options: "mA"},
+	// ${}$0{}$ or ${} $0 {}$ is recommended over $$0$ as this avoids the flickering when typing spaces
+	// and also avoids a lag issues when on an empty line and everything below is suddenly display math for a short second.
+	{trigger: "mk", replacement: "${}$0{}$", options: "tA"},
+	{trigger: "mk", replacement: "\\($0\\)", options: "TA"},
+	// display math behaves like codeblocks, as in no text is allowed on the same line of the opening $$ thus a newline is added.
+    {trigger: "dm", replacement: "\n$$\n$0\n$$", options: "tAw", description: "Display Math on empty line"},
+	// the other dm snippets are more advanced thus they are sectioned below in Misc
+
+	{trigger: /([^\\\w])beg/, replacement: "[[0]]\\begin{$0}\n$1\n\\end{$0}", options: "MA"},
+	{trigger: /([^\\\w])beg/, replacement: "[[0]]\\begin{$0} $1 \\end{$0}", options: "nA"},
 
     // Dashes
 	// {trigger: "--", replacement: "–", options: "tA"},
@@ -36,20 +43,21 @@
 	{trigger: "Ome", replacement: "\\Omega", options: "mA"},
 
     // Text environment
-    {trigger: "text", replacement: "\\text{$0}$1", options: "mA"},
-    {trigger: "\"", replacement: "\\text{$0}$1", options: "mA"},
+	{trigger: /\n\s*\"/, replacement: "\n\\text{$0 } $1", options: "mrA"}, // Text at the beginning of a line
+    {trigger: "text", replacement: "\\text{$0}$1", options: "mA", priority: -1},
+    {trigger: "\"", replacement: "\\text{$0}$1", options: "mA", priority: -1},
 
     // Basic operations
     {trigger: "sr", replacement: "^{2}", options: "mA"},
 	{trigger: "cb", replacement: "^{3}", options: "mA"},
-	{trigger: "rd", replacement: "^{$0}$1", options: "mA"},
+	{trigger: "rd", replacement: "^{$0}$1", options: "mA", description: "Raise to (D)the power of"}, // the `th` in the phrase is spoken like a d so rd for short.
 	{trigger: "_", replacement: "_{$0}$1", options: "mA"},
 	{trigger: "sts", replacement: "_\\text{$0}", options: "mA"},
 	{trigger: "sq", replacement: "\\sqrt{ $0 }$1", options: "mA"},
+	{trigger: /(\d)rt/, replacement: "\\sqrt[[[0]]]{ $0 }$1", options: "mA", description: "Nth RooT"},
 	{trigger: "//", replacement: "\\frac{$0}{$1}$2", options: "mA"},
-	{trigger: "ee", replacement: "e^{ $0 }$1", options: "mA"},
+	{trigger: /\bee/, replacement: "e^{ $0 }$1", options: "mA"},
     {trigger: "invs", replacement: "^{-1}", options: "mA"},
-    {trigger: /([A-Za-z])(\d)/, replacement: "[[0]]_{[[1]]}", options: "rmA", description: "Auto letter subscript", priority: -1},
 
     {trigger: /([^\\])(exp|log|ln)/, replacement: "[[0]]\\[[1]]", options: "rmA"},
     {trigger: "conj", replacement: "^{*}", options: "mA"},
@@ -70,6 +78,8 @@
 	{trigger: "([a-zA-Z])tilde", replacement: "\\tilde{[[0]]}", options: "rmA"},
 	{trigger: "([a-zA-Z])und", replacement: "\\underline{[[0]]}", options: "rmA"},
 	{trigger: "([a-zA-Z])vec", replacement: "\\vec{[[0]]}", options: "rmA"},
+	// \\overrightarrow might look better than \\vec
+	// {trigger: "([a-zA-Z])vec", replacement: "\\overrightarrow{[[0]]}", options: "rmA"},
     {trigger: "([a-zA-Z]),\\.", replacement: "\\mathbf{[[0]]}", options: "rmA"},
 	{trigger: "([a-zA-Z])\\.,", replacement: "\\mathbf{[[0]]}", options: "rmA"},
 	{trigger: "\\\\(${GREEK}),\\.", replacement: "\\boldsymbol{\\[[0]]}", options: "rmA"},
@@ -83,12 +93,68 @@
 	{trigger: "tilde", replacement: "\\tilde{$0}$1", options: "mA"},
 	{trigger: "und", replacement: "\\underline{$0}$1", options: "mA"},
 	{trigger: "vec", replacement: "\\vec{$0}$1", options: "mA"},
+	// {trigger: "vec", replacement: "\\overrightarrow{$0}$1", options: "mA"},
+    {
+        trigger: "pmod",
+        replacement: "\\pmod{${0:n}}$1",
+        options: "mA",
+        description: "Parenthesized modulo (\\pmod{n})",
+    },
 
-    // More auto letter subscript
-    {trigger: /([A-Za-z])_(\d\d)/, replacement: "[[0]]_{[[1]]}", options: "rmA"},
-	{trigger: /\\hat{([A-Za-z])}(\d)/, replacement: "\\hat{[[0]]}_{[[1]]}", options: "rmA"},
-	{trigger: /\\vec{([A-Za-z])}(\d)/, replacement: "\\vec{[[0]]}_{[[1]]}", options: "rmA"},
-	{trigger: /\\mathbf{([A-Za-z])}(\d)/, replacement: "\\mathbf{[[0]]}_{[[1]]}", options: "rmA"},
+    // Auto letter subscript and add space after other macros
+	//
+	// - x3 -> x_{3}
+	// - \alpha3 -> \alpha_{3}
+	// - \leq -> \leq 1
+	{
+		trigger: /(\\?)([A-Za-z]+)(\d)/,
+		replacement: (match) => {
+			const isMacro = match[1] === "\\";
+			const digit = match[3];
+			if (!isMacro) {
+				const variable = match[2];
+				return `${variable}_{${digit}}`;
+			}
+			const greek = require("latex-suite").snippetVariables["${GREEK}"];
+			const greek_pattern = new RegExp("^(?:" + greek + ")$");
+			const macro_name = match[2];
+			if (greek_pattern.test(macro_name)) {
+				return `\\${macro_name}_{${digit}}`;
+			} else {
+				return `\\${macro_name} ${digit}`;
+			}
+		},
+	  options: "rmA",
+	  priority: -1,
+	  excludedMacros: ["pu", "ce"],
+	  description: "Auto letter subscript for variables and greek letters, add space after other macros",
+	},
+	// x_{3}4 -> x_{34}, \alpha_{3}4 -> \alpha_{34}
+	{
+	  trigger: "(\\\\${GREEK}|[A-Za-z])_{(\\d+)}(\\d)",
+	  replacement: "[[0]]_{[[1]][[2]]}",
+	  options: "rmA",
+	  priority: -1,
+	  description: "Combine subscripts for variables and greek letters",
+	},
+
+	// \dot{x}3 -> \dot{x}_{3}, \dot{\alpha}3 -> \dot{\alpha}_{3}
+	// \dot{x}_{3}4 -> \dot{x}_{34}
+	{
+	  trigger: "\\\\(${ACCENT})\\{(\\\\${GREEK}|[A-Za-z])\\}(?:_\\{(\\d+)\\})?(\\d)",
+	  replacement: "\\[[0]]{[[1]]}_{[[2]][[3]]}",
+	  options: "rmA",
+	  priority: -1,
+	},
+
+	// \dot{\vec{a}}3 -> \dot{\vec{a}}_{3}
+	// \dot{\vec{a}}_{3}4 -> \dot{\vec{a}}_{34}
+	{
+	  trigger: "\\\\(${ACCENT})\\{\\\\(${ACCENT})\\{(\\\\${GREEK}|[A-Za-z])\\}\\}(?:_\\{(\\d+)\\})?(\\d)",
+	  replacement: "\\[[0]]{\\[[1]]{[[2]]}}_{[[3]][[4]]}",
+	  options: "rmA",
+	  priority: -1,
+	},
 
     {trigger: "xnn", replacement: "x_{n}", options: "mA"},
 	{trigger: "\\xii", replacement: "x_{i}", options: "mA", priority: 1},
@@ -109,10 +175,12 @@
 	{trigger: "-+", replacement: "\\mp", options: "mA"},
     {trigger: "...", replacement: "\\dots", options: "mA"},
     {trigger: "nabl", replacement: "\\nabla", options: "mA"},
-	{trigger: "del", replacement: "\\nabla", options: "mA"},
-    {trigger: "xx", replacement: "\\times", options: "mA"},
+    // The operator nabla is also called del, but using "del" as a trigger conflicts with the greek letter delta.
+	// {trigger: "del", replacement: "\\nabla", options: "mA"},
+	{trigger: "xx", replacement: "\\times", options: "mA"},
     {trigger: "**", replacement: "\\cdot", options: "mA"},
     {trigger: "para", replacement: "\\parallel", options: "mA"},
+	{trigger: "deg", replacement: "\\degree", options: "mA"},
 
 	{trigger: "===", replacement: "\\equiv", options: "mA"},
     {trigger: "!=", replacement: "\\neq", options: "mA"},
@@ -126,12 +194,12 @@
 
 
     {trigger: "<->", replacement: "\\leftrightarrow ", options: "mA"},
-	{trigger: "->", replacement: "\\to", options: "mA"},
+	{trigger: "->", replacement: "\\to", options: "mA", excludedMacros: ["ce"]},
 	{trigger: "!>", replacement: "\\mapsto", options: "mA"},
     {trigger: "=>", replacement: "\\implies", options: "mA"},
 	{trigger: "=<", replacement: "\\impliedby", options: "mA"},
 
-	{trigger: "and", replacement: "\\cap", options: "mA"},
+	{trigger: "and", replacement: "\\cap", options: "wmA"},
 	{trigger: "orr", replacement: "\\cup", options: "mA"},
 	{trigger: "inn", replacement: "\\in", options: "mA"},
 	{trigger: "notin", replacement: "\\not\\in", options: "mA"},
@@ -139,8 +207,8 @@
     {trigger: "sub=", replacement: "\\subseteq", options: "mA"},
     {trigger: "sup=", replacement: "\\supseteq", options: "mA"},
 	{trigger: "eset", replacement: "\\emptyset", options: "mA"},
-	{trigger: "set", replacement: "\\{ $0 \\}$1", options: "mA"},
-	{trigger: "e\\xi sts", replacement: "\\exists", options: "mA", priority: 1},
+	{trigger: "set", replacement: "\\{ $0 \\}$1", options: "wmA"},
+	{trigger: /(n?)e\\xi sts/, replacement: "\\[[0]]exists", options: "mA", priority: 1},
 
 	{trigger: "LL", replacement: "\\mathcal{L}", options: "mA"},
 	{trigger: "HH", replacement: "\\mathcal{H}", options: "mA"},
@@ -148,37 +216,41 @@
 	{trigger: "RR", replacement: "\\mathbb{R}", options: "mA"},
 	{trigger: "ZZ", replacement: "\\mathbb{Z}", options: "mA"},
 	{trigger: "NN", replacement: "\\mathbb{N}", options: "mA"},
+	{trigger: "QQ", replacement: "\\mathbb{Q}", options: "mA"},
 
     // Handle spaces and backslashes
 
     // Snippet variables can be used as shortcuts when writing snippets.
     // For example, ${GREEK} below is shorthand for "alpha|beta|gamma|Gamma|delta|..."
-    // You can edit snippet variables under the Advanced snippet settings section.
+    // You can edit snippet variables under the Advanced snippet section.
 
 	{trigger: "([^\\\\])(${GREEK})", replacement: "[[0]]\\[[1]]", options: "rmA", description: "Add backslash before Greek letters"},
 	{trigger: "([^\\\\])(${SYMBOL})", replacement: "[[0]]\\[[1]]", options: "rmA", description: "Add backslash before symbols"},
 
-    // Insert space after Greek letters and symbols
-	{trigger: "\\\\(${GREEK}|${SYMBOL}|${MORE_SYMBOLS})([A-Za-z])", replacement: "\\[[0]] [[1]]", options: "rmA"},
+
 	{trigger: "\\\\(${GREEK}|${SYMBOL}) sr", replacement: "\\[[0]]^{2}", options: "rmA"},
 	{trigger: "\\\\(${GREEK}|${SYMBOL}) cb", replacement: "\\[[0]]^{3}", options: "rmA"},
 	{trigger: "\\\\(${GREEK}|${SYMBOL}) rd", replacement: "\\[[0]]^{$0}$1", options: "rmA"},
-	{trigger: "\\\\(${GREEK}|${SYMBOL}) hat", replacement: "\\hat{\\[[0]]}", options: "rmA"},
-	{trigger: "\\\\(${GREEK}|${SYMBOL}) dot", replacement: "\\dot{\\[[0]]}", options: "rmA"},
-	{trigger: "\\\\(${GREEK}|${SYMBOL}) bar", replacement: "\\bar{\\[[0]]}", options: "rmA"},
-	{trigger: "\\\\(${GREEK}|${SYMBOL}) vec", replacement: "\\vec{\\[[0]]}", options: "rmA"},
-	{trigger: "\\\\(${GREEK}|${SYMBOL}) tilde", replacement: "\\tilde{\\[[0]]}", options: "rmA"},
-	{trigger: "\\\\(${GREEK}|${SYMBOL}) und", replacement: "\\underline{\\[[0]]}", options: "rmA"},
+	{trigger: "\\\\(${GREEK}) hat", replacement: "\\hat{\\[[0]]}", options: "rmA"},
+	{trigger: "\\\\(${GREEK}) dot", replacement: "\\dot{\\[[0]]}", options: "rmA"},
+	{trigger: "\\\\(${GREEK}) bar", replacement: "\\bar{\\[[0]]}", options: "rmA"},
+	{trigger: "\\\\(${GREEK}) vec", replacement: "\\vec{\\[[0]]}", options: "rmA"},
+	// \\overrightarrow might look better than \\vec
+	// {trigger: "\\\\(${GREEK}) vec", replacement: "\\overrightarrow{\\[[0]]}", options: "rmA"},
+	{trigger: "\\\\(${GREEK}) tilde", replacement: "\\tilde{\\[[0]]}", options: "rmA"},
+	{trigger: "\\\\(${GREEK}) und", replacement: "\\underline{\\[[0]]}", options: "rmA"},
 
 
     // Derivatives and integrals
     {trigger: "par", replacement: "\\frac{ \\partial ${0:y} }{ \\partial ${1:x} } $2", options: "m"},
+    {trigger: /par([0-9])/, replacement: "\\frac{ \\partial^{[[0]]} ${0:y} }{ \\partial ${1:x}^{[[0]]} } $2", options: "mA"},
+    {trigger: /parn/, replacement: "\\frac{ \\partial^{${0:n}} ${1:y} }{ \\partial ${2:x}^{${0:n}} } $2", options: "mA"},
     {trigger: /pa([A-Za-z])([A-Za-z])/, replacement: "\\frac{ \\partial [[0]] }{ \\partial [[1]] } ", options: "rm"},
     {trigger: "ddt", replacement: "\\frac{d}{dt} ", options: "mA"},
 
     {trigger: /([^\\])int/, replacement: "[[0]]\\int", options: "mA", priority: -1},
     {trigger: "\\int", replacement: "\\int $0 \\, d${1:x} $2", options: "m"},
-    {trigger: "dint", replacement: "\\int_{${0:0}}^{${1:1}} $2 \\, d${3:x} $4", options: "mA"},
+    {trigger: "dint", replacement: "\\int_{${0:0}}^{${1:1}} $2 \\, d${3:x} $4", options: "mA", description: "Definite integral"},
     {trigger: "oint", replacement: "\\oint", options: "mA"},
 	{trigger: "iint", replacement: "\\iint", options: "mA"},
     {trigger: "iiint", replacement: "\\iiint", options: "mA"},
@@ -188,23 +260,21 @@
 
     // Trigonometry
     {trigger: /([^\\])(arcsin|sin|arccos|cos|arctan|tan|csc|sec|cot)/, replacement: "[[0]]\\[[1]]", options: "rmA", description: "Add backslash before trig funcs"},
-
-    {trigger: /\\(arcsin|sin|arccos|cos|arctan|tan|csc|sec|cot)([A-Za-gi-z])/,
-     replacement: "\\[[0]] [[1]]", options: "rmA",
-     description: "Add space after trig funcs. Skips letter h to allow sinh, cosh, etc."},
-
-    {trigger: /\\(sinh|cosh|tanh|coth)([A-Za-z])/,
-     replacement: "\\[[0]] [[1]]", options: "rmA",
-     description: "Add space after hyperbolic trig funcs"},
-
+    {
+        trigger: /(arccsc|arcsec|arccot)/,
+        replacement: "\\operatorname{[[0]]}$0",
+        options: "mA",
+        description: "Inverse trig functions, Are not built-in MathJax functions",
+		priority: 1,
+    },
 
     // Visual operations
-	{trigger: "U", replacement: "\\underbrace{ ${VISUAL} }_{ $0 }", options: "mA"},
-	{trigger: "O", replacement: "\\overbrace{ ${VISUAL} }^{ $0 }", options: "mA"},
-	{trigger: "B", replacement: "\\underset{ $0 }{ ${VISUAL} }", options: "mA"},
-	{trigger: "C", replacement: "\\cancel{ ${VISUAL} }", options: "mA"},
-	{trigger: "K", replacement: "\\cancelto{ $0 }{ ${VISUAL} }", options: "mA"},
-	{trigger: "S", replacement: "\\sqrt{ ${VISUAL} }", options: "mA"},
+	{trigger: "U", replacement: "\\underbrace{ ${VISUAL} }_{ $0 }", options: "mv"},
+	{trigger: "O", replacement: "\\overbrace{ ${VISUAL} }^{ $0 }", options: "mv"},
+	{trigger: "B", replacement: "\\underset{ $0 }{ ${VISUAL} }", options: "mv"},
+	{trigger: "C", replacement: "\\cancel{ ${VISUAL} }", options: "mv"},
+	{trigger: "K", replacement: "\\cancelto{ $0 }{ ${VISUAL} }", options: "mv"},
+	{trigger: "S", replacement: "\\sqrt{ ${VISUAL} }", options: "mv"},
 
 
     // Physics
@@ -214,7 +284,7 @@
     // Quantum mechanics
     {trigger: "dag", replacement: "^{\\dagger}", options: "mA"},
 	{trigger: "o+", replacement: "\\oplus ", options: "mA"},
-	{trigger: "ox", replacement: "\\otimes ", options: "mA"},
+	{trigger: "ox", replacement: "\\otimes ", options: "wmA"},
     {trigger: "bra", replacement: "\\bra{$0} $1", options: "mA"},
 	{trigger: "ket", replacement: "\\ket{$0} $1", options: "mA"},
 	{trigger: "brk", replacement: "\\braket{ $0 | $1 } $2", options: "mA"},
@@ -229,24 +299,40 @@
 
 
     // Environments
-	{trigger: "pmat", replacement: "\\begin{pmatrix}\n$0\n\\end{pmatrix}", options: "MA"},
-	{trigger: "bmat", replacement: "\\begin{bmatrix}\n$0\n\\end{bmatrix}", options: "MA"},
-	{trigger: "Bmat", replacement: "\\begin{Bmatrix}\n$0\n\\end{Bmatrix}", options: "MA"},
-	{trigger: "vmat", replacement: "\\begin{vmatrix}\n$0\n\\end{vmatrix}", options: "MA"},
-	{trigger: "Vmat", replacement: "\\begin{Vmatrix}\n$0\n\\end{Vmatrix}", options: "MA"},
-	{trigger: "matrix", replacement: "\\begin{matrix}\n$0\n\\end{matrix}", options: "MA"},
-
-	{trigger: "pmat", replacement: "\\begin{pmatrix}$0\\end{pmatrix}", options: "nA"},
-	{trigger: "bmat", replacement: "\\begin{bmatrix}$0\\end{bmatrix}", options: "nA"},
-	{trigger: "Bmat", replacement: "\\begin{Bmatrix}$0\\end{Bmatrix}", options: "nA"},
-	{trigger: "vmat", replacement: "\\begin{vmatrix}$0\\end{vmatrix}", options: "nA"},
-	{trigger: "Vmat", replacement: "\\begin{Vmatrix}$0\\end{Vmatrix}", options: "nA"},
-	{trigger: "matrix", replacement: "\\begin{matrix}$0\\end{matrix}", options: "nA"},
-
-	{trigger: "cases", replacement: "\\begin{cases}\n$0\n\\end{cases}", options: "mA"},
-	{trigger: "align", replacement: "\\begin{align}\n$0\n\\end{align}", options: "mA"},
-	{trigger: "array", replacement: "\\begin{array}\n$0\n\\end{array}", options: "mA"},
-
+    // Here the regex syntax [pbBvV]mat is used to match pmat, bmat, Bmat, vmat, Vmat
+    {
+        trigger: /([pbBvV]mat)/,
+        replacement: "\\begin{[[0]]rix}\n$0\n\\end{[[0]]rix}",
+        options: "rMA",
+        description: "Matrix environments with new lines",
+    },
+    {
+        trigger: /(matrix|cases|array)/,
+        replacement: "\\begin{[[0]]}\n$0\n\\end{[[0]]}",
+        options: "rMA",
+        description: "Miscellaneous environments with new lines",
+    },
+    {
+        trigger: /([pbBvV]mat)/,
+        replacement: "\\begin{[[0]]rix}$0\\end{[[0]]rix}",
+        options: "rnA",
+    },
+    {
+        trigger: /(matrix|cases|align|array)/,
+        replacement: "\\begin{[[0]]}$0\\end{[[0]]}",
+        options: "rnA",
+    },
+	// since mathjax v4, aligned is less strict than align.
+    {
+        trigger: "align",
+        replacement: "\\begin{aligned}\n$0\n\\end{aligned}",
+        options: "rMA",
+    },
+    {
+        trigger: "align",
+        replacement: "\\begin{aligned}$0\\end{aligned}",
+        options: "nA",
+    },
 
     // Brackets
 	{trigger: "avg", replacement: "\\langle $0 \\rangle $1", options: "mA"},
@@ -254,10 +340,11 @@
 	{trigger: "Norm", replacement: "\\lVert $0 \\rVert $1", options: "mA", priority: 1},
 	{trigger: "ceil", replacement: "\\lceil $0 \\rceil $1", options: "mA"},
 	{trigger: "floor", replacement: "\\lfloor $0 \\rfloor $1", options: "mA"},
+    // For the modulo operator, see the section "More operations" above
 	{trigger: "mod", replacement: "|$0|$1", options: "mA"},
-	{trigger: "(", replacement: "(${VISUAL})", options: "mA"},
-	{trigger: "[", replacement: "[${VISUAL}]", options: "mA"},
-	{trigger: "{", replacement: "{${VISUAL}}", options: "mA"},
+	{trigger: "(", replacement: "(${VISUAL})", options: "mv"},
+	{trigger: "[", replacement: "[${VISUAL}]", options: "mv"},
+	{trigger: "{", replacement: "{${VISUAL}}", options: "mv"},
 	{trigger: "(", replacement: "($0)$1", options: "mA"},
 	{trigger: "{", replacement: "{$0}$1", options: "mA"},
 	{trigger: "[", replacement: "[$0]$1", options: "mA"},
@@ -281,6 +368,52 @@
     // {trigger: /([A-Za-z]=\d+)([\n\s.,?!:'])/, replacement: "$[[0]]$[[1]]", options: "rtAw"},
     // {trigger: /([A-Za-z]=[A-Za-z][+-]\d+)([\n\s.,?!:'])/, replacement: "$[[0]]$[[1]]", options: "tAw"},
 
+	// Disable automatic snippets while typing macros
+	// This is a catch all rule that may disable other snippets in some cases.
+	// Increase the priority of the snippets that shouldn't be disabled.
+	// {trigger: /(\\[A-Za-z]+)/, replacement: "[[0]]$0", options: "mAU", priority: 100, description: "Disable snippets while typing macros"},
+
+	// Disable snippets while typing macros, doesn't insert an undo stop because of the option "U", thus its treated normal typing.
+	// like \top -> \top but \tox -> \to x as \tox is not a macro but \top is.
+	// In order to add your custom macros to the list, you can do require("latex-suite").ALL_MACROS.push("\\my_macro") at the top or bottom of this file.
+	// outside this function and array.
+	{
+		trigger: /\\[A-Za-z]{2,}/,
+		replacement: function (match) {
+			/** @type {string} */
+			const string = match[0];
+			const trigger = string.slice(1);
+			
+			const names = require("latex-suite").ALL_MACROS;
+			if (names.some(name => name.startsWith(string))) {
+				return string;
+			}
+			return false;
+		},
+		options: "mAU",
+		priority: 3,
+		description: "Disable snippets while typing macros",
+	},
+	// Add space after macros if not part of another macro
+	{
+		trigger: /\\[A-Za-z]{2,}/,
+		replacement: function (match) {
+			/** @type {string} */
+			const string = match[0];
+			const trigger = string.slice(1);
+			
+			const names = require("latex-suite").ALL_MACROS;
+			if (!names.some(name => name.startsWith(string))) {
+				const macro = trigger.slice(0, -1);
+				const letter = trigger.slice(-1);
+				return "\\" + macro + " " + letter;
+			}
+			return false;
+		},
+		options: "mA",
+		priority: 3,
+		description: "Insert space after macros if not part of another macro",
+	},
 
     // Snippet replacements can have placeholders.
 	{trigger: "tayl", replacement: "${0:f}(${1:x} + ${2:h}) = ${0:f}(${1:x}) + ${0:f}'(${1:x})${2:h} + ${0:f}''(${1:x}) \\frac{${2:h}^{2}}{2!} + \\dots$3", options: "mA", description: "Taylor expansion"},
@@ -302,4 +435,81 @@
 		output = `\\begin{pmatrix}\n${output}\n\\end{pmatrix}`;
 		return output;
 	}, options: "mA", description: "N x N identity matrix"},
+	// start with the correct indentation  of 3 spaces when typing at the start of a list.
+	{
+		trigger: /(?<positive_lookbehind>(?:\n|^)[ \t]*>*)(?<marker>\d+[.)]|[-*+])(?<whitespace>[ \t]+)(?<text>.*)dm/,
+		replacement: (m) => {
+			const { positive_lookbehind, whitespace, text, marker } = m.groups;
+			const firstLine = marker + whitespace + text;
+			const indent = " ".repeat(marker.length) + whitespace;
+			return `${positive_lookbehind}${firstLine}\n${indent}$$\n${indent}$0\n${indent}$$`;
+		},
+		options: "rtA",
+		priority: 2,
+		description: "Display math when in a list"
+	},
+	{
+		// positive lookbehind is not available on ios <16.4 and inline flags like (?m:$) are not since ios <26, using this as a workaround.
+		// otherwise the regex would be /(?<=\n|^)([ \t]*(?:> ?)*[ \t])*dm/
+		// or /(?m:^)([ \t]*(?:> ?)*[ \t])*dm/
+		trigger: new (class extends RegExp {
+			exec(source) {
+				const result = super.exec(source);
+				if (result === null) return result;
+				result
+				return /([ \t]*(?:> ?)*[ \t]*)dm$/.exec(source);
+			}
+		})(/(\n|^)[ \t]*(?:> ?)*[ \t]*dm/.source),
+		replacement: "[[0]]$$\n$0\n$$",
+		options: "tAw",
+		description: "Display Math on empty line",
+		priority: 2,
+	},
 ]
+
+function addRawConcealMaps() {
+	const ls = require("latex-suite");
+	// for the full api see the documentation: https://github.com/artisticat1/obsidian-latex-suite/blob/main/DOCS.md#conceal-maps
+	ls.addRawConcealMaps({
+		cmd_symbols: {
+			// example of disabeling conceal for \quad
+			"quad": null
+		},
+	})
+	
+}
+
+// addRawConcealMaps()
+
+// IME keyboard switching
+// Remove the /**  and * / to uncomment the code below
+// see https://github.com/artisticat1/obsidian-latex-suite/blob/main/DOCS.md#IME-keyboards
+// and https://github.com/daipeihust/im-select.
+/** 
+const exec = require("child_process").exec;
+const ls = require("latex-suite");
+window.__latex_suite_math = window.__latex_suite_math || false;
+const switch_path = "C:\\im-select.exe";
+const non_ime_keyboard = "1033"
+const ime_keyboard = () => "2052"
+ls.addUpdateHandler(function (ctx, update) {
+	// needed for tables and canvas.
+	if (!update.view.hasFocus) return;
+	const newMath = ctx.inMath();
+	if (newMath === window.__latex_suite_math) {
+		return;
+	}
+	window.__latex_suite_math = newMath;
+	try {
+		if (window.__latex_suite_math) {
+			// switch non IME keyboard
+			exec(`"${switch_path}" ${non_ime_keyboard}`)
+		} else {
+			exec(`"${switch_path} ${ime_keyboard()}"`)
+			// switch to IME
+		}
+	} catch (error) {
+		console.error("Error switching keyboard:", error);
+	}
+})
+*/

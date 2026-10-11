@@ -1,0 +1,16 @@
+{
+	"compilerOptions": {
+		"noEmit": true,
+		"module": "esnext",
+		"moduleResolution": "bundler",
+		"allowJs": true,
+		"checkJs": true,
+		"rootDir": "..",
+		"types": [
+			"node",
+			"obsidian-typings"
+		]
+	},
+	"include": ["**/*.ts", "**/*.js"],
+	"exclude": []
+}

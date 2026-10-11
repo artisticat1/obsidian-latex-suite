@@ -1,5 +1,5 @@
 import {EditorView} from "@codemirror/view"
-import {Extension} from "@codemirror/state"
+import type { Extension } from "@codemirror/state";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { tags as t } from "@lezer/highlight";
 
@@ -85,6 +85,15 @@ export const obsidianTheme = EditorView.theme({
 			color: config.foreground
 		}
 	},
+	".cm-textfield": {
+		backgroundColor: config.background,
+		color: config.foreground
+	},
+	".cm-button": {
+		backgroundColor: config.background,
+		color: config.foreground,
+		backgroundImage: "none",
+	}
 }, {dark: config.dark})
 
 export const obsidianHighlightStyle = HighlightStyle.define([

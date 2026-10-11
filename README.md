@@ -82,12 +82,28 @@ To reveal the LaTeX syntax, move your cursor over it. You can also choose to del
 ![conceal demo 3](https://raw.githubusercontent.com/artisticat1/obsidian-latex-suite/main/gifs/conceal_delay.gif)
 ![conceal demo](https://raw.githubusercontent.com/artisticat1/obsidian-latex-suite/main/gifs/conceal.png)
 
+> [!NOTE]
+> One of your selected monospace fonts in obsidian needs to support these symbols.
+> [JuliaMono](https://juliamono.netlify.app/) has been known to work for all symbols.
+> Either install the font or add the following to your css file:
+> ```css
+> @font-face {
+>     font-family: JuliaMono;
+>     src: url(https://github.com/cormullion/juliamono/raw/refs/heads/master/webfonts/JuliaMono-Regular.woff2) format("woff2");
+>     text-rendering: optimizeLegibility;
+> }
+> 
+> body {
+>   --font-monospace-override: JuliaMono;
+> }
+> ```
 
 ### Tabout
 To make it easier to navigate and exit equations,
 
 - Pressing <kbd>Tab</kbd> while the cursor is at the end of an equation will move the cursor outside the `$` symbols.
-- Otherwise, pressing <kbd>Tab</kbd> will advance the cursor to the next closing bracket: `)`, `]`, `}`, `>`, or `|`.
+- If the cursor is inside a `\left ... \right` pair, pressing <kbd>Tab</kbd> will jump to after the `\right` command and its corresponding delimiter.
+- Otherwise, pressing <kbd>Tab</kbd> will advance the cursor to the next closing bracket: `)`, `]`, `}`, `\rangle`, or `\rvert`.
 
 
 ### Preview inline math
@@ -149,22 +165,32 @@ Snippets can be edited in the plugin settings. The structure of a snippet is as 
 ```typescript
 {
   trigger: string | RegExp,
-  replacement: string,
+  replacement: string | BaseNode[],
   options: string,
   priority?: number,
   description?: string,
   flags?: string,
+  triggerKey?: string,
+  language?: string,
+  excludedMacros?: string[],
+  excludedEnvironments?: string[],
+  includedMacros?: string[],
 }
 ```
 
 - `trigger` : The text that triggers this snippet.
   - Triggers can also be regular expressions. [See here for more info.](./DOCS.md#regex-snippets)
 - `replacement` : The text to replace the `trigger` with.
-  - Replacements can also be JavaScript functions. [See here for more info.](./DOCS.md#function-snippets)
+  - Replacements can also be [JavaScript functions](./DOCS.md#function-snippets) or [Nodes](./DOCS.md#Nodes).
 - `options` : See below.
 - `priority` (optional): This snippet's priority. Snippets with higher priority are run first. Can be negative. Defaults to 0.
 - `description` (optional): A description for this snippet.
 - `flags` (optional): Flags for regex snippets.
+- `triggerKey` (optional): Shortcut for snippets.
+- `language` (optional): Code language for snippets.
+- `excludedMacros` (optional): Macros to exclude this snippet.
+- `excludedEnvironments` (optional): Environments to exclude this snippet.
+- `includedMacros` (optional): Macros to include this snippet.
 
 
 #### Options
@@ -172,11 +198,14 @@ Snippets can be edited in the plugin settings. The structure of a snippet is as 
 - `m` : Math mode. Only run this snippet inside math. Shorthand for both `M` and `n`
 - `M` : Block math mode. Only run this snippet inside a `$$ ... $$` block
 - `n` : Inline math mode. Only run this snippet inside a `$ ... $` block
-- `A` : Auto. Expand this snippet as soon as the trigger is typed. If omitted, the <kbd>Tab</kbd> key must be pressed to expand the snippet
+- `A` : Auto. Expand this snippet as soon as the trigger is typed. If omitted, the <kbd>Tab</kbd> key must be pressed to expand the snippet. This doesn't always work for [IME keyboards](./DOCS.md@IME-keyboards) (like chinese/pinyin, gboard, german/french diacritic keyboards).
 - `r` : [Regex](./DOCS.md#regex-snippets). The `trigger` will be treated as a regular expression
 - `v` : [Visual](./DOCS.md#visual-snippets). Only run this snippet on a selection. The trigger should be a single character
 - `w` : Word boundary. Only run this snippet when the trigger is preceded (and followed by) a word delimiter, such as `.`, `,`, or `-`.
 - `c` : Code mode. Only run this snippet inside a ```` ``` ... ``` ```` block
+- `U`: Skip undo. When an automatic snippet expands, pressing undo returns to the state before the trigger key was typed, instead of first removing the snippet and reinserting that key.
+- `C` : Inline code mode. Only run this snippet inside a `` ` ... ` `` block
+- `T` : Math text mode. Only run this inside text macros such as `\text{}`
 
 Insert **tabstops** for the cursor to jump to by writing "$0", "$1", etc. in the `replacement`.
 
@@ -187,6 +216,11 @@ You can [view snippets written by others and share your own snippets here](https
 > [!WARNING]
 > Snippet files are interpreted as JavaScript and can execute arbitrary code.
 > Always be careful with snippets shared from others to avoid running malicious code.
+> Or when sharing the vault with others.
+> You can also place them where they can be ignored by sync such as:
+> - the editor in the settings which stores it inside
+> - Inside the `.obsidian` folder
+> - Outside your vault, for which latex suite thus would need access to outside the vault.
 
 
 ## Cheatsheet
@@ -251,9 +285,18 @@ e.g. "pi" → "\\pi".
 - [Dynamic Highlights](https://github.com/nothingislost/obsidian-dynamic-highlights/blob/master/src/settings/ui.ts) for reference.
 - [Quick Latex for Obsidian](https://github.com/joeyuping/quick_latex_obsidian) for inspiration.
 
+## Related projects
+
+- [VimTex](https://github.com/lervag/vimtex) provides concealments in vim and more quality of life features for using vim in latex.
+- [UltiSnips](https://github.com/SirVer/ultisnips) provides a snippet engine for vim.
+- [LuaSnip](https://github.com/L3MON4D3/LuaSnip) provides a snippet engine for neovim, allowing more customization through declaring snippets in lua.
+- [Hypersnips](https://github.com/Oskar-Idland/hsnips) provides a similar snippet engine to one of UltiSnips in vscode.
+- [Snippetleaf](https://github.com/superle3/snippet-leaf) is a ported version of this plugin to codemirror only (the backend editor of obsidian). Works for editors such as overleaf.
+- [LaTeX Utilities](https://github.com/tecosaur/LaTeX-Utilities) provides a snippet engine for latex only in vscode.
+- [AUCTeX](https://www.gnu.org/software/auctex/) provides extensive quality of life features for latex.
 
 ## Contributing
-Any contributions and PRs are welcome!
+Any contributions and PRs are welcome! [See here for more info.](./CONTRIBUTING.md)
 
 
 ## Support

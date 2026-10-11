@@ -1,7 +1,8 @@
 import { Platform } from "obsidian";
 import { EditorView } from "@codemirror/view";
-import { SyntaxNode, TreeCursor } from "@lezer/common";
+import { type NodeIterator, type SyntaxNode, Tree, TreeCursor } from "@lezer/common";
 import { EditorState } from "@codemirror/state";
+import type { Bounds } from "src/editor_context/context";
 
 export function replaceRange(view: EditorView, start: number, end: number, replacement: string) {
 	view.dispatch({
@@ -12,7 +13,7 @@ export function replaceRange(view: EditorView, start: number, end: number, repla
 export function getCharacterAtPos(viewOrState: EditorView | EditorState, pos: number) {
 	const state = viewOrState instanceof EditorView ? viewOrState.state : viewOrState;
 	const doc = state.doc;
-	return doc.slice(pos, pos+1).toString();
+	return doc.sliceString(pos, pos+1);
 }
 
 
@@ -21,7 +22,7 @@ export function setCursor(view: EditorView, pos: number) {
 		selection: {anchor: pos, head: pos}
 	});
 
-	resetCursorBlink();
+	resetCursorBlink(view);
 }
 
 
@@ -30,14 +31,14 @@ export function setSelection(view: EditorView, start: number, end: number) {
 		selection: {anchor: start, head: end}
 	});
 
-	resetCursorBlink();
+	resetCursorBlink(view);
 }
 
 
-export function resetCursorBlink() {
+export function resetCursorBlink(view: EditorView) {
 	if (Platform.isMobile) return;
 
-	const cursorLayer = document.getElementsByClassName("cm-cursorLayer")[0] as HTMLElement;
+	const cursorLayer = view.dom.getElementsByClassName("cm-cursorLayer")[0] as HTMLElement;
 
 	if (cursorLayer) {
 		const curAnim = cursorLayer.style.animationName;
@@ -51,11 +52,11 @@ export function reverse(s: string){
 }
 
 
-export function findMatchingBracket(text: string, start: number, openBracket: string, closeBracket: string, searchBackwards: boolean, end?: number):number {
+export function findMatchingBracket(text: string, start: number, openBracket: string, closeBracket: string, searchBackwards: boolean, end?: number):number | null {
 	if (searchBackwards) {
 		const reversedIndex = findMatchingBracket(reverse(text), text.length - (start + closeBracket.length), reverse(closeBracket), reverse(openBracket), false);
 
-		if (reversedIndex === -1) return -1;
+		if (reversedIndex === null) return null;
 
 		return text.length - (reversedIndex + openBracket.length)
 	}
@@ -64,10 +65,10 @@ export function findMatchingBracket(text: string, start: number, openBracket: st
 	const stop = end ? end : text.length;
 
 	for (let i = start; i < stop; i++) {
-		if (text.slice(i, i + openBracket.length) === openBracket) {
+		if (text.startsWith(openBracket, i)) {
 			brackets++;
 		}
-		else if (text.slice(i, i + closeBracket.length) === closeBracket) {
+		else if (text.startsWith(closeBracket, i)) {
 			brackets--;
 
 			if (brackets === 0) {
@@ -76,7 +77,7 @@ export function findMatchingBracket(text: string, start: number, openBracket: st
 		}
 	}
 
-	return -1;
+	return null;
 }
 
 
@@ -137,5 +138,92 @@ export function isComposing(view: EditorView, event: KeyboardEvent): boolean {
 	// view.composing and event.isComposing are false for the first keydown event of an IME composition,
 	// so we need to check for event.keyCode === 229 to prevent IME from triggering keydown events.
 	// Note that keyCode is deprecated - it is used here because it is apparently the only way to detect the first keydown event of an IME composition.
-	return view.composing || event.keyCode === 229;
+	return view.composing || (event as unknown as Record<string, unknown>).keyCode === 229;
+}
+
+/**
+ * @license
+ * Force end an IME composition.
+ * MIT License
+ * Copyright (C) 2018-2021 by Marijn Haverbeke <marijnh@gmail.com> and others
+ */
+export function forceEndComposition(view: EditorView) {
+	const parent = view.scrollDOM.parentElement;
+	if (!parent) return;
+
+	const sibling = view.scrollDOM.nextSibling;
+	const selection = window.getSelection();
+	const savedSelection = selection && {
+		anchorNode: selection.anchorNode,
+		anchorOffset: selection.anchorOffset,
+		focusNode: selection.focusNode,
+		focusOffset: selection.focusOffset
+	};
+
+	view.scrollDOM.remove();
+	parent.insertBefore(view.scrollDOM, sibling);
+	try {
+		if (savedSelection && selection) {
+			selection.setPosition(savedSelection.anchorNode, savedSelection.anchorOffset);
+			if (savedSelection.focusNode) {
+				selection.extend(savedSelection.focusNode, savedSelection.focusOffset);
+			}
+		}
+	} catch(e) {
+		console.error(e);
+	}
+	view.focus();
+	view.contentDOM.dispatchEvent(new CustomEvent("compositionend"));
+}
+
+export function isBoundMultiline(view: EditorView, bounds: Bounds): boolean {
+	const doc = view.state.doc;
+	const startLine = doc.lineAt(bounds.outer_start);
+	const endLine = doc.lineAt(bounds.outer_end);
+
+	return startLine.number !== endLine.number;
+}
+
+export function* stackResolveIterate(tree: Tree, pos: number, side: -1 | 0 | 1) {
+	let nodeRef: NodeIterator | null = tree.resolveStack(pos, side);
+	while (nodeRef) {
+		yield nodeRef.node;
+		nodeRef = nodeRef.next;
+	}
+}
+
+export function* stackResolveNodeIterate(node: SyntaxNode, pos: number, side: -1 | 0 | 1) {
+	const cursor = node.cursor()
+	cursor.moveTo(pos, side)
+	let parent: SyntaxNode | null = cursor.node
+	while (parent) {
+		yield parent
+		parent = parent.parent
+	}
+}
+
+export function* getChildren(node: SyntaxNode) {
+	let child = node.firstChild;
+	while (child) {
+		yield child;
+		child = child.nextSibling;
+	}
+}
+
+
+export function cumulativeSum(arr: number[]) {
+	const result: number[] = [];
+	let sum = 0;
+	for (const num of arr) {
+		sum += num;
+		result.push(sum);
+	}
+	return result;
+}
+
+export function* enumerate<T>(iterable: Iterable<T>) {
+	let i = 0;
+	for (const item of iterable) {
+		yield [i++, item] as const;
+	}
 }

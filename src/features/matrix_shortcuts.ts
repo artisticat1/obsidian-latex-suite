@@ -1,10 +1,14 @@
+import { isBoundMultiline, setCursor, replaceRange } from "src/utils/editor_utils";
+import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
+import { type Bounds, getContextPlugin } from "src/editor_context/context";
+import { queueSnippet } from "src/snippets/codemirror/snippet_queue_state_field";
+import { expandSnippets } from "src/snippets/snippet_management";
+import { taboutByEnclosedBrackets } from "./tabout";
+import { ArrayNode, emptyInsertOptions, TabstopNode, TextNode } from "src/snippets/luasnip_api/node";
 import { ChangeSet, EditorSelection, SelectionRange, Text } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { tabout } from "src/features/tabout";
-import { LatexSuiteCMSettings } from "src/settings/settings"
-import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
-import { Context } from "src/utils/context";
-import { setCursor, replaceRange } from "src/utils/editor_utils";
+import type { LatexSuiteCMSettings } from "src/settings/settings";
 
 
 const ALIGNMENT = " & ";
@@ -48,21 +52,21 @@ const generateSeparatorChange = (doc: Text, range: SelectionRange, separator: st
 	if (isWhitespaceTrimEnabled) {
 		// If at the beginning of the line
 		if (textBeforeFrom === "") {
-			separator = separator.match(/^[ \t]*([\s\S]*)$/)[1];
+			separator = separator.match(/^[ \t]*([\s\S]*)$/)![1]!;
 		}
 
 		// Extend selection to include trailing whitespace before `from`
 		if (isAlignmentTrimEnabled && isLineBreak(separator)) {
-			from -= textBeforeFrom.match(/\s*&?\s*$/)[0].length;
+			from -= textBeforeFrom.match(/\s*&?\s*$/)![0].length;
 		}
 		else {
-			from -= textBeforeFrom.match(/\s*$/)[0].length;
+			from -= textBeforeFrom.match(/\s*$/)![0].length;
 		}
-		to += textAfterTo.match(/^\s*/)[0].length;  // Extend selection to include leading whitespace after `to`
+		to += textAfterTo.match(/^\s*/)![0].length;  // Extend selection to include leading whitespace after `to`
 	}
 
 	// Insert indents
-	const leadingIndents = fromLine.text.match(/^\s*/)[0];
+	const leadingIndents = fromLine.text.match(/^\s*/)![0];
 	separator = separator.replaceAll("\n", `\n${leadingIndents}`);
 
 	return { from: from, to: to, insert: separator };
@@ -87,23 +91,25 @@ const applySeparator = (view: EditorView, separator: string) => {
 }
 
 
-export const runMatrixShortcuts = (view: EditorView, ctx: Context, key: string, shiftKey: boolean): boolean => {
+export const runMatrixShortcuts = (view: EditorView, key: string, shiftKey: boolean): boolean => {
 	const settings = getLatexSuiteConfig(view);
 
 	// Check whether we are inside a matrix / align / case environment
-	let isInsideAnEnv = false;
-	let envBound;
-	for (const envName of settings.matrixShortcutsEnvNames) {
-		const env = { openSymbol: "\\begin{" + envName + "}", closeSymbol: "\\end{" + envName + "}" };
+	const ctx = getContextPlugin(view);
+	if (!ctx.mode.strictlyInMath()) return false;
+	const envBound = ctx.getBounds();
+	if (!envBound) return false;
+	const envName = ctx.getEnvNames(ctx.pos).next().value;
+	if (!envName) return false;
 
-		envBound = ctx.getEnvironmentBound(ctx.pos, env);
-
-		isInsideAnEnv = (envBound !== null)
-
-		if (isInsideAnEnv) break;
+	const { matrixShortcutsEnvNames, matrixShortcutsMacroNames } = getLatexSuiteConfig(view);
+	if (envName.kind === "environment" && !matrixShortcutsEnvNames.includes(envName.name)) {
+		return false;
+	} else if (envName.kind === "command" && !matrixShortcutsMacroNames.includes(envName.name)) {
+		return false;
+	} else if (envName.kind === "math") {
+		return false;
 	}
-
-	if (!isInsideAnEnv) return false;
 
 	if (key === "Tab" && view.state.selection.main.empty) {
 		applySeparator(view, ALIGNMENT);
@@ -114,7 +120,7 @@ export const runMatrixShortcuts = (view: EditorView, ctx: Context, key: string, 
 	else if (key === "Enter") {
 		if (shiftKey) {
 			if (ctx.mode.inlineMath) {
-				return tabout(view, ctx);
+				return tabout(view);
 			}
 
 			const isEmptyLineTrimAfterEnvEnabled = settings.matrixShortcutsEmptyLineTrimAfterEnvEnabled;
@@ -122,14 +128,14 @@ export const runMatrixShortcuts = (view: EditorView, ctx: Context, key: string, 
 
 			// Move cursor to end of next line
 			let d = view.state.doc;
-			const envText = d.sliceString(envBound.start, envBound.end);
+			const envText = d.sliceString(envBound.inner_start, envBound.inner_end);
 
 			let line = d.lineAt(ctx.pos);
 			let lineNo = line.number;
 			let nextLine = d.line(lineNo + 1);
 			let newPos = nextLine.to;
 
-			if (newPos <= envBound.end) {
+			if (newPos <= envBound.inner_end) {
 				setCursor(view, newPos);
 
 				return true;
@@ -172,4 +178,91 @@ export const runMatrixShortcuts = (view: EditorView, ctx: Context, key: string, 
 	}
 
 	return false;
+};
+
+const newlineMatrixShortcutCallback = (view: EditorView, bounds: Bounds): boolean => {
+	const ctx = getContextPlugin(view);
+	const cur_line = view.state.doc.lineAt(ctx.pos);
+	const current_matrix_line = cur_line.text.match(/(\\begin{[^]]*}|\\\\|^)((?:\s|&)+)/);
+	const added_cells = current_matrix_line?.[2]!.trimStart() ?? ""
+	if (isBoundMultiline(view, bounds)) {
+		const snippet = new ArrayNode([new TextNode(" \\\\\n" + added_cells), new TabstopNode(0,"")]);
+		// Keep current indentation and callout characters
+		queueSnippet(view, ctx.pos, ctx.pos, snippet.applyInsert(emptyInsertOptions));
+		expandSnippets(view);
+	} else {
+		view.dispatch(view.state.replaceSelection(` \\\\  ${added_cells}`));
+	}
+	return true;
+};
+
+const taboutMatrixShortcutCallback = (view: EditorView, bounds: Bounds): boolean => {
+	const ctx = getContextPlugin(view);
+	if (isBoundMultiline(view, bounds)) {
+		// Move cursor to end of next line
+		const d = view.state.doc;
+		const nextLineNo = d.lineAt(ctx.pos).number + 1;
+		const nextLine = d.line(nextLineNo);
+		const nextLineText = nextLine.text;
+		const potentialEndMatrix = /\\end{([^}]*)}/.exec(nextLineText)
+
+		let to = nextLine.to;
+		if (potentialEndMatrix && potentialEndMatrix[1] && potentialEndMatrix.index !== undefined) {
+			const envName = potentialEndMatrix[1];
+			const settingsEnvNames = getLatexSuiteConfig(view).matrixShortcutsEnvNames;
+			if (settingsEnvNames.includes(envName)) {
+				to = nextLine.from + potentialEndMatrix.index + potentialEndMatrix[0].length;
+			}
+		}
+
+		setCursor(view, to);
+	}
+	else {
+		setCursor(view, bounds.outer_end);
+	}	
+	return true;
 }
+
+const addCellMatrixShortcutCallback = (view: EditorView): boolean => {
+	if (!view.state.selection.main.empty) {
+		return false;
+	}
+	view.dispatch(view.state.replaceSelection(" & "));
+	return true;
+}
+
+const matrixShortcutsRunner = (shortcut: (view: EditorView, bounds: Bounds) => boolean) => (view: EditorView): boolean => {
+	const ctx = getContextPlugin(view);
+	if (!ctx.mode.strictlyInMath()) return false;
+	const bounds = ctx.getBounds();
+	if (!bounds) return false;
+	const envName = ctx.getEnvNames(ctx.pos).next().value;
+	if (!envName) return false;
+
+	const { matrixShortcutsEnvNames, matrixShortcutsMacroNames } = getLatexSuiteConfig(view);
+	if (envName.kind === "environment" && !matrixShortcutsEnvNames.includes(envName.name)) {
+		return false;
+	} else if (envName.kind === "command" && !matrixShortcutsMacroNames.includes(envName.name)) {
+		return false;
+	} else if (envName.kind === "math") {
+		return false;
+	}
+	return shortcut(view, envName);
+}
+
+const priorityTaboutShortcutCallback = (view: EditorView): boolean => {
+	const ctx = getContextPlugin(view);
+	const currentLine = view.state.doc.lineAt(ctx.pos);
+	const currentLineText = currentLine.text.slice(ctx.pos - currentLine.from);
+	const bracketEnd = taboutByEnclosedBrackets(view, currentLineText);
+	if (bracketEnd !== null) {
+		setCursor(view, ctx.pos + bracketEnd);
+		return true;
+	}
+	return false;
+}
+
+export const newlineMatrixShortcut = matrixShortcutsRunner(newlineMatrixShortcutCallback);
+export const exitMatrixShortCut = matrixShortcutsRunner(taboutMatrixShortcutCallback);
+export const addCellMatrixShortcut = matrixShortcutsRunner(addCellMatrixShortcutCallback);
+export const priorityTaboutMatrixShortcut = matrixShortcutsRunner(priorityTaboutShortcutCallback);

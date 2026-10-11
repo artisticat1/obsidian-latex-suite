@@ -1,7 +1,7 @@
 // Credits to https://github.com/liamcain/obsidian-periodic-notes
 
-import { createPopper, Instance as PopperInstance } from "@popperjs/core";
-import { App, ISuggestOwner, Scope } from "obsidian";
+import { createPopper, type Instance as PopperInstance } from "@popperjs/core";
+import { App, type ISuggestOwner, Scope } from "obsidian";
 
 const wrapAround = (value: number, size: number): number => {
 		return ((value % size) + size) % size;
@@ -9,20 +9,20 @@ const wrapAround = (value: number, size: number): number => {
 
 class Suggest<T> {
 	private owner: ISuggestOwner<T>;
-	private values: T[];
-	private suggestions: HTMLDivElement[];
-	private selectedItem: number;
+	private values!: T[];
+	private suggestions!: HTMLDivElement[];
+	private selectedItem!: number;
 	private containerEl: HTMLElement;
 
 	constructor(owner: ISuggestOwner<T>, containerEl: HTMLElement, scope: Scope) {
 		this.owner = owner;
 		this.containerEl = containerEl;
 
-		containerEl.on("click", ".suggestion-item", this.onSuggestionClick.bind(this));
+		containerEl.on("click", ".suggestion-item", (event, el)=> this.onSuggestionClick(event, el as HTMLDivElement));
 		containerEl.on(
 			"mousemove",
 			".suggestion-item",
-			this.onSuggestionMouseover.bind(this)
+			(event, el) => this.onSuggestionMouseover(event, el as HTMLDivElement)
 		);
 
 		scope.register([], "ArrowUp", (event) => {
@@ -93,7 +93,7 @@ class Suggest<T> {
 		this.selectedItem = normalizedIndex;
 
 		if (scrollIntoView) {
-			selectedSuggestion.scrollIntoView(false);
+			selectedSuggestion?.scrollIntoView(false);
 		}
 	}
 }
@@ -102,7 +102,7 @@ export abstract class TextInputSuggest<T> implements ISuggestOwner<T> {
 	protected app: App;
 	protected inputEl: HTMLInputElement;
 
-	private popper: PopperInstance;
+	private popper!: PopperInstance;
 	private scope: Scope;
 	private suggestEl: HTMLElement;
 	private suggest: Suggest<T>;
@@ -116,11 +116,11 @@ export abstract class TextInputSuggest<T> implements ISuggestOwner<T> {
 		const suggestion = this.suggestEl.createDiv("suggestion");
 		this.suggest = new Suggest(this, suggestion, this.scope);
 
-		this.scope.register([], "Escape", this.close.bind(this));
+		this.scope.register([], "Escape", () => this.close());
 
-		this.inputEl.addEventListener("input", this.onInputChanged.bind(this));
-		this.inputEl.addEventListener("focus", this.onInputChanged.bind(this));
-		this.inputEl.addEventListener("blur", this.close.bind(this));
+		this.inputEl.addEventListener("input", () => this.onInputChanged());
+		this.inputEl.addEventListener("focus", () => this.onInputChanged());
+		this.inputEl.addEventListener("blur", () => this.close());
 		this.suggestEl.on("mousedown", ".suggestion-container", (event: MouseEvent) => {
 			event.preventDefault();
 		});
@@ -132,15 +132,13 @@ export abstract class TextInputSuggest<T> implements ISuggestOwner<T> {
 
 		if (suggestions.length > 0) {
 			this.suggest.setSuggestions(suggestions);
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			this.open((<any>this.app).dom.appContainerEl, this.inputEl);
+			type TempAppContainerEl = { dom: { appContainerEl: HTMLElement } };
+			this.open((this.app as unknown as TempAppContainerEl).dom.appContainerEl, this.inputEl);
 		}
 	}
 
 	open(container: HTMLElement, inputEl: HTMLElement): void {
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		(<any>this.app).keymap.pushScope(this.scope);
-
+		this.app.keymap.pushScope(this.scope);
 		container.appendChild(this.suggestEl);
 		this.popper = createPopper(inputEl, this.suggestEl, {
 			placement: "bottom-start",
@@ -154,11 +152,11 @@ export abstract class TextInputSuggest<T> implements ISuggestOwner<T> {
 						// second pass - position it with the width bound to the reference element
 						// we need to early exit to avoid an infinite loop
 						const targetWidth = `${state.rects.reference.width}px`;
-						if (state.styles.popper.width === targetWidth) {
+						if (state.styles.popper!.width === targetWidth) {
 							return;
 						}
-						state.styles.popper.width = targetWidth;
-						instance.update();
+						state.styles.popper!.width = targetWidth;
+						void instance.update();
 					},
 					phase: "beforeWrite",
 					requires: ["computeStyles"],
@@ -168,8 +166,7 @@ export abstract class TextInputSuggest<T> implements ISuggestOwner<T> {
 	}
 
 	close(): void {
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		(<any>this.app).keymap.popScope(this.scope);
+		this.app.keymap.popScope(this.scope);
 
 		this.suggest.setSuggestions([]);
 		this.popper.destroy();

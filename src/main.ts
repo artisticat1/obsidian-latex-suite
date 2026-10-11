@@ -1,33 +1,157 @@
-import { Extension, Prec } from "@codemirror/state";
-import { Plugin, Notice, loadMathJax, addIcon } from "obsidian";
-import { onFileCreate, onFileChange, onFileDelete, getSnippetsFromFiles, getFileSets, getVariablesFromFiles, tryGetVariablesFromUnknownFiles } from "./settings/file_watch";
-import { LatexSuitePluginSettings, DEFAULT_SETTINGS, LatexSuiteCMSettings, processLatexSuiteSettings } from "./settings/settings";
-import { LatexSuiteSettingTab } from "./settings/settings_tab";
+import { type Extension, Prec } from "@codemirror/state";
+import { Plugin, Notice, loadMathJax, addIcon, debounce } from "obsidian";
+import { getSnippetsFromFiles, getVariablesFromFiles, fileWatch, getSnippetVariableFiles, getSnippetFiles, noticeManager } from "./settings/file_watch";
+import { type LatexSuitePluginSettings, DEFAULT_SETTINGS, type LatexSuiteCMSettings, processLatexSuiteSettings, type LatexSuiteBasicSettings, type LatexSuiteRawSettings, isLogLevelEnabled } from "./settings/settings";
+import { isIMESupported, LatexSuiteSettingTab } from "./settings/settings_tab";
 import { ICONS } from "./settings/ui/icons";
 
-import { getEditorCommands } from "./features/editor_commands";
+import { getEditorCommands, getVimEditorCommands, getVimRunMatrixEnterCommand } from "./features/editor_commands";
 import { getLatexSuiteConfigExtension } from "./snippets/codemirror/config";
-import { SnippetVariables, parseSnippetVariables, parseSnippets } from "./snippets/parse";
-import { handleUpdate, onKeydown } from "./latex_suite";
-import { EditorView, tooltips } from "@codemirror/view";
+import { type SnippetVariables, parseSnippetVariables, parseSnippets } from "./snippets/parse";
+import { handleUpdate, onInput, keyboardEventPlugin, snippetStateField } from "./latex_suite";
+import { EditorView } from "@codemirror/view";
 import { snippetExtensions } from "./snippets/codemirror/extensions";
 import { mkConcealPlugin } from "./editor_extensions/conceal";
-import { colorPairedBracketsPluginLowestPrec, highlightCursorBracketsPlugin } from "./editor_extensions/highlight_brackets";
-import { cursorTooltipBaseTheme, cursorTooltipField } from "./editor_extensions/math_tooltip";
+import { colorPairedBracketsPlugin, colorPairedBracketsPluginLowestPrec, highlightCursorBracketsExtension, highlightCursorBracketsPlugin } from "./editor_extensions/highlight_brackets";
+import { cursorTooltipField, mathTooltipExtension, updateTooltipEffect } from "./editor_extensions/math_tooltip";
+import { contextPlugin, getContextPlugin } from "./editor_context/context";
+import { mathBoundsPlugin } from "./editor_context/mathbounds";
+import type { LatexSuitePluginPublicApi, UpdateHandler } from "./api";
+import * as v from "valibot"
+import { languageExtension, LanguageSetStateEffect, languageStateField, modifiedSyntaxTree, parseWorker } from "./parser/language";
+import { highlight_dollar_extension } from "./editor_extensions/highlight_dollar";
+import { EMPTY_SETTINGS } from "./settings/empty_settings";
+import i18next from "./i18n/i18n";
+import resources from "./i18n/resources";
+import { mathParserPlugin } from "./parser/parser_printer";
+import { endSnippet, snippetInvertedEffects, startSnippet, undidEndSnippet, undidStartSnippet } from "./snippets/codemirror/history";
+import { addTabstopsEffect, removeAllTabstopsEffect, tabstopsStateField } from "./snippets/codemirror/tabstops_state_field";
+import { getFileConfigExtension, notice } from "./editor_extensions/obsidian_utils";
+import { snippetQueuePlugin } from "./snippets/codemirror/snippet_queue_state_field";
+import { autoEnlargeBrackets } from "./features/auto_enlarge_brackets";
+import { runAutoFraction } from "./features/autofraction";
+import { addCellMatrixShortcut, exitMatrixShortCut, newlineMatrixShortcut, priorityTaboutMatrixShortcut } from "./features/matrix_shortcuts";
+import { snippet, tempKeyPress } from "./snippets/snippet_management";
+import { snippetApi, type PluginSnippetApi } from "./snippets/luasnip_api";
+import { default_mapping, MappingSchema, type RawConcealMapping } from "./editor_extensions/conceal_maps";
+import { serializeSnippetLike } from "./snippets/snippets";
+import { mathlessArgsSchema, type MathlessMacroArgs } from "./editor_context/default_text_areas";
 
-export default class LatexSuitePlugin extends Plugin {
-	settings: LatexSuitePluginSettings;
-	CMSettings: LatexSuiteCMSettings;
+export default class LatexSuitePlugin extends Plugin implements LatexSuitePluginPublicApi {
+	settings: LatexSuitePluginSettings = EMPTY_SETTINGS;
+	CMSettings: LatexSuiteCMSettings = processLatexSuiteSettings(this.settings, {
+		snippets: [],
+		snippetVariables: {},
+		rawConcealMaps: [],
+		updateHandlers: [],
+	});
+	baseRawConcealMaps: RawConcealMapping[] = [default_mapping];
+	rawConcealMaps: RawConcealMapping[] = [];
+	rawMacroArgs: MathlessMacroArgs[] = [];
 	editorExtensions: Extension[] = [];
+	watcherCloser?: () => void;
+	disableMath = (view: EditorView) => {
+		try {
+			getContextPlugin(view, false).disableMath();
+		} catch (e) {
+			console.error("Error occurred while disabling math:", e);
+		}
+	};
+	modifiedSyntaxTree = modifiedSyntaxTree;
+	onUpdate = (callback: UpdateHandler) => {
+		this.updateHandlers.push(callback);
+	};
+	beforeImport = (callback: () => void) => {
+		this.beforeImportHandlers.push(callback);
+	}
+	snippet = snippet;
+	addRawConcealMaps = (rawConcealMaps: Record<string, unknown>) => {
+		try {
+			const parsedMap = v.parse(MappingSchema, rawConcealMaps);
+			this.rawConcealMaps.push(parsedMap);
+		} catch (err) {
+			const e = err as Error;
+			const error_message = `Value does not resemble a valid conceal mapping. \n${serializeSnippetLike(rawConcealMaps)}\n\n${e}`;
+			console.error(error_message);
+			noticeManager.addNotice(new Notice(error_message, 5000));
+		}
+	}
+	addMathlessMacros = (macros: MathlessMacroArgs) => {
+		try {
+			const parsedMacros = v.parse(mathlessArgsSchema, macros);
+			this.rawMacroArgs.push(parsedMacros);
+		} catch (err) {
+			const e = err as Error;
+			const error_message = `Value does not resemble a valid mathless macro. \n${serializeSnippetLike(macros)}\n\n${e}`;
+			console.error(error_message);
+			noticeManager.addNotice(new Notice(error_message, 5000));
+		}
+	}
+	pluginSnippetApi: PluginSnippetApi = {
+		addRawConcealMaps: this.addRawConcealMaps,
+		addMathlessMacros: this.addMathlessMacros,
+		addUpdateHandler: this.onUpdate,
+	}
+	updateHandlers: UpdateHandler[] = []
+	beforeImportHandlers: (() => void)[] = [() => {
+		this.updateHandlers.length = 0;
+		this.rawConcealMaps.length = 0;
+		this.rawMacroArgs.length = 0;
+	}]
+	api = {
+		effects: {
+			snippetInvertedEffects,
+			startSnippet,
+			endSnippet,
+			undidStartSnippet,
+			undidEndSnippet,
+			LanguageSetStateEffect,
+			addTabstopsEffect,
+			removeAllTabstopsEffect,
+			updateTooltipEffect,
+		},
+		fields: {
+			cursorTooltipField,
+			notice,
+			languageStateField,
+			tabstopsStateField,
+		},
+		annotations: {
+			tempKeyPress,
+		},
+		plugin: {
+			keyboardEventPlugin,
+			colorPairedBracketsPlugin,
+			highlightCursorBracketsPlugin,
+			parseWorker,
+			mathParserPlugin,
+			snippetQueuePlugin,
+			contextPlugin,
+			mathBoundsPlugin
+		},
+		shortcuts: {
+			autoEnlargeBrackets,
+			runAutoFraction,
+			exitMatrixShortCut,
+			addCellMatrixShortcut,
+			newlineMatrixShortcut,
+			getVimRunMatrixEnterCommand,
+			priorityTaboutMatrixShortcut,
+			snippet,
+		},
+		snippetApi
+	}
 
 	async onload() {
+		i18next.addResourceBundle("en", "settings", resources.en.settings)
 		await this.loadSettings();
 
 		this.loadIcons();
 		this.addSettingTab(new LatexSuiteSettingTab(this.app, this));
-		loadMathJax();
+		await loadMathJax();
 
 		this.legacyEditorWarning();
+		this.IMEEditorWarning();
 
 		// Register Latex Suite extensions and optional editor extensions for editor enhancements
 		this.registerEditorExtension(this.editorExtensions);
@@ -41,112 +165,170 @@ export default class LatexSuitePlugin extends Plugin {
 	onunload() {}
 
 	legacyEditorWarning() {
-		// @ts-ignore
-		if (this.app.vault.config?.legacyEditor) {
-			const message = "Obsidian Latex Suite: This plugin does not support the legacy editor. Switch to Live Preview mode to use this plugin.";
+		// legacy editor existed till 1.5.0
+		type TempOldAppVault = { config?: { legacyEditor: boolean } };
+		if ((this.app.vault as TempOldAppVault).config?.legacyEditor) {
+			const message = "Latex Suite: This plugin does not support the legacy editor. Switch to Live Preview mode to use this plugin.";
 
 			new Notice(message, 100000);
-			console.log(message);
+			console.error(message);
 
 			return;
 		}
 	}
 
+	IMEEditorWarning() {
+		if (isIMESupported() && !this.settings.suppressIMEWarning && this.settings.suppressSnippetTriggerOnIME) {
+			const message = createFragment();
+			message.appendText("Latex Suite: this plugin supports your IME keyboard, but ");
+			message.createEl("code", { text: "Advanced settings > Don't trigger snippets when IME is active" });
+			message.appendText(" is currently enabled. You may want to disable it in the plugin settings to fully enable automatic snippets. Be aware that this may cause unexpected snippet triggers while using your IME. To turn this warning off, enable ");
+			message.createEl("code", { text: "Advanced settings > Suppress IME warning" });
+			message.appendText(".");
+			new Notice(message, 10000);
+			console.warn(message);
+		}
+	}
+
 	async loadSettings() {
-		let data = await this.loadData();
+
+		// data can be empty.
+		let data = v.parse(v.record(v.string(), v.any()), await this.loadData() ?? {});
 
 		// Migrate settings from v1.8.0 - v1.8.4
 		const shouldMigrateSettings = data ? "basicSettings" in data : false;
 
 		// @ts-ignore
-		function migrateSettings(oldSettings) {
+		function migrateSettings(oldSettings: unknown): Partial<LatexSuitePluginSettings> {
+			const settings = oldSettings as {basicSettings: LatexSuiteBasicSettings, rawSettings: LatexSuiteRawSettings} & {snippets: string};
 			return {
-				...oldSettings.basicSettings,
-				...oldSettings.rawSettings,
-				snippets: oldSettings.snippets,
+				...settings.basicSettings,
+				...settings.rawSettings,
+				snippets: settings.snippets,
 			};
 		}
 
 		if (shouldMigrateSettings) {
 			data = migrateSettings(data);
 		}
-
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, data);
+		this.settings = {...DEFAULT_SETTINGS, ...(data as Partial<LatexSuitePluginSettings>)}
 
 		if (shouldMigrateSettings) {
-			this.saveSettings();
+			await this.saveSettings();
 		}
 
 		if (this.settings.loadSnippetsFromFile || this.settings.loadSnippetVariablesFromFile) {
-			const tempSnippetVariables = await this.getSettingsSnippetVariables();
-			const tempSnippets = await this.getSettingsSnippets(tempSnippetVariables);
-
-			this.CMSettings = processLatexSuiteSettings(tempSnippets, this.settings);
-
 			// Use onLayoutReady so that we don't try to read the snippets file too early
 			this.app.workspace.onLayoutReady(() => {
-				this.processSettings();
+				void this.processSettings(false, true);
 			});
 		}
 		else {
-			await this.processSettings();
+			await this.processSettings(false, true);
 		}
 	}
 
-	async saveSettings(didFileLocationChange = false) {
+	async saveSettings(didFileLocationChange = false, didFileUpdated = false) {
 		await this.saveData(this.settings);
-		this.processSettings(didFileLocationChange);
+		await this.processSettings(didFileLocationChange, didFileUpdated);
 	}
 
 	async getSettingsSnippetVariables() {
+		let snippetVariables: SnippetVariables = {};
+		let failures = 0;
 		try {
-			return await parseSnippetVariables(this.settings.snippetVariables);
-		} catch (e) {
+			snippetVariables = await parseSnippetVariables(this.settings.snippetVariables, "snippet-variables.js");
+		} catch (err) {
+			const e = err as Error;
 			new Notice(`Failed to load snippet variables from settings: ${e}`);
-			console.log(`Failed to load snippet variables from settings: ${e}`);
-			return {};
+			console.error(`Failed to load snippet variables from settings: ${e}`);
+			failures++;
+		}
+		return {
+			snippetVariables,
+			failures,
+			unknownFiles: [],
 		}
 	}
 
 	async getSettingsSnippets(snippetVariables: SnippetVariables) {
 		try {
-			return await parseSnippets(this.settings.snippets, snippetVariables);
-		} catch (e) {
+			return await parseSnippets(this.settings.snippets, snippetVariables, "snippets.js", this.pluginSnippetApi);
+		} catch (err) {
+			const e = err as Error;
 			new Notice(`Failed to load snippets from settings: ${e}`);
-			console.log(`Failed to load snippets from settings: ${e}`);
+			console.error(`Failed to load snippets from settings: ${e}`);
 			return [];
 		}
 	}
 
 	async getSnippets(becauseFileLocationUpdated: boolean, becauseFileUpdated: boolean) {
+		// don't recompute if unnecessary.
+		if (!becauseFileLocationUpdated && !becauseFileUpdated) {
+			return {
+				snippets: this.CMSettings.snippets.all,
+				snippetVariables: this.CMSettings.snippetVariables,
+			};
+		}
+		// reset the maps such that the caller can reinsert them without worrying about duplicates.
+		this.beforeImportHandlers.forEach(callback => callback());
 		// Get files in snippet/variable folders.
-		// If either is set to be loaded from settings the set will just be empty.
-		const files = getFileSets(this);
+		// If either is set to be loaded from settings the generator will just be empty.
+		const variableFiles = getSnippetVariableFiles(this);
+		const snippetFiles = getSnippetFiles(this);
 
+		
 		const snippetVariables =
 			this.settings.loadSnippetVariablesFromFile
-				? await getVariablesFromFiles(this, files)
+				? await getVariablesFromFiles(variableFiles)
 				: await this.getSettingsSnippetVariables();
-
-		// This must be done in either case, because it also updates the set of snippet files
-		const unknownFileVariables = await tryGetVariablesFromUnknownFiles(this, files);
-		if (this.settings.loadSnippetVariablesFromFile) {
-			// But we only use the values if the user wants them
-			Object.assign(snippetVariables, unknownFileVariables);
+		if (snippetVariables === null) {
+			this.settings.loadSnippetVariablesFromFile = false;
+			return null;
+		}
+		const allSnippetFiles = async function* () {
+			for await (const file of snippetFiles) {
+				yield file;
+			}
+			for (const file of snippetVariables.unknownFiles) {
+				yield file;
+			}
 		}
 
-		const snippets =
-			this.settings.loadSnippetsFromFile
-				? await getSnippetsFromFiles(this, files, snippetVariables)
-				: await this.getSettingsSnippets(snippetVariables);
+		const snippets = this.settings.loadSnippetsFromFile
+			? await getSnippetsFromFiles(
+					allSnippetFiles(),
+					snippetVariables.snippetVariables,
+					snippetVariables.failures,
+					this.pluginSnippetApi
+				)
+			: await this.getSettingsSnippets(snippetVariables.snippetVariables);
+		if (snippets === null) {
+			this.settings.loadSnippetsFromFile = false;
+			return null;
+		}
 
-		this.showSnippetsLoadedNotice(snippets.length, Object.keys(snippetVariables).length,  becauseFileLocationUpdated, becauseFileUpdated);
+		this.showSnippetsLoadedNotice(snippets.length, Object.keys(snippetVariables.snippetVariables).length,  becauseFileLocationUpdated);
 
-		return snippets;
+		return {
+			snippets,
+			snippetVariables: snippetVariables.snippetVariables,
+		}
 	}
 
 	async processSettings(becauseFileLocationUpdated = false, becauseFileUpdated = false) {
-		this.CMSettings = processLatexSuiteSettings(await this.getSnippets(becauseFileLocationUpdated, becauseFileUpdated), this.settings);
+		if (becauseFileLocationUpdated) {
+			this.watchFiles();
+		}
+		const snippetAndVariables = await this.getSnippets(becauseFileLocationUpdated, becauseFileUpdated) ?? {
+			snippets: [],
+			snippetVariables: {},
+		}
+		this.CMSettings = processLatexSuiteSettings(this.settings, {
+			...snippetAndVariables,
+			rawConcealMaps: [...this.baseRawConcealMaps, ...this.rawConcealMaps],
+			updateHandlers: this.updateHandlers,
+		});
 		this.setEditorExtensions();
 		// Request Obsidian to reconfigure CM extensions
 		this.app.workspace.updateOptions();
@@ -161,33 +343,40 @@ export default class LatexSuitePlugin extends Plugin {
 
 		// Compulsory extensions
 		this.editorExtensions.push([
+			Prec.highest(mathBoundsPlugin.extension),
+			Prec.highest(contextPlugin.extension),
 			getLatexSuiteConfigExtension(this.CMSettings),
-			Prec.highest(EditorView.domEventHandlers({ "keydown": onKeydown })),
+			Prec.highest(keyboardEventPlugin.extension),
+			Prec.highest(EditorView.inputHandler.of(onInput)),
 			EditorView.updateListener.of(handleUpdate),
 			snippetExtensions,
+			languageExtension,
+			getFileConfigExtension(() => this.app.workspace.getActiveFile() ?? null),
+			snippetStateField,
 		]);
 
 		// Optional extensions
 		if (this.CMSettings.concealEnabled) {
-			const timeout = this.CMSettings.concealRevealTimeout;
-			this.editorExtensions.push(mkConcealPlugin(timeout).extension);
+			this.editorExtensions.push(mkConcealPlugin());
 		}
 		if (this.CMSettings.colorPairedBracketsEnabled)
 			this.editorExtensions.push(colorPairedBracketsPluginLowestPrec);
 		if (this.CMSettings.highlightCursorBracketsEnabled)
-			this.editorExtensions.push(highlightCursorBracketsPlugin.extension);
+			this.editorExtensions.push(highlightCursorBracketsExtension);
 		if (this.CMSettings.mathPreviewEnabled)
-			this.editorExtensions.push([
-				cursorTooltipField.extension,
-				cursorTooltipBaseTheme,
-				tooltips({ position: "absolute" }),
-			]);
+			this.editorExtensions.push(mathTooltipExtension);
+		if (this.CMSettings.highlightDollarEnabled) {
+			this.editorExtensions.push(highlight_dollar_extension);
+		}
+		if (isLogLevelEnabled(this.CMSettings.logLevel, "verbose")) {
+			this.editorExtensions.push(mathParserPlugin);
+		}
+		if (isLogLevelEnabled(this.CMSettings.snippetDebug, "info")) {
+			this.editorExtensions.push(notice);
+		}
 	}
 
-	showSnippetsLoadedNotice(nSnippets: number, nSnippetVariables: number, becauseFileLocationUpdated: boolean, becauseFileUpdated: boolean) {
-		if (!(becauseFileLocationUpdated || becauseFileUpdated))
-			return;
-
+	showSnippetsLoadedNotice(nSnippets: number, nSnippetVariables: number, becauseFileLocationUpdated: boolean) {
 		const prefix = becauseFileLocationUpdated ? "Loaded " : "Successfully reloaded ";
 		const body = [];
 
@@ -204,26 +393,35 @@ export default class LatexSuitePlugin extends Plugin {
 		for (const command of getEditorCommands(this)) {
 			this.addCommand(command);
 		}
+		vimcommand:  {
+			//check if vim is enabled and accessible
+			if (!this.app.isVimEnabled?.()) break vimcommand;
+			if (!this.settings.vimEnabled) break vimcommand;
+			const vimObject = window?.CodeMirrorAdapter?.Vim;
+			if (!vimObject) break vimcommand;
+			for (const command of getVimEditorCommands(this.settings)) {
+				vimObject[command.defineType](command.id, command.action);
+				vimObject.mapCommand(command.key, command.type, command.id, {}, { context: command.context });
+			}
+		}
+
 	}
+
+	createWatcherCloser = debounce(async () => {
+		this.watcherCloser?.();
+		const newWatcherCloser = await fileWatch(this);
+		this.register(() => {
+			newWatcherCloser();
+		});
+		this.watcherCloser = newWatcherCloser ?? undefined;
+	}, 3000, true);
 
 	watchFiles() {
 		// Only begin watching files once the layout is ready
 		// Otherwise, we'll be unnecessarily reacting to many onFileCreate events of snippet files
 		// that occur when Obsidian first loads
 
-		this.app.workspace.onLayoutReady(() => {
-
-			const eventsAndCallbacks = {
-				"modify": onFileChange,
-				"delete": onFileDelete,
-				"create": onFileCreate
-			};
-
-			for (const [key, value] of Object.entries(eventsAndCallbacks)) {
-				// @ts-expect-error
-				this.registerEvent(this.app.vault.on(key, (file) => value(this, file)));
-			}
-		});
+		this.app.workspace.onLayoutReady(this.createWatcherCloser);
 	}
 
 	loadIcons() {

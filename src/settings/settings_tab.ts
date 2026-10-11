@@ -1,19 +1,25 @@
-import { EditorState, Extension } from "@codemirror/state";
-import { EditorView, ViewUpdate } from "@codemirror/view";
-import { App, ButtonComponent, ExtraButtonComponent, Modal, PluginSettingTab, Setting, debounce, setIcon } from "obsidian";
+import { EditorView } from "@codemirror/view";
+import { App, Component, Notice, Platform, PluginSettingTab, Setting, type SettingDefinitionItem, debounce, setIcon } from "obsidian";
 import { parseSnippetVariables, parseSnippets } from "src/snippets/parse";
-import { DEFAULT_SNIPPETS } from "src/utils/default_snippets";
 import LatexSuitePlugin from "../main";
-import { DEFAULT_SETTINGS } from "./settings";
+import { DEFAULT_SETTINGS, validateTextMacros, type LatexSuitePluginSettings } from "./settings";
 import { FileSuggest } from "./ui/file_suggest";
-import { basicSetup } from "./ui/snippets_editor/extensions";
+import { getVimSelectModeCommand, type vimCommand, getVimVisualModeCommand, getVimEditorCommands, getVimRunMatrixEnterCommand } from "src/features/editor_commands";
+import { createSnippetsEditor, LatexSuiteSettingsTab2, renderHtml } from "./settings_tab2";
+import { settings_translation as t } from "../i18n/i18n"
+import { MappingSchema } from "src/editor_extensions/conceal_maps";
+import * as v from "valibot";
 
 
 export class LatexSuiteSettingTab extends PluginSettingTab {
 	plugin: LatexSuitePlugin;
-	snippetsEditor: EditorView;
-	snippetsFileLocEl: HTMLElement;
-	snippetVariablesFileLocEl: HTMLElement;
+	snippetsEditor: EditorView | null = null;
+	snippetVariablesEditor: EditorView | null = null;
+	textMacrosEditor: EditorView | null = null;
+	concealMapsEditor: EditorView | null = null;
+	snippetsFileLocEl: HTMLElement | undefined = undefined;
+	snippetVariablesFileLocEl: HTMLElement | undefined = undefined;
+	component = new Component()
 
 	constructor(app: App, plugin: LatexSuitePlugin) {
 		super(app, plugin);
@@ -22,22 +28,45 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 	hide() {
 		this.snippetsEditor?.destroy();
+		this.snippetVariablesEditor?.destroy();
+		this.concealMapsEditor?.destroy();
+		this.textMacrosEditor?.destroy();
+		
+	}
+	async setControlValue(key: string, value: unknown): Promise<void> {
+		if (!(Object.prototype.hasOwnProperty.call(DEFAULT_SETTINGS, key))) {
+			console.error(`Invalid setting key: ${key}`);
+			return;
+		}
+		const settings = this.plugin.settings as unknown as Record<string, unknown>
+		settings[key] = value;
+		const verifiedKey = key as keyof LatexSuitePluginSettings;
+		const didFileLocationChange = verifiedKey === "loadSnippetsFromFile" || verifiedKey === "loadSnippetVariablesFromFile";
+		await this.plugin.saveSettings(didFileLocationChange, false);
+	}
+
+	getSettingDefinitions(): SettingDefinitionItem[] {
+		return new LatexSuiteSettingsTab2(this.app, this.plugin).getSettingDefinitions();
 	}
 
 	addHeading(containerEl: HTMLElement, name: string, icon = "math") {
 		const heading = new Setting(containerEl).setName(name).setHeading();
 
 		const parentEl = heading.settingEl;
+		parentEl.addClass("latex-suite-settings-heading");
 		const iconEl = parentEl.createDiv();
 		setIcon(iconEl, icon);
 		iconEl.addClass("latex-suite-settings-icon");
 
 		parentEl.prepend(iconEl);
+		return heading;
 	}
+
 
 	display(): void {
 		const { containerEl } = this;
 		containerEl.empty();
+		this.component.unload();
 
 		this.displaySnippetSettings();
 		this.displayConcealSettings();
@@ -48,6 +77,9 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		this.displayTaboutSettings();
 		this.displayAutoEnlargeBracketsSettings();
 		this.displayAdvancedSnippetSettings();
+		this.displayKeymapSettings();
+		this.displayExperimentalSettings();
+		this.component.load();
 	}
 
 	private displaySnippetSettings() {
@@ -71,7 +103,12 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			.setClass("snippets-text-area");
 
 
-		this.createSnippetsEditor(snippetsSetting);
+		this.snippetsEditor = createSnippetsEditor(snippetsSetting, this.plugin, {
+			type: "snippets",
+			validate: async (value) => {
+				await parseSnippets(value, this.plugin.CMSettings.snippetVariables, "snippets.js", this.plugin.pluginSnippetApi);
+			}
+		});
 
 
 		new Setting(containerEl)
@@ -86,14 +123,13 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					if (this.snippetsFileLocEl != undefined)
 						this.snippetsFileLocEl.toggleClass("hidden", !value);
 
-					await this.plugin.saveSettings();
+					await this.plugin.saveSettings(true);
 				}));
 
 
 		const snippetsFileLocDesc = new DocumentFragment();
 		snippetsFileLocDesc.createDiv({}, div => {
-			div.innerHTML = `
-			The file or folder to load snippets from. The file or folder must be within your vault, and not within a hidden folder (such as <code>.obsidian/</code>).`;
+			div.appendText("The file or folder to load snippets from. On desktop you can use ~/ or an absolute path. Files outside your vault or in hidden folders may not be watched for changes depending on your os.")
 		});
 
 		const snippetsFileLoc = new Setting(containerEl)
@@ -112,10 +148,10 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 			inputEl = component.inputEl;
 			inputEl.addClass("latex-suite-location-input-el");
+			new FileSuggest(this.app, inputEl);
 		});
 
 		this.snippetsFileLocEl = snippetsFileLoc.settingEl;
-		new FileSuggest(this.app, inputEl);
 
 
 		// Hide settings that are not relevant when "loadSnippetsFromFile" is set to true/false
@@ -123,35 +159,13 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		snippetsSetting.settingEl.toggleClass("hidden", loadSnippetsFromFile);
 		this.snippetsFileLocEl.toggleClass("hidden", !loadSnippetsFromFile);
 
-
-		new Setting(containerEl)
-			.setName("Key trigger for non-auto snippets")
-			.setDesc("What key to press to expand non-auto snippets.")
-			.addDropdown((dropdown) => dropdown
-				.addOption("Tab", "Tab")
-				.addOption(" ", "Space")
-				.setValue(this.plugin.settings.snippetsTrigger)
-				.onChange(async (value) => {
-					this.plugin.settings.snippetsTrigger = value as "Tab" |
-						" ";
-					await this.plugin.saveSettings();
-				})
-			);
 	}
 
 	private displayConcealSettings() {
 		const containerEl = this.containerEl;
 		this.addHeading(containerEl, "Conceal", "math-integral-x");
 
-		const fragment = new DocumentFragment();
-		fragment.createDiv({}, div => div.setText("Make equations more readable by hiding LaTeX syntax and instead displaying it in a pretty format."));
-		fragment.createDiv({}, div => div.innerHTML = `
-			e.g. <code>\\dot{x}^{2} + \\dot{y}^{2}</code> will display as ẋ² + ẏ², and <code>\\sqrt{ 1-\\beta^{2} }</code> will display as √{ 1-β² }.
-		`);
-		fragment.createDiv({}, div => div.setText("LaTeX beneath the cursor will be revealed."));
-		fragment.createEl("br");
-		fragment.createDiv({}, div => div.setText("Disabled by default to not confuse new users. However, I recommend turning this on once you are comfortable with the plugin!"));
-
+		const fragment = renderHtml(t("conceal.enabled.desc"))
 		new Setting(containerEl)
 			.setName("Enabled")
 			.setDesc(fragment)
@@ -163,13 +177,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				})
 			);
 
-		const fragment2 = new DocumentFragment();
-		fragment2.createDiv({}, div => div.setText("How long to delay the reveal of LaTeX for, in milliseconds, when the cursor moves over LaTeX. Defaults to 0 (LaTeX under the cursor is revealed immediately)."));
-		fragment2.createEl("br");
-		fragment2.createDiv({}, div => div.setText("Can be set to a positive number, e.g. 300, to delay the reveal of LaTeX, making it much easier to navigate equations using arrow keys."));
-		fragment2.createEl("br");
-		fragment2.createDiv({}, div => div.setText("Must be an integer ≥ 0."));
-
+		const fragment2 = renderHtml(t("conceal.reveal-delay.desc"))
 		new Setting(containerEl)
 			.setName("Reveal delay (ms)")
 			.setDesc(fragment2)
@@ -181,11 +189,24 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					const ok = /^\d+$/.test(value);
 					if (ok) {
 						this.plugin.settings.concealRevealTimeout = Number(value);
-						this.plugin.saveSettings();
+						void this.plugin.saveSettings();
 					}
 				})
 			);
 
+		const concealMapsSetting = new Setting(containerEl)
+			.setName(t("conceal.conceal-maps.name"))
+			.setDesc(this.renderHtml(t("conceal.conceal-maps.desc")))
+		this.concealMapsEditor = createSnippetsEditor(concealMapsSetting, this.plugin, {
+			type: "concealMaps",
+			validate: async (value) => {
+				const parsed = v.safeParse(v.pipe(v.string(), v.parseJson(), MappingSchema), value)
+				if (parsed.success) {
+					return
+				}
+				return parsed.issues.map(issue => issue.message)
+			}
+		})
 	}
 
 	private displayColorHighlightBracketsSettings() {
@@ -210,32 +231,35 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					this.plugin.settings.highlightCursorBracketsEnabled = value;
 					await this.plugin.saveSettings();
 				}));
+		new Setting(containerEl)
+			.setName("Highlight math delimiters")
+			.setDesc("Whether to highlight matched and mismatched math delimiters in the editor according to latex suite parser. This parser behaves closer to the reading view parser than the editor/syntax highlighting parser.")
+			.addToggle((toggle) => toggle
+				.setValue(this.plugin.settings.highlightDollarEnabled)
+				.onChange(async (value) => {
+					this.plugin.settings.highlightDollarEnabled = value;
+					await this.plugin.saveSettings();
+				})
+			);
 	}
 
 	private displayPopupPreviewSettings() {
 		const containerEl = this.containerEl;
 		this.addHeading(containerEl, "Math popup preview", "superscript");
 
-		const popup_fragment = document.createDocumentFragment();
-		const popup_line1 = document.createElement("div");
+		const popup_fragment = new DocumentFragment();
+		const popup_line1 = popup_fragment.createDiv();
 		popup_line1.setText("When inside an equation, show a popup preview window of the rendered math.");
-		const popup_space = document.createElement("br");
-		const popup_line2 = document.createElement("div");
+		const popup_space = popup_fragment.createEl("br");
+		const popup_line2 = popup_fragment.createDiv();
 		popup_line2.setText("The popup preview will be shown for all inline math equations, as well as for block math equations in Source mode.");
 		popup_fragment.append(popup_line1, popup_space, popup_line2);
 
-		new Setting(containerEl)
+		const mathPreviewSetting = new Setting(containerEl)
 			.setName("Enabled")
 			.setDesc(popup_fragment)
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.mathPreviewEnabled)
-				.onChange(async (value) => {
-					this.plugin.settings.mathPreviewEnabled = value;
 
-					await this.plugin.saveSettings();
-				}));
-
-		new Setting(containerEl)
+		const positionSetting = new Setting(containerEl)
 			.setName("Position")
 			.setDesc("Where to display the popup preview relative to the equation source.")
 			.addDropdown((dropdown) => dropdown
@@ -247,6 +271,67 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				})
 			);
+		const cursorSetting = new Setting(containerEl)
+			.setName("Cursor symbol")
+			.setDesc(`The symbol to use as the cursor in the popup preview such as ${DEFAULT_SETTINGS.mathPreviewCursor}. Leave it blank to turn it off.`)
+			.addText(text => {
+				text
+					.setPlaceholder(DEFAULT_SETTINGS.mathPreviewCursor)
+					.setValue(this.plugin.settings.mathPreviewCursor)
+					.onChange(async (value) => {
+						this.plugin.settings.mathPreviewCursor = value;
+						await this.plugin.saveSettings();
+					});
+
+				const datalist = containerEl.createEl("datalist", {attr: { id: "math-preview-cursor-list" }});
+				["▶", "┃", "|", "\\_", "{\\mid}", "{\\triangle}"].forEach(s => datalist.createEl("option", { value: s }));
+				text.inputEl.setAttribute("list", "math-preview-cursor-list");
+				return text;
+			});
+
+		const highlightSetting = new Setting(containerEl)
+			.setName("Highlight brackets in preview")
+			.setDesc("Whether to highlight the area within the nearest pair of brackets around the cursor in the popup preview.")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.mathPreviewBracketHighlighting)
+				.onChange(async (value) => {
+					this.plugin.settings.mathPreviewBracketHighlighting = value;
+					await this.plugin.saveSettings();
+				}));
+
+		const livePreviewDisplay = new Setting(containerEl)
+			.setName("Display live preview")
+			.setDesc(
+				"Whether to display the tooltip in live preview mode. " +
+					"The cursor and bracket highlighting will only be shown in this preview and not in obsidian's preview. ",
+			)
+			.addToggle((toggle) =>
+				toggle
+				.setValue(this.plugin.settings.mathPreviewLivePreviewDisplay)
+				.onChange(async (value) => {
+					this.plugin.settings.mathPreviewLivePreviewDisplay =
+						value;
+					await this.plugin.saveSettings();
+				}));
+
+		const mathPreviewDependentSettings = [positionSetting, cursorSetting, highlightSetting, livePreviewDisplay];
+		mathPreviewDependentSettings.forEach((setting) =>
+			setting.settingEl.toggleClass(
+				"hidden",
+				!this.plugin.settings.mathPreviewEnabled,
+			),
+		);
+
+		mathPreviewSetting.addToggle(toggle =>
+			toggle
+				.setValue(this.plugin.settings.mathPreviewEnabled)
+				.onChange(async (value) => {
+					this.plugin.settings.mathPreviewEnabled = value;
+					mathPreviewDependentSettings.forEach((setting) =>
+						setting.settingEl.toggleClass("hidden", !value),
+					);
+					await this.plugin.saveSettings();
+				}));
 	}
 
 	private displayAutofractionSettings() {
@@ -266,14 +351,20 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setName("Fraction symbol")
 			.setDesc("The fraction symbol to use in the replacement. e.g. \\frac, \\dfrac, \\tfrac")
-			.addText(text => text
-				.setPlaceholder(DEFAULT_SETTINGS.autofractionSymbol)
-				.setValue(this.plugin.settings.autofractionSymbol)
-				.onChange(async (value) => {
-					this.plugin.settings.autofractionSymbol = value;
+			.addText(text => {
+				text
+					.setPlaceholder(DEFAULT_SETTINGS.autofractionSymbol)
+					.setValue(this.plugin.settings.autofractionSymbol)
+					.onChange(async (value) => {
+						this.plugin.settings.autofractionSymbol = value;
 
-					await this.plugin.saveSettings();
-				}));
+						await this.plugin.saveSettings();
+					});
+
+				const datalist = containerEl.createEl("datalist", { attr: { id: "autofraction-symbol-list" } });
+				["\\frac", "\\dfrac", "\\tfrac"].forEach(s => datalist.createEl("option", { value: s }));
+				text.inputEl.setAttribute("list", "autofraction-symbol-list");
+			});
 
 
 		new Setting(containerEl)
@@ -336,6 +427,17 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
+		new Setting(containerEl)
+			.setName("Macros")
+			.setDesc("A list of macro names to run the matrix shortcuts in, separated by commas.")
+			.addText(text => text
+				.setPlaceholder(DEFAULT_SETTINGS.matrixShortcutsMacroNames)
+				.setValue(this.plugin.settings.matrixShortcutsMacroNames)
+				.onChange(async (value) => {
+					this.plugin.settings.matrixShortcutsMacroNames = value;
+
+					await this.plugin.saveSettings();
+				}));
 		const trimWhitespaceSetting = new Setting(containerEl)
 			.setName("Trim Excess Whitespace")
 			.setDesc("When enabled, Tab and Enter will trim surrounding whitespace to prevent excessive spaces.")
@@ -345,7 +447,6 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					this.plugin.settings.matrixShortcutsWhitespaceTrimEnabled = value;
 
 					trimAlignmentSetting.settingEl.toggleClass("hidden", !value);
-
 					await this.plugin.saveSettings();
 				}));
 
@@ -414,8 +515,37 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.taboutEnabled)
 				.onChange(async (value) => {
 					this.plugin.settings.taboutEnabled = value;
+
+					taboutClosingBracketsSetting.settingEl.toggleClass("hidden", !value);
+					taboutExitEquationOnlyOnEOLSetting.settingEl.toggleClass("hidden", !value);
+
 					await this.plugin.saveSettings();
 				}));
+
+		const taboutClosingBracketsSetting =  new Setting(containerEl)
+			.setName("Closing brackets")
+			.setDesc("A list of closing brackets for tabout, separated by commas.")
+			.addText(text => text
+				.setPlaceholder(DEFAULT_SETTINGS.taboutClosingSymbols)
+				.setValue(this.plugin.settings.taboutClosingSymbols)
+				.onChange(async (value) => {
+					this.plugin.settings.taboutClosingSymbols = value;
+
+					await this.plugin.saveSettings();
+				}));
+
+		const taboutExitEquationOnlyOnEOLSetting = new Setting(containerEl)
+			.setName("Exit equation only on EOL")
+			.setDesc("Whether to exit the equation only when the cursor is at the end of the line.")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.taboutExitEquationOnlyOnEOL)
+				.onChange(async (value) => {
+					this.plugin.settings.taboutExitEquationOnlyOnEOL = value;
+					await this.plugin.saveSettings();
+				}));
+
+		taboutClosingBracketsSetting.settingEl.toggleClass("hidden", !this.plugin.settings.taboutEnabled);
+		taboutExitEquationOnlyOnEOLSetting.settingEl.toggleClass("hidden", !this.plugin.settings.taboutEnabled);
 	}
 
 	private displayAutoEnlargeBracketsSettings() {
@@ -444,6 +574,16 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 					await this.plugin.saveSettings();
 				}));
+
+		new Setting(containerEl)
+			.setName("Space")
+			.setDesc("Whether to add a space after \\left( and before \\right) or not")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.autoEnlargeBracketsSpace)
+				.onChange(async (value) => {
+					this.plugin.settings.autoEnlargeBracketsSpace = value;
+					await this.plugin.saveSettings();
+				}))
 	}
 
 	private displayAdvancedSnippetSettings() {
@@ -453,14 +593,12 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		const snippetVariablesSetting = new Setting(containerEl)
 			.setName("Snippet variables")
 			.setDesc("Assign snippet variables that can be used as shortcuts when writing snippets.")
-			.addTextArea(text => text
-				.setValue(this.plugin.settings.snippetVariables)
-				.onChange(async (value) => {
-					this.plugin.settings.snippetVariables = value;
-					await this.plugin.saveSettings();
-				})
-				.setPlaceholder(DEFAULT_SETTINGS.snippetVariables))
-			.setClass("latex-suite-snippet-variables-setting");
+		this.snippetVariablesEditor = createSnippetsEditor(snippetVariablesSetting, this.plugin, {
+			type: "snippetVariables",
+			validate: async (value) => {
+				await parseSnippetVariables(value, "snippetVariables.js");
+			}
+		})
 
 		new Setting(containerEl)
 			.setName("Load snippet variables from file or folder")
@@ -474,13 +612,12 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					if (this.snippetVariablesFileLocEl != undefined)
 						this.snippetVariablesFileLocEl.toggleClass("hidden", !value);
 
-					await this.plugin.saveSettings();
+					await this.plugin.saveSettings(true);
 				}));
 
 		const snippetVariablesFileLocDesc = new DocumentFragment();
 		snippetVariablesFileLocDesc.createDiv({}, (div) => {
-			div.innerHTML = `
-			The file or folder to load snippet variables from. The file or folder must be within your vault, and not within a hidden folder (such as <code>.obsidian/</code>).`;
+			div.appendText("The file or folder to load snippets from. On desktop you can use ~/ or an absolute path. Files outside your vault or in hidden folders may not be watched for changes depending on your os.")
 		});
 
 		const snippetVariablesFileLoc = new Setting(containerEl)
@@ -488,7 +625,6 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			.setDesc(snippetVariablesFileLocDesc);
 
 
-		let inputVariablesEl;
 		snippetVariablesFileLoc.addSearch(component => {
 			component
 				.setPlaceholder(DEFAULT_SETTINGS.snippetVariablesFileLocation)
@@ -498,13 +634,13 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings(true);
 				}, 500, true));
 
-			inputVariablesEl = component.inputEl;
+			const inputVariablesEl = component.inputEl;
 			inputVariablesEl.addClass("latex-suite-location-input-el");
+			new FileSuggest(this.app, inputVariablesEl);
 		}
 		);
 
 		this.snippetVariablesFileLocEl = snippetVariablesFileLoc.settingEl;
-		new FileSuggest(this.app, inputVariablesEl);
 
 
 		// Hide settings that are not relevant when "loadSnippetsFromFile" is set to true/false
@@ -544,13 +680,26 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				await this.plugin.saveSettings();
 			}));
 
-		new Setting(containerEl)
+		const suppressIMESetting = new Setting(containerEl)
 			.setName("Don't trigger snippets when IME is active")
-			.setDesc("Whether to suppress snippets triggering when an IME is active.")
+			.setDesc("Whether to suppress snippets triggering when an IME is active.");
+		const suppressIMEWarning = new Setting(containerEl)
+			.setName("Suppress IME warning")
+			.setDesc("Whether a warning is shown on startup if `Don't trigger snippets when IME is active` is enabled. Disable that setting if you are aware of the IME limitations. Currently only ios and android touch/swipe keyboards like gboard have support for IME. See https://github.com/artisticat1/obsidian-latex-suite/blob/main/DOCS.md#IME-keyboards for more info.")
+			.addToggle((toggle) => toggle
+				.setValue(this.plugin.settings.suppressIMEWarning)
+				.onChange(async (value) => {
+					this.plugin.settings.suppressIMEWarning = value;
+					await this.plugin.saveSettings();
+				})
+			);
+		suppressIMEWarning.settingEl.toggleClass("hidden", !(this.plugin.settings.suppressSnippetTriggerOnIME && isIMESupported()));
+		suppressIMESetting
 			.addToggle((toggle) => toggle
 				.setValue(this.plugin.settings.suppressSnippetTriggerOnIME)
 				.onChange(async (value) => {
 					this.plugin.settings.suppressSnippetTriggerOnIME = value;
+					suppressIMEWarning.settingEl.toggleClass("hidden", !(value && isIMESupported()));
 					await this.plugin.saveSettings();
 				})
 			);
@@ -566,133 +715,237 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 					await this.plugin.saveSettings();
 				}));
-	}
 
-	createSnippetsEditor(snippetsSetting: Setting) {
-		const customCSSWrapper = snippetsSetting.controlEl.createDiv("snippets-editor-wrapper");
-		const snippetsFooter = snippetsSetting.controlEl.createDiv("snippets-footer");
-		const validity = snippetsFooter.createDiv("snippets-editor-validity");
-
-		const validityIndicator = new ExtraButtonComponent(validity);
-		validityIndicator.setIcon("checkmark")
-			.extraSettingsEl.addClass("snippets-editor-validity-indicator");
-
-		const validityText = validity.createDiv("snippets-editor-validity-text");
-		validityText.addClass("setting-item-description");
-		validityText.style.padding = "0";
-
-
-		function updateValidityIndicator(success: boolean) {
-			validityIndicator.setIcon(success ? "checkmark" : "cross");
-			validityIndicator.extraSettingsEl.removeClass(success ? "invalid" : "valid");
-			validityIndicator.extraSettingsEl.addClass(success ? "valid" : "invalid");
-			validityText.setText(success ? "Saved" : "Invalid syntax. Changes not saved");
-		}
-
-
-		const extensions = basicSetup;
-
-		const change = EditorView.updateListener.of(async (v: ViewUpdate) => {
-			if (v.docChanged) {
-				const snippets = v.state.doc.toString();
-				let success = true;
-
-				let snippetVariables;
-				try {
-					snippetVariables = await parseSnippetVariables(this.plugin.settings.snippetVariables)
-					await parseSnippets(snippets, snippetVariables);
+		new Setting(containerEl)
+			.setName("Snippet debug mode")
+			.setDesc("Set the level of debug information to log about snippet expansion. Set to \"info\" or \"verbose\" to help identify issues with snippet syntax or why a snippet is not expanding. Verbose mode will log most information to the developer console on debug level.")
+			.addDropdown((dropdown) => dropdown
+				.addOption("off", "Off")
+				.addOption("info", "Info")
+				.addOption("verbose", "Verbose")
+				.setValue(this.plugin.settings.snippetDebug)
+				.onChange(async (value) => {
+					this.plugin.settings.snippetDebug = value as "off" | "info" | "verbose";
+					await this.plugin.saveSettings();
+				})
+			);
+		const textMacrosSetting = new Setting(containerEl)
+			.setName(t("advanced-snippets.text-macros.name"))
+			.setDesc(this.renderHtml(t("advanced-snippets.text-macros.desc")))
+		this.textMacrosEditor = createSnippetsEditor(textMacrosSetting, this.plugin, {
+			type: "textMacros",
+			validate: async (value) => {
+				const result = validateTextMacros(value);
+				if (!result.success) {
+					const message = result.issues.map(issue => issue.message)
+					console.error("Text macro validation failed:", message.join("\n"));
+					return message;
 				}
-				catch (e) {
-					success = false;
-				}
-
-				updateValidityIndicator(success);
-
-				if (!success) return;
-
-				this.plugin.settings.snippets = snippets;
-				await this.plugin.saveSettings();
 			}
 		});
-
-		extensions.push(change);
-
-		this.snippetsEditor = createCMEditor(this.plugin.settings.snippets, extensions);
-		customCSSWrapper.appendChild(this.snippetsEditor.dom);
-
-
-		const buttonsDiv = snippetsFooter.createDiv("snippets-editor-buttons");
-		const reset = new ButtonComponent(buttonsDiv);
-		reset.setIcon("switch")
-			.setTooltip("Reset to default snippets")
-			.onClick(async () => {
-				new ConfirmationModal(this.plugin.app,
-					"Are you sure? This will delete any custom snippets you have written.",
-					button => button
-						.setButtonText("Reset to default snippets")
-						.setWarning(),
-					async () => {
-						this.snippetsEditor.setState(EditorState.create({ doc: DEFAULT_SNIPPETS, extensions: extensions }));
-						updateValidityIndicator(true);
-
-						this.plugin.settings.snippets = DEFAULT_SNIPPETS;
-
-						await this.plugin.saveSettings();
-					}
-				).open();
+		//The toggle both hides the settings and makes the plugin not load the vim commands on startup.
+		// the vim toggle is loaded before the rest since expanding down looks better.
+		const vimEnabled: Setting = new Setting(containerEl)
+			.setName("Vim key bindings")
+			.setDesc("turn on/off vim keybindings. Note vim needs to be enabled in obsidian itself.")
+		const vimSettings: Setting[] = [];
+		const selectMode: Setting = new Setting(containerEl)
+			.setName("Vim: Switch from visual mode to select mode")
+			.setDesc(`maps the key to switch from visual mode to select mode.
+				 Keymap must be a vim keymap and can't contain any spaces. Use empty string to disable this feature.
+				  (select mode=insert keybindings)`)
+			.addText((text) =>
+				text.setPlaceholder(DEFAULT_SETTINGS.vimSelectMode)
+				.setValue(this.plugin.settings.vimSelectMode)
+				.onChange(async (value) => {
+					const oldValue: string = this.plugin.settings.vimSelectMode;
+				this.plugin.settings.vimSelectMode = value;
+				await this.plugin.saveSettings();
+				const vimObject = window?.CodeMirrorAdapter?.Vim;
+				if (!vimObject) return;
+				const command: vimCommand = getVimSelectModeCommand(this.plugin.settings);
+				vimObject[command.defineType](command.id, command.action);
+				vimObject.mapCommand(command.key, command.type, command.id, {}, { context: command.context });
+					// this unmaps the current keybinding and reverts to the previous keyMap. For example if oldValue = "<C-c>", then "<C-c>" goes back to "enter normal mode" in default settings.
+				vimObject.unmap(oldValue, command.context);
+				})
+			);
+		vimSettings.push(selectMode);
+		const visualMode = new Setting(containerEl)
+			.setName("Vim: Switch from select mode to visual mode")
+			.setDesc(`maps the key to switch from select mode to visual mode.
+				 must be a vim keymap and can't contain any spaces. Example <C-g><C-A-i> = Ctrl-g + Ctrl-Alt-i.
+				 Please check the vim keybinding first on another command like w before reporting it. Some keybindings like shift don't work due to the original vim plugin. Use empty string to disable this feature.
+				  (select mode=insert keybindings)`)
+			.addText((text) =>{
+				text.setPlaceholder(DEFAULT_SETTINGS.vimVisualMode)
+				.setValue(this.plugin.settings.vimVisualMode)
+				.onChange(async (value) => {
+					const oldvalue: string = this.plugin.settings.vimVisualMode;
+					this.plugin.settings.vimVisualMode = value;
+					await this.plugin.saveSettings();
+					const command: vimCommand = getVimVisualModeCommand(this.plugin.settings);
+					const vimObject = window?.CodeMirrorAdapter?.Vim;
+					if (!vimObject) return;
+					vimObject[command.defineType](command.id, command.action);
+					vimObject.mapCommand(command.key, command.type, command.id, {}, { context: command.context });
+					// this unmaps the current keybinding and reverts to the previous keyMap. For example if oldValue = "<C-c>", then "<C-c>" goes back to "enter normal mode" in default settings.
+					vimObject.unmap(oldvalue, command.context);
+				})
 			});
-
-		const remove = new ButtonComponent(buttonsDiv);
-		remove.setIcon("trash")
-			.setTooltip("Remove all snippets")
-			.onClick(async () => {
-				new ConfirmationModal(this.plugin.app,
-					"Are you sure? This will delete any custom snippets you have written.",
-					button => button
-						.setButtonText("Remove all snippets")
-						.setWarning(),
-					async () => {
-						const value = `[
-
-]`;
-						this.snippetsEditor.setState(EditorState.create({ doc: value, extensions: extensions }));
-						updateValidityIndicator(true);
-
-						this.plugin.settings.snippets = value;
-						await this.plugin.saveSettings();
-					}
-				).open();
+		vimSettings.push(visualMode);
+		const matrixEnter: Setting = new Setting(containerEl)
+			.setName("Vim: run matrix enter")
+			.setDesc(`maps the key to the action of inserting a new line below while appending \\\\ to the current line in a matrix environment.
+				 Use empty string to disable this feature.`)
+			.addText((text) => {
+				text.setPlaceholder(DEFAULT_SETTINGS.vimMatrixEnter)
+				.setValue(this.plugin.settings.vimMatrixEnter)
+				.onChange(async (value) => {
+					const oldValue: string = this.plugin.settings.vimMatrixEnter;
+					this.plugin.settings.vimMatrixEnter = value;
+					await this.plugin.saveSettings();
+					const vimObj = window?.CodeMirrorAdapter?.Vim;
+					if (!vimObj) return;
+					vimObj.unmap(oldValue, "normal");
+					const command: vimCommand = getVimRunMatrixEnterCommand(this.plugin.settings);
+					vimObj[command.defineType](command.id, command.action);
+					vimObj.mapCommand(command.key, command.type, command.id, {}, { context: command.context });
+					vimObj.unmap(oldValue, command.context)
+				})
 			});
-	}
-}
-
-class ConfirmationModal extends Modal {
-
-	constructor(app: App, body: string, buttonCallback: (button: ButtonComponent) => void, clickCallback: () => Promise<void>) {
-		super(app);
-
-		this.contentEl.addClass("latex-suite-confirmation-modal");
-		this.contentEl.createEl("p", { text: body });
-
-
-		new Setting(this.contentEl)
-			.addButton(button => {
-				buttonCallback(button);
-				button.onClick(async () => {
-					await clickCallback();
-					this.close();
+		vimSettings.push(matrixEnter);
+		// shows/hides the vim settings, since these settings are not needed if vim is not enabled.
+		vimEnabled.addToggle((toggle) => {
+			const  vimOn = this.plugin.settings.vimEnabled && !!this.app.isVimEnabled?.();
+			vimSettings.forEach(setting => setting.settingEl.toggleClass("hidden", !vimOn));
+			toggle
+				.setValue(this.plugin.settings.vimEnabled && !!this.app.isVimEnabled?.())
+				.onChange(async (value) => {
+					this.plugin.settings.vimEnabled = value;
+					await this.plugin.saveSettings();
+					vimSettings.forEach(setting => setting.settingEl.toggleClass("hidden", !value));
+					const vimObject = window?.CodeMirrorAdapter?.Vim;
+					if (!vimObject) return;
+					for (const command of getVimEditorCommands(this.plugin.settings)) {
+						vimObject.unmap(command.key, command.context);
+				}
 				});
-			})
-			.addButton(button => button
-				.setButtonText("Cancel")
-				.onClick(() => this.close()));
+		});
+	}
+	
+	private displayKeymapSettings() {
+		const containerEl = this.containerEl;
+		this.addHeading(containerEl, "Keymap", "keyboard");
+		
+		const settings = [
+			["snippet", "snippetsTrigger"],
+			["next-tabstop", "snippetNextTabstopTrigger"],
+			["prev-tabstop", "snippetPreviousTabstopTrigger"],
+			["auto-fraction", "autofractionTrigger"],
+			["matrix-newline", "matrixShortcutsNewlineTrigger"],
+			["matrix-cell", "matrixShortcutsCellTrigger"],
+			["matrix-exit", "matrixShortcutsExitTrigger"],
+			["tabout", "taboutTrigger"],
+			["reverse-tabout", "reverseTaboutTrigger"],
+		] as const;
+		const explanation = new Setting(containerEl)
+			.setDesc(this.renderHtml(t("keymap.desc")));
+		explanation.setClass("latex-suite-keymap-list");
+		explanation.settingEl.createEl("ul", {}, ol => {
+			for (const [name, key] of settings) {
+				ol.createEl("li", { cls: "latex-suite-keymap-item" }, li => {
+					new Setting(li)
+						.setName(t(`keymap.${name}`))
+						.addText(text => text
+							.setPlaceholder(DEFAULT_SETTINGS[key])
+							.setValue(this.plugin.settings[key])
+							.onChange(async (value) => {
+								this.plugin.settings[key] = value;
+								await this.plugin.saveSettings();
+							})
+						);
+				});
+			}
+		})
+	}
+
+	private displayExperimentalSettings() {
+		const containerEl = this.containerEl;
+		this.addHeading(containerEl, "Experimental features", "experiment")
+			.setDesc("Features that are still in testing and may need user feedback. Backwards compatibility may break for these features/ these settings can be overriden.");
+		const fragment = new DocumentFragment()
+		const span = fragment.createDiv({
+			text: "How many times to run snippets in a row. Set to 0 disable recursion. ",
+		});
+		span.createEl("a", {href: "https://github.com/artisticat1/obsidian-latex-suite/pull/536", text: "Related pr/feedback."})
+		new Setting(containerEl)
+			.setName("Snippet recursion")
+			.setDesc(fragment)
+			.addText(text => text
+				.setPlaceholder(String(DEFAULT_SETTINGS.snippetRecursion))
+				.setValue(String(this.plugin.settings.snippetRecursion))
+				.onChange(async (value) => {
+					try {
+						const snippetRecurisve = parseInt(value, 10);
+						if (snippetRecurisve < 0) {
+							new Notice("Snippet recursion must be a non-negative integer.");
+							return;
+						}
+						this.plugin.settings.snippetRecursion = snippetRecurisve;
+					} catch {
+						return
+					}
+					await this.plugin.saveSettings();
+				})
+			);
+
+		new Setting(containerEl)
+			.setName("IME support for automatic snippets")
+			.setDesc("Whether to expand automatic snippets when a key is pressed after IME composition is completed. This may solve some issues with IME/Chinese keyboards.")
+			.addToggle((toggle) => toggle
+				.setValue(this.plugin.settings.snippetIMEVersion)
+				.onChange(async (value) => {
+					this.plugin.settings.snippetIMEVersion = value;
+					await this.plugin.saveSettings();
+				})
+			);
+			
+		new Setting(containerEl)
+			.setName(t("experimental.excalidraw-enabled.name"))
+			.setDesc(this.renderHtml(t("experimental.excalidraw-enabled.desc")))
+			.addToggle((toggle) => toggle
+				.setValue(this.plugin.settings.excalidrawSupportEnabled)
+				.onChange(async (value) => {
+					this.plugin.settings.excalidrawSupportEnabled = value;
+					await this.plugin.saveSettings();
+				})
+			);
+		new Setting(containerEl)
+			.setName(t("experimental.log-level.name"))
+			.setDesc(this.renderHtml(t("experimental.log-level.desc")))
+			.addDropdown((dropdown) => dropdown
+				.setValue(this.plugin.settings.logLevel)
+				.addOption("off", t("experimental.log-level.options.off"))
+				.addOption("info", t("experimental.log-level.options.info"))
+				.addOption("verbose", t("experimental.log-level.options.verbose"))
+				.addOption("vverbose", t("experimental.log-level.options.vverbose"))
+				.onChange(async (value) => {
+					this.plugin.settings.logLevel = value as LatexSuitePluginSettings["logLevel"];
+					await this.plugin.saveSettings();
+				})
+			);
+	}
+
+	renderHtml(source: string) {
+		return renderHtml(source);
 	}
 }
 
-function createCMEditor(content: string, extensions: Extension[]) {
-	const view = new EditorView({
-		state: EditorState.create({ doc: content, extensions }),
-	});
-
-	return view;
+/**
+ * IME support is tricky, currently only a fix for mobile platform is provided, update later if needed.
+ * @returns Whether IME keyboards are supported
+ */
+export function isIMESupported(): boolean {
+	return Platform.isMobileApp
 }

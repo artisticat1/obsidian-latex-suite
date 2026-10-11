@@ -5,24 +5,44 @@
 ```typescript
 {
   trigger: string | RegExp,
-  replacement: string,
+  replacement: string | BaseNode[],
   options: string,
-  priority?: number,
-  description?: string,
-  flags?: string,
+  priority?: number = 0,
+  description?: string = "no description provided",
+  flags?: string = "",
+  triggerKey?: string = "",
+  language?: string,
+  excludedMacros?: Macro[],
+  excludedEnvironments?: string[],
+  includedMacros?: Macro[],
+  includedPaths?: string[] | string,
+  context?: (options) => boolean | ((options) => boolean)[],
 }
 ```
 
 - `trigger` : The text that triggers this snippet.
   - Triggers can also be regular expressions. See [regex snippets](#regex-snippets).
 - `replacement` : The text to replace the `trigger` with.
-  - Replacements can also be JavaScript functions. See [function snippets](#function-snippets).
+  - Replacements can also be JavaScript functions. See [function snippets](#function-snippets). Or created programmatically, see [nodes](#nodes).
 - `options` : See below.
 - `priority` (optional): This snippet's priority. Snippets with higher priority are run first. Can be negative. Defaults to 0.
 - `description` (optional): A description for this snippet.
 - `flags` (optional): Flags for [regex snippets](#regex).
   - Not applicable to non-regex snippets.
   - The following flags are permitted: `i`, `m`, `s`, `u`, `v`.
+- `triggerKey` (optional): The shortcut to expand the snippet.
+  - Has to be in <a href="https://codemirror.net/docs/ref/#view.KeyBinding">codemirror keymap format</a> such as `Ctrl-a`.
+  - Empty strings are ignored.
+  - When `trigger` is defined and the snippet is not automatic, both `triggerKey` and `trigger` have to match.
+  - When the snippet is automatic, `trigger` is ignored when `triggerKey` is pressed.
+  - No other shortcut such as obsidians hotkeys, vims keymaps or other plugins can have used the shortcut before this plugin. For example `Ctrl-o` by default will open quick switcher and thus can't be used for `triggerKey`.
+
+- `language` (optional): Which code language to expand this in. Needs to match the text after <code>```</code> exactly.
+- `excludedMacros` (optional): Which macros\commands name to skip expansion in. Could be usefull for commands such as `ce` and `pu`, for more info see [macro scopes](#macro-scopes).
+- `excludedEnvironments` (optional): Which environment names such as `pmatrix` to skip expansion in.
+- `includedMacros` (optional): Which macros\commands name to only do expansion in. Could be useful for commands such as `color` and `unicode`, for more info see [macro scopes](#macro-scopes).
+- `includedPaths` (optional): File paths relative to the vault in which the snippets are enabled in. Can also be a function, see [context](#context).
+- `context` (optional): Custom context function, can be used to scope snippets inside syntax tokens like codeblocks. Functions are cached per loop, so reuse functions when possible.
 
 ### Options
 - `t` : Text mode. Only run this snippet outside math
@@ -31,11 +51,14 @@
 - `n` : Inline math mode. Only run this snippet inside a `$ ... $` block
 - `A` : Auto. Expand this snippet as soon as the trigger is typed. If omitted, the <kbd>Tab</kbd> key must be pressed to expand the snippet
 - `r` : [Regex](#regex-snippets). The `trigger` will be treated as a regular expression
-- `v` : [Visual](#visual-snippets). Only run this snippet on a selection. The trigger should be a single character
+- `v` : [Visual](#visual-snippets). Only run this snippet on a selection. Either the trigger should be a single character or `triggerKey` should be a keymap.
 - `w` : Word boundary. Only run this snippet when the trigger is preceded (and followed by) a word delimiter, such as `.`, `,`, or `-`.
 - `c` : Code mode. Only run this snippet inside a ```` ``` ... ``` ```` block
 	- Languages using `$` as part of their syntax won't trigger math mode while in their codeblock
 	- The `math` language from https://github.com/ocapraro/obsidian-math-plus doesn't trigger code mode, but block math mode instead
+- `U`: Skip undo. When an automatic snippet expands, undo returns the editor to the state before the triggering key was typed, instead of restoring that key.
+- `C` : Inline code mode. Only run this snippet inside a `` ` ... ` `` block
+- `T` : Math text mode. Only run this inside text macros such as `\text{}`
 
 Multiple options can be used at once. As an exception, regex and visual are mutually exclusive.
 
@@ -86,7 +109,7 @@ Using a RegExp literal, the same snippet can be written as
 > [!IMPORTANT]
 > - Some characters, such as `\`, `+`, and `.`, are special characters in regex. If you want to use these literally, remember to escape them by inserting two backslashes (`\\`) before them!
 >   - (One backslash to escape the special character, and another to escape that backslash)
-> - [Lookbehind regex is not supported on iOS.](https://github.com/bicarlsen/obsidian_image_caption/issues/4#issuecomment-982982629) Using lookbehind regex will cause snippets to break on iOS.
+> - [Lookbehind regex is not supported on iOS versions prior to 16.4.](https://github.com/bicarlsen/obsidian_image_caption/issues/4#issuecomment-982982629) Using lookbehind regex will cause snippets to break on iOS versions prior to 16.4.
 
 
 ### Snippet variables
@@ -147,7 +170,36 @@ To create a visual snippet, you can alternatively use the `v` option and make th
 .
 
 Visual snippets will not expand unless text is selected.
+Either `triggerKey` has to be defined or `trigger`, not both and snippets with `trigger` defined are treated as if `triggerKey` was defined instead and as such are always automatic.
+You can also trigger visual snippets with vim, see [select-mode](#select-mode)
 
+
+Composite markers, e.g. callouts and indentation are removed from the `${VISUAL}` and is currently only available through `capture_node("${VISUAL_ORIGINAL}")`, see the [nodes](#nodes) section for more info about nodes.
+
+This makes working composite markers when they are all on the same level easier.
+For example, with the snippet
+
+```ts
+{trigger: "(", replacement: "(${VISUAL})", options: "mv"},
+```
+
+and the text below where everything between the `|` is selected
+```md
+> $$
+|> \frac{1}{2} +
+> \frac{2}{3} 
+> |
+> $$
+```
+
+Then pressing `(` encapsulates everything except for the starting composite markers as that would disrupt the composite markers
+
+```md
+> $$
+|> \left( \frac{1}{2} +
+> \frac{2}{3}  \right) |
+> $$
+```
 
 ### Function snippets
 
@@ -219,9 +271,9 @@ In general, **function snippets** take the form
 ```ts
 {
   replacement:
-    | ((str: string) => string)
-    | ((match: RegExpExecArray) => string) // Regex snippets
-    | ((selection: string) => (string | false)) // Visual snippets
+    | ((str: string, options: Options) => string | false)
+    | ((match: RegExpExecArray, options: Options) => string | false) // Regex snippets
+    | ((selection: string, options: Options) => (string | false)) // Visual snippets
 }
 ```
 
@@ -229,26 +281,310 @@ based on which type of snippet the replacement applies to.
 
 If a snippet replacement function returns a non-string value, the snippet is ignored and will not expand.
 
+If more control is needed, `options` can be used to access things like the editor. Only recommended if you know what you are doing.
+```ts
+type Options = {
+	view: EditorView; // codemirror view
+	options: {
+		captures: {
+			match: string
+			groups: Record<string, string>
+		}
+	} // used to expand a BaseNode.applyInsert. ${VISUAL_ORIGINAL} for example will be in the `options.captures.groups["${VISUAL_ORIGINAL}]`.
+}
+```
+
+### Nodes
+
+Taking inspiration from [LuaSnip](https://github.com/L3MON4D3/LuaSnip) you can also create replacements programmaticaly with nodes.
+These functions can be imported as the following:
+
+```js
+const ls = require("latex-suite") // can also be used to import libraries like @codemirror/state 
+```
+
+where `ls` is of the following type:
+
+```ts
+type api = {
+	snippetVariables: Record<string,string>,
+	// if insert is empty then its just like $X otherwise ${X:insert}
+	tabstop_node: (index: number, insert: string="") => BaseNode,
+	text_node: (text: string) => BaseNode,
+	// The key to extract regex groups or named groups, replaces [[X]].
+	// ${VISUAL} and ${VISUAL_ORIGINAL} are used for the selection in visual snippets and 0 for the trigger in normal snippets
+	// default is used, if the key isn't defiend.
+	capture_node: (key: string | number, defaultValue: string = "") => BaseNode,
+}
+```
+
+#### Example
+
+To turn a simple equation from `1+1` to `$1+1=2$`, you can create the following snippet
+
+```ts
+const ls = require("latex-suite")
+const snippet = {
+	trigger: /(\d+)\+(\d+)/, 
+	replacement: (match) => [ls.text_node(`$${match[0]}+${match[1]}=${parseInt(match[0]) + parseInt(match[1])}$`)],
+	options: "t",
+}
+```
+
+Or when the visual selection should be copied as is and currency should not be converted to tabstops.
+
+```ts
+const ls = require("latex-suite")
+const fraction = {
+	trigger: "/",
+	replacement: [
+		ls.text_node("\\frac{"),
+		ls.capture_node("${VISUAL}"),
+		ls.text_node("}{"),
+		ls.tabstop_node(0),
+		ls.text_node("}")
+	],
+	options: "mv",
+}
+```
+
+
+### Macro scopes
+
+In order to scope snippets inside more accurately, you can use `excludedMacros`, `excludedEnvironments` and `includedMacros` to avoid expansion when not needed or to only expand when needed.
+Like the snippet below
+```ts
+const arrow = {trigger: "->", replacement: "\\to", options: "mA", excludedMacros: ["ce"]},
+```
+where `->` already renders as an arrow inside `\ce`, thus doesn't need to expand inside `\ce{}`.
+
+Some snippets like `\color` accept a custom syntax, in this case a color code, and expanding any snippets wouldn't make sense.
+Thus snippets are disabled except for snippets where `includedMacros` includes the macro.
+Or for more complicated macros like `\fcolorbox` which accepts a color code in the first and second argument you can use the following snippet to replace `li` with `lime` inside color scopes.
+```ts
+const lime = {
+	trigger: "li",
+	replacement: "lime",
+	options: "mA",
+	includedMacros: ["color", { name: "fcolorbox", arguments: [0, 1] }],
+};
+```
+Strings like `"color"` for macro scopes only match the first argument.
+
+The full type that is accepted is:
+```ts
+type Macro =
+	| string
+	| {
+			// name of the macro/environment
+			name: string;
+			// which arguments to target, this is 0-index based. Undefined means to match all.
+			arguments?: number[];
+	  };
+```
+For the default text macros and snippetless macros see [here](./src/editor_context/default_text_areas.ts)
+
+### Files and context
+
+Some mathematical areas use the same A-Z letter, but with a different to indicate a different meaning. For example `\mathbb{E}` or `\mathbf{E}`.
+Then to only turn on a snippet in any folder named `statistics`, you can give a bash glob like `**/statistics/*`.
+It also allows a function, if you organize your notes differently than using folders. These functions are only executed on opening the note, not during editing.
+the type of function is as follows
+
+```ts
+type FileFunction = (options: FileOptions) => boolean
+type FileOptions = {
+	// path of the current note
+	path: string;
+	// codemirror/state representation of the note.
+	state: EditorState
+}
+```
+
+If you can't specify the context easily through things like `options`, regex, `excludedMacros`, etc, you can create your own context function.
+For example to create callout context you can do the following:
+
+```ts
+const calloutContext = ({node}) => {
+	for (let parent = node; parent !== null; parent = node.parent) {
+		if (parent.name === "Blockqoute") {
+			return true
+		}
+	}
+	return false
+}
+```
+
+the function is of the following type:
+```ts
+type aContextFunction = (options: {
+	// current token/node from @lezer/common
+	node: SyntaxNode;
+	// current editor from @codemirror/view
+	view: EditorView;
+	// internal context of latex suite
+	ctx: Context;
+}) => boolean;
+```
+
+### IME keyboards
+By default snippets won't automatically expand for [Input Method Editor](https://en.wikipedia.org/wiki/Input_method)(IME) keyboards when they are in the middle of a composition because of `Advanced Settings > Don't trigger snippets when IME is active`. Keyboards like gboard are almost always in composition, making automatic snippets unusable. Currently there is only support for keyboards like gboard, so turning that setting off will enable all automatic snippets. But due to the way french/german/chinese keyboards behave, there will still be automatic snippets that don't work (like `trigger: "^"`) when this setting is turned off. 
+
+You can use https://github.com/daipeihust/im-select to automatically switch to an english keyboard when inside math and back when outside math.
+You would add the following to your snippet file:
+
+```js
+const exec = require("child_process").execSync;
+const ls = require("latex-suite");
+window.__latex_suite_math = window.__latex_suite_math || false;
+const switch_path = "C:\\im-select.exe";
+const non_ime_keyboard = "1033"
+const ime_keyboard = () => "2052"
+const ime_keyboard_alternative = () => exec(`"${switch_path}"`).toString().trim();
+ls.addUpdateHandler(function (ctx, update) {
+	// needed for tables and canvas.
+	if (!update.view.hasFocus) return;
+	const newMath = ctx.inMath();
+	if (newMath === window.__latex_suite_math) {
+		return;
+	}
+	window.__latex_suite_math = newMath;
+	try {
+		if (window.__latex_suite_math) {
+			exec(`"${switch_path}" ${non_ime_keyboard}`)
+		} else {
+			exec(`"${switch_path} ${ime_keyboard()}"`)
+		}
+	} catch (e) {
+		console.error("Error switching keyboard:", error);
+	}
+})
+```
+
+On mobile devices a warning is shown that this setting is turned on, notifying that the keyboard is supported. If you use a different keyboard than swipe/touch keyboard thats IME, e.g. a physical keyboard with pinyin or if `Don't trigger snippets when IME is active` is turned on intentionally, you can turn that warning off.
+
 ## Snippet files
 
 You can choose to load snippets from a file or from all files within a folder. To do this, toggle the setting **Snippets > Load snippets from file or folder**. The file or folder must be within your vault, and not in a hidden folder (such as `.obsidian/`).
 
-Snippet files can be saved with any extension. However, to obtain syntax highlighting in external editors, you may wish to save your snippet files with an extension of `.js`.
+Snippet files can be saved with any extension. However, to obtain syntax highlighting in external editors, you may wish to save your snippet files with an extension of `.js`. If you don't have an external editor, [vscode](https://code.visualstudio.com/) is a beginner-friendly editor to start with. If you wish to edit the snippet files inside Obsidian, you can create a regular markdown file and format it in a certain way to still get the syntax highlighting. See below.
 
-A snippets file is a JavaScript array of snippets, or a JavaScript module with a default export of an array of snippets.
+A snippets file is a Javascript module/file with a default export of an array of snippets. (The file can also contain only an array but this can mess up with syntax highlighting and its easier to break this file, so it is not recommended)
 
 _Note: an **array** is a list of items. In JavaScript, this is represented with the bracket symbols `[` `]`, with the items between them and separated by commas, e.g. `[ item1, item2 ]`._
 
 ### Example
-A snippet file containing an array of snippets:
+1. A snippets file called `latex-suite-snippets.js` in `/path/to/obsidian-vault/latex-suite-snippets.js`. The path in the settings should be relative to the vault, so in this case it would be `latex-suite-snippets.js`
 
-```typescript
-[
+```javascript
+export default [
 	{trigger: "mk", replacement: "$$0$", options: "tA"},
 	{trigger: "dm", replacement: "$$\n$0\n$$", options: "tAw"},
 	{trigger: /([A-Za-z])(\d)/, replacement: "[[0]]_{[[1]]}", options: "mA"}
 ]
 ```
+
+2. A snippets file that can be edited by obsidian. For example `latex-suite-snippets.md` formatted in the following way:
+~~~md
+/*
+
+First start with an opening `/*`.
+
+In javascript everything between `/*` and a closing `* /` (without the space in the second one)
+is treated as a "comment" and is ignored
+
+Then open a code block with javascript to get the highlighting like:
+
+```javascript
+*/
+// everything before the */ is a comment for javascript,
+// so you could still place text between the ```javascript and */.
+// But gets javascript syntax highlighting from obsidian, so its not recommended
+export default [
+	{trigger: "mk", replacement: "$$0$", options: "tA"},
+	{trigger: "dm", replacement: "$$\n$0\n$$", options: "tAw"},
+	{trigger: /([A-Za-z])(\d)/, replacement: "[[0]]_{[[1]]}", options: "mA"}
+];
+// Don't forget to comment the closing code block ticks with /* ... */ like the following:
+// The backticks need to be at the beginning of the line, so you can't use //``` to get the highlighting in obsidian.
+/*
+```
+*/
+~~~
+
+3. A folder called `latex-suite` with 2 snippet files in that folder called `greek.js` and `symbols_and_matrices.md`.
+	In the settings the snippet-path is `latex-suite`.
+	Then your vault looks like the following
+```
+.
+├── latex-suite
+│   ├── greek.js
+│   └── symbols_and_matrices.md
+└── .obsidian
+```
+where your `greek.js` looks like the following
+```js
+const greek_snippets = [
+	// Greek letters
+	{trigger: "@a", replacement: "\\alpha", options: "mA"},
+	{trigger: "@b", replacement: "\\beta", options: "mA"},
+	// ... further snippets
+];
+export default greek_snippets
+```
+
+and your `symbols_and_matrices.md` can look like the following:
+
+~~~md
+/*
+Don't forget the comments in md files
+```javascript
+*/
+// `const <var_name> = ...` declares constant variable that can't be reassigned later
+// so `const a = 1; a=2;` gives an error. 
+// If you want to reassign variables use `let <var_name> = ...`
+const symbol_snippets = [
+	{trigger: "\\sum", replacement: "\\sum_{${0:i}=${1:1}}^{${2:N}} $3", options: "m"},
+	{trigger: "\\prod", replacement: "\\prod_{${0:i}=${1:1}}^{${2:N}} $3", options: "m"},
+    {trigger: "lim", replacement: "\\lim_{ ${0:n} \\to ${1:\\infty} } $2", options: "mA"},
+	// further snippets here
+];
+/*
+```
+
+Insert your markdown here, like examples as reminders.
+Reminder the string `* /` (without the space) always marks the end of the comment.
+So you can't use it here.
+
+Then you can have another block
+```javascript
+*/
+const matrix_snippets = [
+	{trigger: "pmat", replacement: "\\begin{pmatrix}\n$0\n\\end{pmatrix}", options: "MA"},
+	{trigger: "bmat", replacement: "\\begin{bmatrix}\n$0\n\\end{bmatrix}", options: "MA"},
+	{trigger: "Bmat", replacement: "\\begin{Bmatrix}\n$0\n\\end{Bmatrix}", options: "MA"},
+	// further snippets here
+];
+/*
+```
+
+(Further markdown here)
+
+```javascript
+*/
+// the `...` is called the "spread" operator
+// And you can use it extract all items into one array
+// As [matrix_snippets, greek_snippets] would be an array containing 2 arrays and thus not valid.
+export default [...matrix_snippets, ...greek_snippets];
+/*
+You don't have to use variables and you don't have to structure it in multiple blocks
+But it could be nice. Note that a javascript module can have only **ONE** `export default`
+```
+*/
+~~~
+
+If the external file is invalid, there will be a notice in obsidian and a message in console.
+On desktop the console can be opened with `(Ctrl/Cmd)-Shift-I`.
 
 ## Snippet variable files
 
@@ -266,7 +602,7 @@ _Note: an **object** is a mapping of names to values. In JavaScript, this is rep
 A snippet variables file containing an object of variables, with the 3 acceptable formats:
 
 ```typescript
-{
+export default {
   	"${GREEK}": "alpha|beta|gamma|Gamma|delta|Delta|epsilon|varepsilon|zeta|eta|theta|vartheta|Theta|iota|kappa|lambda|Lambda|mu|nu|xi|omicron|pi|rho|varrho|sigma|Sigma|tau|upsilon|Upsilon|phi|varphi|Phi|chi|psi|omega|Omega",
   	"SYMBOL": "parallel|perp|partial|nabla|hbar|ell|infty|oplus|ominus|otimes|oslash|square|star|dagger|vee|wedge|subseteq|subset|supseteq|supset|emptyset|exists|nexists|forall|implies|impliedby|iff|setminus|neg|lor|land|bigcup|bigcap|cdot|times|simeq|approx",
   	MORE_SYMBOLS: "leq|geq|neq|gg|ll|equiv|sim|propto|rightarrow|leftarrow|Rightarrow|Leftarrow|leftrightarrow|to|mapsto|cap|cup|in|sum|prod|exp|ln|log|det|dots|vdots|ddots|pm|mp|int|iint|iiint|oint"
@@ -280,3 +616,86 @@ You can [view snippets written by others and share your own snippets here](https
 > [!WARNING]
 > Snippet files are interpreted as JavaScript and can execute arbitrary code.
 > Always be careful with snippets shared from others to avoid running malicious code.
+
+## Keymap order
+
+When 2 or more keymaps have the same key, the following order will be used
+
+- Auto delete `$`
+- Expand snippets automatic snippets
+- Expand manual snippets (using `triggerKey` or the default `triggerKey`)
+- Select the next tabstop
+- Select the previous tabstop
+- Auto fraction
+- Priority tabout, e.g. only tabout when the cursor is inside brackets.
+- Add `\\` and a newline in a matrix
+- Add a new cell/ ` & ` in a matrix
+- Go to the next line in a matrix
+- Tabout to the next closing bracket or exit the equation
+- Tabout if you type a closing delimiter (e.g. `}`,`]`,`)`)
+
+If the feature is disabled, the keymap will be skipped.
+
+## Conceal maps
+
+You can change the conceal symbols or disable them inside the snippet files and snippet variable files.
+For example if you don't like that `\quad` is concealed as ` `, or have a custom macro  you can do the following
+
+```js
+const ls = require("latex-suite")
+ls.addRawConcealMaps({
+	cmd_symbols: {
+		// null disables the concealment
+		"quad": null,
+		"euro": "€"
+	}	
+})
+```
+
+`addRawConcealMaps` accepts the following type
+
+```ts
+type ConcealMap = Record<string, string | null>
+// the key like `sin` for `\sin` is disabled/enabled depending if the key: value is true or false.
+type OperatorMap = Record<string, boolean>
+type RawConcealMap = {
+	cmd_symbols: ConcealMap,
+	not_remap: ConcealMap,
+	operators: OperatorMap,
+	fractions: ConcealMap,
+	greek: ConcealMap,
+	map_super: ConcealMap,
+	map_sub: ConcealMap,
+	bar: ConcealMap,
+	dot: ConcealMap,
+	hat: ConcealMap,
+	brackets: ConcealMap,
+	mathbb: ConcealMap,
+	mathscrcal: ConcealMap,
+	mathfrak: ConcealMap,
+}
+```
+
+For all the default values see [here](./src/editor_extensions/conceal_maps.ts).
+
+## Vim
+
+[Vim](https://vimhelp.org/intro.txt.html#intro.txt) is a powerful and highly configurable text editor, that is known for its unique editing style. It allows you to perform complex editing tasks with minimal keystrokes. It is heavily centered around moving with the keys `hjkl` instead of using the mouse. This can make the tedious parts of editing a bit less tedious.
+
+But this intro can't do it justice, so for those unfamiliar that are interested, it's recommended to read [Vims](https://vimhelp.org/usr_02.txt.html#usr_02.txt) for a proper explanation.
+
+Obsidian uses a subset of vim's keybindings maintained by [this repo](https://github.com/replit/codemirror-vim). This subset does not cover everything like [select-mode](https://vimhelp.org/visual.txt.html#Select-mode) and has its own bugs. For any issues that may arise, please first check if the problem lies with [CodeMirror-Vim](https://github.com/replit/codemirror-vim) at [vim-playground](https://raw.githack.com/replit/codemirror-vim/master/dev/web-demo.html) or Obsidian before reporting it here.
+
+### Select mode
+You can trigger visual snippets in insert mode, but not in visual mode.
+Because of this, a shortcut in the vim extension is defined that allows you to switch between insert mode and visual mode while keeping the selection. This should also work with multicursor.
+
+You can define this shortcut in the settings by enabling vim mode in obsidian and in this plugin.
+The shortcut should be a vim keybinding with no spaces. Some keybindings are not supported by the original vim extension. Due to this, please first see if the shortcut works for other keys, such as `:imap <C-a> <Esc>` or `:vmap <A-h> 0`. It is known that the shift key (`:map <S-a> <Esc>`) does not work.
+
+Keep in mind that the shortcut from visual -> select mode only works in visual mode, and the shortcut from select -> visual mode only works when something is selected and you are in insert mode.
+
+Macros are not yet supported for visual snippets.
+
+### Vim matrix shortcut \\\\
+Same key mapping rules apply. You can define or redefine `open a new line below` action, which also inserts \\\\ at the end of the current line if it's in a matrix environment.

@@ -1,12 +1,23 @@
-import { Tooltip, showTooltip, EditorView, ViewUpdate } from "@codemirror/view";
+import { type Tooltip, showTooltip, EditorView, ViewUpdate, tooltips } from "@codemirror/view";
 import { StateField, EditorState, EditorSelection, StateEffect } from "@codemirror/state";
 import { renderMath, finishRenderMath, editorLivePreviewField } from "obsidian";
-import { Context } from "src/utils/context";
+import { type Bounds, Context, getContextPlugin } from "src/editor_context/context";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
+import { syntaxTree } from "@codemirror/language";
+import { cmDarkClass, cmLightClass, createElement } from "./obsidian_utils";
+import { isBoundMultiline } from "src/utils/editor_utils";
 
-const updateTooltipEffect = StateEffect.define<Tooltip[]>();
+type MathTooltip = {
+	equation: string,
+	bounds: Bounds,
+	pos: number,
+	tooltip: Tooltip,
+}
+const HIGHLIGHT_CLASS = "mjx-latex-suite-math-preview-highlight";
+const CURSOR_CLASS = "mjx-latex-suite-cursor";
+export const updateTooltipEffect = StateEffect.define<MathTooltip[]>();
 
-export const cursorTooltipField = StateField.define<readonly Tooltip[]>({
+export const cursorTooltipField = StateField.define<readonly MathTooltip[]>({
 	create: () => [],
 
 	update(tooltips, tr) {
@@ -17,18 +28,41 @@ export const cursorTooltipField = StateField.define<readonly Tooltip[]>({
 		return tooltips;
 	},
 
-	provide: (f) => showTooltip.computeN([f], (state) => state.field(f)),
+	provide: (f) => showTooltip.computeN([f], (state) => state.field(f).map(t=> t.tooltip)),
 });
+	
+const findMatchingBrackets = (text: string, cursorPos: number, openBracket: string, closeBracket: string): {left: number, right: number} => {
+	const aux = (text: string, start: number, openBracket: string, closeBracket: string, direction: -1 | 1): number => {
+		let depth = 0;
+		for (let i = start; i >= 0 && i < text.length; i += direction) {
+			if (text[i] === openBracket) depth++;
+			if (text[i] === closeBracket) {
+				if (depth === 0) return i;
+				depth--;
+			}
+		}
+		return -1;
+	};
+
+	// If the cursor is right before a close bracket, that doesn't count to balancing the brackets.
+	const leftStart = text[cursorPos] === closeBracket ? cursorPos - 1 : cursorPos;
+	const left = aux(text, leftStart, closeBracket, openBracket, -1);
+	const right = aux(text, cursorPos, openBracket, closeBracket, 1);
+	return { left, right };
+}
 
 // update the tooltip by dispatching an updateTooltipEffect
 export function handleMathTooltip(update: ViewUpdate) {
 	const shouldUpdate = update.docChanged || update.selectionSet;
 	if (!shouldUpdate) return;
-
 	const settings = getLatexSuiteConfig(update.state);
-	const ctx = Context.fromState(update.state);
+	
+	// We don't need to update the tooltip every time the cursor moves. 
+	// Only update when we leaf or enter a LaTeX block. High impact.
+	const ctx = getContextPlugin(update.view);
+	const eqnBounds = shouldShowTooltip(update.state, ctx);
 
-	if (!shouldShowTooltip(update.state, ctx)) {
+	if (!eqnBounds) {
 		const currTooltips = update.state.field(cursorTooltipField);
 		// a little optimization:
 		// If the tooltip is not currently shown and there is no need to show it,
@@ -45,46 +79,124 @@ export function handleMathTooltip(update: ViewUpdate) {
 	* process when there is a need to show the tooltip: from here
 	*/
 
-	// HACK: eqnBounds is not null because shouldShowTooltip was true
-	const eqnBounds = ctx.getBounds();
-	const eqn = update.state.sliceDoc(eqnBounds.start, eqnBounds.end);
+	const eqn = update.state.sliceDoc(eqnBounds.inner_start, eqnBounds.inner_end);
+	const pos = ctx.pos;
+
+	const tree = syntaxTree(update.state);
+	const cursor = tree.cursor();
+	cursor.moveTo(pos, -1);
+	let normalizedPos: number;
+	if (cursor.name === "math_tag" && cursor.from < pos && cursor.to >= pos) {
+		normalizedPos = cursor.from;
+	} else {
+		normalizedPos = pos
+	}
+	const eqnPos = normalizedPos - eqnBounds.inner_start;
+
+	let eqnWithDecorations: string;
+	// skip \{\} as thats not an argument to a macro
+	const tempEscapedEqn = eqn.replaceAll(/\\[\\{}]/g, "\\R")
+	const { left, right } = settings.mathPreviewBracketHighlighting && !ctx.mode.snippetlessEnv
+		? findMatchingBrackets(tempEscapedEqn, eqnPos, "{", "}")
+		: { left: -1, right: -1 };
+	const mathPreviewCursor = !ctx.mode.snippetlessEnv && settings.mathPreviewCursor !== ""
+		? ` \\class{${CURSOR_CLASS}}{}` + settings.mathPreviewCursor
+		: "";
+
+	if (right !== -1 && left !== -1) {
+		// If the cursor is next to a bracket, move it inside the bracket pair
+		// case when eqnPos === left
+		const maxPosOrLeft = Math.max(left + 1, eqnPos);
+		eqnWithDecorations =
+			eqn.slice(0, left + 1) +
+			`\\class{${HIGHLIGHT_CLASS}}{` +
+			eqn.slice(left + 1, maxPosOrLeft) +
+			mathPreviewCursor +
+			eqn.slice(maxPosOrLeft, right) +
+			"}" +
+			eqn.slice(right);
+	} else {
+		eqnWithDecorations =
+			eqn.slice(0, eqnPos) +
+			mathPreviewCursor +
+			eqn.slice(eqnPos);
+	}
+	const oldTooltips = update.state.field(cursorTooltipField);
+	// a little optimization: if the tooltip is currently shown and the equation with decorations is the same as the one in the tooltip, we don't need to update it.
+	if (
+		oldTooltips.length === 1 &&
+		oldTooltips[0]!.equation === eqnWithDecorations &&
+		oldTooltips[0]!.bounds.inner_start === eqnBounds.inner_start &&
+		oldTooltips[0]!.bounds.inner_end === eqnBounds.inner_end
+	) {
+		return;
+	}
+	const isEqnMultiline = isBoundMultiline(update.view, eqnBounds);
 
 	const above = settings.mathPreviewPositionIsAbove;
 	const create = () => {
-		const dom = document.createElement("div");
+		const dom = createElement("div")
 		dom.addClass("cm-tooltip-cursor");
-
-		const renderedEqn = renderMath(eqn, ctx.mode.blockMath || ctx.mode.codeMath);
-		dom.appendChild(renderedEqn);
-		finishRenderMath();
+		dom.addClass(above ? "cm-tooltip-above" : "cm-tooltip-below");
+		// there is a plugin that can hide > in block math mode in the output.
+		if (ctx.mode.blockMath) {
+			// check if every newline is followed by the same amount of > as the line of the opening delimiters
+			// if so hide them. A maximum  of 3 spaces can be at the beginning of the line before its not a block-quote.
+			const blockQuoteCount = update.state.doc.lineAt(eqnBounds.inner_start).text.match(/^ {0,3}(>+)/)?.[1]!.length;
+			if (blockQuoteCount) {
+				const regex = new RegExp(`^ {0,3}>{${blockQuoteCount}}`, "gm");
+				if (regex.test(eqn)) {
+					eqnWithDecorations = eqnWithDecorations.replaceAll(regex, "");
+				}
+			}
+		}
+		try {
+			const renderedEqn = renderMath(eqnWithDecorations, ctx.mode.inDisplayMath());
+			const cursor = renderedEqn.querySelector<HTMLElement>(`.${CURSOR_CLASS}`)
+			dom.appendChild(renderedEqn);
+			const scrollIntoView = () => {
+				window.requestAnimationFrame(() => {
+					if (!cursor?.isConnected) return;
+					cursor.scrollIntoView({
+						behavior: "instant",
+						block: "nearest"
+					});
+				});
+			}
+			scrollIntoView();
+			void finishRenderMath().then(scrollIntoView)
+		} catch (e) {
+			console.error("Error rendering math in tooltip:", e);
+			dom.textContent = eqn
+		}
 
 		return { dom };
 	};
 
 	let newTooltips: Tooltip[] = [];
 
-	if (ctx.mode.blockMath || ctx.mode.codeMath) {
+	if (isEqnMultiline) {
 		newTooltips = [{
-			pos: above ? eqnBounds.start : eqnBounds.end,
+			pos: above ? eqnBounds.inner_start : eqnBounds.inner_end,
 			above: above,
 			strictSide: true,
 			arrow: true,
 			create: create,
 		}];
-	} else if (ctx.mode.inlineMath && above) {
+	} else if (!isEqnMultiline && above) {
 		newTooltips = [{
-			pos: eqnBounds.start,
+			pos: eqnBounds.inner_start,
 			above: true,
 			strictSide: true,
 			arrow: true,
 			create: create,
 		}];
-	} else if (ctx.mode.inlineMath && !above) {
-		const endRange = EditorSelection.range(eqnBounds.end, eqnBounds.end);
+	} else if (!isEqnMultiline && !above) {
+		const endRange = EditorSelection.range(eqnBounds.inner_end, eqnBounds.inner_end);
 
 		newTooltips = [{
 			pos: Math.max(
-				eqnBounds.start,
+				eqnBounds.inner_start,
 				// the beginning position of the visual line where eqnBounds.end is
 				// located
 				update.view.moveToLineBoundary(endRange, false).anchor,
@@ -97,25 +209,33 @@ export function handleMathTooltip(update: ViewUpdate) {
 	}
 
 	update.view.dispatch({
-		effects: [updateTooltipEffect.of(newTooltips)]
+		effects: [
+			updateTooltipEffect.of(
+				newTooltips.map((t) => ({
+					equation: eqnWithDecorations,
+					bounds: eqnBounds,
+					pos: t.pos,
+					tooltip: t,
+				})),
+			),
+		],
 	});
 }
 
-function shouldShowTooltip(state: EditorState, ctx: Context): boolean {
-	if (!ctx.mode.inMath()) return false;
-
+function shouldShowTooltip(state: EditorState, ctx: Context): Bounds | null {
+	if (!ctx.mode.inMath()) return null;
+	const settings = getLatexSuiteConfig(state);
 	const isLivePreview = state.field(editorLivePreviewField);
-	if (ctx.mode.blockMath && isLivePreview) return false;
+	if (ctx.mode.blockMath && isLivePreview && !settings.mathPreviewLivePreviewDisplay) return null;
 
-	// FIXME: eqnBounds can be null
 	const eqnBounds = ctx.getBounds();
-	if (!eqnBounds) return false;
+	if (!eqnBounds) return null;
 
 	// Don't render an empty equation
-	const eqn = state.sliceDoc(eqnBounds.start, eqnBounds.end).trim();
-	if (eqn === "") return false;
+	const eqn = state.sliceDoc(eqnBounds.inner_start, eqnBounds.inner_end).trim();
+	if (eqn === "") return null;
 
-	return true;
+	return eqnBounds;
 }
 
 export const cursorTooltipBaseTheme = EditorView.baseTheme({
@@ -139,5 +259,50 @@ export const cursorTooltipBaseTheme = EditorView.baseTheme({
 		"& mjx-container": {
 			padding: "2px !important",
 		},
-	}
+		
+		// CM6 puts the top of the tooltip higher than what's viewable (negative top value),
+		// so to compensate for this, we align the content to the bottom of the tooltip container,
+		// and limit the height.
+		"&.cm-tooltip-above": {
+			display: "flex",
+		},
+		"&.cm-tooltip-above > .MathJax": {
+			overflowY: "auto",
+			maxHeight: "80%",
+			display: "inline-block",
+			alignSelf: "flex-end",
+		},
+		"&.cm-tooltip-below > .MathJax": {
+			overflowY: "auto",
+			maxHeight: "90%",
+		},
+	},
+	[`.${HIGHLIGHT_CLASS}`]: {
+		backgroundColor: "var(--text-selection)",
+	},
+	[`${cmDarkClass} .cm-tooltip.cm-tooltip-cursor`]: {
+		boxShadow: "0 1px 2px rgb(0 0 0 / 10%), 0 3.4px 6.7px rgb(0 0 0 / 15%), 0 0 30px rgb(0 0 0 / 27%)"
+	},
+	[`${cmLightClass} .cm-tooltip.cm-tooltip-cursor`]: {
+		boxShadow: "0 1px 2px rgb(0 0 0 / 2.8%), 0 3.4px 6.7px rgb(0 0 0 / 4.2%), 0 5px 20px rgb(0 0 0 / 7%)",
+	},
+
 });
+
+export const mathTooltipExtension = [
+	cursorTooltipField.extension,
+	cursorTooltipBaseTheme,
+	tooltips({
+		position: "absolute",
+		tooltipSpace(view) {
+			const dom = view.dom;
+			const rect = dom.getBoundingClientRect();
+			return {
+				top: rect.top,
+				left: rect.left,
+				bottom: rect.bottom,
+				right: rect.right,
+			};
+		},
+	}),
+]

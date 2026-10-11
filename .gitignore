@@ -1,5 +1,5 @@
 # vscode
-.vscode 
+.vscode
 
 # Intellij
 *.iml
@@ -20,3 +20,7 @@ data.json
 
 # Exclude macOS Finder (System Explorer) View States
 .DS_Store
+**/parser/*/*-parser.js
+**/parser/*/*-parser.terms.js
+dist/dev
+src/i18n/locales/*/*.md

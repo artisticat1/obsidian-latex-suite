@@ -1,72 +1,157 @@
 import { EditorView } from "@codemirror/view";
-import { EditorState, SelectionRange } from "@codemirror/state";
+import { EditorState } from "@codemirror/state";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
 import { queueSnippet } from "src/snippets/codemirror/snippet_queue_state_field";
-import { Mode, Options } from "src/snippets/options";
 import { expandSnippets } from "src/snippets/snippet_management";
-import { Context } from "src/utils/context";
+import { type CMBound, Context, getContextPlugin } from "src/editor_context/context";
 import { autoEnlargeBrackets } from "./auto_enlarge_brackets";
+import type { snippetDebugLevel } from "src/settings/settings";
+import { IncludedEnvironmentResult, Snippet, type SnippetType } from "src/snippets/snippets";
+import { showSnippetInfo } from "src/editor_extensions/obsidian_utils";
+import type { ResultInsert } from "src/snippets/luasnip_api/node";
+import { modifiedSyntaxTree } from "src/parser/language";
+
+type SnippetInfo = {
+	snippets: Snippet<SnippetType>[];
+	key?: string;
+}
+type RunSnippetsOptions = {
+	recursive: number;
+	debug: snippetDebugLevel;
+}
+export const runSnippets = (view: EditorView, snippetInfo: SnippetInfo, options: RunSnippetsOptions):boolean => {
+	let didExpand = false;
+	for (let i=0; i <= options.recursive; i++) {
+		const ctx = getContextPlugin(view);
+		let shouldAutoEnlargeBrackets = false;
+
+		for (const range of ctx.ranges) {
+			const result = runSnippetCursor(view, ctx, snippetInfo, {from: range.from, to: range.to}, options.debug);
+
+			if (result.shouldAutoEnlargeBrackets) shouldAutoEnlargeBrackets = true;
+		}
+
+		const success = expandSnippets(view);
+		didExpand = didExpand || success;
 
 
-export const runSnippets = (view: EditorView, ctx: Context, key: string):boolean => {
-
-	let shouldAutoEnlargeBrackets = false;
-
-	for (const range of ctx.ranges) {
-		const result = runSnippetCursor(view, ctx, key, range);
-
-		if (result.shouldAutoEnlargeBrackets) shouldAutoEnlargeBrackets = true;
+		if (shouldAutoEnlargeBrackets) {
+			autoEnlargeBrackets(view);
+		}
+		if (!success) {
+			break
+		}
+		snippetInfo.key = undefined; // only run keypress once.
 	}
-
-	const success = expandSnippets(view);
-
-
-	if (shouldAutoEnlargeBrackets) {
-		autoEnlargeBrackets(view);
-	}
-
-	return success;
+	return didExpand
+}
+const getSliceAroundCursor = (view: EditorView, to: number) => {
+	const line = view.state.sliceDoc(0, to);
+	let cachedLineAfter: string | null = null;
+	const effectiveLineAfter = () => {
+		cachedLineAfter = cachedLineAfter ?? view.state.sliceDoc(to);
+		return cachedLineAfter;
+	};
+	return {line, effectiveLineAfter};
 }
 
+const getParsedSelection = (view: EditorView, original_range: CMBound) => {
+	const parsed_range = {from: original_range.from, to: original_range.to};
+	const original_sel = view.state.sliceDoc(original_range.from, original_range.to);
+	let parsedSel = original_sel;
+	const originalResult =  {
+		range: {original: original_range, parsed: parsed_range},
+		sel: {original: original_sel, parsed: parsedSel}
+	}
+	// Remove indentations and callouts from selection as composite markers aren't really "part" of the text
+	// and make more sense to be removed from the selection.
+	if (original_range.from === original_range.to) {
+		return originalResult;
+	}
 
-const runSnippetCursor = (view: EditorView, ctx: Context, key: string, range: SelectionRange):{success: boolean; shouldAutoEnlargeBrackets: boolean} => {
+	parsed_range.to = parsed_range.from + parsedSel.length;
+	const startLine = view.state.doc.lineAt(parsed_range.from);
+	const pattern = /^((?:> ?)*)(\s*)/;
+	const startCalloutMatch = startLine.text.match(pattern);
+	if (!startCalloutMatch) {
+		return originalResult;
+	}
+	const calloutCount = startCalloutMatch[1]!.split(">").length - 1;
+	const indentation = startCalloutMatch[2]!;
+	let exit = false;
+	parsedSel = original_sel.replaceAll(
+		new RegExp("\\n((?:> ?)*)(\\s*)", "g"),
+		(match, callouts: string, indent: string) => {
+			if (exit) return match;
+			if (
+				callouts.split(">").length - 1 !== calloutCount ||
+				indent.length < indentation.length
+			) {
+				exit = true;
+				return match;
+			}
+			return "\n";
+		},
+	);
+	if (exit) {
+		return originalResult;
+	}
+	
+	if (startLine.from === parsed_range.from) {
+		const match = parsedSel.match(/^(> ?)*\s*/);
+		if (match) {
+			parsed_range.from += match[0].length;
+			parsedSel = parsedSel.replace(pattern, "");
+		}
+	}	
+	const range = {original: original_range, parsed: parsed_range};
+	const sel = {original: original_sel, parsed: parsedSel};
+	return {range, sel};
+}
+
+const runSnippetCursor = (view: EditorView, ctx: Context, snippetInfo: SnippetInfo, original_range: CMBound, debug: snippetDebugLevel):{success: boolean; shouldAutoEnlargeBrackets: boolean} => {
 
 	const settings = getLatexSuiteConfig(view);
-	const {from, to} = range;
-	const sel = view.state.sliceDoc(from, to);
-	const line = view.state.sliceDoc(0, to);
+	const {line, effectiveLineAfter} = getSliceAroundCursor(view, original_range.to);
+	const to = original_range.to;
+	
+	const {range, sel} = getParsedSelection(view, original_range);
+
+	const key = snippetInfo.key ?? "";
+	// If the key pressed wasn't a text character, continue
+	if (snippetInfo.key && snippetInfo.key.length !== 1) {
+		return {success: false, shouldAutoEnlargeBrackets: false};
+	}
+	const envNames = Array.from(ctx.getEnvNames(to))
 	const updatedLine = line + key;
-	for (const snippet of settings.snippets) {
-		let effectiveLine = line;
-
-		if (!snippetShouldRunInMode(snippet.options, ctx.mode)) {
+	const bounds = ctx.getBounds(to);
+	const node =
+		bounds && "tree" in bounds && bounds.tree
+			? bounds.tree
+			: modifiedSyntaxTree(view.state).resolveInner(to, -1);
+	const symbol = Symbol("snippet context update")
+	for (const [i, snippet] of snippetInfo.snippets.entries()) {
+		const inIncludedScope = snippet.isWithinIncludedScope(envNames, ctx, view, node, symbol);
+		if (!snippet.options.snippetShouldRunInMode(ctx.mode, inIncludedScope === IncludedEnvironmentResult.Included)) {
 			continue;
 		}
-
-		if (snippet.options.automatic || snippet.type === "visual") {
-			// If the key pressed wasn't a text character, continue
-			if (!(key.length === 1)) continue;
-			effectiveLine = updatedLine;
-		}
-		else if (!(key === settings.snippetsTrigger)) {
-			// The snippet must be triggered by a key
+		
+		if (inIncludedScope === IncludedEnvironmentResult.NotIncluded) {
 			continue;
-		}
+		}	
+
+		const result = snippet.process({effectiveLine: updatedLine, range, sel, effectiveLineAfter, view});
+		if (result === null) continue;
 
 		// Check that this snippet is not excluded in a certain environment
-		let isExcluded = false;
-		// in practice, a snippet should have very few excluded environments, if any,
-		// so the cost of this check shouldn't be very high
-		for (const environment of snippet.excludedEnvironments) {
-			if (ctx.isWithinEnvironment(to, environment)) { isExcluded = true; }
+		if (snippet.isWithinExcludedScope(envNames)) {
+			continue
 		}
-		// we could've used a labelled outer for loop to `continue` from within the inner for loop,
-		// but labels are extremely rarely used, so we do this construction instead
-		if (isExcluded) { continue; }
 
-		const result = snippet.process(effectiveLine, range, sel);
-		if (result === null) continue;
 		const triggerPos = result.triggerPos;
+		const triggerEndPos = result.triggerEndPos
+			? result.triggerEndPos - key.length
+			: to;
 
 		if (snippet.options.onWordBoundary) {
 			// Check that the trigger is preceded and followed by a word delimiter
@@ -82,36 +167,35 @@ const runSnippetCursor = (view: EditorView, ctx: Context, key: string, range: Se
 
 		// Expand the snippet
 		const start = triggerPos;
-		queueSnippet(view, start, to, replacement, key);
+		const triggerKey =
+			snippet.options.automatic && snippet.type !== "visual" && snippet.options.undoKey
+				? key
+				: undefined;
+		queueSnippet(view, start, triggerEndPos, replacement, triggerKey, to);
 
-		const containsTrigger = settings.autoEnlargeBracketsTriggers.some(word => replacement.contains("\\" + word));
+		const containsTrigger = settings.autoEnlargeBracketsTriggers.some(word => replacement.insert.contains(word));
+		if (debug === "info" || debug === "verbose") {
+			showSnippetInfo(view.state, snippet, replacement.insert, containsTrigger);
+		}
+		if (debug === "verbose") {
+			console.debug({
+				snippets_unexpanded: snippetInfo.snippets
+					.slice(0, i)
+					.map((s) => ({
+						description: s.description,
+						trigger: s.trigger,
+						options: s.options,
+						replacement: s.replacement
+					})),
+				current_mode: ctx.mode,
+				updatedLine,
+			});	
+		}	
 		return {success: true, shouldAutoEnlargeBrackets: containsTrigger};
 	}
 
 
 	return {success: false, shouldAutoEnlargeBrackets: false};
-}
-
-const snippetShouldRunInMode = (options: Options, mode: Mode) => {
-	if (
-		options.mode.inlineMath && mode.inlineMath ||
-		options.mode.blockMath && mode.blockMath ||
-		(options.mode.inlineMath || options.mode.blockMath) && mode.codeMath
-	) {
-		if (!mode.textEnv) {
-			return true;
-		}
-	}
-
-	if (mode.inMath() && mode.textEnv && options.mode.text) {
-		return true;
-	}
-
-	if (options.mode.text && mode.text ||
-		options.mode.code && mode.code
-	) {
-		return true;
-	}
 }
 
 const isOnWordBoundary = (state: EditorState, triggerPos: number, to: number, wordDelimiters: string) => {
@@ -123,28 +207,12 @@ const isOnWordBoundary = (state: EditorState, triggerPos: number, to: number, wo
 	return (wordDelimiters.contains(prevChar) && wordDelimiters.contains(nextChar));
 }
 
-const trimWhitespace = (replacement: string, ctx: Context) => {
-	let spaceIndex = 0;
-
-	if (replacement.endsWith(" ")) {
-		spaceIndex = -1;
-	}
-	else {
-		const lastThreeChars = replacement.slice(-3);
-		const lastChar = lastThreeChars.slice(-1);
-
-		if (lastThreeChars.slice(0, 2) === " $" && !isNaN(parseInt(lastChar))) {
-			spaceIndex = -3;
-		}
-	}
-
-	if (spaceIndex != 0) {
-		if (spaceIndex === -1) {
-			replacement = replacement.trimEnd();
-		}
-		else if (spaceIndex === -3){
-			replacement = replacement.slice(0, -3) + replacement.slice(-2);
-		}
+const trimWhitespace = (replacement: ResultInsert, _ctx: Context) => {
+	const tabstops = replacement.tabstops;
+	replacement.insert = replacement.insert.trimEnd();
+	for (const tabstop of tabstops) {
+		tabstop.to = Math.min(tabstop.to, replacement.insert.length);
+		tabstop.from = Math.min(tabstop.from, replacement.insert.length);
 	}
 
 	return replacement;

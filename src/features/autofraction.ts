@@ -4,18 +4,20 @@ import { findMatchingBracket, getOpenBracket } from "src/utils/editor_utils";
 import { queueSnippet } from "src/snippets/codemirror/snippet_queue_state_field";
 import { expandSnippets } from "src/snippets/snippet_management";
 import { autoEnlargeBrackets } from "./auto_enlarge_brackets";
-import { Context } from "src/utils/context";
+import { Context, getContextPlugin } from "src/editor_context/context";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
+import { ArrayNode, emptyInsertOptions, TabstopNode, TextNode } from "src/snippets/luasnip_api/node";
 
 
-export const runAutoFraction = (view: EditorView, ctx: Context):boolean => {
+export const runAutoFraction = (view: EditorView): boolean => {
+	const ctx = getContextPlugin(view);
 
 	for (const range of ctx.ranges) {
 		runAutoFractionCursor(view, ctx, range);
 	}
 
 	const success = expandSnippets(view);
-
+	
 	if (success) {
 		autoEnlargeBrackets(view);
 	}
@@ -23,6 +25,9 @@ export const runAutoFraction = (view: EditorView, ctx: Context):boolean => {
 	return success;
 }
 
+
+const greek = "alpha|beta|gamma|Gamma|delta|Delta|epsilon|varepsilon|zeta|eta|theta|Theta|iota|kappa|lambda|Lambda|mu|nu|omicron|xi|Xi|pi|Pi|rho|sigma|Sigma|tau|upsilon|Upsilon|varphi|phi|Phi|chi|psi|Psi|omega|Omega";
+const regex = new RegExp("(" + greek + ") ([^ ])", "g");
 
 export const runAutoFractionCursor = (view: EditorView, ctx: Context, range: SelectionRange):boolean => {
 
@@ -39,10 +44,10 @@ export const runAutoFractionCursor = (view: EditorView, ctx: Context, range: Sel
 	// Get the bounds of the equation
 	const result = ctx.getBounds();
 	if (!result) return false;
-	const eqnStart = result.start;
+	const eqnStart = result.inner_start;
 
 
-	let curLine = view.state.sliceDoc(0, to);
+	let curLine = view.state.sliceDoc(eqnStart, to);
 	let start = eqnStart;
 
 	if (from != to) {
@@ -57,36 +62,28 @@ export const runAutoFractionCursor = (view: EditorView, ctx: Context, range: Sel
 
 		// Also, allow spaces after greek letters
 		// By replacing spaces after greek letters with a dummy character (#)
-
-		const greek = "alpha|beta|gamma|Gamma|delta|Delta|epsilon|varepsilon|zeta|eta|theta|Theta|iota|kappa|lambda|Lambda|mu|nu|omicron|xi|Xi|pi|Pi|rho|sigma|Sigma|tau|upsilon|Upsilon|varphi|phi|Phi|chi|psi|Psi|omega|Omega";
-		const regex = new RegExp("(" + greek + ") ([^ ])", "g");
+		regex.lastIndex = 0;
 		curLine = curLine.replace(regex, "$1#$2");
 
 
-		for (let i = curLine.length - 1; i >= eqnStart; i--) {
+		for (let i = curLine.length - 1; i >= 0; i--) {
 			const curChar = curLine.charAt(i)
 
 			if ([")", "]", "}"].contains(curChar)) {
 				const closeBracket = curChar;
-				const openBracket = getOpenBracket(closeBracket);
+				const openBracket = getOpenBracket(closeBracket)!;
 
 				const j = findMatchingBracket(curLine, i, openBracket, closeBracket, true);
 
-				if (j === -1) return false;
+				if (j === null) return false;
 
 				// Skip to the beginnning of the bracket
 				i = j;
-
-				if (i < eqnStart) {
-					start = eqnStart;
-					break;
-				}
-
 			}
 
 
 			if (" $([{\n".concat(settings.autofractionBreakingChars).contains(curChar)) {
-				start = i+1;
+				start = i + 1 + eqnStart;
 				break;
 			}
 		}
@@ -106,9 +103,19 @@ export const runAutoFractionCursor = (view: EditorView, ctx: Context, range: Sel
 		}
 	}
 
-	const replacement = `${settings.autofractionSymbol}{${numerator}}{$0}$1`
+	const snippet = new ArrayNode([
+		new TextNode(settings.autofractionSymbol + "{"),
+		// If the content inside parentheses is empty, the numerator would be empty and that's rarely desired.
+		numerator === "" ? new TabstopNode(0) : new TextNode(numerator),
+		new TextNode("}{"),
+		new TabstopNode(1),
+		new TextNode("}"),
+		new TabstopNode(2),
+	]);
+	// The keypressed shouldn't be inserted back in after an undo, if we have a selection.
+	const keyPressed = from != to ? undefined : "/";
 
-	queueSnippet(view, start, to, replacement, "/");
+	queueSnippet(view, start, to, snippet.applyInsert(emptyInsertOptions), keyPressed);
 
 	return true;
 }

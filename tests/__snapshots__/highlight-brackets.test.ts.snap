@@ -1,0 +1,23 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`conceal > should display mismatched brackets 1`] = `
+{
+  "\\frac{1}{2": [
+    {
+      "bracket": 1,
+      "className": "latex-suite-color-bracket-0",
+      "pos": 5,
+    },
+    {
+      "bracket": 1,
+      "className": "latex-suite-color-bracket-0",
+      "pos": 7,
+    },
+    {
+      "bracket": 1,
+      "className": "latex-suite-mismatched-bracket",
+      "pos": 8,
+    },
+  ],
+}
+`;
