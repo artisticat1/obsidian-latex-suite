@@ -65,6 +65,11 @@ type MatrixShortcutsSettingDefinition = Definition<
 	| "matrixShortcutsEnabled"
 	| "matrixShortcutsEnvNames"
 	| "matrixShortcutsMacroNames"
+	| "matrixShortcutsWhitespaceTrimEnabled"
+	| "matrixShortcutsAlignmentTrimEnabled"
+	| "matrixShortcutsHlineLineBreakEnabled"
+	| "matrixShortcutsEmptyLineTrimAfterEnvEnabled"
+	| "matrixShortcutsLineBreakAfterEnvEnabled"
 >
 
 type TaboutSettingDefinition = Definition<
@@ -479,7 +484,37 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 					type: "text",
 					defaultValue: DEFAULT_SETTINGS.matrixShortcutsMacroNames
 				}
+			},
+			{
+				name: t("matrix-shortcuts.trim-whitespace.name"),
+				desc: this.renderHtml(t("matrix-shortcuts.trim-whitespace.desc")),
+				control: getToggleControl("matrixShortcutsWhitespaceTrimEnabled")
+			},
+			{
+				name: t("matrix-shortcuts.trim-alignment.name"),
+				desc: this.renderHtml(t("matrix-shortcuts.trim-alignment.desc")),
+				control: getToggleControl("matrixShortcutsAlignmentTrimEnabled")
+			},
+			{
+				name: t("matrix-shortcuts.line-break-after-hline.name"),
+				desc: this.renderHtml(t("matrix-shortcuts.line-break-after-hline.desc")),
+				control: getToggleControl("matrixShortcutsHlineLineBreakEnabled")
+			},
+			{
+				name: t("matrix-shortcuts.trim-empty-line.name"),
+				desc: this.renderHtml(t("matrix-shortcuts.trim-empty-line.desc")),
+				control: getToggleControl("matrixShortcutsEmptyLineTrimAfterEnvEnabled")
+			},
+			{
+				name: t("matrix-shortcuts.newline-on-exit.name"),
+				desc: this.renderHtml(t("matrix-shortcuts.newline-on-exit.name")),
+				control: getToggleControl("matrixShortcutsLineBreakAfterEnvEnabled")
 			}
+				// | "matrixShortcutsWhitespaceTrimEnabled"
+				// | "matrixShortcutsAlignmentTrimEnabled"
+				// | "matrixShortcutsHlineLineBreakEnabled"
+				// | "matrixShortcutsEmptyLineTrimAfterEnvEnabled"
+				// | "matrixShortcutsLineBreakAfterEnvEnabled"
 		]
 		return [{
 			type: "page",

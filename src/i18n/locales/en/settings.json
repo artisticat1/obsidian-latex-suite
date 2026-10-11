@@ -108,6 +108,26 @@
 		"macros": {
 			"name": "Macros",
 			"desc": "A list of macros names to run the matrix shortcuts in, separated by commas."
+		},
+		"trim-whitespace": {
+			"name": "Trim excess whitespace",
+			"desc": "When enabled, Tab and Enter will trim surrounding whitespace to prevent excessive spaces."
+		},
+		"trim-alignment": {
+			"name": "Trim excess alignment",
+			"desc": "Whether to trim extra <code>&amp;</code> to prevent excessive spacing."
+		},
+		"line-break-after-hline": {
+			"name": "Enable '\\\\' after '\\hline'",
+			"desc": "Whether '\\\\' will be inserted after '\\hline'."
+		},
+		"trim-empty-line": {
+			"name": "Trim empty line after environment",
+			"desc": "When enabled, Shift + Enter will remove an empty line when exiting an environment to prevent excessive spaces."
+		},
+		"newline-on-exit": {
+			"name": "Add line break after environment",
+			"desc": "Whether exiting a matrix will add a line break when exiting an environment to ensure proper formatting."
 		}
 	},
 	"tabout": {

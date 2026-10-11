@@ -227,7 +227,8 @@ const addCellMatrixShortcutCallback = (view: EditorView): boolean => {
 	if (!view.state.selection.main.empty) {
 		return false;
 	}
-	view.dispatch(view.state.replaceSelection(" & "));
+	applySeparator(view, ALIGNMENT);
+	// view.dispatch(view.state.replaceSelection(" & "));
 	return true;
 }
 

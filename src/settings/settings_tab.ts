@@ -396,7 +396,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		const containerEl = this.containerEl;
 		this.addHeading(containerEl, "Matrix shortcuts", "brackets-contain");
 
-		const matrixShortcutsEnabledSetting = new Setting(containerEl)
+		new Setting(containerEl)
 			.setName("Enabled")
 			.setDesc("Whether matrix shortcuts are enabled.")
 			.addToggle(toggle => toggle
