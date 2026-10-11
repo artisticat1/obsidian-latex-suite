@@ -161,3 +161,15 @@ export class EquationText {
 		}
 	}
 }
+
+export function* iterateTreeCursorReverse(topNode: SyntaxNode, doc: EquationText) {
+	const cursor = topNode.cursor();
+	cursor.moveTo(doc.to, -1);
+	if (cursor.node.from < doc.from) {
+		return;
+	}
+	do {
+		doc.skipCursorMove = false;
+		yield cursor;	
+	} while ((doc.skipCursorMove || cursor.prev()) && cursor.from >= doc.from && cursor.node !== topNode && !doc.exit);
+}

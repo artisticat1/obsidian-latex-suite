@@ -775,6 +775,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			["matrix-cell", "matrixShortcutsCellTrigger"],
 			["matrix-exit", "matrixShortcutsExitTrigger"],
 			["tabout", "taboutTrigger"],
+			["reverse-tabout", "reverseTaboutTrigger"],
 		] as const;
 		const explanation = new Setting(containerEl)
 			.setDesc(this.renderHtml(t("keymap.desc")));

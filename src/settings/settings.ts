@@ -60,6 +60,7 @@ export interface LatexSuiteCMKeymapSettings {
 	snippetNextTabstopTrigger: CMKeyMap;
 	snippetPreviousTabstopTrigger: CMKeyMap;
 	taboutTrigger: CMKeyMap;
+	reverseTaboutTrigger: CMKeyMap;
 	matrixShortcutsNewlineTrigger: CMKeyMap
 	matrixShortcutsCellTrigger: CMKeyMap
 	matrixShortcutsExitTrigger: CMKeyMap
@@ -163,6 +164,7 @@ export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
 	taboutEnabled: true,
 	taboutExitEquationOnlyOnEOL: true,
 	taboutTrigger: "Tab",
+	reverseTaboutTrigger: "Shift-Tab",
 	autoEnlargeBrackets: true,
 	autoEnlargeBracketsSpace: true,
 	wordDelimiters: "., +-\\n\t:;!?\\/{}[]()=~$'\"|`<>*^%#@&",
