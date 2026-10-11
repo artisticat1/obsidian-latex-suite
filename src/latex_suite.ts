@@ -1,7 +1,7 @@
 import { EditorView, ViewPlugin, ViewUpdate, type KeyBinding, runScopeHandlers, keymap } from "@codemirror/view";
 import { runSnippets } from "./features/run_snippets";
 import { runAutoFraction } from "./features/autofraction";
-import { tabout, shouldTaboutByCloseBracket } from "./features/tabout";
+import { tabout, shouldTaboutByCloseBracket, reversetabout } from "./features/tabout";
 import { addCellMatrixShortcut, exitMatrixShortCut, newlineMatrixShortcut, priorityTaboutMatrixShortcut } from "./features/matrix_shortcuts";
 
 import { getContextPlugin } from "./editor_context/context";
@@ -245,20 +245,19 @@ function getKeymaps(settings: LatexSuiteCMSettings, snippets: Snippet[]): LatexS
 	const taboutShortcuts = [
 		{
 			key: settings.taboutTrigger,
-			run: function exitEquation(view: EditorView) {
-				if (!view.state.selection.main.empty) return false;
-				const ctx = getContextPlugin(view);
-				return tabout(view, ctx);
-			},
+			run: tabout,
 		},
 		...[")", "}", "]"].map((key) => ({
 			key,
 			run: function nextClosingBracket(view: EditorView) {
 				if (!shouldTaboutByCloseBracket(view, key)) return false;
-				const ctx = getContextPlugin(view);
-				return tabout(view, ctx);
+				return tabout(view);
 			},
 		})),
+		{
+			key: settings.reverseTaboutTrigger,
+			run: reversetabout,
+		},
 	];
 	if (settings.taboutEnabled) {
 		keybindings.push(...taboutShortcuts);

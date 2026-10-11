@@ -587,6 +587,7 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 			["matrix-cell", "matrixShortcutsCellTrigger"],
 			["matrix-exit", "matrixShortcutsExitTrigger"],
 			["tabout", "taboutTrigger"],
+			["reverse-tabout", "reverseTaboutTrigger"]
 		] as const).map((keys) => ({
 			name: t(`keymap.${keys[0]}`),
 			control: {

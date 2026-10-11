@@ -34,6 +34,7 @@ export const EMPTY_SETTINGS: LatexSuitePluginSettings = {
 	taboutEnabled: false,
 	taboutExitEquationOnlyOnEOL: false,
 	taboutTrigger: "",
+	reverseTaboutTrigger: "",
 	autoEnlargeBrackets: false,
 	autoEnlargeBracketsSpace: false,
 	wordDelimiters: "",

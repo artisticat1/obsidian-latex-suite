@@ -224,6 +224,7 @@
 		"next-tabstop": "Next tabstop",
 		"prev-tabstop": "Previous tabstop",
 		"tabout": "Tabout",
+		"reverse-tabout": "Reverse tabout",
 		"matrix-newline": "Matrix: insert newline and \"\\\\\"",
 		"matrix-cell": "Matrix: insert \" & \"",
 		"matrix-exit": "Matrix: move to the next line",

@@ -2,9 +2,10 @@ import type { TransactionSpec } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { intersection } from "src/utils/prototype_utils";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
-import { Context } from "src/editor_context/context";
+import { getContextPlugin } from "src/editor_context/context";
 import { setCursor, getCharacterAtPos, isBoundMultiline } from "src/utils/editor_utils";
-import { type Token, tokenize } from "src/utils/tokenizer";
+import { EquationText, iterateTreeCursorReverse, type Token, tokenize } from "src/utils/tokenizer";
+import { latex } from "src/parser/latex-terms";
 
 
 const LEFT_COMMANDS = new Set<string>([
@@ -76,10 +77,44 @@ const isUnmatchedRightCommand = (tokens: Token[], index: number, current: Token)
 	return !isDelimiterToken(next);
 };
 
+export const reversetabout = (view: EditorView): boolean => {
+	if (!view.state.selection.main.empty) return false;
+	const ctx = getContextPlugin(view);
+	const bounds = ctx.getBounds();
+	if (!bounds || !("tree" in bounds) || !bounds.tree) return false;
+	const { inner_start } = bounds;
+	const pos = ctx.pos;
+	const doc = new EquationText(view.state.doc.sliceString(inner_start, pos), inner_start, pos)
+	const openingSymbols = new Set<string>(Object.keys(DELIMITERS_MAP));
+	for (const cursor of iterateTreeCursorReverse(bounds.tree, doc)) {
+		if (cursor.type.is(latex.LeftCtrlSeq)) {
+			setCursor(view, cursor.from);
+			return true;
+		}else if (cursor.type.is(latex.MathSpecialChar) || cursor.type.is(latex.OpenBrace) || cursor.type.is(latex.OpenBracket)) {
+			for (let i = cursor.to - 1; i >= cursor.from; i--) {
+				const char = doc.slice(i, i + 1);
+				if (!openingSymbols.has(char)) {
+					continue;
+				}
+				if (i !== cursor.from) {
+					setCursor(view, i);
+				}
+				cursor.prev();
+				const endPos = cursor.type.is(latex.LeftCtrlSeq) ? cursor.from : i;
+				setCursor(view, endPos);
+				return true;
+			}
+		} else if (cursor.name.contains("CtrlSeq") && openingSymbols.has(doc.slice(cursor.from, cursor.to))) {
+			setCursor(view, cursor.from);
+			return true;
+		}
+	}
+	return false;
+}
 
-export const tabout = (view: EditorView, ctx: Context): boolean => {
-	if (!ctx.mode.inMath()) return false;
-
+export const tabout = (view: EditorView): boolean => {
+	if (!view.state.selection.main.empty) return false;
+	const ctx = getContextPlugin(view)
 	const bounds = ctx.getBounds();
 	if (!bounds) return false;
     const { inner_start, inner_end, outer_end, outer_start } = bounds;
