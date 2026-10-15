@@ -170,7 +170,7 @@ export default [
 	{trigger: "prod", replacement: "\\prod", options: "mA"},
 	{trigger: "\\sum", replacement: "\\sum_{${0:i}=${1:1}}^{${2:N}} $3", options: "m"},
 	{trigger: "\\prod", replacement: "\\prod_{${0:i}=${1:1}}^{${2:N}} $3", options: "m"},
-    {trigger: "lim", replacement: "\\lim_{ ${0:n} \\to ${1:\\infty} } $2", options: "mA"},
+    {trigger: "lim", replacement: "\\underset{ ${0:n} \\to ${1:\\infty} }{ \\lim } $2", options: "mA"},
     {trigger: "+-", replacement: "\\pm", options: "mA"},
 	{trigger: "-+", replacement: "\\mp", options: "mA"},
     {trigger: "...", replacement: "\\dots", options: "mA"},
