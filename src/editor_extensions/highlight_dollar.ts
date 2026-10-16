@@ -1,4 +1,4 @@
-import { Prec, Range } from "@codemirror/state";
+import { EditorSelection, EditorState, Prec, Range, SelectionRange } from "@codemirror/state";
 import {
 	Decoration,
 	type DecorationSet,
@@ -20,12 +20,46 @@ const ERROR_CLASS = "latex-suite-error-dollar";
 const INLINE_CLASS = "latex-suite-highlighted-dollar-inline";
 const BLOCK_CLASS = "latex-suite-highlighted-dollar-block";
 const CODE_CLASS = "latex-suite-highlighted-dollar-code";
+/**
+ * Unhighlight empty dollars when the cursor isn't inside
+ * as reading view sees them as normal dollars and not inline math.
+ */
+const EMPTY_INLINE_CLASS = "latex-suite-highlighted-dollar-empty-inline";
+
+type ClassNames = typeof ERROR_CLASS | typeof INLINE_CLASS | typeof BLOCK_CLASS | typeof CODE_CLASS | typeof EMPTY_INLINE_CLASS;
+
+
 class HighlightDollarPlugin implements PluginValue {
 	decorations: DecorationSet = Decoration.none;
 
 	update(update: ViewUpdate) {
-		if (!update.docChanged && !update.viewportChanged) return;
+		if (!update.docChanged && !update.viewportChanged && !this.didMoveIntoDollar(update)) return;
 		this.decorations = this.computeDecorations(update.view);
+	}
+	
+	didMoveIntoDollar(update: ViewUpdate): boolean {
+		if (!update.selectionSet) {
+			return false;
+		}
+		function containsDollar(range: SelectionRange): boolean {
+			return range.empty && update.state.sliceDoc(range.from - 1, range.from + 1) === "$$";	
+		}
+		for (const transaction of update.transactions) {
+			if (!transaction.selection) continue;
+			const { selection } = transaction;
+			for (const range of selection.ranges) {
+				if (containsDollar(range)) {
+					return true;
+				}
+			}
+		}
+		for (const range of update.startState.selection.ranges) {
+			if (containsDollar(range)) {
+				return true;
+			}
+		}
+		return false;
+
 	}
 
 	computeDecorations(view: EditorView): DecorationSet {
@@ -109,8 +143,10 @@ class HighlightDollarPlugin implements PluginValue {
 					}).range(bounds.from, bounds.to),
 				);
 			} else {
-				let modeClass: typeof INLINE_CLASS | typeof BLOCK_CLASS | typeof CODE_CLASS;
-				if (bounds.mode === MathMode.InlineMath || (bounds.mode === MathMode.BlockMath && bounds.outer_start - bounds.outer_end < 4)) {
+				let modeClass: ClassNames;
+				if (emptyMarkdownDollars(bounds, view.state)) {
+					modeClass = EMPTY_INLINE_CLASS;
+				} else if (bounds.mode === MathMode.InlineMath || (bounds.mode === MathMode.BlockMath && bounds.outer_start - bounds.outer_end < 4)) {
 					modeClass = INLINE_CLASS;
 				} else if (bounds.mode === MathMode.BlockMath) {
 					modeClass = BLOCK_CLASS;
@@ -148,6 +184,11 @@ const highlight_dollar_theme = EditorView.baseTheme({
 	[`.${CODE_CLASS}`]: {
 		color: "#54940b",
 	},
+	
+	[`.${EMPTY_INLINE_CLASS}`]: {
+		color: "var(--text-normal)",
+		fontStyle: "normal",
+	},
 })
 
 export const highlight_dollar_extension = [
@@ -158,3 +199,25 @@ export const highlight_dollar_extension = [
 	),
 	highlight_dollar_theme,
 ];
+
+function emptyMarkdownDollars(
+	bounds: Bounds & { kind: "pair"; mode: MathMode },
+	state: EditorState,
+): boolean {
+	const { doc, selection } = state;
+	return (
+		bounds.mode === MathMode.InlineMath &&
+		doc.sliceString(bounds.outer_start, bounds.outer_end) === "$$" &&
+		!emptySelectionRangeContainsPos(selection, bounds.inner_start)
+	);
+}
+
+function emptySelectionRangeContainsPos(selection: EditorSelection, pos: number) {
+	for (const range of selection.ranges) {
+		if (!range.empty) continue;
+		if (pos >= range.from && pos <= range.to) {
+			return true;
+		}
+	}
+	return false;
+}
