@@ -1,4 +1,4 @@
-import { App, ButtonComponent, debounce, ExtraButtonComponent, Modal, Platform, requireApiVersion, sanitizeHTMLToDom, Setting, type SettingDefinition, type SettingDefinitionControl, type SettingDefinitionItem, SettingTab } from "obsidian"
+import { App, ButtonComponent, Component, debounce, ExtraButtonComponent, MarkdownRenderer, Modal, Platform, requireApiVersion, sanitizeHTMLToDom, Setting, type SettingDefinition, type SettingDefinitionControl, type SettingDefinitionGroup, type SettingDefinitionItem, SettingTab } from "obsidian"
 import { DEFAULT_SETTINGS, EnvironmentSchema, validateTextMacros, type LatexSuitePluginSettings } from "./settings"
 import { settings_translation as t } from "../i18n/i18n"
 import { EditorState, type Extension } from "@codemirror/state"
@@ -256,10 +256,37 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 				}
 			},
 		]
+		const snippetGroup: SettingDefinitionGroup = {
+			type: "group",
+			items: snippets,
+			heading: t("snippets.heading"),
+			extraButtons: [
+				(c) => {
+					c.setIcon("bug");
+					c.setTooltip(t("tooltips.snippet-bug"));
+					c.onClick(() => {
+						const url =
+							"https://github.com/artisticat1/obsidian-latex-suite/issues/new?template=bug_report.yml";
+						window.open(url);
+					});
+				},
+				(c) => {
+					c.setIcon("help").setTooltip(t("tooltips.snippet-help")).onClick(() => {
+						const url = "https://github.com/artisticat1/obsidian-latex-suite/discussions"
+						window.open(url);
+					})
+				},
+				(c) => {
+					c.setIcon("info").onClick(() => {
+						new QuickOverViewSnippetModal(this.app).open();
+					}).setTooltip(t("tooltips.snippet-info"))
+				},
+			],
+		};
 		return [{
 			type: "page",
 			name: t("snippets.heading"),
-			items: [...snippets, {
+			items: [snippetGroup, {
 				type: "group",
 				heading: t("advanced-snippets.heading"),
 				items: advanced
@@ -845,6 +872,64 @@ export function createSnippetsEditor(
 			).open();
 		});
 	return snippetsEditor;
+}
+
+class QuickOverViewSnippetModal extends Modal {
+	component: Component = new Component();
+	constructor(app: App) {
+		super(app);
+	}
+	
+	async onOpen(): Promise<void>{
+		await this.renderMarkdown(
+`
+# Quick Syntax Overview ([full docs](https://github.com/artisticat1/obsidian-latex-suite/blob/main/DOCS.md))
+## Options
+- A : Auto. Expand this snippet as soon as the trigger is typed. If omitted, Tab must be pressed to expand the snippet. (Unreliable on IME keyboards)
+- t : Text mode. Only run snippet outside math
+- m : Math mode. Only run snippet inside math. Shorthand for both M and n
+- M : Block math mode. Only run snippet in \`$$ ... $$\` blocks
+- n : Inline math mode. Only run snippet in \`$ ... $\` blocks
+- r : [Regex](https://github.com/artisticat1/obsidian-latex-suite/blob/main/DOCS.md#regex-snippets). The trigger will be treated as a regular expression
+- v : [Visual](https://github.com/artisticat1/obsidian-latex-suite/blob/main/DOCS.md#visual-snippets). Only run this snippet on a selection. (Trigger must be 1 char.)
+- w : Word boundary. Only run this snippet when the trigger is preceded (and followed by) a word delimiter, such as ., ,, or -.
+- c : Code mode. Only run this snippet inside a \`\`\`...\`\`\` block
+- C : Inline code mode. Only run this snippet inside \`...\` blocks
+- T : Math text mode. Only run in text macros such as \\text{}
+- U : Skip undo. When an automatic snippet expands, pressing undo returns to the state before the trigger key was typed, instead of first removing the snippet and reinserting that key.
+
+Insert tabstops for the cursor to jump to by writing \`$0\`, \`$1\`, etc or \`\${2:placeholder}\` in the replacement
+
+all the options are:
+~~~typescript
+type snippet = {
+  trigger: string | RegExp,
+  replacement: string | BaseNode[] | (replacement, options) => string | boolean,
+  options: string,
+  priority?: number = 0,
+  description?: string = "no description provided",
+  flags?: string = "",
+  triggerKey?: string = "",
+  language?: string,
+  excludedMacros?: Macro[],
+  excludedEnvironments?: string[],
+  includedMacros?: Macro[],
+  includedPaths?: string[] | string,
+  context?: (options) => boolean | ((options) => boolean)[],
+}
+~~~
+`
+		)
+		this.component.load();
+	}
+	onClose(): void {
+		this.component.unload();		
+	}
+	
+	async renderMarkdown(body: string): Promise<void> {
+		const div = this.contentEl.createDiv();
+		await MarkdownRenderer.render(this.app, body, div, "", this.component)
+	}
 }
 
 class ConfirmationModal extends Modal {
