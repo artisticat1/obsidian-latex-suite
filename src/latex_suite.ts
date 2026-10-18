@@ -5,7 +5,7 @@ import { tabout, shouldTaboutByCloseBracket, reversetabout } from "./features/ta
 import { addCellMatrixShortcut, exitMatrixShortCut, newlineMatrixShortcut, priorityTaboutMatrixShortcut } from "./features/matrix_shortcuts";
 
 import { getContextPlugin } from "./editor_context/context";
-import { setSelectionToNextTabstop, tempKeyPress } from "./snippets/snippet_management";
+import { isTempKeypressUpdate, setSelectionToNextTabstop } from "./snippets/snippet_management";
 import { getLatexSuiteConfig } from "./snippets/codemirror/config";
 import { clearSnippetQueue } from "./snippets/codemirror/snippet_queue_state_field";
 import { handleUndoRedo } from "./snippets/codemirror/history";
@@ -23,7 +23,7 @@ export const handleUpdate = (update: ViewUpdate) => {
 
 	// The math tooltip handler is driven by view updates because it utilizes
 	// information about visual line, which is not available in EditorState
-	if (settings.mathPreviewEnabled && !update.transactions.some(tr => tr.annotation(tempKeyPress))) {
+	if (settings.mathPreviewEnabled && !isTempKeypressUpdate(update)) {
 		handleMathTooltip(update);
 	}
 

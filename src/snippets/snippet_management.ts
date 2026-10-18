@@ -1,5 +1,5 @@
 import { EditorView } from "@codemirror/view";
-import { Annotation, ChangeSet, EditorSelection } from "@codemirror/state";
+import { Annotation, ChangeSet, EditorSelection, Transaction } from "@codemirror/state";
 import { endSnippet, startSnippet } from "./codemirror/history";
 import { isolateHistory } from "@codemirror/commands";
 import { type TabstopSpec, tabstopSpecsToTabstopGroups } from "./tabstop";
@@ -59,6 +59,9 @@ export function expandSnippets(view: EditorView):boolean {
 }
 // optimization to avoid updating math preview and conceal when a keypress is pushed into the history but immediately undone
 export const tempKeyPress = Annotation.define<true>();
+export const isTempKeypressUpdate = (update: {
+	transactions: readonly Transaction[];
+}) => update.transactions.some((t) => t.annotation(tempKeyPress));
 
 function handleUndoKeypresses(view: EditorView, snippets: SnippetChangeSpec[]) {
 	const originalDoc = view.state.doc;

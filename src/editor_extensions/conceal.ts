@@ -1,12 +1,12 @@
 // https://discuss.codemirror.net/t/concealing-syntax/3135
 
 import { ViewUpdate, Decoration, type DecorationSet, WidgetType, ViewPlugin, EditorView, type PluginValue } from "@codemirror/view";
-import { EditorSelection, Range, RangeSet, RangeSetBuilder, RangeValue, Transaction } from "@codemirror/state";
+import { ChangeSet, EditorSelection, Range, RangeSet, RangeSetBuilder, RangeValue, StateEffect, Transaction } from "@codemirror/state";
 import { conceal, type ConcealCachedEquations } from "./conceal_fns";
-import { debounce, livePreviewState } from "obsidian";
-import { tempKeyPress } from "src/snippets/snippet_management";
+import { debounce, livePreviewState } from "src/editor_extensions/obsidian_utils";
+import { isTempKeypressUpdate } from "src/snippets/snippet_management";
 import { createElement } from "./obsidian_utils";
-import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
+import { getConcealConfig, getConcealConfigExtension, getLatexSuiteConfig, type ConcealConfigInput } from "src/snippets/codemirror/config";
 
 export type Replacement = {
 	start: number,
@@ -91,7 +91,7 @@ class TextWidget extends WidgetType {
  * considered identical.
  */
 function atSamePosAfter(
-	update: ViewUpdate,
+	changes: ChangeSet,
 	oldConceals: ConcealSpec,
 	newConceals: ConcealSpec,
 ): boolean {
@@ -102,8 +102,8 @@ function atSamePosAfter(
 		const newConceal = newConceals[i]!;
 		// Set associativity to ensure that insertions on either side of the
 		// concealed region do not expand the region
-		const oldStartUpdated = update.changes.mapPos(oldConceal.start, 1);
-		const oldEndUpdated = update.changes.mapPos(oldConceal.end, -1);
+		const oldStartUpdated = changes.mapPos(oldConceal.start, 1);
+		const oldEndUpdated = changes.mapPos(oldConceal.end, -1);
 		const b = oldStartUpdated == newConceal.start && oldEndUpdated == newConceal.end;
 		if (!b) return false;
 	}
@@ -112,32 +112,44 @@ function atSamePosAfter(
 }
 
 function determineCursorPosType(
-	sel: EditorSelection,
-	concealSpec: ConcealSpec,
+    view: EditorView,
+    concealSpec: ConcealSpec,
+    linewise: boolean,
 ): Concealment["cursorPosType"] {
-	// Priority: "within" > "edge" > "apart"
+    // Priority: "within" > "edge" > "apart"
 
-	let cursorPosType: Concealment["cursorPosType"] = "apart";
+    const sel = view.state.selection;
+    let cursorPosType: Concealment["cursorPosType"] = "apart";
 
-	for (const range of sel.ranges) {
-		for (const replace of concealSpec) {
-			// 'cursorPosType' is guaranteed to be "edge" or "apart" at this point
-			const overlapRangeFrom = Math.max(range.from, replace.start);
-			const overlapRangeTo = Math.min(range.to, replace.end);
+    for (const range of sel.ranges) {
+        const fromRange = linewise ? view.state.doc.lineAt(range.from) : range;
+        const to = (
+            linewise
+                ? range.to <= fromRange.to
+                    ? fromRange
+                    : view.state.doc.lineAt(range.to)
+                : range
+        ).to;
+        const from = fromRange.from;
+        for (const replace of concealSpec) {
+            // 'cursorPosType' is guaranteed to be "edge" or "apart" at this point
+            const overlapRangeFrom = Math.max(from, replace.start);
+            const overlapRangeTo = Math.min(to, replace.end);
 
-			if (
-				overlapRangeFrom === overlapRangeTo &&
-				(overlapRangeFrom === replace.start || overlapRangeFrom === replace.end)
-			) {
-				cursorPosType = "edge";
-				continue;
-			}
+            if (
+                overlapRangeFrom === overlapRangeTo &&
+                (overlapRangeFrom === replace.start ||
+                    overlapRangeFrom === replace.end)
+            ) {
+                cursorPosType = "edge";
+                continue;
+            }
 
-			if (overlapRangeFrom <= overlapRangeTo) return "within";
-		}
-	}
+            if (overlapRangeFrom <= overlapRangeTo) return "within";
+        }
+    }
 
-	return cursorPosType;
+    return cursorPosType;
 }
 
 /*
@@ -251,6 +263,37 @@ function buildAtomicRanges(concealments: Concealment[]) {
 	return builder.finish();
 }
 
+export const createRevealCallback = (timeout: number) =>
+	debounce(
+		(
+			conceal: Conceal,
+			delayedConcealments: Concealment[],
+			view: EditorView,
+		) => {
+			for (const concealment of delayedConcealments) {
+				concealment.enable = false;
+			}
+			conceal.decorations = buildDecoSet(conceal.concealments);
+			conceal.atomicRanges = buildAtomicRanges(conceal.concealments);
+			// Invoke the update method to reflect the changes of this.decoration
+			view.dispatch();
+			//TODO: If replit or the future maintainers of vim ever decides to support CM6 (decorations) properly, remove this.
+			//@ts-ignore
+			view?.cm?.signal("vim-command-done");
+		},
+		timeout,
+		true
+	);
+
+export const updateConcealEffect = StateEffect.define<null>();
+function isUpdateConcealEffect(update: {
+	transactions: readonly Transaction[];
+}): boolean {
+	return update.transactions.some((tr) =>
+		tr.effects.some((e) => e.is(updateConcealEffect)),
+	);
+}
+
 const updateSelection = debounce((view: EditorView) => {
 	const ranges = view.state.selection.ranges.map(r => {
 		return EditorSelection.range(r.from, r.to, r.assoc);
@@ -260,7 +303,17 @@ const updateSelection = debounce((view: EditorView) => {
 	});
 }, 50);
 
-class Conceal implements PluginValue {
+type MinimalViewUpdate = {
+	view: EditorView;
+	changes: ViewUpdate["changes"];
+	state: EditorView["state"];
+	docChanged: boolean;
+	viewportChanged: boolean;
+	selectionSet: boolean;
+	transactions: readonly Transaction[];
+};
+
+export class Conceal implements PluginValue {
 	// Stateful ViewPlugin: you should avoid one in general, but here
 	// the approach based on StateField and updateListener conflicts with
 	// obsidian's internal logic and causes weird rendering.
@@ -270,7 +323,6 @@ class Conceal implements PluginValue {
 	delayEnabled: boolean;
 	cached_equations: ConcealCachedEquations;
 	concealSpecs: ConcealSpec[];
-	delayedReveal;
 	mousedown: boolean = false;
 
 
@@ -282,52 +334,34 @@ class Conceal implements PluginValue {
 		this.delayEnabled = revealTimeout > 0;
 		this.cached_equations = {};
 		this.concealSpecs = [];
-		this.delayedReveal = debounce(
-			this.delayedRevealCallback,
-			revealTimeout,
-			true,
-		);
 		// HACK: trigger an initial concealment calculation
 		const transactions: readonly Transaction[] = [];
-		this.update({view, state: view.state, docChanged: true, transactions} as ViewUpdate);
+		const changes: ChangeSet = ChangeSet.empty(view.state.doc.length);
+		this.update({
+			view,
+			state: view.state,
+			docChanged: true,
+			viewportChanged: false,
+			selectionSet: false,
+			transactions,
+			changes,
+		});
 		this.mousedown = view.plugin(livePreviewState)?.mousedown ?? false;
 	}
 
-	delayedRevealCallback = (delayedConcealments: Concealment[], view: EditorView) => {
-		for (const concealment of delayedConcealments) {
-			concealment.enable = false;
-		}
-		this.decorations = buildDecoSet(this.concealments);
-		this.atomicRanges = buildAtomicRanges(this.concealments);
-
-		// Invoke the update method to reflect the changes of this.decoration
-		view.dispatch();
-		//TODO: If replit or the future maintainers of vim ever decides to support CM6 (decorations) properly, remove this.
-		//@ts-ignore
-		view?.cm?.signal("vim-command-done");
-	}
-
-	update(update: ViewUpdate) {
-		if (update.transactions.some(tr => tr.reconfigured)) { 
-			const revealTimeout = getLatexSuiteConfig(update.view).concealRevealTimeout;
-			this.delayEnabled = revealTimeout > 0;
-			this.delayedReveal = debounce(
-				this.delayedRevealCallback,
-				revealTimeout,
-				true,
-			);
-		}
-		if (!(update.docChanged || update.viewportChanged || update.selectionSet))
+	update(update: MinimalViewUpdate) {
+		if (!(update.docChanged || update.viewportChanged || update.selectionSet) && !isUpdateConcealEffect(update))
 			return;
-		if (update.transactions.some(tr => tr.annotation(tempKeyPress))) {
+		if (isTempKeypressUpdate(update)) {
 			this.decorations = this.decorations.map(update.changes);
 			this.atomicRanges = this.atomicRanges.map(update.changes);
 			return;
 		}
-		const mappingInfo = getLatexSuiteConfig(update.view).concealMaps;
+		const settings = getConcealConfig(update.view.state);
+		const mappingInfo = settings.concealMaps;
 
 		// Cancel the delayed revealment whenever we update the concealments
-		this.delayedReveal.cancel();
+		settings.delayedReveal.cancel();
 		// If document/viewport is not changed, the conceal specs stay the same 
 		// and only the revealing needs to be updated.
 		if (!update.docChanged && !update.viewportChanged) {
@@ -340,9 +374,9 @@ class Conceal implements PluginValue {
 		}
 	}
 	
-	private updateFromConcealSpecs(concealSpecs: ConcealSpec[], update: ViewUpdate) {
+	private updateFromConcealSpecs(concealSpecs: ConcealSpec[], update: MinimalViewUpdate) {
+		const settings  = getConcealConfig(update.view.state);
 
-		const selection = update.state.selection;
 		const previousMouseDown = this.mousedown
 		this.mousedown = update.view.plugin(livePreviewState)?.mousedown ?? false;
 
@@ -353,9 +387,9 @@ class Conceal implements PluginValue {
 		let revealed = false
 
 		for (const spec of concealSpecs) {
-			const cursorPosType = determineCursorPosType(selection, spec);
+			const cursorPosType = determineCursorPosType(update.view, spec, settings.concealLinewise);
 			const oldConcealment = this.concealments.find(
-				(old) => atSamePosAfter(update, old.spec, spec)
+				(old) => atSamePosAfter(update.changes, old.spec, spec)
 			);
 
 			const concealAction = determineAction(
@@ -381,7 +415,7 @@ class Conceal implements PluginValue {
 		}		
 
 		if (delayedConcealments.length > 0) {
-			this.delayedReveal(delayedConcealments, update.view);
+			settings.delayedReveal(this, delayedConcealments, update.view);
 		}
 
 		this.concealments = concealments;
@@ -417,7 +451,7 @@ const concealPlugin = ViewPlugin.fromClass(Conceal, {
 	provide: plugin => EditorView.atomicRanges.of(view => view.plugin(plugin)?.atomicRanges ?? RangeSet.empty),
 });
 
-export function mkConcealPlugin() {
+export function mkConcealPlugin(config: ConcealConfigInput) {
 	
-	return [concealPlugin, concealTheme];
+	return [concealPlugin, concealTheme, getConcealConfigExtension(config)];
 }

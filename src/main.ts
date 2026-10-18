@@ -357,7 +357,7 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 
 		// Optional extensions
 		if (this.CMSettings.concealEnabled) {
-			this.editorExtensions.push(mkConcealPlugin());
+			this.editorExtensions.push(mkConcealPlugin(this.CMSettings));
 		}
 		if (this.CMSettings.colorPairedBracketsEnabled)
 			this.editorExtensions.push(colorPairedBracketsPluginLowestPrec);

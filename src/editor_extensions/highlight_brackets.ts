@@ -1,6 +1,6 @@
 import { EditorView, ViewUpdate, Decoration, type DecorationSet, ViewPlugin } from "@codemirror/view";
 import { Prec, Range } from "@codemirror/state";
-import { tempKeyPress } from "src/snippets/snippet_management";
+import { isTempKeypressUpdate } from "src/snippets/snippet_management";
 import { EquationText, findIndexReverse, iterateTreeCursor } from "src/utils/tokenizer";
 import { walkPairedBrackets } from "src/utils/tokenizer";
 import { type SyntaxNode, TreeCursor } from "@lezer/common";
@@ -456,7 +456,7 @@ export const colorPairedBracketsPlugin = ViewPlugin.fromClass(class {
 	}
 
 	update(update: ViewUpdate) {
-		if (update.transactions.some(tr => tr.annotation(tempKeyPress))) {
+		if (isTempKeypressUpdate(update)) {
 			return;
 		}
 		if (update.docChanged || update.viewportChanged) {
@@ -515,7 +515,7 @@ export const highlightCursorBracketsPlugin = ViewPlugin.fromClass(class {
 	}
 
 	update(update: ViewUpdate) {
-		if (update.transactions.some(tr => tr.annotation(tempKeyPress))) {
+		if (isTempKeypressUpdate(update)) {
 			return;
 		}
 		if (update.docChanged || update.selectionSet)
