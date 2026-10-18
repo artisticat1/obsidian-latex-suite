@@ -3,6 +3,7 @@ import type { SnippetVariables } from "../parse";
 import { ALL_MACROS } from "./macros";
 import { ArrayNode, BaseNode, CaptureNode, SnippetStringNode, TabstopNode, TextNode } from "./node";
 import type { UpdateHandler } from "src/api";
+import { modifiedSyntaxTree } from "src/parser/language";
 
 // For now SnippetNode, VisualSnippetNode and ArrayNode remain internal api only,
 // as I am not sure how bug proof it would be/how intuitif.
@@ -45,6 +46,7 @@ export const api = (snippetVariables: SnippetVariables, pluginApi: PluginSnippet
 		text_node,
 		capture_node,
 		ALL_MACROS,
+		modifiedSyntaxTree,
 		...pluginApi,
 	}
 }

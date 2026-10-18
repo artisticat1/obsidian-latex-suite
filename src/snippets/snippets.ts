@@ -62,6 +62,7 @@ function convertOutputToNode(rawReplacement: unknown): ArrayNode | null {
 type SnippetReplacementUnstableApi = {
 	view: EditorView
 	options: InsertOptions
+	range: CMBound,
 }
 
 // output of replacement functions should be the output fo ReplacementOutputSchema,
@@ -243,7 +244,7 @@ export class VisualSnippet extends Snippet<"visual"> {
 		// check whether the trigger text was typed
 		if (!(effectiveLine.endsWith(this.trigger))) { return null; }
 
-		let triggerPos = range.original.from;
+		let triggerPos = range.parsed.from;
 		let replacement: ResultInsert;
 		const captures = {
 			match: [],
@@ -257,7 +258,7 @@ export class VisualSnippet extends Snippet<"visual"> {
 			replacement = this.replacement.applyInsert(options);
 		} else {
 			const replacementOptions = {
-				view, options
+				view, options, range: range.parsed
 			}
 			const replacementTemp = convertOutputToNode(this.replacement(sel.parsed, replacementOptions))
 
@@ -283,7 +284,7 @@ export class RegexSnippet extends Snippet<"regex"> {
 		this.data.triggerAfter = triggerAfter;
 	}
 
-	process({effectiveLine, sel, effectiveLineAfter, view}: ProccesArgs): ProcessSnippetResult {
+	process({effectiveLine,range, sel, effectiveLineAfter, view}: ProccesArgs): ProcessSnippetResult {
 		const hasSelection = !!sel.original;
 		// non-visual snippets only run when there is no selection
 		if (hasSelection) { return null; }
@@ -306,7 +307,8 @@ export class RegexSnippet extends Snippet<"regex"> {
 		} else {
 			const replacementOptions = {
 				view,
-				options
+				options,
+				range: range.parsed
 			};
 			const replacementTemp = convertOutputToNode(this.replacement(result, replacementOptions));
 
@@ -327,7 +329,7 @@ export class StringSnippet extends Snippet<"string"> {
 		this.data.triggerAfter = triggerAfter;
 	}
 
-	process({effectiveLine, sel, effectiveLineAfter, view}: ProccesArgs): ProcessSnippetResult {
+	process({effectiveLine, range, sel, effectiveLineAfter, view}: ProccesArgs): ProcessSnippetResult {
 		const hasSelection = !!sel.original;
 		// non-visual snippets only run when there is no selection
 		if (hasSelection) { return null; }
@@ -347,7 +349,8 @@ export class StringSnippet extends Snippet<"string"> {
 		} else {
 			const replacementOptions = {
 				view,
-				options
+				options,
+				range: range.parsed
 			};
 			const replacementTemp = convertOutputToNode(this.replacement(this.trigger, replacementOptions))
 
