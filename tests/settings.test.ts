@@ -121,6 +121,7 @@ describe("snippet editor ui", async () => {
 				}
 				// save delay of 500ms and need to await the last keypress first.
 				await new Promise((resolve) => setTimeout(resolve, 0));
+				await new Promise((resolve) => setTimeout(resolve, 0));
 				await new Promise((resolve) => setTimeout(resolve, 500));
 				return lib.plugin.settings.snippets;
 			}
