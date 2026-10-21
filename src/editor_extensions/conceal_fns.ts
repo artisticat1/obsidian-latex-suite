@@ -612,7 +612,7 @@ export function createMacroMap(maps: ConcealMapping) : MacroHandlerMap {
 	for (const macro of braketMacro) {
 		macroMap[macro] = handleBraKet;
 	}
-	for (const macro of Object.keys(maps.operators)) {
+	for (const macro of maps.operators) {
 		macroMap[macro] = handleOperator
 	}
 	for (const macro of Object.keys(maps.ALL_SYMBOLS)) {
