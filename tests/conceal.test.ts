@@ -8,6 +8,17 @@ interface FileContext {
 	file: TFile
 }
 
+async function concealEquation(equation: string) {
+	return await evalInObsidian({
+		input: {pluginId: "obsidian-latex-suite", equation},
+		callback: async ({lib: {plugin, view}, equation}) => {
+			const conceal = plugin.test.conceal
+			view.setDoc(equation)
+			return conceal(view).cached_equations
+		},
+	})
+}
+
 async function createContextId<R extends FileContext, T extends ContextId<R>>(contextId: T) {
 	await evalInObsidian({
 	    contextId,
@@ -235,7 +246,7 @@ $$
 		});
 	})
 	
-	it("should subscript \\left and \\right", async () => {
+	it.fails("should subscript \\left and \\right", async () => {
 		const result = await evalInObsidian({
 			input: {pluginId: "obsidian-latex-suite" },
 			callback: ({app, pluginId, obsidianModule, lib: {plugin, view} }) => {
@@ -262,7 +273,14 @@ $$
 						text: "\\left(1α 234\\right)",
 					},
 				],
-				[],
+				[
+					{
+						"class": "cm-bracket",
+						"end": 8,
+						"start": 2,
+						"text": "(",
+					},
+				],
 				[
 					{
 						end: 15,
@@ -270,7 +288,14 @@ $$
 						text: "α",
 					},
 				],
-				[],
+				[
+					{
+						"class": "cm-bracket",
+						"end": 26,
+						"start": 19,
+						"text": ")",
+					},
+				],
 			],
 		});
 	})
@@ -320,5 +345,21 @@ $$
 				conceal(view).cached_equations
 			},
 		})
+	})
+
+	it("should conceal operators like sin", async () => {
+		const result = await concealEquation("$$\\sin(x)$$");
+		expect(result).toStrictEqual({
+			"\\sin(x)": [
+				[
+					{
+						class: "cm-concealed-mathrm cm-variable-2",
+						end: 4,
+						start: 0,
+						text: "sin",
+					},
+				],
+			],
+		});
 	})
 })

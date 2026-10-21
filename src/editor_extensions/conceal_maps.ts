@@ -196,7 +196,7 @@ export const cmd_symbols:{[name:string]: string} =
 	"ldots": "…",
 	"le": "≤",
 	"leadsto": "⇝",
-	"left": "",
+	// "left": "",
 	"Leftarrow": "⇐",
 	"leftarrow": "←",
 	"leftarrowtail": "↢",
@@ -336,7 +336,7 @@ export const cmd_symbols:{[name:string]: string} =
 	"real": "ℜ",
 	"restriction": "↾",
 	"rhd": "⊳",
-	"right": "",
+	// "right": "",
 	"Rightarrow": "⇒",
 	"rightarrow": "→",
 	"rightarrowtail": "↣",
@@ -1001,6 +1001,12 @@ export const leftrightBrackets: Record<string, string> = {
 	"/": "/",
 	"\\gt": "⟩",
 	"\\lt": "⟨",
+	"(": "(",
+	")": ")",
+	"[": "[",
+	"]": "]",
+	"\\{": "{",
+	"\\}": "}",
 }
 // brackets also highlighted further by highlight_brackets.ts
 export const brackets: Record<string, string> = {
