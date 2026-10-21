@@ -32,6 +32,10 @@ type ClassNames = typeof ERROR_CLASS | typeof INLINE_CLASS | typeof BLOCK_CLASS 
 class HighlightDollarPlugin implements PluginValue {
 	decorations: DecorationSet = Decoration.none;
 
+	constructor(view: EditorView) {
+		this.decorations = this.computeDecorations(view);
+	}
+
 	update(update: ViewUpdate) {
 		if (!update.docChanged && !update.viewportChanged && !this.didMoveIntoDollar(update)) return;
 		this.decorations = this.computeDecorations(update.view);
