@@ -1,4 +1,4 @@
-import { type Tooltip, showTooltip, EditorView, ViewUpdate, tooltips } from "@codemirror/view";
+import { type Tooltip, showTooltip, EditorView, ViewUpdate, tooltips, type Rect } from "@codemirror/view";
 import { StateField, EditorState, EditorSelection, StateEffect } from "@codemirror/state";
 import { renderMath, finishRenderMath, editorLivePreviewField } from "obsidian";
 import { type Bounds, Context, getContextPlugin } from "src/editor_context/context";
@@ -16,6 +16,46 @@ type MathTooltip = {
 const HIGHLIGHT_CLASS = "mjx-latex-suite-math-preview-highlight";
 const CURSOR_CLASS = "mjx-latex-suite-cursor";
 export const updateTooltipEffect = StateEffect.define<MathTooltip[]>();
+
+function getParentDocumentCoords(view: EditorView, pos: number, above: boolean): Rect {
+	const coords = view.coordsAtPos(pos);
+	if (!coords) return view.dom.getBoundingClientRect();
+	const frame = view.dom.win.frameElement as HTMLElement | null;
+	if (!frame) return coords;
+
+	const frameRect = frame.getBoundingClientRect();
+	const scaleX = frame.clientWidth ? frameRect.width / frame.clientWidth : 1;
+	const scaleY = frame.clientHeight ? frameRect.height / frame.clientHeight : 1;
+	const frameLeft = frameRect.left + frame.clientLeft * scaleX;
+	const frameTop = frameRect.top + frame.clientTop * scaleY;
+	const frameBottom = frameRect.bottom - (frame.clientHeight - frame.clientTop - frame.clientHeight) * scaleY;
+	// const coordTop = above ? Math.max(coords.top, 0) : coords.top < 0 ? frameRect.bottom : coords.top;
+	const coordTop = Math.max(coords.top, 0) * scaleY;
+	const coordBottom = Math.max(coords.bottom, 0) * scaleY;
+	const top = frameTop + coordTop;
+	const bottom = frameTop + coordBottom;
+
+	const left = frameLeft + coords.left * scaleX;
+	const right = frameLeft + coords.right * scaleX;
+	// dont scroll down beyond the top and bottom of the frame goes to back top/bottom depending on above.
+	if (above) {
+		const above_top = coords.top < 0 || top > frameBottom ? frameTop : top;
+		return {
+			right,
+			left,
+			top: above_top,
+			bottom: top,
+		};
+	} else {
+		const below_top = coords.bottom < 0 || bottom > frameBottom ? frameBottom : bottom;
+		return {
+			right,
+			left,
+			top: below_top,
+			bottom: below_top,
+		}	
+	}
+}
 
 export const cursorTooltipField = StateField.define<readonly MathTooltip[]>({
 	create: () => [],
@@ -134,7 +174,7 @@ export function handleMathTooltip(update: ViewUpdate) {
 	const isEqnMultiline = isBoundMultiline(update.view, eqnBounds);
 
 	const above = settings.mathPreviewPositionIsAbove;
-	const create = () => {
+	const create: Tooltip["create"] = (view) => {
 		const dom = createElement("div")
 		dom.addClass("cm-tooltip-cursor");
 		dom.addClass(above ? "cm-tooltip-above" : "cm-tooltip-below");
@@ -150,27 +190,32 @@ export function handleMathTooltip(update: ViewUpdate) {
 				}
 			}
 		}
+		let mount: ReturnType<Tooltip["create"]>["mount"] = () => {};
 		try {
 			const renderedEqn = renderMath(eqnWithDecorations, ctx.mode.inDisplayMath());
 			const cursor = renderedEqn.querySelector<HTMLElement>(`.${CURSOR_CLASS}`)
 			dom.appendChild(renderedEqn);
-			const scrollIntoView = () => {
+			mount = () =>
 				window.requestAnimationFrame(() => {
 					if (!cursor?.isConnected) return;
-					cursor.scrollIntoView({
-						behavior: "instant",
-						block: "nearest"
-					});
+					const cRect = cursor.getBoundingClientRect();
+					const rRect = renderedEqn.getBoundingClientRect();
+					if (cRect.top > rRect.top  && cRect.bottom < rRect.bottom) return;
+					const top =
+						cRect.top - rRect.top - renderedEqn.clientHeight / 2;
+					renderedEqn.scrollTop = top;
 				});
-			}
-			scrollIntoView();
-			void finishRenderMath().then(scrollIntoView)
+			void finishRenderMath();
 		} catch (e) {
 			console.error("Error rendering math in tooltip:", e);
 			dom.textContent = eqn
 		}
 
-		return { dom };
+		return {
+			dom,
+			mount,
+			getCoords: (pos) => getParentDocumentCoords(view, pos, above),
+		};
 	};
 
 	let newTooltips: Tooltip[] = [];
@@ -181,6 +226,7 @@ export function handleMathTooltip(update: ViewUpdate) {
 			above: above,
 			strictSide: true,
 			arrow: true,
+			clip: false,
 			create: create,
 		}];
 	} else if (!isEqnMultiline && above) {
@@ -189,6 +235,7 @@ export function handleMathTooltip(update: ViewUpdate) {
 			above: true,
 			strictSide: true,
 			arrow: true,
+			clip: false,
 			create: create,
 		}];
 	} else if (!isEqnMultiline && !above) {
@@ -204,6 +251,7 @@ export function handleMathTooltip(update: ViewUpdate) {
 			above: false,
 			strictSide: true,
 			arrow: true,
+			clip: false,
 			create: create,
 		}];
 	}
@@ -245,6 +293,7 @@ export const cursorTooltipBaseTheme = EditorView.baseTheme({
 		border: "1px solid var(--background-modifier-border-hover)",
 		padding: "4px 6px",
 		borderRadius: "6px",
+		fontSize: "var(--font-preferred-size)",
 		"& .cm-tooltip-arrow:before": {
 			borderTopColor: "var(--background-modifier-border-hover)",
 			borderBottomColor: "var(--background-modifier-border-hover)",
@@ -268,13 +317,15 @@ export const cursorTooltipBaseTheme = EditorView.baseTheme({
 		},
 		"&.cm-tooltip-above > .MathJax": {
 			overflowY: "auto",
-			maxHeight: "80%",
-			display: "inline-block",
-			alignSelf: "flex-end",
+			scrollbarWidth: "none",
+			// maxHeight: "80%",
+			// display: "inline-block",
+			// alignSelf: "flex-end",
 		},
 		"&.cm-tooltip-below > .MathJax": {
 			overflowY: "auto",
 			maxHeight: "90%",
+			scrollbarWidth: "none",
 		},
 	},
 	[`.${HIGHLIGHT_CLASS}`]: {
@@ -286,23 +337,27 @@ export const cursorTooltipBaseTheme = EditorView.baseTheme({
 	[`${cmLightClass} .cm-tooltip.cm-tooltip-cursor`]: {
 		boxShadow: "0 1px 2px rgb(0 0 0 / 2.8%), 0 3.4px 6.7px rgb(0 0 0 / 4.2%), 0 5px 20px rgb(0 0 0 / 7%)",
 	},
-
 });
+
+
+const tooltipSpaceExtension = tooltips({
+	position: "absolute",
+	tooltipSpace() {
+		const body = activeDocument.body
+		const bodyRect = body.getBoundingClientRect();
+		return {
+			bottom: bodyRect.bottom,
+			left: bodyRect.left,
+			right: bodyRect.right,
+			top: bodyRect.top,
+		}
+	},
+	parent: activeDocument.body,
+})
+
 
 export const mathTooltipExtension = [
 	cursorTooltipField.extension,
 	cursorTooltipBaseTheme,
-	tooltips({
-		position: "absolute",
-		tooltipSpace(view) {
-			const dom = view.dom;
-			const rect = dom.getBoundingClientRect();
-			return {
-				top: rect.top,
-				left: rect.left,
-				bottom: rect.bottom,
-				right: rect.right,
-			};
-		},
-	}),
+	tooltipSpaceExtension,
 ]
