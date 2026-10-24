@@ -257,5 +257,12 @@
 			"name": "Snippet IME version",
 			"desc": "Whether to expand automatic snippets when a key is pressed after IME composition is completed. This may solve some issues with IME/Chinese keyboards"
 		}
+	},
+	"tooltips": {
+		"reset-to-defaults": "Reset to default {{variable}}",
+		"trash": "Remove all {{variable}}",
+		"snippet-bug": "Report a bug on github",
+		"snippet-info": "Open the quick overview for snippets",
+		"snippet-help": "Ask a question on github discussions for help"
 	}
 }
