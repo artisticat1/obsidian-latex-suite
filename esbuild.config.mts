@@ -14,7 +14,8 @@ if you want to view the source, please visit the github repository of this plugi
 
 const prod = (process.argv[2] === "production");
 const test = (process.argv[2] === "test");
-const dev = !prod && !test;
+const testDev = (process.argv[2] === "test-dev");
+const dev = !prod && !test && !testDev;
 const args = {
 	banner: {
 		js: banner,
@@ -95,4 +96,20 @@ if (dev) {
 	fs.copyFileSync("manifest.json", "dist/dev/manifest.json");
 	fs.copyFileSync("styles.css", "dist/dev/styles.css");
 	await esbuild.build(args).catch(() => process.exit(1));
+} else if (testDev) {
+	args.entryPoints = ["tests/main.ts"]
+	args.outfile = "dist/dev/main.js"
+	fs.mkdirSync("dist/dev", { recursive: true });
+	const ctx = await esbuild.context(args);
+	const copyFile = (src: string, dest: string) => debouncer((_) => {
+		console.log(`Copied ${src} to ${dest}`);
+		fs.copyFileSync(src, dest);
+	}, 1000);
+	const manifestCopy = copyFile("manifest.json", "dist/dev/manifest.json");
+	const stylesCopy = copyFile("styles.css", "dist/dev/styles.css");
+	fs.watchFile("manifest.json", manifestCopy);
+	fs.watchFile("styles.css", stylesCopy);
+	manifestCopy();
+	stylesCopy();
+	ctx.watch().catch(() => process.exit(1));
 }
