@@ -38,16 +38,32 @@ const modifiers = {
 enum HandleResultKind {
 	NotHandled,
 	Handled,
+	RecursiveHandled,
 }
 
-type HandleConcealResult = {
-	spec: ConcealSpec;
-	kind: HandleResultKind;
-};
+type HandleConcealResult =
+	| {
+		spec: ConcealSpec;
+		kind: HandleResultKind.Handled;
+	}
+	| {
+		kind: HandleResultKind.NotHandled;
+	}
+	| {
+		spec: ConcealSpec[];
+		kind: HandleResultKind.RecursiveHandled;
+	};
 
-type HandleConcealResults = {
-	spec: ConcealSpec[];
-	kind: HandleResultKind;
+function notHandled(): { kind: HandleResultKind.NotHandled } {
+	return { kind: HandleResultKind.NotHandled };
+}
+
+function handled(spec: ConcealSpec): { spec: ConcealSpec; kind: HandleResultKind.Handled } {
+	return { spec, kind: HandleResultKind.Handled };
+}
+
+function recursiveHandled(spec: ConcealSpec[]): { spec: ConcealSpec[]; kind: HandleResultKind.RecursiveHandled } {
+	return { spec, kind: HandleResultKind.RecursiveHandled };
 }
 
 function extractMathArgument(node: SyntaxNode) {
@@ -131,9 +147,9 @@ function extractTextArgument(node: SyntaxNode) {
 function handleFrac({cursor, doc, maps}: MacroHandlerOptions): HandleConcealResult {
 	const node = cursor.node;
 	const numeratorNode = extractMathArgument(node);
-	if (!numeratorNode) return { spec: [], kind: HandleResultKind.Handled };
+	if (!numeratorNode) return handled([]);
 	const denominatorNode = extractMathArgument(numeratorNode.mathArgumentNode);
-	if (!denominatorNode) return { spec: [], kind: HandleResultKind.Handled };
+	if (!denominatorNode) return handled([]);
 	const nominatorOpen = numeratorNode.openBraceNode;
 	const nominatorClose = numeratorNode.closeBraceNode;
 	const denominatorOpen = denominatorNode.openBraceNode;
@@ -148,7 +164,7 @@ function handleFrac({cursor, doc, maps}: MacroHandlerOptions): HandleConcealResu
 				text: maps.fractions[fractionContent],
 			},
 		];
-		return { spec, kind: HandleResultKind.Handled };
+		return handled(spec);
 	}
 
 	const hideFrac = {
@@ -195,13 +211,13 @@ function handleFrac({cursor, doc, maps}: MacroHandlerOptions): HandleConcealResu
 		convertOpenSecondSibling,
 		convertCloseSecondSibling,
 	];
-	return { spec, kind: HandleResultKind.Handled };
+	return handled(spec);
 }
 
 function handleOverline({cursor, doc, maps, macro, macroMap}: MacroHandlerOptions): HandleConcealResult {
 	const nodeRef = cursor.node;
 	const mathArgumentNode = extractMathArgument(nodeRef);
-	if (!mathArgumentNode) return { spec: [], kind: HandleResultKind.Handled };
+	if (!mathArgumentNode) return handled([]);
 	const contentNode = mathArgumentNode.mathNode;
 	const sibling = mathArgumentNode.closeBraceNode;
 	const newDoc = new EquationText(
@@ -249,7 +265,7 @@ function handleOverline({cursor, doc, maps, macro, macroMap}: MacroHandlerOption
 			text: "",
 		},
 	]
-	return { spec, kind: HandleResultKind.Handled };
+	return recursiveHandled([spec, ...mathSpecs]);
 }
 
 function handleModifier({cursor, doc, macro, maps}: MacroHandlerOptions): HandleConcealResult {
@@ -257,14 +273,14 @@ function handleModifier({cursor, doc, macro, maps}: MacroHandlerOptions): Handle
 	const nodeRef = cursor.node;
 	const modifier = modifiers[macro as keyof typeof modifiers];
 	const mathArgumentNode = extractMathArgument(nodeRef);
-	if (!mathArgumentNode) return { spec: [], kind: HandleResultKind.Handled };
+	if (!mathArgumentNode) return handled([]);
 	const contentNode = mathArgumentNode.mathNode;
 	const sibling = mathArgumentNode.closeBraceNode;
 	const content = doc.slice(contentNode.from, contentNode.to);
 	const symbol = /^[A-Za-z]$/.test(content)
 		? content
 		: content[0] === "\\" && greek[content.slice(1)];
-	if (!symbol) return { spec: [], kind: HandleResultKind.Handled };
+	if (!symbol) return handled([]);
 	doc.moveTo(cursor, sibling.to, 1);
 	doc.skipCursorMove = true;
 	const spec = [
@@ -275,7 +291,7 @@ function handleModifier({cursor, doc, macro, maps}: MacroHandlerOptions): Handle
 			class: "latex-suite-unicode",
 		},
 	];
-	return { spec, kind: HandleResultKind.Handled };
+	return handled(spec);
 }
 
 function getLimitLength(cursor: TreeCursor, doc: EquationText) {
@@ -295,7 +311,7 @@ function getLimitLength(cursor: TreeCursor, doc: EquationText) {
 
 function handleBracket({cursor, macro, maps}: MacroHandlerOptions): HandleConcealResult {
 	const symbol = maps.brackets[macro];
-	if (!symbol) return { spec: [], kind: HandleResultKind.Handled };
+	if (!symbol) return handled([]);
 	const spec= [
 		{
 			start: cursor.from,
@@ -304,7 +320,7 @@ function handleBracket({cursor, macro, maps}: MacroHandlerOptions): HandleConcea
 			class: "cm-bracket",
 		}
 	]
-	return {spec, kind: HandleResultKind.Handled };
+	return handled(spec);
 }
 
 function handleBraKet({cursor, macro}: MacroHandlerOptions): HandleConcealResult {
@@ -313,7 +329,7 @@ function handleBraKet({cursor, macro}: MacroHandlerOptions): HandleConcealResult
 	const vert = "|";
 	const node = cursor.node;
 	const mathArgument = extractMathArgument(node);
-	if (!mathArgument) return { spec: [], kind: HandleResultKind.Handled };
+	if (!mathArgument) return handled([]);
 	const close = mathArgument.closeBraceNode;
 	const open = mathArgument.openBraceNode;
 
@@ -326,7 +342,7 @@ function handleBraKet({cursor, macro}: MacroHandlerOptions): HandleConcealResult
 		{ start: close.from, end: close.to, text: right },
 	];
 
-	return {spec, kind: HandleResultKind.Handled };
+	return handled(spec);
 }
 
 function handleOperator({cursor, doc, macro}: MacroHandlerOptions): HandleConcealResult {
@@ -340,14 +356,14 @@ function handleOperator({cursor, doc, macro}: MacroHandlerOptions): HandleConcea
 			class: "cm-concealed-mathrm cm-variable-2",
 		},
 	];
-	return { spec, kind: HandleResultKind.Handled };
+	return handled(spec);
 }
 
 function handleLeftRight({cursor, doc, maps}: MacroHandlerOptions): HandleConcealResult {
 	const {leftrightBrackets, brackets} = maps
 	const from = cursor.from;
 	const peekCursor = cursor.node.cursor();
-	if (!peekCursor.next()) return { spec: [], kind: HandleResultKind.Handled };
+	if (!peekCursor.next()) return handled([]);
 	const rawSymbol = doc.slice(peekCursor.from, peekCursor.to);
 	const symbol = leftrightBrackets[rawSymbol] ||
 		(rawSymbol[0] === "\\" && brackets[rawSymbol.slice(1)]);
@@ -362,46 +378,43 @@ function handleLeftRight({cursor, doc, maps}: MacroHandlerOptions): HandleConcea
 				class: "cm-bracket",
 			},
 		]
-		return {spec, kind: HandleResultKind.Handled };
+		return handled(spec);
 	}
-	return { spec: [], kind: HandleResultKind.NotHandled };
+	return notHandled();
 }
 
 
 
-function handleTextColor({cursor, doc,  maps, macroMap}: MacroHandlerOptions): HandleConcealResult {
+function handleTextColor({cursor, doc}: MacroHandlerOptions): HandleConcealResult {
 	const shortTextArgumentNode = extractShortTextArgument(cursor.node);
-	if (!shortTextArgumentNode) return { spec: [], kind: HandleResultKind.Handled };
+	if (!shortTextArgumentNode) return handled([]);
 	const mathArgumentNode = extractMathArgument(shortTextArgumentNode.textArgumentNode);
-	if (!mathArgumentNode) return { spec: [], kind: HandleResultKind.Handled };
+	if (!mathArgumentNode) return handled([]);
 	const color = doc.slice(shortTextArgumentNode.textNode.from, shortTextArgumentNode.textNode.to);
 	const start = cursor.from;
-	return {
-		spec: [
-			{
-				start,
-				end: mathArgumentNode.mathNode.from,
-				text: "",
-			},
-			{
-				start,
-				end: mathArgumentNode.mathArgumentNode.to,
-				text: doc.slice(
-					mathArgumentNode.mathNode.from,
-					mathArgumentNode.mathNode.to,
-				),
-				class: "cm-concealed-text-color",
-				marks: true,
-				style: `color: ${color};`,
-			},
-			{
-				start: mathArgumentNode.mathNode.to,
-				end: mathArgumentNode.mathArgumentNode.to,
-				text: "",
-			},
-		],
-		kind: HandleResultKind.Handled,
-	};
+	return handled([
+		{
+			start,
+			end: mathArgumentNode.mathNode.from,
+			text: "",
+		},
+		{
+			start,
+			end: mathArgumentNode.mathArgumentNode.to,
+			text: doc.slice(
+				mathArgumentNode.mathNode.from,
+				mathArgumentNode.mathNode.to,
+			),
+			class: "cm-concealed-text-color",
+			marks: true,
+			style: `color: ${color};`,
+		},
+		{
+			start: mathArgumentNode.mathNode.to,
+			end: mathArgumentNode.mathArgumentNode.to,
+			text: "",
+		},
+	]);
 }
 
 // function flattenSpecs(
@@ -440,10 +453,10 @@ function getFirstUnicodeCharacter(text: string): string {
 	return segmenter.segment(text)[Symbol.iterator]().next().value!.segment
 }
 
-function handleSubSup({ doc, cursor, maps, macroMap }: MacroHandlerOptions): HandleConcealResults {
+function handleSubSup({ doc, cursor, maps, macroMap }: MacroHandlerOptions): HandleConcealResult {
 	const nodeRef = cursor.node;
 	const endChar = doc.slice(Math.max(nodeRef.from, nodeRef.to - 1), nodeRef.to);
-	if (endChar !== "_" && endChar !== "^") return { spec: [], kind: HandleResultKind.NotHandled };
+	if (endChar !== "_" && endChar !== "^") return notHandled();
 	const start = nodeRef.to - 1;
 	const type = endChar === "_" ? "sub" : "sup";
 	const allowed_names = [
@@ -454,10 +467,10 @@ function handleSubSup({ doc, cursor, maps, macroMap }: MacroHandlerOptions): Han
 		"Number",
 	];
 	const peekCursor = cursor.node.cursor();
-	if (!peekCursor.next()) return { spec: [], kind: HandleResultKind.Handled };
+	if (!peekCursor.next()) return handled([]);
 	const nextNode = peekCursor.node;
 	if (!allowed_names.includes(nextNode.name)) {
-		return { spec: [], kind: HandleResultKind.NotHandled };
+		return notHandled();
 	}
 	if (nextNode.name === "MathChar" || nextNode.name === "Number") {
 		const fullText = doc.slice(nextNode.from, nextNode.to)
@@ -471,10 +484,7 @@ function handleSubSup({ doc, cursor, maps, macroMap }: MacroHandlerOptions): Han
 			class: "cm-number",
 			elementType: type,
 		};
-		return {
-			spec: [[spec]],
-			kind: HandleResultKind.Handled
-		}
+		return handled([spec]);
 	}
 
 	const newDoc = new EquationText(
@@ -503,7 +513,7 @@ function handleSubSup({ doc, cursor, maps, macroMap }: MacroHandlerOptions): Han
 	doc.moveTo(cursor, nextNode.to, 1);
 	doc.skipCursorMove = true;
 	if (skipFull) {
-		return { spec: [...recursed_specs], kind: HandleResultKind.Handled };
+		return recursiveHandled(recursed_specs);
 	}
 	textArray.push(
 		doc.slice(maxEnd, nextNode.to - Number(isGroup))
@@ -518,18 +528,18 @@ function handleSubSup({ doc, cursor, maps, macroMap }: MacroHandlerOptions): Han
 			elementType: type,
 		},
 	];
-	return { spec: [spec, ...recursed_specs], kind: HandleResultKind.Handled };
+	return recursiveHandled([spec, ...recursed_specs]);
 }
 
 function handleOperatorName({cursor, doc}: MacroHandlerOptions): HandleConcealResult {
 	const nodeRef = cursor.node;
 	const mathArgumentNode = extractMathArgument(nodeRef) || extractMathArgumentStar(nodeRef, doc);
-	if (!mathArgumentNode) return { spec: [], kind: HandleResultKind.Handled };
+	if (!mathArgumentNode) return handled([]);
 	const contentNode = mathArgumentNode.mathNode;
 	const close = mathArgumentNode.closeBraceNode;
 	const text = doc.slice(contentNode.from, contentNode.to);
 	if (/[^A-Za-z]/.test(text)) {
-		return { spec: [], kind: HandleResultKind.Handled };
+		return handled([]);
 	}
 	doc.moveTo(cursor, close.to, 1);
 	doc.skipCursorMove = true;
@@ -542,13 +552,13 @@ function handleOperatorName({cursor, doc}: MacroHandlerOptions): HandleConcealRe
 			class: "cm-concealed-mathrm cm-variable-2",
 		},
 	];
-	return { spec, kind: HandleResultKind.Handled };
+	return handled(spec);
 }
 
 function handleSet({cursor, doc}: MacroHandlerOptions): HandleConcealResult {
 	const nodeRef = cursor.node;
 	const mathArgumentNode = extractMathArgument(nodeRef);
-	if (!mathArgumentNode) return { spec: [], kind: HandleResultKind.Handled };
+	if (!mathArgumentNode) return handled([]);
 	const open = mathArgumentNode.openBraceNode;
 	const close = mathArgumentNode.closeBraceNode;
 	doc.moveTo(cursor, open.to, 1);
@@ -577,18 +587,18 @@ function handleSet({cursor, doc}: MacroHandlerOptions): HandleConcealResult {
 		openBrace,
 		closeBrace,
 	];
-	return { spec, kind: HandleResultKind.Handled };
+	return handled(spec);
 }
 
 function handleText({cursor, doc}: MacroHandlerOptions): HandleConcealResult {
 	const nodeRef = cursor.node;
 	const textArgumentNode = extractTextArgument(nodeRef);
-	if (!textArgumentNode) return { spec: [], kind: HandleResultKind.Handled };
+	if (!textArgumentNode) return handled([]);
 	const contentNode = textArgumentNode.textNode;
 	const close = textArgumentNode.closeBraceNode;
 	const textContent = doc.slice(contentNode.from, contentNode.to);
 	if (/[^A-Za-z0-9-.!?() ]/.test(textContent)) {
-		return { spec: [], kind: HandleResultKind.Handled };
+		return handled([]);
 	}
 	doc.moveTo(cursor, close.to, 1);
 	doc.skipCursorMove = true;
@@ -601,14 +611,14 @@ function handleText({cursor, doc}: MacroHandlerOptions): HandleConcealResult {
 			class: "cm-concealed-mathrm cm-variable-2",
 		},
 	];
-	return { spec, kind: HandleResultKind.Handled };
+	return handled(spec);
 }
 
 function handleMathcal({cursor, doc, maps}: MacroHandlerOptions): HandleConcealResult {
 	const mathscrcal = maps.mathscrcal;
 	const nodeRef = cursor.node;
 	const mathArgumentNode = extractMathArgument(nodeRef);
-	if (!mathArgumentNode) return { spec: [], kind: HandleResultKind.Handled };
+	if (!mathArgumentNode) return handled([]);
 	const contentNode = mathArgumentNode.mathNode;
 	const close = mathArgumentNode.closeBraceNode;
 	const mappedChars = doc
@@ -616,7 +626,7 @@ function handleMathcal({cursor, doc, maps}: MacroHandlerOptions): HandleConcealR
 		.split("")
 		.map((char) => mathscrcal[char]);
 	if (mappedChars.some((char) => !char)) {
-		return { spec: [], kind: HandleResultKind.Handled };
+		return handled([]);
 	}
 	doc.moveTo(cursor, close.to, 1);
 	doc.skipCursorMove = true;
@@ -628,14 +638,14 @@ function handleMathcal({cursor, doc, maps}: MacroHandlerOptions): HandleConcealR
 			text: mappedChars.join(""),
 		},
 	];
-	return { spec, kind: HandleResultKind.Handled };
+	return handled(spec);
 }
 
 function handleTextModifiers({cursor, doc, macro, maps}: MacroHandlerOptions): HandleConcealResult {
 	const {greek, mathbb} = maps;
 	const nodeRef = cursor.node;
 	const mathArgumentNode = extractMathArgument(nodeRef);
-	if (!mathArgumentNode) return { spec: [], kind: HandleResultKind.Handled };
+	if (!mathArgumentNode) return handled([]);
 	const contentNode = mathArgumentNode.mathNode;
 	const sibling = mathArgumentNode.closeBraceNode;
 	let content = doc.slice(contentNode.from, contentNode.to);
@@ -646,7 +656,7 @@ function handleTextModifiers({cursor, doc, macro, maps}: MacroHandlerOptions): H
 			content[0] === "\\" &&
 			(tempContent = greek[content.slice(1)])
 		)) {
-			return { spec: [], kind: HandleResultKind.Handled };
+			return handled([]);
 		}
 		content = tempContent;
 	}
@@ -666,20 +676,20 @@ function handleTextModifiers({cursor, doc, macro, maps}: MacroHandlerOptions): H
 			class: textModifiers[macro as keyof typeof textModifiers],
 		},
 	];
-	return { spec, kind: HandleResultKind.Handled };
+	return handled(spec);
 }
 
 function handleNot({cursor, doc, maps}: MacroHandlerOptions): HandleConcealResult {
 	const {not_remap} = maps;
 	const notFrom = cursor.from;
 	const peekCursor = cursor.node.cursor();
-	if (!peekCursor.next()) return { spec: [], kind: HandleResultKind.Handled };
+	if (!peekCursor.next()) return handled([]);
 	const sibling = peekCursor.node;
 	const to = cursor.to;
 	const symbol = doc.slice(sibling.from + 1, sibling.to);
 	const notSymbol = not_remap[symbol];
 	if (!notSymbol) {
-		return { spec: [], kind: HandleResultKind.Handled };
+		return handled([]);
 	}
 	doc.moveTo(cursor, sibling.to, 1);
 	doc.skipCursorMove = true;
@@ -690,13 +700,13 @@ function handleNot({cursor, doc, maps}: MacroHandlerOptions): HandleConcealResul
 			text: notSymbol,
 		},
 	];
-	return { spec, kind: HandleResultKind.Handled };
+	return handled(spec);
 }
 
 function handleAllSymbols({cursor, doc, macro, maps}: MacroHandlerOptions): HandleConcealResult {
 	const { ALL_SYMBOLS } = maps;
 	const symbol = ALL_SYMBOLS[macro];
-	if (!symbol) return { spec: [], kind: HandleResultKind.Handled };
+	if (!symbol) return handled([]);
 	const nodeRef = cursor.node;
 	const end = getLimitLength(cursor, doc);
 	const spec = [
@@ -706,7 +716,7 @@ function handleAllSymbols({cursor, doc, macro, maps}: MacroHandlerOptions): Hand
 			text: symbol,
 		},
 	];
-	return { spec, kind: HandleResultKind.Handled };
+	return handled(spec);
 }
 
 const fractionsMacro = ["frac", "dfrac", "tfrac", "gfrac"];
@@ -764,16 +774,19 @@ function traverseTree(topNode: SyntaxNode, doc: EquationText, {maps, macroMap}: 
 			const macro = doc.slice(nodeRef.from + 1, nodeRef.to);
 			const handler = macroMap[macro];
 			if (handler) {
-				const { spec, kind } = handler({cursor, doc, macro, maps, macroMap});
-				if (kind === HandleResultKind.Handled) {
-					specs.push(spec);
+				const result = handler({cursor, doc, macro, maps, macroMap});
+				if (result.kind === HandleResultKind.Handled) {
+					specs.push(result.spec);
+					continue;
+				} else if (result.kind === HandleResultKind.RecursiveHandled) {
+					specs.push(...result.spec);
 					continue;
 				}
 			}
 			continue;
 		} else if (nodeRef.type.is(latex.MathSpecialChar)) {
 			const subSupSpec = handleSubSup({ doc, cursor, maps, macroMap, macro: doc.slice(nodeRef.from, nodeRef.to) });
-			if (subSupSpec.kind === HandleResultKind.Handled) {
+			if (subSupSpec.kind === HandleResultKind.RecursiveHandled) {
 				specs.push(...subSupSpec.spec);
 				continue;
 			}
