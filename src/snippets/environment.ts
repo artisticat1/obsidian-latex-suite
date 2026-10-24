@@ -13,8 +13,8 @@ export interface Environment {
  */
 export const EXCLUSIONS: { [trigger: string]: MacroArgs[] } = {
 	"([A-Za-z])(\\d)": [
-		{ name: "ce" },
-		{ name: "pu" },
+		{ name: "ce", arguments: [0] },
+		{ name: "pu", arguments: [0] },
 	],
-	"->": [{ name: "ce" }],
+	"->": [{ name: "ce", arguments: [0] }],
 };
