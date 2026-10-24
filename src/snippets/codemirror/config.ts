@@ -5,6 +5,7 @@ import type { MappingInfo } from "src/editor_extensions/conceal_fns";
 import { createRevealCallback, type Conceal, type Concealment } from "src/editor_extensions/conceal";
 import { EMPTY_SETTINGS } from "src/settings/empty_settings";
 import type { Debouncer } from "src/editor_extensions/obsidian_utils";
+import { fullMappingSchema } from "src/editor_extensions/conceal_maps";
 
 export const latexSuiteConfig = Facet.define<LatexSuiteCMSettings, LatexSuiteCMSettings>({
     combine: (input) => {
@@ -45,7 +46,7 @@ export const concealConfig = Facet.define<ConcealConfigInput, ConcealConfig>({
 		const settings = input[0] ?? {
 			concealRevealTimeout: EMPTY_SETTINGS.concealRevealTimeout,
 			concealLinewise: EMPTY_SETTINGS.concealLinewise,
-			concealMaps: JSON.parse(EMPTY_SETTINGS.concealMaps) as MappingInfo,
+			concealMaps: { macroMap: {}, maps: fullMappingSchema([]) } satisfies MappingInfo,
 		};
 		const concealRevealTimeout = createRevealCallback(
 			settings.concealRevealTimeout,
