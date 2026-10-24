@@ -589,6 +589,7 @@ export const cmd_symbols:{[name:string]: string} =
 	"textwon": "₩",
 	"textyen": "¥",
 	"textzerooldstyle": "0",
+	"\\": "⏎"
 };
 
 export const not_remap: Record<string, string> = {

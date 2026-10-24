@@ -19,7 +19,7 @@ export type MappingInfo = {
 const textModifiers = {
 	mathbf: "cm-concealed-bold",
 	boldsymbol: "cm-concealed-bold",
-	underline: "cm-concealed-underline",
+	// underline: "cm-concealed-underline",
 	mathrm: "cm-concealed-mathrm",
 	mathbb: undefined,
 } satisfies Record<string, string | undefined>;
@@ -28,10 +28,11 @@ const modifiers = {
 	hat: "\u0302",
 	dot: "\u0307",
 	ddot: "\u0308",
-	overline: "\u0304",
+	// overline: "\u0304",
 	bar: "\u0304",
 	tilde: "\u0303",
 	vec: "\u20D7",
+	overrightarrow: "\u20D7",
 } satisfies Record<string, string>;
 
 enum HandleResultKind {
@@ -86,6 +87,24 @@ function extractMathArgumentStar(node: SyntaxNode, doc: EquationText) {
 		mathArgumentNode: group,
 		openBraceNode,
 		mathNode,
+		closeBraceNode,
+	};
+}
+function extractShortTextArgument(node: SyntaxNode) {
+	const textArgumentNode = node.nextSibling;
+	if (!textArgumentNode || !textArgumentNode.type.is(latex.ShortTextArgument))
+		return null;
+	const openBraceNode = textArgumentNode.firstChild;
+	if (!openBraceNode || !openBraceNode.type.is(latex.OpenBrace)) return null;
+	const textNode = openBraceNode.nextSibling;
+	if (!textNode || !textNode.type.is(latex.ShortArg)) return null;
+	const closeBraceNode = textNode.nextSibling;
+	if (!closeBraceNode || !closeBraceNode.type.is(latex.CloseBrace))
+		return null;
+	return {
+		textArgumentNode,
+		openBraceNode,
+		textNode,
 		closeBraceNode,
 	};
 }
@@ -176,6 +195,60 @@ function handleFrac({cursor, doc, maps}: MacroHandlerOptions): HandleConcealResu
 		convertOpenSecondSibling,
 		convertCloseSecondSibling,
 	];
+	return { spec, kind: HandleResultKind.Handled };
+}
+
+function handleOverline({cursor, doc, maps, macro, macroMap}: MacroHandlerOptions): HandleConcealResult {
+	const nodeRef = cursor.node;
+	const mathArgumentNode = extractMathArgument(nodeRef);
+	if (!mathArgumentNode) return { spec: [], kind: HandleResultKind.Handled };
+	const contentNode = mathArgumentNode.mathNode;
+	const sibling = mathArgumentNode.closeBraceNode;
+	const newDoc = new EquationText(
+		doc.eqn,
+		contentNode.from,
+		contentNode.to,
+		doc.offset
+	);
+	const mathSpecs = traverseTree(
+		contentNode,
+		newDoc,
+		{ maps, macroMap },
+	);
+	const parentClassNumbers: ({ end: number, number: number })[] = [];
+
+	for (const spec of mathSpecs.flat(1)) {
+		const specClass = spec.class
+		if (specClass && specClass.startsWith(`latex-suite-${macro}`)) {
+			const last = parentClassNumbers.last();
+			if (last && last.end >= spec.start) {
+				last.number++;
+			} else {
+				parentClassNumbers.push({ end: spec.end, number: 1 });
+			}
+		}
+	}
+	const parentClassNumber = Math.max(...parentClassNumbers.map((spec) => spec.number), 0);
+	const parentClass = `latex-suite-${macro} latex-suite-${macro}-${Math.min(parentClassNumber, 2)}`;
+	const spec: ConcealSpec = [
+		{
+			start: nodeRef.from,
+			end: contentNode.from,
+			text: "",
+		},
+		{
+			start: contentNode.from,
+			end: contentNode.to,
+			text: doc.slice(contentNode.from, contentNode.to),
+			class: parentClass,
+			marks: true,
+		},
+		{
+			start: contentNode.to,
+			end: sibling.to,
+			text: "",
+		},
+	]
 	return { spec, kind: HandleResultKind.Handled };
 }
 
@@ -293,6 +366,65 @@ function handleLeftRight({cursor, doc, maps}: MacroHandlerOptions): HandleConcea
 	}
 	return { spec: [], kind: HandleResultKind.NotHandled };
 }
+
+
+
+function handleTextColor({cursor, doc,  maps, macroMap}: MacroHandlerOptions): HandleConcealResult {
+	const shortTextArgumentNode = extractShortTextArgument(cursor.node);
+	if (!shortTextArgumentNode) return { spec: [], kind: HandleResultKind.Handled };
+	const mathArgumentNode = extractMathArgument(shortTextArgumentNode.textArgumentNode);
+	if (!mathArgumentNode) return { spec: [], kind: HandleResultKind.Handled };
+	const color = doc.slice(shortTextArgumentNode.textNode.from, shortTextArgumentNode.textNode.to);
+	const start = cursor.from;
+	return {
+		spec: [
+			{
+				start,
+				end: mathArgumentNode.mathNode.from,
+				text: "",
+			},
+			{
+				start,
+				end: mathArgumentNode.mathArgumentNode.to,
+				text: doc.slice(
+					mathArgumentNode.mathNode.from,
+					mathArgumentNode.mathNode.to,
+				),
+				class: "cm-concealed-text-color",
+				marks: true,
+				style: `color: ${color};`,
+			},
+			{
+				start: mathArgumentNode.mathNode.to,
+				end: mathArgumentNode.mathArgumentNode.to,
+				text: "",
+			},
+		],
+		kind: HandleResultKind.Handled,
+	};
+}
+
+// function flattenSpecs(
+// 	mathSpecs: ConcealSpec[],
+// 	{from, to}: CMBound,
+// 	doc: EquationText,
+// ): ConcealSpec {
+// 		if (spec.replacements) {
+// 			const newDoc = new EquationText(
+// 				doc.eqn,
+// 				spec.start,
+// 				spec.end,
+// 				doc.offset
+// 			);
+// 			replacements.push(...flattenSpecs([spec.replacements], {from: spec.start, to: spec.end}, newDoc));
+// 		} else {
+// 			replacements.push(spec);
+// 		}
+// 		startPos = spec.end;
+
+
+
+// }
 
 /**
  * helper for getting the first unicode grapheme cluster, 
@@ -436,7 +568,7 @@ function handleSet({cursor, doc}: MacroHandlerOptions): HandleConcealResult {
 	const closeBrace = {
 		start: close.from,
 		end: close.to,
-		text: "}",
+		text: "",
 		class: "cm-bracket",
 	};
 
@@ -596,6 +728,9 @@ export function createMacroMap(maps: ConcealMapping) : MacroHandlerMap {
 		"text": handleText,
 		"set": handleSet,
 		"operatorname": handleOperatorName,
+		"textcolor": handleTextColor,
+		"overline": handleOverline,
+		"underline": handleOverline,
 	}	
 	for (const macro of Object.keys(modifiers)) {
 		macroMap[macro] = handleModifier;
@@ -625,7 +760,7 @@ function traverseTree(topNode: SyntaxNode, doc: EquationText, {maps, macroMap}: 
 	const specs: ConcealSpec[] = [];
 	for (const cursor of iterateTreeCursor(topNode, doc)) {
 		const nodeRef = cursor.node;
-		if (nodeRef.name.endsWith("CtrlSeq")) {
+		if (nodeRef.name.endsWith("CtrlSeq") || nodeRef.name.endsWith("CtrlSym")) {
 			const macro = doc.slice(nodeRef.from + 1, nodeRef.to);
 			const handler = macroMap[macro];
 			if (handler) {

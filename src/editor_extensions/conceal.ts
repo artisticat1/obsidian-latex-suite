@@ -14,6 +14,8 @@ export type Replacement = {
 	text: string,
 	class?: string,
 	elementType?: string,
+	marks?: boolean,
+	style?: string,
 };
 
 export type ConcealSpec = Replacement[];
@@ -194,6 +196,7 @@ function determineAction(
 // Build a decoration set from the given concealments
 function buildDecoSet(concealments: Concealment[]) {
 	const decos: Range<Decoration>[] = []
+	const outerDecos: Range<Decoration>[] = []
 
 	for (const conc of concealments) {
 		if (!conc.enable) continue;
@@ -207,8 +210,17 @@ function buildDecoSet(concealments: Concealment[]) {
 						block: false,
 					}).range(replace.start, replace.end)
 				);
-			}
-			else {
+			} else if (replace.marks) {
+				outerDecos.push(
+					Decoration.mark({
+						class: replace.class ?? "",
+						inclusiveEnd: true,
+						attributes: {
+							style: replace.style ?? "",
+						},
+					}).range(replace.start, replace.end),
+				);
+			} else {
 				// Improve selecting empty replacements such as "\frac" -> ""
 				// NOTE: This might not be necessary
 				const inclusiveStart = replace.text === "";
@@ -219,7 +231,7 @@ function buildDecoSet(concealments: Concealment[]) {
 						widget: new ConcealWidget(
 							replace.text,
 							replace.class,
-							replace.elementType
+							replace.elementType,
 						),
 						inclusiveStart,
 						inclusiveEnd,
@@ -230,7 +242,9 @@ function buildDecoSet(concealments: Concealment[]) {
 		}
 	}
 
-	return Decoration.set(decos, true);
+	const decorations = Decoration.set(decos, true);
+	const outerDecorations = Decoration.set(outerDecos, true);
+	return { decorations, outerDecorations };
 }
 
 // Build atomic ranges from the given concealments.
@@ -250,11 +264,15 @@ function buildAtomicRanges(concealments: Concealment[]) {
 		const replace = repls[i]!;
 		const nextReplace = repls[i + 1];
 		if (replace.text === "") {
-			if (nextReplace && replace.end == nextReplace.start) {
+			if (nextReplace && replace.end == nextReplace.start && !nextReplace.marks) {
 				builder.add(replace.start, nextReplace.end, fakeval);
 				i++;
 			} else {
 				builder.add(replace.start, replace.end + 1, fakeval);
+			}
+		} else if (replace.marks) {
+			if (nextReplace && nextReplace.text === "" && replace.end == nextReplace.start) {
+				i++;
 			}
 		} else {
 			builder.add(replace.start, replace.end, fakeval);
@@ -273,7 +291,9 @@ export const createRevealCallback = (timeout: number) =>
 			for (const concealment of delayedConcealments) {
 				concealment.enable = false;
 			}
-			conceal.decorations = buildDecoSet(conceal.concealments);
+			const buildResult = buildDecoSet(conceal.concealments);
+			conceal.decorations = buildResult.decorations;
+			conceal.outerDecorations = buildResult.outerDecorations;
 			conceal.atomicRanges = buildAtomicRanges(conceal.concealments);
 			// Invoke the update method to reflect the changes of this.decoration
 			view.dispatch();
@@ -318,6 +338,7 @@ export class Conceal implements PluginValue {
 	// the approach based on StateField and updateListener conflicts with
 	// obsidian's internal logic and causes weird rendering.
 	concealments: Concealment[];
+	outerDecorations: DecorationSet;
 	decorations: DecorationSet;
 	atomicRanges: RangeSet<RangeValue>;
 	delayEnabled: boolean;
@@ -329,6 +350,7 @@ export class Conceal implements PluginValue {
 	constructor(view: EditorView) {
 		this.concealments = [];
 		this.decorations = Decoration.none;
+		this.outerDecorations = Decoration.none;
 		this.atomicRanges = RangeSet.empty as RangeSet<RangeValue>;
 		const revealTimeout = getLatexSuiteConfig(view).concealRevealTimeout;
 		this.delayEnabled = revealTimeout > 0;
@@ -419,7 +441,9 @@ export class Conceal implements PluginValue {
 		}
 
 		this.concealments = concealments;
-		this.decorations = buildDecoSet(this.concealments);
+		const buildResult = buildDecoSet(this.concealments);
+		this.decorations = buildResult.decorations;
+		this.outerDecorations = buildResult.outerDecorations;
 		this.atomicRanges = buildAtomicRanges(this.concealments);
 	}
 }
@@ -444,11 +468,53 @@ const concealTheme = EditorView.baseTheme({
 	"sup.cm-math, sub.cm-math": {
 		fontStyle: "italic",
 	},
+
+	"span.cm-concealed-text-color, span.cm-concealed-text-color *": {
+		color: "inherit",
+	},
+
+	".latex-suite-overline": {
+		paddingTop: 0,
+		borderTop: "1px solid var(--text-normal)",
+	},
+
+	".latex-suite-overline.latex-suite-overline-1": {
+		paddingTop: "0.15em",
+		borderTop: "1px dashed var(--text-normal)",
+	},
+
+	".latex-suite-overline.latex-suite-overline-2": {
+		paddingTop: "0.3em",
+		borderTop: "1px dotted var(--text-normal)",
+	},
+
+	".latex-suite-underline": {
+		paddingBottom: "0",
+		borderBottom: "1px solid var(--text-normal)",
+	},
+
+	".latex-suite-underline.latex-suite-underline-1": {
+		paddingBottom: "0.15em",
+		borderBottom: "1px dashed var(--text-normal)",
+	},
+
+	".latex-suite-underline.latex-suite-underline-2": {
+		paddingBottom: "0.3em",
+		borderBottom: "1px dotted var(--text-normal)",
+	},
+
 });
 
 const concealPlugin = ViewPlugin.fromClass(Conceal, {
-	decorations: v => v.decorations,
-	provide: plugin => EditorView.atomicRanges.of(view => view.plugin(plugin)?.atomicRanges ?? RangeSet.empty),
+	decorations: (v) => v.decorations,
+	provide: (plugin) => [
+		EditorView.atomicRanges.of(
+			(view) => view.plugin(plugin)?.atomicRanges ?? RangeSet.empty,
+		),
+		EditorView.outerDecorations.of(
+			(view) => view.plugin(plugin)?.outerDecorations ?? Decoration.none,
+		),
+	],
 });
 
 export function mkConcealPlugin(config: ConcealConfigInput) {
