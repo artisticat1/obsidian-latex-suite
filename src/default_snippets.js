@@ -4,8 +4,56 @@ export default [
 	// and also avoids a lag issues when on an empty line and everything below is suddenly display math for a short second.
 	{trigger: "mk", replacement: "${}$0{}$", options: "tA"},
 	{trigger: "mk", replacement: "\\($0\\)", options: "TA"},
-	// display math behaves like codeblocks, as in no text is allowed on the same line of the opening $$ thus a newline is added.
-    {trigger: "dm", replacement: "\n$$\n$0\n$$", options: "tAw", description: "Display Math on empty line"},
+	{
+		// this is a very complex snippet to make sure the `$$` are on an empty line but no unnecessary newline is added.
+		// as `$$` behave like codeblocks in reading mode even though the editor won't highlight them that way.
+		
+		trigger: "dm", options: "tAw", description: "Display Math",
+		replacement: (match, {view, options, range}) => {
+			const line = view.state.doc.lineAt(range.to);
+			const tree = require("latex-suite").modifiedSyntaxTree(view.state);
+			const toNode = tree.resolveInner(range.to, -1);
+			if (!["Paragraph", "Task"].includes(toNode.name)) return false;
+			// last character in match isn't inserted in the document yet.
+			const before = line.text.slice(0, range.to - line.from - match.length + 1);
+			const after = line.text.slice(range.to - line.from);	
+			const firstNonWhitespace = before.search(/\S/);
+			const isEmptyStart = firstNonWhitespace === -1;
+			const isEmptyEnd = !/\S/.test(after);
+			if (!isEmptyEnd) return false;
+
+			if (isEmptyEnd && isEmptyStart) {
+				return "$$\n$0\n$$";
+			} else if (isEmptyStart) {
+				return "$$\n$0\n$$\n"
+			}
+			let node
+			for (
+				node = tree.resolveInner(firstNonWhitespace + line.from, 1);
+				node.parent && node.parent.from === node.from && !node.parent.type.isTop;
+				node = node.parent
+			) {}
+			const cursor = node.cursor();
+			let inList = false;
+			let lastMarkTo = line.from;
+			const marks = ["ListMark", "QuoteMark", "TaskMarker"];
+			do {
+				inList = cursor.name.includes("List") || (!["Blockqoute", "QouteMark"].includes(cursor.name) && inList);
+				lastMarkTo = marks.includes(cursor) ? cursor.to : lastMarkTo;
+			} while (cursor.next() && cursor.node.from < range.to);	
+			let indent = "";
+			let newline = "";
+			if (inList) {
+				newline = "\n";
+				// you can use indent = " ".repeat(3); if you want a proper continuation of the list instead of a lazy one.
+				indent = "".repeat(3);
+			} else if (/\S/.test(before.slice(lastMarkTo - line.from))) {
+				newline = "\n"
+			}
+			const res = `${newline}${indent}$$\n${indent}$0\n${indent}$$`; 
+			return res;
+		}
+	},
 	// the other dm snippets are more advanced thus they are sectioned below in Misc
 
 	{trigger: /([^\\\w])beg/, replacement: "[[0]]\\begin{$0}\n$1\n\\end{$0}", options: "MA"},
@@ -435,36 +483,6 @@ export default [
 		output = `\\begin{pmatrix}\n${output}\n\\end{pmatrix}`;
 		return output;
 	}, options: "mA", description: "N x N identity matrix"},
-	// start with the correct indentation  of 3 spaces when typing at the start of a list.
-	{
-		trigger: /(?<positive_lookbehind>(?:\n|^)[ \t]*>*)(?<marker>\d+[.)]|[-*+])(?<whitespace>[ \t]+)(?<text>.*)dm/,
-		replacement: (m) => {
-			const { positive_lookbehind, whitespace, text, marker } = m.groups;
-			const firstLine = marker + whitespace + text;
-			const indent = " ".repeat(marker.length) + whitespace;
-			return `${positive_lookbehind}${firstLine}\n${indent}$$\n${indent}$0\n${indent}$$`;
-		},
-		options: "rtA",
-		priority: 2,
-		description: "Display math when in a list"
-	},
-	{
-		// positive lookbehind is not available on ios <16.4 and inline flags like (?m:$) are not since ios <26, using this as a workaround.
-		// otherwise the regex would be /(?<=\n|^)([ \t]*(?:> ?)*[ \t])*dm/
-		// or /(?m:^)([ \t]*(?:> ?)*[ \t])*dm/
-		trigger: new (class extends RegExp {
-			exec(source) {
-				const result = super.exec(source);
-				if (result === null) return result;
-				result
-				return /([ \t]*(?:> ?)*[ \t]*)dm$/.exec(source);
-			}
-		})(/(\n|^)[ \t]*(?:> ?)*[ \t]*dm/.source),
-		replacement: "[[0]]$$\n$0\n$$",
-		options: "tAw",
-		description: "Display Math on empty line",
-		priority: 2,
-	},
 ]
 
 function addRawConcealMaps() {
