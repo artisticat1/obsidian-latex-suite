@@ -1,4 +1,4 @@
-import { type Tooltip, showTooltip, EditorView, ViewUpdate, tooltips, type Rect } from "@codemirror/view";
+import { type Tooltip, showTooltip, EditorView, ViewUpdate, tooltips, type Rect, type PluginValue, ViewPlugin } from "@codemirror/view";
 import { StateField, EditorState, EditorSelection, StateEffect } from "@codemirror/state";
 import { renderMath, finishRenderMath, editorLivePreviewField } from "obsidian";
 import { type Bounds, Context, getContextPlugin } from "src/editor_context/context";
@@ -91,9 +91,26 @@ const findMatchingBrackets = (text: string, cursorPos: number, openBracket: stri
 	return { left, right };
 }
 
+class MathTooltipPlugin implements PluginValue {
+	hasFocus: boolean;	
+	prevFocus: boolean;
+	constructor(view: EditorView) {
+		this.prevFocus = view.hasFocus;
+		this.hasFocus = view.hasFocus;
+	}
+	
+	update(update: ViewUpdate) {
+		this.prevFocus = this.hasFocus;
+		this.hasFocus = update.view.hasFocus;
+	}
+}
+
+const mathTooltipPlugin = ViewPlugin.fromClass(MathTooltipPlugin);
+
 // update the tooltip by dispatching an updateTooltipEffect
 export function handleMathTooltip(update: ViewUpdate) {
-	const shouldUpdate = update.docChanged || update.selectionSet;
+	const {prevFocus, hasFocus} = update.view.plugin(mathTooltipPlugin)!;
+	const shouldUpdate = update.docChanged || update.selectionSet || (hasFocus !== prevFocus)
 	if (!shouldUpdate) return;
 	const settings = getLatexSuiteConfig(update.state);
 	
@@ -102,7 +119,7 @@ export function handleMathTooltip(update: ViewUpdate) {
 	const ctx = getContextPlugin(update.view);
 	const eqnBounds = shouldShowTooltip(update.state, ctx);
 
-	if (!eqnBounds) {
+	if (!eqnBounds || (prevFocus && !hasFocus)) {
 		const currTooltips = update.state.field(cursorTooltipField);
 		// a little optimization:
 		// If the tooltip is not currently shown and there is no need to show it,
@@ -360,4 +377,5 @@ export const mathTooltipExtension = [
 	cursorTooltipField.extension,
 	cursorTooltipBaseTheme,
 	tooltipSpaceExtension,
+	mathTooltipPlugin
 ]
