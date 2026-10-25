@@ -109,6 +109,14 @@ export const reversetabout = (view: EditorView): boolean => {
 			return true;
 		}
 	}
+	const settings = getLatexSuiteConfig(view);
+	if (!settings.taboutExitEquationOnlyOnEOL) {
+		setCursor(view, bounds.outer_start);
+	} else {
+		if (doc.slice(doc.from, ctx.pos).trim().length === 0) {
+			setCursor(view, bounds.outer_start);
+		}
+	}
 	return false;
 }
 

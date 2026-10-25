@@ -4,8 +4,38 @@ import { evalInObsidian, registerLibResolver } from "obsidian-integration-testin
 // import "obsidian-integration-testing/vitest/typings";
 import { getTemporaryVault } from "obsidian-integration-testing/vitest-global-setup-plugin";
 
+function taboutTest(doc: string, cursorPos: number, expectedTaboutCursorPos: number, expectedReverseTaboutCursorPos?: number) {
+	return evalInObsidian({
+		input: {
+			doc,
+			cursorPos
+		},
+		callback: async ({lib, doc, cursorPos}) => {
+			const { view, pressKey } = lib;
+			view.setDoc(doc, cursorPos)
+			pressKey({
+				key: "Tab"
+			})
+			await new Promise(resolve => setTimeout(resolve, 0))
+			const taboutCursorPos = view.state.selection.main.head
+			view.setDoc(doc, cursorPos)
+			pressKey({
+				key: "Tab",
+				modifiers: ["Shift"]
+			})
+			await new Promise(resolve => setTimeout(resolve, 0))
+			const reverseTaboutCursorPos = view.state.selection.main.head
+			return [taboutCursorPos, reverseTaboutCursorPos]
+		}
+	}).then(result => {
+		expect(result[0]).toBe(expectedTaboutCursorPos);
+		if (expectedReverseTaboutCursorPos !== undefined) {	
+			expect(result[1]).toBe(expectedReverseTaboutCursorPos);
+		}
+	})
+}
 
-describe("autodelete $ in inline math", async () => {
+describe("tabout brackets and math delimiters", async () => {
 	registerLibResolver(() => window.__latex_suite_test_library)
 	getTemporaryVault();
 	await evalInObsidian({
@@ -26,33 +56,11 @@ describe("autodelete $ in inline math", async () => {
 	registerLibResolver(() => window.__latex_suite_test_library)
 	
 	it("should exit brackets for $()$", async () => {
-		const result = await evalInObsidian({
-			callback: async ({lib}) => {
-				const { view, pressKey } = lib;
-				view.setDoc("$()$", "$(".length)
-				pressKey({
-					key: "Tab"
-				})
-				await new Promise(resolve => setTimeout(resolve, 0))
-				return view.state.selection.main.head;
-			}
-		})
-		expect(result).toBe("$()".length)
+		await taboutTest("$()$", "$(".length, "$()".length, "$".length)
 	})
 
 	it("should exit for `$E_{filler}=mc^2$`", async () => {
-		const result = await evalInObsidian({
-			callback: async ({lib}) => {
-				const { view, pressKey } = lib;
-				view.setDoc("$E_{filler}=mc^2$", "$E_{filler}=mc^2".length)
-				pressKey({
-					key: "Tab"
-				})
-				await new Promise(resolve => setTimeout(resolve, 0))
-				return view.state.selection.main.head;
-			}
-		})
-		expect(result).toBe("$E_{filler}=mc^2$".length)
+		await taboutTest("$E_{filler}=mc^2$", "$E_{filler}=mc^2".length, "$E_{filler}=mc^2$".length, "$E_".length)
 	})
 	it("should not exit for `$E_{filler}=mc^2$` in the middle", async () => {
 		const result = await evalInObsidian({
@@ -69,78 +77,43 @@ describe("autodelete $ in inline math", async () => {
 		expect(result).toBe("	$E_{filler}=mc^2$")
 	})
 	it("should exit for `$$E_{filler}=mc^2$$`", async () => {
-		const result = await evalInObsidian({
-			callback: async ({lib}) => {
-				const { view, pressKey } = lib;
-				view.setDoc("$$E_{filler}=mc^2$$", "$$E_{filler}=mc^2".length)
-				pressKey({
-					key: "Tab"
-				})
-				await new Promise(resolve => setTimeout(resolve, 0))
-				return view.state.selection.main.head;
-			}
-		})
-		expect(result).toBe("$$E_{filler}=mc^2$$".length)
+		await taboutTest(
+			"$$E_{filler}=mc^2$$",
+			"$$E_{filler}=mc^2".length,
+			"$$E_{filler}=mc^2$$".length,
+			"$$E_".length
+		);
 	})
 	
 	it("should skip unbalanced brackets for `$$1_{[0,1)}$$`", async () => {
-		const result = await evalInObsidian({
-			callback: async ({lib}) => {
-				const { view, pressKey } = lib;
-				view.setDoc("$$1_{[0,1)}$$", "$$1_{[0,1}".length)
-				pressKey({
-					key: "Tab"
-				})
-				await new Promise(resolve => setTimeout(resolve, 0))
-				return view.state.selection.main.head;
-			}
-		})
-		expect(result).toBe("$$1_{[0,1)}".length)
+		await taboutTest(
+			"$$1_{[0,1)}$$",
+			"$$1_{[0,1)".length,
+			"$$1_{[0,1)}".length,
+			"$$1_{".length
+		);
 	})
 	
 	it("should go to right command for `$$\\left| \\right.$$", async () => {
-		const result = await evalInObsidian({
-			callback: async ({lib}) => {
-				const { view, pressKey } = lib;
-				view.setDoc("$$\\left| \\right.$$", "$$\\left| ".length)
-				pressKey({
-					key: "Tab"
-				})
-				await new Promise(resolve => setTimeout(resolve, 0))
-				return view.state.selection.main.head;
-			}
-		})
-		expect(result).toBe("$$\\left| \\right.".length)
+		await taboutTest(
+			"$$\\left| \\right.$$",
+			"$$\\left| ".length,
+			"$$\\left| \\right.".length,
+			"$$".length
+		);
 	})
 	
 
 	it("should go to right command for `$$ \\right.$$", async () => {
-		const result = await evalInObsidian({
-			callback: async ({lib}) => {
-				const { view, pressKey } = lib;
-				view.setDoc("$$ \\right.$$", "$$ ".length)
-				pressKey({
-					key: "Tab"
-				})
-				await new Promise(resolve => setTimeout(resolve, 0))
-				return view.state.selection.main.head;
-			}
-		})
-		expect(result).toBe("$$ \\right.".length)
+		await taboutTest("$$ \\right.$$", "$$ ".length, "$$ \\right.".length, "".length);
 	})
 	
 	it("should tabout inside a matrix for `$$\\begin{matrix}\n\\text{test}\n\\end{matrix}$$`", async () => {
-		const result = await evalInObsidian({
-			callback: async ({lib}) => {
-				const { view, pressKey } = lib;
-				view.setDoc("$$\\begin{matrix}\n\\text{test}\n\\end{matrix}$$", "$$\\begin{matrix}\n\\text{test".length)
-				pressKey({
-					key: "Tab"
-				})
-				await new Promise(resolve => setTimeout(resolve, 0))
-				return view.state.selection.main.head;
-			}
-		})
-		expect(result).toBe("$$\\begin{matrix}\n\\text{test}".length)
+		await taboutTest(
+			"$$\\begin{matrix}\n\\text{test}\n\\end{matrix}$$",
+			"$$\\begin{matrix}\n\\text{test".length,
+			"$$\\begin{matrix}\n\\text{test}".length,
+			"$$\\begin{matrix}\n\\text".length
+		);
 	})
 })
