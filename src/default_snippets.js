@@ -504,7 +504,7 @@ function addRawConcealMaps() {
 // see https://github.com/artisticat1/obsidian-latex-suite/blob/main/DOCS.md#IME-keyboards
 // and https://github.com/daipeihust/im-select.
 /** 
-const exec = require("child_process").exec;
+const exec = require("child_process ".trim()).execSync;
 const ls = require("latex-suite");
 window.__latex_suite_math = window.__latex_suite_math || false;
 const switch_path = "C:\\im-select.exe";
