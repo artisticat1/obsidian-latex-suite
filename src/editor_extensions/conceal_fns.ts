@@ -793,6 +793,9 @@ function traverseTree(topNode: SyntaxNode, doc: EquationText, {maps, macroMap}: 
 			if (subSupSpec.kind === HandleResultKind.RecursiveHandled) {
 				specs.push(...subSupSpec.spec);
 				continue;
+			} else if (subSupSpec.kind === HandleResultKind.Handled) {
+				specs.push(subSupSpec.spec);
+				continue;
 			}
 		}
 	}
