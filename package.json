@@ -13,6 +13,7 @@
 		"dev": "jiti esbuild.config.mts",
 		"build": "tsc -noEmit -skipLibCheck && jiti esbuild.config.mts production",
 		"build:test": "jiti esbuild.config.mts test",
+		"preversion": "npm install obsidian-integration-testing@latest eslint-plugin-obsidianmd@latest obsidian-typings@latest obsidian@latest",
 		"version": "npm test && npm run lint && npm run build && jiti version-bump.mts && git add manifest.json versions.json",
 		"postversion": "jiti scripts/postversion.ts",
 		"lint": "tsc --noEmit -skipLibCheck && eslint",
@@ -40,7 +41,7 @@
 		"@lezer/lr": "^1.4.10",
 		"codemirror": "^6.0.0",
 		"i18next": "^26.4.0",
-		"obsidian": "^1.13.1"
+		"obsidian": "^1.14.4"
 	},
 	"devDependencies": {
 		"@codemirror/language": "^6.12.4",
@@ -51,14 +52,14 @@
 		"@types/picomatch": "^4.0.3",
 		"@typescript-eslint/eslint-plugin": "^8.55.0",
 		"@typescript-eslint/parser": "^8.55.0",
-		"esbuild": "^0.20.2",
+		"esbuild": "^0.28.2",
 		"esbuild-plugin-inline-import": "^1.0.2",
 		"eslint": "^9.39.2",
 		"eslint-plugin-obsidianmd": "^0.4.2",
 		"globals": "^17.3.0",
 		"jiti": "^2.7.0",
-		"obsidian-integration-testing": "^17.2.0",
-		"obsidian-typings": "^6.35.0",
+		"obsidian-integration-testing": "^17.5.1",
+		"obsidian-typings": "^6.50.0",
 		"remark-parse": "^11.0.0",
 		"remark-stringify": "^11.0.0",
 		"stylelint": "^17.14.1",
@@ -74,5 +75,13 @@
 		"@popperjs/core": "2.11.5",
 		"picomatch": "^4.0.7",
 		"valibot": "^1.4.2"
+	},
+	"allowScripts": {
+		"edgedriver@6.3.1": true,
+		"esbuild@0.28.2": true,
+		"geckodriver@6.1.1": true
+	},
+	"overrides": {
+		"moment": "^2.31.0"
 	}
 }
