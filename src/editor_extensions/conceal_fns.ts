@@ -4,7 +4,7 @@ import { EditorView } from "@codemirror/view";
 import type { ConcealSpec } from "./conceal";
 import { type ConcealMapping } from "./conceal_maps";
 import { type SyntaxNode, TreeCursor } from "@lezer/common";
-import { cumulativeSum } from "src/utils/editor_utils";
+import { cumulativeSum, hasOwn } from "src/utils/editor_utils";
 import { EquationText, iterateTreeCursor } from "src/utils/tokenizer";
 import { getMathBoundsPlugin } from "src/editor_context/mathbounds";
 import { latex } from "src/parser/latex-terms";
@@ -457,6 +457,7 @@ function handleSubSup({ doc, cursor, maps, macroMap }: MacroHandlerOptions): Han
 	const nodeRef = cursor.node;
 	const endChar = doc.slice(Math.max(nodeRef.from, nodeRef.to - 1), nodeRef.to);
 	if (endChar !== "_" && endChar !== "^") return notHandled();
+	if (hasOwn(maps.function_macros, endChar)) return notHandled();
 	const start = nodeRef.to - 1;
 	const type = endChar === "_" ? "sub" : "sup";
 	const allowed_names = [
@@ -762,6 +763,9 @@ export function createMacroMap(maps: ConcealMapping) : MacroHandlerMap {
 	}
 	for (const macro of Object.keys(maps.ALL_SYMBOLS)) {
 		macroMap[macro] = handleAllSymbols;
+	}
+	for (const macro of Object.keys(maps.function_macros)) {
+		delete macroMap[macro];
 	}
 	return macroMap
 }

@@ -9,6 +9,7 @@ import { createSnippetsEditor, LatexSuiteSettingsTab2, renderHtml } from "./sett
 import { settings_translation as t } from "../i18n/i18n"
 import { MappingSchema } from "src/editor_extensions/conceal_maps";
 import * as v from "valibot";
+import { hasOwn } from "src/utils/editor_utils";
 
 
 export class LatexSuiteSettingTab extends PluginSettingTab {
@@ -34,7 +35,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		
 	}
 	async setControlValue(key: string, value: unknown): Promise<void> {
-		if (!(Object.prototype.hasOwnProperty.call(DEFAULT_SETTINGS, key))) {
+		if (!hasOwn(DEFAULT_SETTINGS, key)) {
 			console.error(`Invalid setting key: ${key}`);
 			return;
 		}

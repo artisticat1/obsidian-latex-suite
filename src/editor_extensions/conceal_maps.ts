@@ -1130,7 +1130,7 @@ export const mathbb: Record<string, string> = {
 }
 
 
-export const mathscrcal: Record<string,string | undefined> = {
+export const mathscrcal: Record<string, string> = {
 	"A": "𝓐",
 	"B": "𝓑",
 	"C": "𝓒",
@@ -1219,27 +1219,29 @@ export const mathfrak = {
 const concealMapSchema = v.optional(
 	v.record(
 		v.string(),
-		v.union([v.string(), v.pipe(v.null(), v.transform(() => undefined))]),
+		v.union([v.string(), v.null()]),
 	),
 	{},
 );
 const operatorsSchema = v.optional(v.record(v.string(), v.boolean()), {});
+const functionsSchema = v.optional(v.record(v.string(), v.boolean()), {});
 export const MappingSchema = v.object({
-		cmd_symbols: concealMapSchema,
-		not_remap: concealMapSchema,
-		operators: operatorsSchema,
-		fractions: concealMapSchema,
-		greek: concealMapSchema,
-		map_super: concealMapSchema,
-		map_sub: concealMapSchema,
-		bar: concealMapSchema,
-		dot: concealMapSchema,
-		hat: concealMapSchema,
-		brackets: concealMapSchema,
-		leftrightBrackets: concealMapSchema,
-		mathbb: concealMapSchema,
-		mathscrcal: concealMapSchema,
-		mathfrak: concealMapSchema,
+	cmd_symbols: concealMapSchema,
+	not_remap: concealMapSchema,
+	operators: operatorsSchema,
+	fractions: concealMapSchema,
+	greek: concealMapSchema,
+	map_super: concealMapSchema,
+	map_sub: concealMapSchema,
+	bar: concealMapSchema,
+	dot: concealMapSchema,
+	hat: concealMapSchema,
+	brackets: concealMapSchema,
+	leftrightBrackets: concealMapSchema,
+	mathbb: concealMapSchema,
+	mathscrcal: concealMapSchema,
+	mathfrak: concealMapSchema,
+	function_macros: functionsSchema,
 })
 
 export type RawConcealMapping = v.InferOutput<typeof MappingSchema>
@@ -1260,6 +1262,7 @@ export type ConcealMapping = {
 	mathbb: ConcealMap,
 	mathscrcal: ConcealMap,
 	mathfrak: ConcealMap,
+	function_macros: Record<string, false>,
 	ALL_SYMBOLS: ConcealMap,
 }
 
@@ -1279,6 +1282,7 @@ export const default_mapping = {
 	mathbb,
 	mathscrcal,
 	mathfrak,
+	function_macros: {},
 } satisfies RawConcealMapping
 
 type ConcealMapKey =
@@ -1297,46 +1301,25 @@ type ConcealMapKey =
 	| "mathscrcal"
 	| "mathfrak";
 
-export const EMPTY_MAPPING: RawConcealMapping = {
-	not_remap: {},
-	cmd_symbols: {},
-	operators: {},
-	fractions: {},
-	greek: {},
-	map_super: {},
-	map_sub: {},
-	bar: {},
-	dot: {},
-	hat: {},
-	brackets: {},
-	leftrightBrackets: {},
-	mathbb: {},
-	mathscrcal: {},
-	mathfrak: {},
+function copyAssign<V, T extends Record<string, V>>(target: T, ...sources: Partial<T>[]): T {
+	return Object.assign({}, target, ...sources) as T
 }
 
 export function fullMappingSchema(arr: RawConcealMapping[]): ConcealMapping {
-	function concealMap<T extends ConcealMapKey>(key: T, arr: RawConcealMapping[]) {
-		const result = arr.reduce(
-			(acc, mapping) => ({ ...acc, ...mapping[key] }),
-			default_mapping[key],
-		);
+	function concealMap<const T extends ConcealMapKey>(key: T, arr: RawConcealMapping[]) {
+		const result = copyAssign(default_mapping[key] as RawConcealMapping[typeof key], ...arr.map((mapping) => mapping[key]))
 		// Delete "unset" keys such that the user can delete them.
-		for (const key in result) {
-			if (result[key] === undefined) {
-				delete result[key];
-			}
-		}
-		return result
+		return Object.fromEntries(Object.entries(result).filter((obj): obj is [string, string] => obj[1] !== null));
 	}
 	function operatorsReducer(arr: RawConcealMapping[]) {
-		const result = arr.reduce((acc, mapping) => {
-			if (mapping.operators) {
-				return { ...acc, ...mapping.operators };
-			}
-			return acc;
-		}, default_mapping.operators);
+		const result = copyAssign(default_mapping.operators, ...arr.map((mapping) => mapping.operators));
 		return Object.keys(result).filter((k) => result[k]);
+	}
+	function functionsReducer(arr: RawConcealMapping[]) {
+		const macro_functions = arr.map((mapping) => mapping.function_macros);
+		const result = copyAssign(default_mapping.function_macros, ...macro_functions);
+		const filtered = Object.entries(result).filter((obj): obj is [string, false] => obj[1] === false);
+		return Object.fromEntries(filtered);
 	}
 	
 	// Not sure if there is a better way to do this type-safely as looping through the keys has its own issues.
@@ -1355,6 +1338,7 @@ export function fullMappingSchema(arr: RawConcealMapping[]): ConcealMapping {
 	const mathscrcal = concealMap("mathscrcal", arr);
 	const mathfrak = concealMap("mathfrak", arr);
 	const operators = operatorsReducer(arr);
+	const function_macros = functionsReducer(arr);
 	const ALL_SYMBOLS = Object.fromEntries(
 		Object.entries({ ...cmd_symbols, ...greek }).sort(
 			(a, b) => b[0].length - a[0].length,
@@ -1380,6 +1364,7 @@ export function fullMappingSchema(arr: RawConcealMapping[]): ConcealMapping {
 		mathbb,
 		mathscrcal,
 		mathfrak,
+		function_macros,
 		ALL_SYMBOLS,
 	}
 }
