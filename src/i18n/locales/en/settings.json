@@ -253,6 +253,14 @@
 				"vverbose": "VVerbose"
 			}
 		},
+		"conceal-log-level": {
+			"name": "Conceal log level",
+			"desc": "Temporary setting for issue <a href=\"https://github.com/artisticat1/obsidian-latex-suite/issues/549\">#549</a>.",
+			"options": {
+				"off": "Off",
+				"verbose": "Verbose"
+			}
+		},
 		"snippet-IME-version": {
 			"name": "Snippet IME version",
 			"desc": "Whether to expand automatic snippets when a key is pressed after IME composition is completed. This may solve some issues with IME/Chinese keyboards"

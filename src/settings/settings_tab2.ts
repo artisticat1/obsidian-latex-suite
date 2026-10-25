@@ -90,6 +90,7 @@ type ExperimentalSettingDefinition = Definition<
 	| "snippetRecursion"
 	| "excalidrawSupportEnabled"
 	| "logLevel"
+	| "concealLogLevel"
 	| "snippetIMEVersion"
 >
 
@@ -665,10 +666,23 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 					key: "logLevel",
 					defaultValue: DEFAULT_SETTINGS.logLevel,
 					options: {
-						  "off":  t("experimental.log-level.options.off"),
-						  "info":  t("experimental.log-level.options.info"),
-						  "verbose":  t("experimental.log-level.options.verbose"),
-						  "vverbose":  t("experimental.log-level.options.vverbose"),
+						"off":  t("experimental.log-level.options.off"),
+						"info":  t("experimental.log-level.options.info"),
+						"verbose":  t("experimental.log-level.options.verbose"),
+						"vverbose":  t("experimental.log-level.options.vverbose"),
+					},
+				}
+			},
+			{
+				name: t("experimental.conceal-log-level.name"),
+				desc: this.renderHtml( t("experimental.conceal-log-level.desc")),
+				control: {
+					type: "dropdown",
+					key: "concealLogLevel",
+					defaultValue: DEFAULT_SETTINGS.concealLogLevel,
+					options: {
+						"off":  t("experimental.conceal-log-level.options.off"),
+						"verbose":  t("experimental.conceal-log-level.options.verbose"),
 					},
 				}
 			},

@@ -228,6 +228,6 @@ export function* enumerate<T>(iterable: Iterable<T>) {
 	}
 }
 
-export function hasOwn(obj: Record<PropertyKey, unknown>, prop: PropertyKey): boolean {
+export function hasOwn(obj: object, prop: PropertyKey): boolean {
 	return Object.prototype.hasOwnProperty.call(obj, prop);
 }

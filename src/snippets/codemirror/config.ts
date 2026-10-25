@@ -33,12 +33,14 @@ export type ConcealConfigInput = {
 	concealRevealTimeout: number;
 	concealLinewise: boolean;
 	concealMaps: MappingInfo;
+	concealLogLevel: "off" | "verbose";
 }
 
 type ConcealConfig = {
 	delayedReveal: Debouncer<[Conceal, Concealment[], EditorView], void>;
 	concealLinewise: boolean;
 	concealMaps: MappingInfo;
+	concealLogLevel: "off" | "verbose";
 }
 
 export const concealConfig = Facet.define<ConcealConfigInput, ConcealConfig>({
@@ -47,6 +49,7 @@ export const concealConfig = Facet.define<ConcealConfigInput, ConcealConfig>({
 			concealRevealTimeout: EMPTY_SETTINGS.concealRevealTimeout,
 			concealLinewise: EMPTY_SETTINGS.concealLinewise,
 			concealMaps: { macroMap: {}, maps: fullMappingSchema([]) } satisfies MappingInfo,
+			concealLogLevel: EMPTY_SETTINGS.concealLogLevel,
 		};
 		const concealRevealTimeout = createRevealCallback(
 			settings.concealRevealTimeout,

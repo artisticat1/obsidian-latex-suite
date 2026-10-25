@@ -333,6 +333,18 @@ type MinimalViewUpdate = {
 	transactions: readonly Transaction[];
 };
 
+function* iterRangeSet<T extends RangeValue>(rangeSet: RangeSet<T>): Iterable<Range<T>> {
+	let iter = rangeSet.iter();
+	while (iter.value !== null) {
+		yield {
+			from: iter.from,
+			to: iter.to,
+			value: iter.value
+		};
+		iter.next()
+	}
+}
+
 export class Conceal implements PluginValue {
 	// Stateful ViewPlugin: you should avoid one in general, but here
 	// the approach based on StateField and updateListener conflicts with
@@ -393,6 +405,19 @@ export class Conceal implements PluginValue {
 			this.cached_equations = cached_equations;
 			this.concealSpecs = concealSpecs;
 			this.updateFromConcealSpecs(concealSpecs, update);
+		}
+		if (settings.concealLogLevel === "verbose") {
+			const atomicRanges = Array.from(iterRangeSet(this.atomicRanges));	
+			const startState = (update as Partial<ViewUpdate>).startState?.toJSON() as unknown;
+			const state = (update as Partial<ViewUpdate>).state?.toJSON() as unknown;
+			console.debug("Conceal update:", {
+				concealSpecs: this.concealSpecs,
+				concealments: this.concealments,
+				atomicRanges,
+				changes: update.changes.toJSON() as unknown,
+				startState,
+				state
+			});
 		}
 	}
 	

@@ -21,6 +21,7 @@ export const EMPTY_SETTINGS: LatexSuitePluginSettings = {
 	concealRevealTimeout: 0,
 	concealLinewise: false,
 	concealMaps: "{\n\n}",
+	concealLogLevel: "off",
 	colorPairedBracketsEnabled: false,
 	highlightCursorBracketsEnabled: false,
 	mathPreviewEnabled: false,

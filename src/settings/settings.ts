@@ -29,6 +29,7 @@ export interface LatexSuiteBasicSettings {
 	concealRevealTimeout: number;
 	concealLinewise: boolean;
 	colorPairedBracketsEnabled: boolean;
+	concealLogLevel: "off" | "verbose";
 	highlightCursorBracketsEnabled: boolean;
 	mathPreviewEnabled: boolean;
 	mathPreviewPositionIsAbove: boolean;
@@ -212,6 +213,7 @@ export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
 	highlightDollarEnabled: true,
 	excalidrawSupportEnabled: true,
 	logLevel: "off",
+	concealLogLevel: "off",
 	autofractionTrigger: "/",
 	matrixShortcutsCellTrigger: "Tab",
 	matrixShortcutsNewlineTrigger: "Enter",
