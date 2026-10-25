@@ -4,6 +4,7 @@ import process from "process";
 import inlineImportPlugin from "esbuild-plugin-inline-import";
 import fs from "fs"
 import { spawnSync } from "child_process";
+import path from "path";
 
 const banner =
 `/*
@@ -74,7 +75,23 @@ function debouncer<A, R>(func: (...args: A[]) => R, wait: number) {
 	};
 }
 
+const watchCopyFile = (src: string, dest: string) => {
+	if (path.resolve(src) === path.resolve(dest)) {
+		return () => {};
+	}
+	const debouncedCopy = debouncer((_) => {
+		console.log(`Copied ${src} to ${dest}`);
+		fs.copyFileSync(src, dest);
+	}, 1000);
+	debouncedCopy();
+	return fs.watchFile(src, debouncedCopy);
+}
+
 if (dev) {
+	const dir = process.env.OUTDIR ?? ".";
+	args.outfile = path.join(dir, "main.js");
+	watchCopyFile("manifest.json", path.join(dir, "manifest.json"));
+	watchCopyFile("styles.css", path.join(dir, "styles.css"));
 	const ctx = await esbuild.context(args);
 	ctx.watch().catch(() => process.exit(1));
 	const debouncedExec = debouncer((eventType, filename: string | null) => {
@@ -101,15 +118,7 @@ if (dev) {
 	args.outfile = "dist/dev/main.js"
 	fs.mkdirSync("dist/dev", { recursive: true });
 	const ctx = await esbuild.context(args);
-	const copyFile = (src: string, dest: string) => debouncer((_) => {
-		console.log(`Copied ${src} to ${dest}`);
-		fs.copyFileSync(src, dest);
-	}, 1000);
-	const manifestCopy = copyFile("manifest.json", "dist/dev/manifest.json");
-	const stylesCopy = copyFile("styles.css", "dist/dev/styles.css");
-	fs.watchFile("manifest.json", manifestCopy);
-	fs.watchFile("styles.css", stylesCopy);
-	manifestCopy();
-	stylesCopy();
+	watchCopyFile("manifest.json", "dist/dev/manifest.json");
+	watchCopyFile("styles.css", "dist/dev/styles.css");
 	ctx.watch().catch(() => process.exit(1));
 }

@@ -22,5 +22,6 @@ data.json
 .DS_Store
 **/parser/*/*-parser.js
 **/parser/*/*-parser.terms.js
-dist/dev
+dist
 src/i18n/locales/*/*.md
+.env
