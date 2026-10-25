@@ -34,7 +34,8 @@ body:
           options:
               - Windows
               - macOS
-              - Linux
+              - Linux (wayland)
+              - Linux (x11)
               - Android
               - IOS/IPadOs
               - other
@@ -65,3 +66,4 @@ body:
               - codeblocks of such screenshots/videos
               - other plugins
               - console errors or warnings, to open console, press `Cmd+shift+i` for mac and `Ctrl+shift+I` for windows/linux
+              - the keyboard you are using like fcitx, ibus for linux, or other input methods for mac/windows like pinyin, etc.
