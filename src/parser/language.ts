@@ -289,8 +289,9 @@ function isNotExcalidraw(state: EditorState): boolean {
 
 export const languageStateField = StateField.define({
 	create: (state: EditorState) => {
+		const { forceMathLanguages, forceLatexLanguages } = getLatexSuiteConfig(state);
 		const fullParser = isNotExcalidraw(state)
-			? fullMathParser(getLatexSuiteConfig(state).forceMathLanguages)
+			? fullMathParser(forceMathLanguages, forceLatexLanguages)
 			: parser;
 		return LanguageState.init(fullParser)(state);
 	},

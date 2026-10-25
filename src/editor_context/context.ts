@@ -200,9 +200,6 @@ export class Context implements PluginValue {
 	
 		for (const node of stackResolveNodeIterate(treeNode, pos, -1)) {
 			if (node.to <= pos) continue;
-			if (node.name === "LaTeX") {
-				// _printNode2(node, this.state.doc.toString())
-			}
 			const result = this.getEnvNameFromNode(node, this.state.doc);
 			if (!result) continue;
 			yield result;

@@ -79,6 +79,7 @@ export interface LatexSuiteRawSettings {
 	taboutClosingSymbols: string;
 	autoEnlargeBracketsTriggers: string;
 	forceMathLanguages: string;
+	forceLatexLanguages: string;
 }
 
 interface LatexSuiteParsedSettings {
@@ -88,6 +89,7 @@ interface LatexSuiteParsedSettings {
 	taboutClosingSymbols: Set<string>;
 	autoEnlargeBracketsTriggers: string[];
 	forceMathLanguages: string[];
+	forceLatexLanguages: string[]
 }
 
 interface LatexSuiteRawSchemaSettings {
@@ -203,6 +205,7 @@ export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
 		"), ], \\rbrack, \\}, \\rbrace, \\rangle, \\rvert, \\rVert, \\rfloor, \\rceil, \\urcorner, }",
 	autoEnlargeBracketsTriggers: "sum, int, frac, prod, bigcup, bigcap",
 	forceMathLanguages: "math",
+	forceLatexLanguages: "latex",
 	snippetDebug: "off",
 	vimEnabled: false,
 	vimSelectMode: "<C-g>",
@@ -337,6 +340,7 @@ export function processLatexSuiteSettings(
 			/[A-Za-z]+/.test(trigger) ? `\\${trigger}` : trigger,
 		),
 		forceMathLanguages: strToArray(settings.forceMathLanguages),
+		forceLatexLanguages: strToArray(settings.forceLatexLanguages),
 		mathlessMacros: mathlessMacros,
 	};
 }

@@ -48,6 +48,7 @@ export const EMPTY_SETTINGS: LatexSuitePluginSettings = {
 	taboutClosingSymbols: "",
 	autoEnlargeBracketsTriggers: "",
 	forceMathLanguages: "",
+	forceLatexLanguages: "",
 	snippetDebug: "off",
 	vimEnabled: false,
 	vimSelectMode: "",
