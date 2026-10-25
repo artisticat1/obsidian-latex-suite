@@ -673,6 +673,8 @@ type RawConcealMap = {
 	mathbb: ConcealMap,
 	mathscrcal: ConcealMap,
 	mathfrak: ConcealMap,
+	// disable concealments for macros or _ and ^.
+	function_macros: OperatorMap,
 }
 ```
 

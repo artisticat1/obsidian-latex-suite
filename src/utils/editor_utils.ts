@@ -227,3 +227,7 @@ export function* enumerate<T>(iterable: Iterable<T>) {
 		yield [i++, item] as const;
 	}
 }
+
+export function hasOwn(obj: Record<PropertyKey, unknown>, prop: PropertyKey): boolean {
+	return Object.prototype.hasOwnProperty.call(obj, prop);
+}

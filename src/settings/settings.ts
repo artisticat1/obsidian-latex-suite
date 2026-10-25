@@ -4,7 +4,7 @@ import { DEFAULT_SNIPPETS } from "src/utils/default_snippets";
 import { DEFAULT_SNIPPET_VARIABLES } from "src/utils/default_snippet_variables";
 import * as v from "valibot";
 import type { SnippetVariables } from "src/snippets/parse";
-import { EMPTY_MAPPING, fullMappingSchema, MappingSchema, type RawConcealMapping } from "src/editor_extensions/conceal_maps";
+import { fullMappingSchema, MappingSchema, type RawConcealMapping } from "src/editor_extensions/conceal_maps";
 import { createMacroMap, type MappingInfo } from "src/editor_extensions/conceal_fns";
 import { DEFAULT_MATHLESS_ARGS, EMPTY_MATHLESS_ARGS, mathlessArgsSchema, restrictedMacroArgs, textMacroArgs, type MacroArgs } from "src/editor_context/default_text_areas";
 import type { UpdateHandler } from "src/api";
@@ -130,6 +130,25 @@ export type LatexSuiteCMSettings = LatexSuiteProcessedSchemaSettings &
 	LatexSuiteBasicSettings &
 	LatexSuiteParsedSettings &
 	LatexSuiteCMKeymapSettings;
+
+const EMPTY_MAPPING: RawConcealMapping = {
+	not_remap: {},
+	cmd_symbols: {},
+	operators: {},
+	fractions: {},
+	greek: {},
+	map_super: {},
+	map_sub: {},
+	bar: {},
+	dot: {},
+	hat: {},
+	brackets: {},
+	leftrightBrackets: {},
+	mathbb: {},
+	mathscrcal: {},
+	mathfrak: {},
+	function_macros: {},
+};
 
 export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
 	snippets: DEFAULT_SNIPPETS,
