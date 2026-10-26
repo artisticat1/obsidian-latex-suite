@@ -1,6 +1,10 @@
 // Track environments
-@top LaTeX {
+@top MathJax {
 	Math
+}
+
+@top LaTeX {
+	textBase
 }
 
 @context elementContext from "./latex_tokens"
@@ -120,25 +124,14 @@
     Number { $[0-9]+ ("." $[0-9]*)? }
     MathSpecialChar { $[^_=<>()\-+/*]+ }  // FIXME not all of these are special
     MathChar { ![0-9^_=<>()\-+/*\\{}\[\]$%&~ \t\n]+ }
-	SubScriptSeq { "_" }
-	SuperScriptSeq { "^" }
 
-    @precedence { Number, MathSpecialChar, MathChar, SubScriptSeq, SuperScriptSeq }
+    @precedence { Number, MathSpecialChar, MathChar }
 
     Ampersand { "&" }
     Tilde { "~" }
 
     EnvName {  $[a-zA-Z]+ $[*]? }
 }
-
-SuperScript {
-	SuperScriptSeq MathArgument
-}
-
-SubScript {
-	SubScriptSeq MathArgument
-}
-
 
 @skip { Comment }
 
@@ -341,6 +334,7 @@ textBase {
     ( Command
     | DollarInlineMath
     | ParenMath
+	| BracketMath
     | NewLine
     | Normal
     | Whitespace
@@ -487,21 +481,21 @@ NonEmptyGroup<GroupContent> {
 
 ///  MATH MODE
 
-// DollarMath[@isGroup="$MathContainer"] {
-//   Dollar (InlineMath | DisplayMath) Dollar
-// }
-
 DollarInlineMath[@isGroup="$MathContainer"] {
-	Dollar InlineMath? Dollar
+  Dollar (InlineMath | DisplayMath) Dollar
 }
+
+// DollarInlineMath[@isGroup="$MathContainer"] {
+// 	Dollar InlineMath Dollar
+// }
 
 InlineMath {
     Math
 }
 
-// DisplayMath {
-//     Dollar Math? Dollar
-// }
+DisplayMath {
+    Dollar Math? Dollar
+}
 
 
 OpenParenMath[closedBy=CloseParenMath] {
@@ -518,6 +512,19 @@ ParenMath[@isGroup="$MathContainer"] {
     Math?
     CloseParenMath
 }
+OpenBracketMath[closedBy=CloseBracketMath] {
+	OpenBracketCtrlSym
+}
+CloseBracketMath[openedBy=OpenBracketMath] {
+	CloseBracketCtrlSym
+}
+
+BracketMath[@isGroup="$MathContainer"] {
+	OpenBracketMath
+	Math?
+	CloseBracketMath
+}
+
 
 // FIXME: we should have separate math modes for inline and display math,
 // because display math can contain blank lines while inline math cannot.

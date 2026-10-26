@@ -29,7 +29,7 @@ describe("my-plugin", () => {
 				return parsed.toString();
 			},
 		});
-		expect(result).toBe("Document(Paragraph(DollarInlineMath(Dollar,LaTeX(Math(MathChar,MathSpecialChar,Number)),Dollar),DollarDisplayMath(Dollar,LaTeX(Math(MathChar,MathSpecialChar,Number)),Dollar)))");
+		expect(result).toBe("Document(Paragraph(DollarInlineMath(Dollar,MathJax(Math(MathChar,MathSpecialChar,Number)),Dollar),DollarDisplayMath(Dollar,MathJax(Math(MathChar,MathSpecialChar,Number)),Dollar)))");
 	});
 	
 	it("parser: math with callouts", async () => {
@@ -74,7 +74,7 @@ obsidian display comment
 				return parsed.toString();
 			},
 		});
-		expect(result).toBe("Document(Paragraph(ObsidianComment,DollarInlineMath(Dollar,LaTeX(Math(MathChar,MathSpecialChar,Number)),Dollar)),ObsidianComment,DollarInlineMath(Dollar,LaTeX(Math(MathChar,MathSpecialChar,Number)),Dollar))")
+		expect(result).toBe("Document(Paragraph(ObsidianComment,DollarInlineMath(Dollar,MathJax(Math(MathChar,MathSpecialChar,Number)),Dollar)),ObsidianComment,DollarInlineMath(Dollar,MathJax(Math(MathChar,MathSpecialChar,Number)),Dollar))")
 	})
 	
 	it("parser: html comment with markdown at then end", async () => {
@@ -118,7 +118,7 @@ display html comment
 				return parsed.toString();
 			},
 		});
-		expect(result).toBe("Document(Table(TableHeader(TableDelimiter,TableCell(DollarInlineMath(Dollar,LaTeX(Math(MathChar,MathSpecialChar,Number)),Dollar)),TableDelimiter,TableCell(DollarInlineMath(Dollar,LaTeX(Math(MathChar,MathSpecialChar,Number)),Dollar)),TableDelimiter),TableDelimiter,TableRow(TableDelimiter,TableCell(DollarInlineMath(Dollar,LaTeX(Math(MathChar,MathSpecialChar,Number)),Dollar)),TableDelimiter,TableCell(DollarInlineMath(Dollar,LaTeX(Math(MathChar,MathSpecialChar,Number)),Dollar)),TableDelimiter)))")
+		expect(result).toBe("Document(Table(TableHeader(TableDelimiter,TableCell(DollarInlineMath(Dollar,MathJax(Math(MathChar,MathSpecialChar,Number)),Dollar)),TableDelimiter,TableCell(DollarInlineMath(Dollar,MathJax(Math(MathChar,MathSpecialChar,Number)),Dollar)),TableDelimiter),TableDelimiter,TableRow(TableDelimiter,TableCell(DollarInlineMath(Dollar,MathJax(Math(MathChar,MathSpecialChar,Number)),Dollar)),TableDelimiter,TableCell(DollarInlineMath(Dollar,MathJax(Math(MathChar,MathSpecialChar,Number)),Dollar)),TableDelimiter)))")
 	})
 	
 	it("should parse markdown after obsidian multiline comment (#634)", async () => {

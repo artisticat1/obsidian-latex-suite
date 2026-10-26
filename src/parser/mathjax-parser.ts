@@ -430,14 +430,16 @@ const htmlParser = parser.configure({
 		}
 
 		return {
-			parser: mathJaxParser,
+			parser: mathJaxParser.configure({	
+				top: "MathJax"
+			}),
 			overlay: [{ from: openTag.to, to: closeTag.from }],
 			bracketed: true,
 		};
 	}),
 });
 
-export const fullMathParser = (mathLang: string[]) =>
+export const fullMathParser = (mathLang: string[], latexLang: string[]) =>
 	baseParser
 		.configure(GFM)
 		.configure(highlightParser)
@@ -447,7 +449,7 @@ export const fullMathParser = (mathLang: string[]) =>
 		.configure(
 			parseCode({
 				codeParser: (lang: string) =>
-					mathLang.includes(lang) ? mathJaxParser : null,
+					mathLang.includes(lang) ? mathJaxParser : latexLang.includes(lang) ? mathJaxParser.configure({top: "LaTeX"}) : null,
 				htmlParser,
 			}),
 		);

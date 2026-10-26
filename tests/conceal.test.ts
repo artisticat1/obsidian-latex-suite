@@ -3,6 +3,7 @@ import { ContextId, evalInObsidian, registerLibResolver } from "obsidian-integra
 // import "obsidian-integration-testing/vitest/typings";
 import { getTemporaryVault } from "obsidian-integration-testing/vitest-global-setup-plugin";
 import { TFile } from "obsidian";
+import { createContextId } from "./setup";
 
 interface FileContext {
 	file: TFile
@@ -19,32 +20,11 @@ async function concealEquation(equation: string) {
 	})
 }
 
-async function createContextId<R extends FileContext, T extends ContextId<R>>(contextId: T) {
-	await evalInObsidian({
-	    contextId,
-	    callback: async ({ app, context, obsidianModule, lib }) => {
-			context.file =
-				app.vault.getFileByPath("test.md") ??
-				await app.vault.create("test.md", "");
-			const leaf = app.workspace.getLeaf(false)
-			await leaf.openFile(context.file)
-			if (window.__latex_suite_test_library.view?.state.field(obsidianModule.editorLivePreviewField)) {
-				app.commands.executeCommandById("editor:toggle-source");
-			}
-			console.log(lib.plugin.settings)
-			lib.plugin.settings.concealEnabled = true;	
-			lib.plugin.saveSettings();
-	    }
-	});
-}
-
 describe("conceal", async () => {
 	getTemporaryVault();
 	const contextId = new ContextId<FileContext>()
 	beforeAll(async () => {
-		registerLibResolver(() => window.__latex_suite_test_library)
 		await createContextId(contextId)
-		registerLibResolver(() => window.__latex_suite_test_library)
 	})
 	beforeEach(() => {
 		registerLibResolver(() => window.__latex_suite_test_library)

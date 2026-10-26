@@ -76,7 +76,7 @@ export class MathBoundsPlugin implements PluginValue {
 			let latexTree;
 			if (child.name !== "Element") return;
 			const text = child.node.getChild("Text");
-			if (!(text && (latexTree = child.node.enter(text.to, -1))?.type.is(latex.LaTeX))) {
+			if (!(text && (latexTree = child.node.enter(text.to, -1))?.type.is(latex.MathJax))) {
 				return;
 			}
 			const classListResult = getClassListFromElement(child.node, {
@@ -108,7 +108,7 @@ export class MathBoundsPlugin implements PluginValue {
 		const ranges: MathBounds[] = [];
 		const settings = getLatexSuiteConfig(view.state);
 		// for excalidraw the topnode is LaTeX, e.g. the whole document is in math mode.
-		if (tree.topNode.type.is(latex.LaTeX)) {
+		if (tree.topNode.type.is(latex.MathJax)) {
 			const mathBound = {
 				inner_start: tree.topNode.from,
 				inner_end: tree.topNode.to,
@@ -161,7 +161,7 @@ export class MathBoundsPlugin implements PluginValue {
 						nodeRef.name === Type.DollarDisplayMath
 					) {
 						const { open, close } = this.getDollarBounds(nodeRef.node);
-						const tree = nodeRef.node.getChild("LaTeX");
+						const tree = nodeRef.node.getChild(latex.MathJax);
 						if (!tree) {
 							return
 						}
@@ -179,12 +179,22 @@ export class MathBoundsPlugin implements PluginValue {
 						const infoNode = nodeRef.node.getChild("CodeInfo");
 						if (!infoNode) return;
 						const language = view.state.sliceDoc(infoNode.from, infoNode.to)
-						if (!settings.forceMathLanguages.includes(language)) return;
+						if (
+							!settings.forceMathLanguages.includes(language) &&
+							!settings.forceLatexLanguages.includes(language)
+						) {
+							return;
+						}
 						const contentNodes = nodeRef.node.getChildren("CodeText");
 						const lastNode = contentNodes.last();
 						if (!lastNode) return;
 						const tree = nodeRef.node.enter(lastNode.to, -1);
-						if (tree === null || !tree.type.is(latex.LaTeX)) return;
+						if (tree === null) return;
+						if (tree.type.is(latex.LaTeX)) {
+							ranges.push(...this.getMathBoundsFromLaTeXBlock(tree, view.state));
+							return false;
+						}
+						if (!tree.type.is(latex.MathJax)) return;
 						ranges.push({
 							inner_start: contentNodes[0]!.from,
 							inner_end: lastNode.to,
@@ -202,6 +212,68 @@ export class MathBoundsPlugin implements PluginValue {
 		}
 		this._mathBounds = ranges;
 	}
+	getMathBoundsFromLaTeXBlock(node: SyntaxNode, state: EditorState): MathBounds[] {
+		const mathBounds: MathBounds[] = [];
+		node.cursor().iterate((child) => {
+			const mathBound = this.getOpenCloseFromNode(child.node);
+			if (!mathBound) return;
+			const { open, close, type, tree } = mathBound;
+			mathBounds.push({
+				inner_start: open.to,
+				inner_end: close.from,
+				outer_start: open.from,
+				outer_end: close.to,
+				mode: type,
+				tree,
+				overlay: [{from: open.to, to: close.from}],
+			})
+		})
+		return mathBounds;
+	}
+	
+	getOpenCloseFromNode(node: SyntaxNode): { open: CMBound; close: CMBound, type: MathMode, tree: SyntaxNode | null } | null {
+		if (node.type.is(latex.BracketMath)) {
+			const open = node.getChild(latex.OpenBracketMath);
+			const close = node.getChild(latex.CloseBracketMath);
+			const tree = node.getChild(latex.Math);
+			return open && close ? { open, close, type: MathMode.BlockMath, tree } : null
+		} else if (node.type.is(latex.ParenMath)) {
+			const open = node.getChild(latex.OpenParenMath);
+			const close = node.getChild(latex.CloseParenMath);
+			const tree = node.getChild(latex.Math);
+			return open && close ? { open, close, type: MathMode.BlockMath, tree } : null
+		} else if (node.type.is(latex.DollarInlineMath)) {
+			const mathNode = node.getChild("DisplayMath") ?? node;
+			let tree = mathNode.getChild(latex.Math);
+			const dollarChilderen = mathNode.getChildren("Dollar");
+			const openDollar = dollarChilderen[0];
+			if (!openDollar) return null;
+			const open = { from: node.from, to: openDollar.to };
+			const dollarClose = dollarChilderen[1]
+			let close;
+			if (dollarClose) {
+				close = { from: dollarClose.from, to: node.to };
+			} else if (mathNode.name === "DisplayMath") {
+				open.to = open.from + 1;
+				close = { from: openDollar.to, to: openDollar.to + 1 };
+				tree = null;
+			} else {
+				open.to = open.from + 1;
+				close = { from: open.to, to: open.to };
+				tree = null;
+			}
+			const type = openDollar.to - node.from === 1 ? MathMode.InlineMath : MathMode.BlockMath;
+			return {
+				open: { from: node.from, to: openDollar.to },
+				close,
+				type,
+				tree
+				
+			}
+		}
+		return null
+	}
+
 
 	inMathBound(_state: EditorState, pos: number): MathBounds | null {
 		const bounds = this._mathBounds;
