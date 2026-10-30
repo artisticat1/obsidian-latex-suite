@@ -264,6 +264,10 @@
 		"snippet-IME-version": {
 			"name": "Snippet IME version",
 			"desc": "Whether to expand automatic snippets when a key is pressed after IME composition is completed. This may solve some issues with IME/Chinese keyboards"
+		},
+		"math-elements-clickable": {
+			"name": "Math elements clickable",
+			"desc": "Whether to make math elements clickable such that clicking on them will move the cursor roughly to the corresponding source code. This is an approximation within Obsidian's and MathJax's limitations. Where there is a delay/jittering if an Obsidian rendered element instead of the math tooltip is clicked and the cursor may not always move or to the right position if MathJax doesn't give enough information. For example macros <code>\\implies</code> that expands to <code>\\;\\LongRightArrow\\;</code> dont work."
 		}
 	},
 	"tooltips": {

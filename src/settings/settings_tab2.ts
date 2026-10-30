@@ -92,6 +92,7 @@ type ExperimentalSettingDefinition = Definition<
 	| "logLevel"
 	| "concealLogLevel"
 	| "snippetIMEVersion"
+	| "mathElementsClickable"
 >
 
 
@@ -690,7 +691,12 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 				name: t("experimental.snippet-IME-version.name"),
 				desc: this.renderHtml( t("experimental.snippet-IME-version.desc")),
 				control: getToggleControl("snippetIMEVersion")
-			}
+			},
+			{
+				name: t("experimental.math-elements-clickable.name"),
+				desc: this.renderHtml( t("experimental.math-elements-clickable.desc")),
+				control: getToggleControl("mathElementsClickable")
+			},
 		]
 		
 
