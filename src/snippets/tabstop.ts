@@ -1,7 +1,5 @@
 import { ChangeDesc, EditorSelection, SelectionRange } from "@codemirror/state";
-import { Decoration, type DecorationSet, EditorView, WidgetType } from "@codemirror/view";
-import { resetCursorBlink } from "src/utils/editor_utils";
-import { endSnippet } from "./codemirror/history";
+import { Decoration, type DecorationSet, WidgetType } from "@codemirror/view";
 import { createElement } from "src/editor_extensions/obsidian_utils";
 import { FIELD_MARKER_CLASS } from "./codemirror/tabstops_state_field";
 
@@ -52,19 +50,6 @@ export class TabstopGroup {
         this.hidden = false;
     }
 
-    select(view: EditorView, selectEndpoints: boolean, isEndSnippet: boolean) {
-        const sel = this.toEditorSelection();
-        const toSelect = selectEndpoints ? getEditorSelectionEndpoints(sel) : sel;
-
-        view.dispatch({
-            selection: toSelect,
-            effects: isEndSnippet ? endSnippet.of(null) : undefined
-        })
-        resetCursorBlink(view);
-
-        this.hideFromEditor();
-    }
-
     toSelectionRanges() {
         const ranges = [];
         const cur = this.decos.iter();
@@ -106,9 +91,9 @@ export class TabstopGroup {
         return result;
     }
 
-    hideFromEditor() {
-        this.hidden = true;
-    }
+	toggleHidden(toHide: boolean) {
+		this.hidden = toHide;
+	}
 
     map(changes: ChangeDesc) {
         this.decos = this.decos.map(changes);

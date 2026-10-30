@@ -54,6 +54,9 @@ export default [
 			return res;
 		}
 	},
+	// display math behaves like codeblocks, as in no text is allowed on the same line of the opening $$ thus a newline is added.
+    // {trigger: "dm", replacement: "\n$$\n$0\n$$", options: "tAw", description: "Display Math on empty line"},
+    {trigger: "\n".repeat(3) + "dk", replacement: "\n".repeat(30) + "\n$$\n$0\n$$", options: "tAw", description: "Display Math on empty line", priority: 100},
 	// the other dm snippets are more advanced thus they are sectioned below in Misc
 
 	{trigger: /([^\\\w])beg/, replacement: "[[0]]\\begin{$0}\n$1\n\\end{$0}", options: "MA"},
