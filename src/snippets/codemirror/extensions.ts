@@ -6,5 +6,5 @@ export const snippetExtensions = [
     tabstopsStateField,
 	snippetQueuePlugin,
     snippetInvertedEffects,
-	tabstopTheme
+	tabstopTheme,
 ];

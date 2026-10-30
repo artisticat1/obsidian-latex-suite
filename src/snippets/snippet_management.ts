@@ -3,7 +3,7 @@ import { Annotation, ChangeSet, EditorSelection, Transaction } from "@codemirror
 import { endSnippet, startSnippet } from "./codemirror/history";
 import { isolateHistory } from "@codemirror/commands";
 import { type TabstopSpec, tabstopSpecsToTabstopGroups } from "./tabstop";
-import { addTabstops, getNextTabstopColor, tabstopsStateField } from "./codemirror/tabstops_state_field";
+import { getNextTabstopColor, tabstopsStateField } from "./codemirror/tabstops_state_field";
 import { getSnippetQueue, queueSnippet } from "./codemirror/snippet_queue_state_field";
 import { resetCursorBlink } from "src/utils/editor_utils";
 import type { SnippetChangeSpecApi } from "src/api";
@@ -106,22 +106,16 @@ function expandTabstops(
 ) {
 	const color = getNextTabstopColor(view);
 	const tabstopGroups = tabstopSpecsToTabstopGroups(tabstops, color);
-	const frozenTabstopGroups = tabstopGroups.map(grp => grp.copy())
 	// Insert the replacements
-	const effects = addTabstops(tabstopGroups).effects;
 	const firstGrp = tabstopGroups[0]!;
 	const sel = firstGrp.toEditorSelection();
-	const spec = {
-		selection: sel,
-		effects: endSnippet.of(null),
-		sequential: true
-	};
 	view.dispatch({
-		effects: [...effects, startSnippet.of(frozenTabstopGroups)],
+		effects: [startSnippet.of(tabstopGroups), endSnippet.of(null)],
 		changes: undoChanges.changes,
-		selection: undoChanges.selection,
-		annotations: isolateHistory.of("before")
-	}, spec);
+		selection: sel,
+		annotations: isolateHistory.of("before"),
+		scrollIntoView: true
+	});
 }
 
 // Returns true if the transaction was dispatched

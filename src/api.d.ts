@@ -19,11 +19,10 @@ export declare class TabstopGroup {
     color: number;
     hidden: boolean;
     constructor(tabstopSpecs: TabstopGroupSpec[], color: number)
-    select(view: EditorView, selectEndpoints: boolean, isEndSnippet: boolean): void
     toSelectionRanges(): SelectionRange[] 
     toEditorSelection(endpoints: boolean): EditorSelection 
     containsSelection(selection: EditorSelection): boolean 
-    hideFromEditor(): void 
+	toggleHidden(toHide: boolean): void
     map(changes: ChangeDesc): void 
     getRanges(): Range<Decoration>[] 
 	copy(): TabstopGroup
@@ -83,7 +82,6 @@ export interface LatexSuitePluginPublicApi extends Plugin{
 			undidStartSnippet: StateEffectType<TabstopGroup[]>,
 			undidEndSnippet: StateEffectType<null>,
 			LanguageSetStateEffect: StateEffectType<unknown>,
-			addTabstopsEffect: StateEffectType<TabstopGroup[]>,
 			removeAllTabstopsEffect: StateEffectType<null>,
 			updateTooltipEffect: StateEffectType<unknown>,
 		},

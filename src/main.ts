@@ -25,7 +25,7 @@ import i18next from "./i18n/i18n";
 import resources from "./i18n/resources";
 import { mathParserPlugin } from "./parser/parser_printer";
 import { endSnippet, snippetInvertedEffects, startSnippet, undidEndSnippet, undidStartSnippet } from "./snippets/codemirror/history";
-import { addTabstopsEffect, removeAllTabstopsEffect, tabstopsStateField } from "./snippets/codemirror/tabstops_state_field";
+import { removeAllTabstopsEffect, tabstopsStateField } from "./snippets/codemirror/tabstops_state_field";
 import { getFileConfigExtension, notice } from "./editor_extensions/obsidian_utils";
 import { snippetQueuePlugin } from "./snippets/codemirror/snippet_queue_state_field";
 import { autoEnlargeBrackets } from "./features/auto_enlarge_brackets";
@@ -106,7 +106,6 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 			undidStartSnippet,
 			undidEndSnippet,
 			LanguageSetStateEffect,
-			addTabstopsEffect,
 			removeAllTabstopsEffect,
 			updateTooltipEffect,
 		},

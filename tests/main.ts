@@ -1,9 +1,9 @@
 import LatexSuitePlugin from "../src/main";
 import { fullMathParser } from "../src/parser/mathjax-parser";
 import { conceal } from "../src/editor_extensions/conceal_fns";
-import { editorLivePreviewField, MarkdownView } from "obsidian";
+import { Editor, editorLivePreviewField, MarkdownView } from "obsidian";
 import { EditorView } from "@codemirror/view";
-import { RawSnippetSchema } from "../src/snippets/parse";
+import { parseSnippet, RawSnippetSchema, validateRawSnippets } from "../src/snippets/parse";
 import * as v from "valibot"
 import { colorPairedBrackets } from "../src/editor_extensions/highlight_brackets";
 import i18next from "../src/i18n/i18n";
@@ -23,6 +23,7 @@ declare global {
 			plugin: LatexSuitePlugin;
 			mdView: MarkdownView | null;
 			view: EditorView | null;
+			editor: Editor | null;
 		};
 	}
 }
@@ -92,11 +93,13 @@ export default class TestPlugin extends LatexSuitePlugin {
 	
 	setLib() {
 		const mdView = this.app.workspace.getActiveViewOfType(MarkdownView);
-		const view: EditorView | null = mdView?.editor?.activeCM ?? null;
+		const editor: Editor | null = mdView?.editor ?? null;
+		const view: EditorView | null = editor?.activeCM ?? null;
 		window.__latex_suite_test_library = {
 			plugin: this,
 			mdView,
 			view,
+			editor
 		}
 		// if (view) {
 		// 	view.setDoc = (text?: string) => {
@@ -107,6 +110,11 @@ export default class TestPlugin extends LatexSuitePlugin {
 		// 		view.dispatch(transaction);
 		// 	}
 		// }
+	}
+	
+	async setSnippets(snippets: RawSnippet[]) {
+		this.CMSettings.snippets.all = validateRawSnippets(snippets).flatMap((raw) => parseSnippet(raw, this.CMSettings.snippetVariables));
+		await this.saveSettings();
 	}
 	
 	serializeSnippets() {
