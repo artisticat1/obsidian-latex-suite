@@ -208,7 +208,7 @@ type RawSnippet = Output<typeof RawSnippetSchema>;
  * tries to parse an unknown value as an array of raw snippets
  * @throws if the value does not adhere to the raw snippet array schema
  */
-function validateRawSnippets(snippets: unknown): RawSnippet[] {
+export function validateRawSnippets(snippets: unknown): RawSnippet[] {
 	if (!Array.isArray(snippets)) { throw new Error("Expected snippets to be an array"); }
 	return snippets.flat().map((raw) => {
 		try {
@@ -226,7 +226,7 @@ function validateRawSnippets(snippets: unknown): RawSnippet[] {
  * - `options.regex` and `options.visual` are set properly
  * - if it is a regex snippet, the trigger is represented as a RegExp instance with flags set
  */
-function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snippet[] {
+export function parseSnippet(raw: RawSnippet, snippetVariables: SnippetVariables): Snippet[] {
 	const {
 		replacement: replacementRaw,
 		priority,

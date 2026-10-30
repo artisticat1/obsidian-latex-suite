@@ -54,7 +54,6 @@ export default [
 			return res;
 		}
 	},
-	// the other dm snippets are more advanced thus they are sectioned below in Misc
 
 	{trigger: /([^\\\w])beg/, replacement: "[[0]]\\begin{$0}\n$1\n\\end{$0}", options: "MA"},
 	{trigger: /([^\\\w])beg/, replacement: "[[0]]\\begin{$0} $1 \\end{$0}", options: "nA"},

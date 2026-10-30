@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { ContextId, evalInObsidian, registerLibResolver } from "obsidian-integration-testing";
 import type TestPlugin from "./main";
-import { type MarkdownView, type TFile } from "obsidian";
+import { Editor, type MarkdownView, type TFile } from "obsidian";
 import { type EditorView } from "@codemirror/view";
 import { readFileSync } from "fs";
 import * as ts from "typescript"
@@ -18,6 +18,7 @@ declare module "obsidian-integration-testing" {
 		plugin: TestPlugin;
 		mdView: MarkdownView;
 		view: EditorView;
+		editor: Editor;
 	}
 }
 
