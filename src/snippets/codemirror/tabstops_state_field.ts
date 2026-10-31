@@ -2,8 +2,8 @@ import { EditorView, Decoration } from "@codemirror/view";
 import { EditorSelection, StateEffect, StateField } from "@codemirror/state";
 import { TabstopGroup } from "../tabstop";
 import { cmDarkClass } from "src/editor_extensions/obsidian_utils";
+import { startSnippet } from "./history";
 
-export const addTabstopsEffect = StateEffect.define<TabstopGroup[]>();
 export const removeAllTabstopsEffect = StateEffect.define();
 type TabstopsState = {
 	index: number,
@@ -28,14 +28,18 @@ export const tabstopsStateField = StateField.define<TabstopsState>({
 		tabstopGroups.forEach(grp => grp.map(transaction.changes));
 	
 		for (const effect of transaction.effects) {
-			if (effect.is(addTabstopsEffect)) {
-				tabstopGroups.splice(value.index, 1, ...effect.value);
-			}
-			else if (effect.is(removeAllTabstopsEffect)) {
+			if (effect.is(startSnippet)) {
+				tabstopGroups.splice(value.index, 1, ...effect.value.map(grp => grp.copy()));
+			} else if (effect.is(removeAllTabstopsEffect)) {
 				tabstopGroups = [];
 				color = 0;
 			}
 		}
+		if (transaction.isUserEvent("undo")) {
+			tabstopGroups = [];
+			color = 0;
+		}
+
 
 		let index = value.index;
 		// Remove the tabstop groups that the cursor has passed. This scenario
@@ -53,7 +57,9 @@ export const tabstopsStateField = StateField.define<TabstopsState>({
 				index = 0;
 				color = 0;
 			} else {
-				tabstopGroups[0]!.hideFromEditor();
+				for (const [i,grp] of tabstopGroups.entries()) {
+					grp.toggleHidden(i === index);
+				}
 			}
 		}
 
@@ -94,12 +100,6 @@ export function getTabstopGroupsFromView(view: EditorView) {
 	const currentTabstopGroups = view.state.field(tabstopsStateField).tabstopGroups;
 
 	return currentTabstopGroups;
-}
-
-export function addTabstops(tabstopGroups: TabstopGroup[]) {
-	return ({
-		effects: [addTabstopsEffect.of(tabstopGroups)],
-	});
 }
 
 export function removeAllTabstops(view: EditorView) {
