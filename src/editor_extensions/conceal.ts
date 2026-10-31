@@ -2,11 +2,10 @@
 
 import { ViewUpdate, Decoration, type DecorationSet, WidgetType, ViewPlugin, EditorView, type PluginValue } from "@codemirror/view";
 import { ChangeSet, EditorSelection, Range, RangeSet, RangeSetBuilder, RangeValue, StateEffect, Transaction } from "@codemirror/state";
-import { conceal, type ConcealCachedEquations } from "./conceal_fns";
+import { conceal, type ConcealCachedEquations, type MappingInfo } from "./conceal_fns";
 import { debounce, livePreviewState } from "src/editor_extensions/obsidian_utils";
 import { isTempKeypressUpdate } from "src/snippets/snippet_management";
 import { createElement } from "./obsidian_utils";
-import { getConcealConfig, getConcealConfigExtension, getLatexSuiteConfig, type ConcealConfigInput } from "src/snippets/codemirror/config";
 
 export type Replacement = {
 	start: number,
@@ -30,7 +29,7 @@ export function mkConcealSpec(...replacements: Replacement[]) {
 
 export type Concealment = {
 	spec: ConcealSpec,
-	cursorPosType: "within" | "apart" | "edge",
+	cursorPosType: "within" | "apart" | "edge" | "surround",
 	enable: boolean,
 };
 
@@ -117,6 +116,7 @@ function determineCursorPosType(
     view: EditorView,
     concealSpec: ConcealSpec,
     linewise: boolean,
+	oldCursorPosType: Concealment["cursorPosType"] | undefined
 ): Concealment["cursorPosType"] {
     // Priority: "within" > "edge" > "apart"
 
@@ -124,6 +124,7 @@ function determineCursorPosType(
     let cursorPosType: Concealment["cursorPosType"] = "apart";
 
     for (const range of sel.ranges) {
+		const hasSelection = !range.empty;
         const fromRange = linewise ? view.state.doc.lineAt(range.from) : range;
         const to = (
             linewise
@@ -139,13 +140,17 @@ function determineCursorPosType(
             const overlapRangeTo = Math.min(to, replace.end);
 
             if (
-                overlapRangeFrom === overlapRangeTo &&
+                (overlapRangeFrom === overlapRangeTo) &&
                 (overlapRangeFrom === replace.start ||
                     overlapRangeFrom === replace.end)
             ) {
                 cursorPosType = "edge";
                 continue;
             }
+			if (overlapRangeFrom < overlapRangeTo && hasSelection) {
+				cursorPosType = oldCursorPosType === "within" ? "within" : "surround";
+				continue;
+			}
 
             if (overlapRangeFrom <= overlapRangeTo) return "within";
         }
@@ -185,6 +190,7 @@ function determineAction(
 
 	if (newCursor === "apart") return "conceal";
 	if (newCursor === "within") return "reveal";
+	// if (oldCursor === "within" && newCursor === "surround") return "reveal";
 
 	// newCursor === "edge"
 	if (!delayEnabled) return "reveal";
@@ -290,6 +296,9 @@ export const createRevealCallback = (timeout: number) =>
 		) => {
 			for (const concealment of delayedConcealments) {
 				concealment.enable = false;
+				if (concealment.cursorPosType === "surround") {
+					concealment.cursorPosType = "within";
+				}
 			}
 			const buildResult = buildDecoSet(conceal.concealments);
 			conceal.decorations = buildResult.decorations;
@@ -345,6 +354,13 @@ function* iterRangeSet<T extends RangeValue>(rangeSet: RangeSet<T>): Iterable<Ra
 	}
 }
 
+type ConcealConfigInput = {
+	concealRevealTimeout: number;
+	concealLinewise: boolean;
+	concealMaps: MappingInfo;
+	concealLogLevel: "off" | "verbose";
+};
+
 export class Conceal implements PluginValue {
 	// Stateful ViewPlugin: you should avoid one in general, but here
 	// the approach based on StateField and updateListener conflicts with
@@ -353,21 +369,38 @@ export class Conceal implements PluginValue {
 	outerDecorations: DecorationSet;
 	decorations: DecorationSet;
 	atomicRanges: RangeSet<RangeValue>;
+	revealTimeout: number;
 	delayEnabled: boolean;
 	cached_equations: ConcealCachedEquations;
 	concealSpecs: ConcealSpec[];
-	mousedown: boolean = false;
+	mousedown: boolean;
+	mappingInfo: MappingInfo;
+	logLevel: ConcealConfigInput["concealLogLevel"];
+	delayedReveal: ReturnType<typeof createRevealCallback>;
+	lineWise: boolean;
 
-
-	constructor(view: EditorView) {
+	constructor(
+		view: EditorView,
+		{
+			concealRevealTimeout,
+			concealMaps,
+			concealLogLevel,
+			concealLinewise,
+		}: ConcealConfigInput,
+	) {
 		this.concealments = [];
 		this.decorations = Decoration.none;
 		this.outerDecorations = Decoration.none;
 		this.atomicRanges = RangeSet.empty as RangeSet<RangeValue>;
-		const revealTimeout = getLatexSuiteConfig(view).concealRevealTimeout;
-		this.delayEnabled = revealTimeout > 0;
+		this.revealTimeout = concealRevealTimeout;
+		this.delayEnabled = this.revealTimeout > 0;
 		this.cached_equations = {};
 		this.concealSpecs = [];
+		this.mappingInfo = concealMaps;
+		this.logLevel = concealLogLevel;
+		this.delayedReveal = createRevealCallback(this.revealTimeout);
+		this.mousedown = view.plugin(livePreviewState)?.mousedown ?? false;
+		this.lineWise = concealLinewise;
 		// HACK: trigger an initial concealment calculation
 		const transactions: readonly Transaction[] = [];
 		const changes: ChangeSet = ChangeSet.empty(view.state.doc.length);
@@ -380,34 +413,42 @@ export class Conceal implements PluginValue {
 			transactions,
 			changes,
 		});
-		this.mousedown = view.plugin(livePreviewState)?.mousedown ?? false;
 	}
 
 	update(update: MinimalViewUpdate) {
-		if (!(update.docChanged || update.viewportChanged || update.selectionSet) && !isUpdateConcealEffect(update))
+		if (
+			!(
+				update.docChanged ||
+				update.viewportChanged ||
+				update.selectionSet
+			) &&
+			!isUpdateConcealEffect(update)
+		)
 			return;
 		if (isTempKeypressUpdate(update)) {
 			this.decorations = this.decorations.map(update.changes);
 			this.atomicRanges = this.atomicRanges.map(update.changes);
 			return;
 		}
-		const settings = getConcealConfig(update.view.state);
-		const mappingInfo = settings.concealMaps;
 
 		// Cancel the delayed revealment whenever we update the concealments
-		settings.delayedReveal.cancel();
-		// If document/viewport is not changed, the conceal specs stay the same 
+		this.delayedReveal.cancel();
+		// If document/viewport is not changed, the conceal specs stay the same
 		// and only the revealing needs to be updated.
 		if (!update.docChanged && !update.viewportChanged) {
 			this.updateFromConcealSpecs(this.concealSpecs, update);
 		} else {
-			const {specs: concealSpecs, cached_equations} = conceal(update.view, this.cached_equations, mappingInfo);
+			const { specs: concealSpecs, cached_equations } = conceal(
+				update.view,
+				this.cached_equations,
+				this.mappingInfo,
+			);
 			this.cached_equations = cached_equations;
 			this.concealSpecs = concealSpecs;
 			this.updateFromConcealSpecs(concealSpecs, update);
 		}
-		if (settings.concealLogLevel === "verbose") {
-			const atomicRanges = Array.from(iterRangeSet(this.atomicRanges));	
+		if (this.logLevel === "verbose") {
+			const atomicRanges = Array.from(iterRangeSet(this.atomicRanges));
 			const startState = (update as Partial<ViewUpdate>).startState?.toJSON() as unknown;
 			const state = (update as Partial<ViewUpdate>).state?.toJSON() as unknown;
 			console.debug("Conceal update:", {
@@ -416,28 +457,29 @@ export class Conceal implements PluginValue {
 				atomicRanges,
 				changes: update.changes.toJSON() as unknown,
 				startState,
-				state
+				state,
 			});
 		}
 	}
-	
-	private updateFromConcealSpecs(concealSpecs: ConcealSpec[], update: MinimalViewUpdate) {
-		const settings  = getConcealConfig(update.view.state);
 
-		const previousMouseDown = this.mousedown
-		this.mousedown = update.view.plugin(livePreviewState)?.mousedown ?? false;
+	private updateFromConcealSpecs(concealSpecs: ConcealSpec[], update: MinimalViewUpdate) {
+
+		const previousMouseDown = this.mousedown;
+		const view = update.view;
+		const vim = view.cm?.state?.vim;
+		this.mousedown = view.plugin(livePreviewState)?.mousedown || vim?.visualLine || false;
 
 		// Collect concealments from the new conceal specs
 		const concealments: Concealment[] = [];
 		// concealments that should be revealed after a delay (i.e. 'delay' action)
 		const delayedConcealments: Concealment[] = [];
-		let revealed = false
+		let revealed = false;
 
 		for (const spec of concealSpecs) {
-			const cursorPosType = determineCursorPosType(update.view, spec, settings.concealLinewise);
 			const oldConcealment = this.concealments.find(
 				(old) => atSamePosAfter(update.changes, old.spec, spec)
 			);
+			const cursorPosType = determineCursorPosType(update.view, spec, this.lineWise, oldConcealment?.cursorPosType);
 
 			const concealAction = determineAction(
 				oldConcealment?.cursorPosType, cursorPosType, this.mousedown, this.delayEnabled
@@ -458,11 +500,11 @@ export class Conceal implements PluginValue {
 		}
 		// if it changes from mousedown to mouseup in livepreview, shuffle the selection to update the selection visually
 		if (revealed && previousMouseDown && !this.mousedown && update.view.state.selection.ranges.some(r => !r.empty)) {
-			updateSelection(update.view);	
-		}		
+			updateSelection(update.view);
+		}
 
 		if (delayedConcealments.length > 0) {
-			settings.delayedReveal(this, delayedConcealments, update.view);
+			this.delayedReveal(this, delayedConcealments, update.view);
 		}
 
 		this.concealments = concealments;
@@ -543,6 +585,5 @@ const concealPlugin = ViewPlugin.fromClass(Conceal, {
 });
 
 export function mkConcealPlugin(config: ConcealConfigInput) {
-	
-	return [concealPlugin, concealTheme, getConcealConfigExtension(config)];
+	return [concealPlugin.of(config), concealTheme];
 }
