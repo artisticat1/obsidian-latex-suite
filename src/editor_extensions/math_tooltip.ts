@@ -151,6 +151,7 @@ export function handleMathTooltip(update: ViewUpdate) {
 	const eqnPos = normalizedPos - eqnBounds.inner_start;
 
 	let eqnWithDecorations: string;
+	let setPos: (pos: number) => void;
 	// skip \{\} as thats not an argument to a macro
 	const tempEscapedEqn = eqn.replaceAll(/\\[\\{}]/g, "\\R")
 	const { left, right } = settings.mathPreviewBracketHighlighting && !ctx.mode.snippetlessEnv
@@ -161,22 +162,59 @@ export function handleMathTooltip(update: ViewUpdate) {
 		: "";
 
 	if (right !== -1 && left !== -1) {
+		const highlight_class_open = `\\class{${HIGHLIGHT_CLASS}}{`;
 		// If the cursor is next to a bracket, move it inside the bracket pair
 		// case when eqnPos === left
 		const maxPosOrLeft = Math.max(left + 1, eqnPos);
 		eqnWithDecorations =
 			eqn.slice(0, left + 1) +
-			`\\class{${HIGHLIGHT_CLASS}}{` +
+			highlight_class_open +
 			eqn.slice(left + 1, maxPosOrLeft) +
 			mathPreviewCursor +
 			eqn.slice(maxPosOrLeft, right) +
 			"}" +
 			eqn.slice(right);
+		setPos = (pos: number) => {
+			let new_pos: number;
+			if (pos <= left + 1) {
+				new_pos = pos;
+			} else if (pos <= maxPosOrLeft + highlight_class_open.length) {
+				new_pos = Math.max(pos - highlight_class_open.length, left + 1);
+			} else {
+				new_pos = Math.max(pos - highlight_class_open.length - mathPreviewCursor.length, maxPosOrLeft);
+			}
+			update.view.focus()
+			update.view.dispatch({
+				selection: {
+					head: new_pos + eqnBounds.inner_start,
+					anchor: new_pos + eqnBounds.inner_start,
+				}
+			})
+		}
 	} else {
 		eqnWithDecorations =
 			eqn.slice(0, eqnPos) +
 			mathPreviewCursor +
 			eqn.slice(eqnPos);
+		setPos = (pos: number) => {
+			let new_pos: number;
+			if (pos <= eqnPos) {
+				new_pos = pos;
+			} else if (pos < eqnPos + mathPreviewCursor.length) {
+				new_pos = eqnPos;
+			} else {
+				new_pos = pos - mathPreviewCursor.length
+			}
+			const eqn_pos = new_pos + eqnBounds.inner_start;
+			update.view.focus()
+			update.view.dispatch({
+				selection: {
+					head: eqn_pos,
+					anchor: eqn_pos,
+				},
+				scrollIntoView: true,
+			})
+		}
 	}
 	const oldTooltips = update.state.field(cursorTooltipField);
 	// a little optimization: if the tooltip is currently shown and the equation with decorations is the same as the one in the tooltip, we don't need to update it.
@@ -210,6 +248,7 @@ export function handleMathTooltip(update: ViewUpdate) {
 		let mount: ReturnType<Tooltip["create"]>["mount"] = () => {};
 		try {
 			const renderedEqn = renderMath(eqnWithDecorations, ctx.mode.inDisplayMath());
+			createClickCallback(renderedEqn, eqnWithDecorations, setPos);
 			const cursor = renderedEqn.querySelector<HTMLElement>(`.${CURSOR_CLASS}`)
 			dom.appendChild(renderedEqn);
 			mount = () =>
@@ -285,6 +324,153 @@ export function handleMathTooltip(update: ViewUpdate) {
 			),
 		],
 	});
+}
+
+function createClickCallback(renderedEqn: HTMLElement, eqnWithDecorations: string, setPos: (pos: number) => void) {
+	function getLatexElement(element: HTMLElement): {element: HTMLElement, text: string} | null {
+		const dataLatex = element.getAttribute("data-latex");
+		if (dataLatex) {
+			return { element, text: dataLatex };
+		}
+		const querySelector = element.querySelector<HTMLElement>("[data-latex]");
+		if (querySelector) {
+			const dataLatex = querySelector.getAttribute("data-latex")!;
+			return { element: querySelector, text: dataLatex };
+		}
+		const textContent = element.textContent;
+		for (let parent = element.parentElement; parent; parent = parent.parentElement) {
+			const parentDataLatex = parent.getAttribute("data-latex");
+			if (!parentDataLatex) continue;
+			if (parentDataLatex.contains(textContent)) {
+				return {element, text: parentDataLatex};
+			} else {
+				break;
+			}
+		}
+
+		const closestLatex = element.closest<HTMLElement>("[data-latex]");
+		if (closestLatex) {
+			const closestDataLatex = closestLatex.getAttribute("data-latex")!;
+			return {element: closestLatex, text: closestDataLatex};
+		}
+		return null;
+			
+	}
+	// renderedEqn.addEventListener("mousedown");
+	let previousHover: HTMLElement | null = null;
+	const resetBackground = {
+		"background-color": "",
+	}
+	const hoverBackground = {
+		"background-color": "var(--text-selection)",
+	}
+	renderedEqn.addEventListener("mouseover", (event) => {
+		if (previousHover !== null) {
+			// previousHover.style.backgroundColor = "";
+			previousHover.setCssProps(resetBackground);
+		}
+		const target = getLatexElement(event.target as HTMLElement)?.element;
+		if (!target) return;
+		previousHover = target;
+		// target.style.backgroundColor = "var(--text-selection)";
+		target.setCssProps(hoverBackground);
+		target.addEventListener(
+			"mouseleave",
+			() => {
+				target.setCssProps(resetBackground);
+			},
+			{ once: true },
+		);
+	});
+	function getContainingLatexData(element: HTMLElement): string | null {
+		const dataLatex = element.getAttribute("data-latex");
+		if (dataLatex) return dataLatex;
+		const childrenWithDataLatex = element.querySelectorAll<HTMLElement>("[data-latex]");
+		const parentsSeen: HTMLElement[] = [];
+		const dataLatexs: string[] = [];
+		for (const child of childrenWithDataLatex) {
+			if (parentsSeen.some((parent) => parent.contains(child))) continue;
+			parentsSeen.push(child);
+			const childDataLatex = child.getAttribute("data-latex")!;
+			dataLatexs.push(childDataLatex);
+		}
+		return dataLatexs.length > 0 ? dataLatexs.join("") : null;
+	}
+	renderedEqn.addEventListener("mousedown", (event) => {
+		const target = getLatexElement(event.target as HTMLElement);
+		if (!target) return;
+		const el = target.element;
+		let identifier = target.text;
+		const firstIdentifier = identifier;
+		// pseudo code: eqnWithDecorations.indexOf(identifier) + identifier.length
+		let occurrence = 1;
+		for (let parentEl: HTMLElement | null = el; parentEl && renderedEqn.contains(parentEl); parentEl = parentEl.parentElement) {
+			if (parentEl !== el) {
+				const dataLatex = parentEl.getAttribute("data-latex");
+				if (dataLatex) {
+					const indexOf = stringIndexOfOccurrence(dataLatex, identifier, occurrence)
+					if (indexOf === null) {
+						console.error("Found parent element with data-latex, but the identifier is not found in DataLatex. identifier may not be present in the equation.", {identifier, occurrence, eqnWithDecorations, dataLatex});
+					} else {
+						identifier = dataLatex.slice(0, indexOf + identifier.length);						
+						occurrence = 1;
+					}
+				}
+			}
+			for (let prevSibling = parentEl.previousElementSibling; prevSibling; prevSibling = prevSibling.previousElementSibling) {
+				const dataLatex = getContainingLatexData(prevSibling as HTMLElement);
+				if (!dataLatex) continue;
+				occurrence += dataLatex.split(identifier).length - 1;
+			}
+		}
+		const index = stringIndexOfOccurrence(eqnWithDecorations, identifier, occurrence);
+		if (index === null) {
+			console.error("Could not find identifier in eqnWithDecorations", {identifier, occurrence, eqnWithDecorations});
+			return;
+		}
+		const side = event.clientX < el.getBoundingClientRect().left + el.getBoundingClientRect().width / 2 ? "left" : "right";
+		const pos = index + identifier.length - (side === "left" ? firstIdentifier.length : 0);
+		window.setTimeout(() => {
+			setPos(pos);
+		}, 10)
+	});
+}
+
+function stringIndexOfWithFilter(str: string, subStr: string, filter: (char: string) => boolean, position?: number): number | null {
+	for (let j = position ?? 0; j < str.length; j++) {
+		let temp_j = j;
+		for (let i = 0; i < subStr.length && temp_j < str.length; i++) {
+			if (str[temp_j] === subStr[i]) {
+				temp_j++;
+				if (i === subStr.length - 1) return temp_j - subStr.length;
+			} else if (filter(str[temp_j]!)) {
+				temp_j++;
+				i--;
+			} else if (filter(subStr[i]!)) {
+				continue;
+			} else {
+				break;
+			}
+		}
+	}
+	return null;
+}
+// console.log(stringIndexOfWithFilter("\\lim\\limits_1", "\\limits", (char) => /s/.test(char)))
+// console.log(stringIndexOfWithFilter("\\lim\\limits_{n \\to \\infty}", "\\limits_{n\\t", (char) => /s/.test(char)))
+
+function stringIndexOfOccurrence(str: string, subStr: string, occurrence: number): number | null {
+	let index = -1;
+	for (let i = 0; i < occurrence; i++) {
+		const nextIndex = stringIndexOfWithFilter(
+			str,
+			subStr,
+			(char) => /\s/.test(char),
+			index + 1,
+		);
+		if (nextIndex === null) return null;
+		index = nextIndex;
+	}
+	return index;
 }
 
 function shouldShowTooltip(state: EditorState, ctx: Context): Bounds | null {
