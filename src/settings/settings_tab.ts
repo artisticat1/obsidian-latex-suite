@@ -44,6 +44,10 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		const verifiedKey = key as keyof LatexSuitePluginSettings;
 		const didFileLocationChange = verifiedKey === "loadSnippetsFromFile" || verifiedKey === "loadSnippetVariablesFromFile";
 		await this.plugin.saveSettings(didFileLocationChange, false);
+		if (didFileLocationChange && settings[key] !== value) {
+			settings[key] = value;
+			await this.plugin.saveSettings();
+		}
 	}
 
 	getSettingDefinitions(): SettingDefinitionItem[] {
