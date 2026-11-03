@@ -16,6 +16,7 @@ import { getContextPlugin } from "../src/editor_context/context";
 import { getLatexSuiteConfig } from "../src/snippets/codemirror/config";
 import { serializeSnippetLike } from "../src/snippets/snippets";
 import { DEFAULT_SETTINGS } from "../src/settings/settings";
+import { tabstopsStateField } from "../src/snippets/codemirror/tabstops_state_field";
 
 declare global {
 	interface Window {
@@ -50,7 +51,7 @@ export default class TestPlugin extends LatexSuitePlugin {
 		settings_translation,
 		i18next,
 		EditorView,
-		DEFAULT_SETTINGS
+		DEFAULT_SETTINGS,
 	} as const;	
 	async onload() {
 		await super.onload();
@@ -120,6 +121,21 @@ export default class TestPlugin extends LatexSuitePlugin {
 	serializeSnippets() {
 		const snippets = this.CMSettings.snippets.all;
 		return snippets.map(serializeSnippetLike)
+	}
+	
+	throwIfAnyTabstops(view: EditorView) {
+		const tabstops = view.state.field(tabstopsStateField, false);
+		if (!tabstops) {
+			return;
+		}
+		if (tabstops.tabstopGroups.length > 0 || tabstops.index > 0) {
+			console.error({
+				index: tabstops.index,
+				tabstopGroups: tabstops.tabstopGroups.map(g => g.copy()),
+				color: tabstops.color,
+			});
+			throw new Error(`There are still tabstops in the editor: length=${tabstops.tabstopGroups.length}, index=${tabstops.index}, color=${tabstops.color}`);
+		}
 	}
 }
 

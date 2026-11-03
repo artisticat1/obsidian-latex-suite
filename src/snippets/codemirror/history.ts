@@ -2,6 +2,7 @@ import { ViewUpdate } from "@codemirror/view";
 import { StateEffect } from "@codemirror/state";
 import { invertedEffects } from "@codemirror/commands";
 import { TabstopGroup } from "../tabstop";
+import { addTabstops } from "./tabstops_state_field";
 
 // Effects that mark the beginning and end of transactions to insert snippets
 
@@ -48,6 +49,7 @@ export const handleUndoRedo = (update: ViewUpdate): boolean => {
 				const sel = first?.toEditorSelection();
 				update.view.dispatch({
 					selection: sel,
+					effects: addTabstops(effect.value).effects
 				})
 			}
 		}

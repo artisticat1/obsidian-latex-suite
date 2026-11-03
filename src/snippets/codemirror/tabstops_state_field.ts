@@ -2,9 +2,12 @@ import { EditorView, Decoration } from "@codemirror/view";
 import { EditorSelection, StateEffect, StateField } from "@codemirror/state";
 import { TabstopGroup } from "../tabstop";
 import { cmDarkClass } from "src/editor_extensions/obsidian_utils";
-import { startSnippet } from "./history";
+import { undidStartSnippet } from "./history";
 
 export const removeAllTabstopsEffect = StateEffect.define();
+// there needs to be a separate effect for adding tabstops and the start of a snippet
+// as when a snippet is redone, the selection isn't right causing the tabstops otherwise to be dropped.
+export const addTabstopsEffect = StateEffect.define<TabstopGroup[]>();
 type TabstopsState = {
 	index: number,
 	tabstopGroups: TabstopGroup[],
@@ -28,16 +31,31 @@ export const tabstopsStateField = StateField.define<TabstopsState>({
 		tabstopGroups.forEach(grp => grp.map(transaction.changes));
 	
 		for (const effect of transaction.effects) {
-			if (effect.is(startSnippet)) {
-				tabstopGroups.splice(value.index, 1, ...effect.value.map(grp => grp.copy()));
+			if (effect.is(addTabstopsEffect)) {
+				const index = value.index
+				if (tabstopGroups[index]) {
+					tabstopGroups[index].embed = true;
+					tabstopGroups[index].toggleHidden(true);
+				}
+				tabstopGroups.splice(index, 0, ...effect.value.map(grp => grp.copy()));
 			} else if (effect.is(removeAllTabstopsEffect)) {
 				tabstopGroups = [];
 				color = 0;
+			} else if (effect.is(undidStartSnippet)) {
+				const firstUndidIndex = tabstopGroups.findIndex(grp => effect.value[0]?.symbol === grp.symbol);
+				tabstopGroups = tabstopGroups.filter(grp => !effect.value.some(undidGrp => undidGrp.symbol === grp.symbol));
+				const index = firstUndidIndex !== -1 ? firstUndidIndex : value.index;
+				if (firstUndidIndex !== -1 && tabstopGroups[index]) {
+					tabstopGroups[index].embed = false;
+				} else if (firstUndidIndex === -1 && effect.value.length > 0) {
+					console.warn("undidStartSnippet: could not find any of the undid tabstop groups in the current tabstop groups", effect.value, tabstopGroups, value.tabstopGroups);
+				}
+				return {
+					index: index,
+					tabstopGroups,
+					color: value.color,
+				};
 			}
-		}
-		if (transaction.isUserEvent("undo")) {
-			tabstopGroups = [];
-			color = 0;
 		}
 
 
@@ -58,7 +76,7 @@ export const tabstopsStateField = StateField.define<TabstopsState>({
 				color = 0;
 			} else {
 				for (const [i,grp] of tabstopGroups.entries()) {
-					grp.toggleHidden(i === index);
+					grp.toggleHidden(i === index || grp.embed);
 				}
 			}
 		}
@@ -100,6 +118,12 @@ export function getTabstopGroupsFromView(view: EditorView) {
 	const currentTabstopGroups = view.state.field(tabstopsStateField).tabstopGroups;
 
 	return currentTabstopGroups;
+}
+
+export function addTabstops(tabstopGroups: TabstopGroup[]) {
+	return {
+		effects: [addTabstopsEffect.of(tabstopGroups)],
+	}
 }
 
 export function removeAllTabstops(view: EditorView) {

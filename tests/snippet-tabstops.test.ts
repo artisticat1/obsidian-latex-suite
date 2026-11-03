@@ -18,6 +18,14 @@ describe("snippet tabstops", () => {
 			}
 		})
 	})
+	afterEach(async () => {
+		await evalInObsidian({
+			contextId,
+			callback: ({ lib: { view, plugin} }) => {
+				plugin.throwIfAnyTabstops(view);
+			}
+		})
+	})
 	
 	it("should support one tabstop", async () => {
 		const result = await evalInObsidian({
@@ -61,7 +69,7 @@ describe("snippet tabstops", () => {
 
 	it("should support ${VISUAL} selection", async () => {
 		const result = await evalInObsidian({
-			callback: async ({ lib: { view, plugin, pressKey, editor} }) => {
+			callback: async ({ lib: { view, plugin, pressKey} }) => {
 				view.dispatch({
 					changes: { from: 0, to: view.state.doc.length, insert: "some text here" },
 					selection: { anchor: "some ".length, head: "some text".length },
@@ -153,18 +161,57 @@ describe("snippet tabstops", () => {
 					await pressKeyAndStore(redoParam);
 				}
 				await pressKeyAndStore({key: "Tab" })
+				await pressKeyAndStore({key: "Tab" })
 				return {docs, selections};
 			}
 		})
 		const doc = " hello  world ";
-		const docs = Array(count).fill([doc, doc, "123"]).flat().concat([doc, doc])
+		const docs = Array(count).fill([doc, doc, "123"]).flat().concat([doc, doc, doc])
 		expect(result.docs).toStrictEqual(docs);
-		expect(result.selections.map(s => s.main)).toStrictEqual(Array(count).fill([0, 0, 0]).flat().concat([0, 0]));
+		expect(result.selections.map(s => s.main)).toStrictEqual(Array(count).fill([0, 0, 0]).flat().concat([0, 0, 0]));
 		// codemirror doesn't undo/redo selections so revert to the start of reinsertion of the trigger e.g. 0
 		expect(result.selections.map((s) => s.ranges)).toStrictEqual(
-			["", " hello ", "123"].concat(Array(count - 1).fill(["", " hello ", ""]).flat()).concat(["", " hello "]).map(
+			["", " hello ", "123"].concat(Array(count - 1).fill(["", " hello ", ""]).flat())
+			.concat(["", " hello ", doc]).map(
 				(str) => [{ anchor: str.length, head: str.length }],
 			),
 		);
+	})
+
+	it("should support undo while in a snippet and keeping the other tabstops active", async () => {
+		const result = await evalInObsidian({
+			callback: async ({ lib: { view, plugin, pressKey } }) => {
+				await plugin.setSnippets([ {trigger: "123", replacement: "$0 hello $1 world $2", options: "tA"} ])
+				const selections: {main: number, ranges: {anchor: number, head: number}[]}[] = [view.state.selection.toJSON()];
+				const docs: string[] = [view.state.doc.toString()]
+				async function pressKeyAndStore(keyParam: PressKeyParams) {
+					pressKey(keyParam);
+					await sleep(0);
+					selections.push(view.state.selection.toJSON());
+					docs.push(view.state.doc.toString());
+				}
+				async function typeIntoEditorM(text: string) {
+					for (const char of text) {
+						pressKey({ key: char });
+						await sleep(0);
+					}
+				}
+				const redoParam: PressKeyParams =
+					process.platform === "win32"
+						? { key: "Y", modifiers: ["Ctrl"] }
+						: { key: "Z", modifiers: ["Ctrl", "Shift"] };
+				await typeIntoEditorM("123")
+				await pressKeyAndStore({ key: "Tab" });
+				await typeIntoEditorM("abc 123")
+				await pressKeyAndStore({ key: "Tab" });
+				await pressKeyAndStore({ key: "Z", modifiers: ["Ctrl"] });
+				await pressKeyAndStore(redoParam);
+				for (let i = 0; i < 3; i++) {
+					await pressKeyAndStore({ key: "Tab" });
+				}
+				return {docs, selections};
+			}
+		})
+		expect(result).toMatchSnapshot()
 	})
 })
