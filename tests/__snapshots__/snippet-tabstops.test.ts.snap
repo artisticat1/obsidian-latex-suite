@@ -1,0 +1,90 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`snippet tabstops > should support undo while in a snippet and keeping the other tabstops active 1`] = `
+{
+  "docs": [
+    "",
+    " hello  world ",
+    " hello abc  hello  world  world ",
+    " hello abc 123 world ",
+    " hello abc  hello  world  world ",
+    " hello abc  hello  world  world ",
+    " hello abc  hello  world  world ",
+    " hello abc  hello  world  world ",
+  ],
+  "selections": [
+    {
+      "main": 0,
+      "ranges": [
+        {
+          "anchor": 0,
+          "head": 0,
+        },
+      ],
+    },
+    {
+      "main": 0,
+      "ranges": [
+        {
+          "anchor": 7,
+          "head": 7,
+        },
+      ],
+    },
+    {
+      "main": 0,
+      "ranges": [
+        {
+          "anchor": 18,
+          "head": 18,
+        },
+      ],
+    },
+    {
+      "main": 0,
+      "ranges": [
+        {
+          "anchor": 14,
+          "head": 14,
+        },
+      ],
+    },
+    {
+      "main": 0,
+      "ranges": [
+        {
+          "anchor": 11,
+          "head": 11,
+        },
+      ],
+    },
+    {
+      "main": 0,
+      "ranges": [
+        {
+          "anchor": 18,
+          "head": 18,
+        },
+      ],
+    },
+    {
+      "main": 0,
+      "ranges": [
+        {
+          "anchor": 25,
+          "head": 25,
+        },
+      ],
+    },
+    {
+      "main": 0,
+      "ranges": [
+        {
+          "anchor": 32,
+          "head": 32,
+        },
+      ],
+    },
+  ],
+}
+`;

@@ -42,6 +42,8 @@ export class TabstopGroup {
     decos: DecorationSet;
     color: number;
     hidden: boolean;
+	symbol = Symbol("TabstopGroup");
+	embed: boolean = false;
 
     constructor(tabstopSpecs: TabstopGroupSpec[], color: number) {
         const decos = tabstopSpecs.map(spec => getMarkerDecoration(spec.from, spec.to, color));
@@ -118,6 +120,8 @@ export class TabstopGroup {
 		const newTabstopGroup = new TabstopGroup([], this.color);
 		newTabstopGroup.decos = this.decos;
 		newTabstopGroup.hidden = this.hidden;
+		newTabstopGroup.symbol = this.symbol;
+		newTabstopGroup.embed = this.embed;
 		return newTabstopGroup;
 	}
 }

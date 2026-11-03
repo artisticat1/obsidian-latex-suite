@@ -3,7 +3,7 @@ import { Annotation, ChangeSet, EditorSelection, Transaction } from "@codemirror
 import { endSnippet, startSnippet } from "./codemirror/history";
 import { isolateHistory } from "@codemirror/commands";
 import { type TabstopSpec, tabstopSpecsToTabstopGroups } from "./tabstop";
-import { getNextTabstopColor, tabstopsStateField } from "./codemirror/tabstops_state_field";
+import { addTabstops, getNextTabstopColor, tabstopsStateField } from "./codemirror/tabstops_state_field";
 import { getSnippetQueue, queueSnippet } from "./codemirror/snippet_queue_state_field";
 import { resetCursorBlink } from "src/utils/editor_utils";
 import type { SnippetChangeSpecApi } from "src/api";
@@ -110,7 +110,7 @@ function expandTabstops(
 	const firstGrp = tabstopGroups[0]!;
 	const sel = firstGrp.toEditorSelection();
 	view.dispatch({
-		effects: [startSnippet.of(tabstopGroups), endSnippet.of(null)],
+		effects: [startSnippet.of(tabstopGroups), endSnippet.of(null), ...addTabstops(tabstopGroups).effects],
 		changes: undoChanges.changes,
 		selection: sel,
 		annotations: isolateHistory.of("before"),
@@ -126,6 +126,7 @@ export function setSelectionToNextTabstop(view: EditorView, shiftKey: boolean): 
 	function aux(nextGrpIndex: number, direction: 1 | -1): boolean {
 		const nextGrp = tabstopGroups[nextGrpIndex];
 		if (!nextGrp) return false;
+		if (nextGrp.embed) return aux(nextGrpIndex + direction, direction);
 
 		const currSel = view.state.selection;
 		// If the current selection lies within the next tabstop(s), move the cursor
