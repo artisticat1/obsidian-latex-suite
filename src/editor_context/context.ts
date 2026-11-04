@@ -160,7 +160,7 @@ export class Context implements PluginValue {
 		const settings = getLatexSuiteConfig(state);
 		const forceMath =
 			inCodeBlock &&
-			settings.forceMathLanguages.contains(codeblockLanguage);
+			settings.forceMathLanguages.includes(codeblockLanguage);
 		this.mode.codeMath = forceMath;
 		this.mode.codeBlock = inCodeBlock && !forceMath ? codeblockLanguage : false;
 		if (inCodeBlock && this.mode.codeBlock !== false) {
@@ -335,7 +335,7 @@ export class Context implements PluginValue {
 			let openSearchSymbol;
 
 			if (
-				["{", "[", "("].contains(openBracket) &&
+				["{", "[", "("].includes(openBracket) &&
 				env.closeSymbol === closeBracket
 			) {
 				offset = env.openSymbol.length - 1;
@@ -519,7 +519,7 @@ const getCodeblockBoundNodes = (
 	const cursor = tree.cursor();
 	cursor.childBefore(pos);
 
-	if (!cursor.name.contains("codeblock")) {
+	if (!cursor.name.includes("codeblock")) {
 		return null;
 	}
 	// If we're directly on a codeblock than it should be treated as not being in a codeblock.
@@ -587,5 +587,5 @@ function getLangFromCodeblockNode(
 const withingCode = (state: EditorState): boolean => {
 	const pos = state.selection.main.head;
 	const tree = syntaxTree(state);
-	return tree.resolveInner(pos, -1).name.contains(CODE_NODE);
+	return tree.resolveInner(pos, -1).name.includes(CODE_NODE);
 };

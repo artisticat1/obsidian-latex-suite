@@ -11,7 +11,7 @@ function createFileSuggest() {
 		const lowerCaseInputStr = inputStr.toLowerCase();
 
 		Vault.recurseChildren(app.vault.getRoot(), (file) => {
-			if (file.path.toLowerCase().contains(lowerCaseInputStr)) {
+			if (file.path.toLowerCase().includes(lowerCaseInputStr)) {
 				files.push(file);
 			}
 		});

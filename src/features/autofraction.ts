@@ -69,7 +69,7 @@ export const runAutoFractionCursor = (view: EditorView, ctx: Context, range: Sel
 		for (let i = curLine.length - 1; i >= 0; i--) {
 			const curChar = curLine.charAt(i)
 
-			if ([")", "]", "}"].contains(curChar)) {
+			if ([")", "]", "}"].includes(curChar)) {
 				const closeBracket = curChar;
 				const openBracket = getOpenBracket(closeBracket)!;
 
@@ -82,7 +82,7 @@ export const runAutoFractionCursor = (view: EditorView, ctx: Context, range: Sel
 			}
 
 
-			if (" $([{\n".concat(settings.autofractionBreakingChars).contains(curChar)) {
+			if (" $([{\n".concat(settings.autofractionBreakingChars).includes(curChar)) {
 				start = i + 1 + eqnStart;
 				break;
 			}

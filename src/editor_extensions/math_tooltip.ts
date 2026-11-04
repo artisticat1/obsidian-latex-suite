@@ -531,7 +531,7 @@ function getLatexElement(element: Element): {element: Element, text: string} | n
 	for (let parent = element.parentElement; parent; parent = parent.parentElement) {
 		const parentDataLatex = parent.getAttribute("data-latex");
 		if (!parentDataLatex) continue;
-		if (parentDataLatex.contains(textContent)) {
+		if (parentDataLatex.includes(textContent)) {
 			return {element, text: parentDataLatex};
 		} else {
 			break;

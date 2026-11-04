@@ -111,7 +111,7 @@ export enum Direction {
   */
 export function escalateToToken(cursor: TreeCursor, dir: Direction, target: string): SyntaxNode | null {
 	// Allow the starting node to be a match
-	if (cursor.name.contains(target)) {
+	if (cursor.name.includes(target)) {
 		return cursor.node;
 	}
 
@@ -121,7 +121,7 @@ export function escalateToToken(cursor: TreeCursor, dir: Direction, target: stri
 		|| (dir == Direction.Forward && cursor.next())
 		|| cursor.parent())
 	) {
-		if (cursor.name.contains(target)) {
+		if (cursor.name.includes(target)) {
 			return cursor.node;
 		}
 	}

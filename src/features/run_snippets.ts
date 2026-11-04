@@ -173,7 +173,7 @@ const runSnippetCursor = (view: EditorView, ctx: Context, snippetInfo: SnippetIn
 				: undefined;
 		queueSnippet(view, start, triggerEndPos, replacement, triggerKey, to);
 
-		const containsTrigger = settings.autoEnlargeBracketsTriggers.some(word => replacement.insert.contains(word));
+		const containsTrigger = settings.autoEnlargeBracketsTriggers.some(word => replacement.insert.includes(word));
 		if (debug === "info" || debug === "verbose") {
 			showSnippetInfo(view.state, snippet, replacement.insert, containsTrigger);
 		}
@@ -204,7 +204,7 @@ const isOnWordBoundary = (state: EditorState, triggerPos: number, to: number, wo
 
 	wordDelimiters = wordDelimiters.replace("\\n", "\n");
 
-	return (wordDelimiters.contains(prevChar) && wordDelimiters.contains(nextChar));
+	return (wordDelimiters.includes(prevChar) && wordDelimiters.includes(nextChar));
 }
 
 const trimWhitespace = (replacement: ResultInsert, _ctx: Context) => {

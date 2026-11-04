@@ -104,7 +104,7 @@ export const reversetabout = (view: EditorView): boolean => {
 				setCursor(view, endPos);
 				return true;
 			}
-		} else if (cursor.name.contains("CtrlSeq") && openingSymbols.has(doc.slice(cursor.from, cursor.to))) {
+		} else if (cursor.name.includes("CtrlSeq") && openingSymbols.has(doc.slice(cursor.from, cursor.to))) {
 			setCursor(view, cursor.from);
 			return true;
 		}
