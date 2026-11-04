@@ -797,7 +797,7 @@ export function createSnippetsEditor(
 		if (!success) return;
 
 		plugin.settings[config.type] = snippets;
-		await plugin.saveSettings(false, didSnippetFileUpdate);
+		await plugin.saveSettings(false, false, didSnippetFileUpdate);
 	}, 500, true);
 
 	const change = EditorView.updateListener.of(
