@@ -1,5 +1,5 @@
 import { type Tooltip, showTooltip, EditorView, ViewUpdate, tooltips, type Rect, type PluginValue, ViewPlugin } from "@codemirror/view";
-import { StateField, EditorState, EditorSelection, StateEffect } from "@codemirror/state";
+import { StateField, EditorState, EditorSelection, StateEffect, Compartment, Prec } from "@codemirror/state";
 import { renderMath, finishRenderMath, editorLivePreviewField } from "obsidian";
 import { type Bounds, Context, getContextPlugin } from "src/editor_context/context";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
@@ -94,14 +94,33 @@ const findMatchingBrackets = (text: string, cursorPos: number, openBracket: stri
 class MathTooltipPlugin implements PluginValue {
 	hasFocus: boolean;	
 	prevFocus: boolean;
+	currentDoc: Document;
 	constructor(view: EditorView) {
 		this.prevFocus = view.hasFocus;
 		this.hasFocus = view.hasFocus;
+		this.currentDoc = view.dom.win.document;
+		const docCopy = this.currentDoc;
+		if (document !== docCopy) {
+			window.setTimeout(() => {
+				view.dispatch({
+					effects: tooltipCompartment.reconfigure(createTooltipConfig(docCopy)),
+				})
+			})
+		}
 	}
 	
 	update(update: ViewUpdate) {
 		this.prevFocus = this.hasFocus;
 		this.hasFocus = update.view.hasFocus;
+		const doc = update.view.dom.win.document;
+		if (this.currentDoc !== doc) {
+			this.currentDoc = doc;
+			window.setTimeout(() => {
+				update.view.dispatch({
+					effects: tooltipCompartment.reconfigure(createTooltipConfig(doc)),
+				})
+			})
+		}
 	}
 }
 
@@ -357,11 +376,10 @@ export const cursorTooltipBaseTheme = EditorView.baseTheme({
 });
 
 
-const tooltipSpaceExtension = tooltips({
+const createTooltipConfig = (doc: Document) => Prec.lowest(tooltips({
 	position: "absolute",
 	tooltipSpace() {
-		const body = activeDocument.body
-		const bodyRect = body.getBoundingClientRect();
+		const bodyRect = doc.body.getBoundingClientRect();
 		return {
 			bottom: bodyRect.bottom,
 			left: bodyRect.left,
@@ -369,13 +387,14 @@ const tooltipSpaceExtension = tooltips({
 			top: bodyRect.top,
 		}
 	},
-	parent: activeDocument.body,
-})
+	parent: doc.body,
+}));
+const tooltipCompartment = new Compartment();
 
 
 export const mathTooltipExtension = [
 	cursorTooltipField.extension,
 	cursorTooltipBaseTheme,
-	tooltipSpaceExtension,
+	tooltipCompartment.of(createTooltipConfig(document)),
 	mathTooltipPlugin
 ]
