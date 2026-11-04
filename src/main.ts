@@ -147,7 +147,9 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 
 		this.loadIcons();
 		this.addSettingTab(new LatexSuiteSettingTab(this.app, this));
-		await loadMathJax();
+		this.app.workspace.onLayoutReady(() => {
+			void loadMathJax();
+		});
 
 		this.legacyEditorWarning();
 		this.IMEEditorWarning();
@@ -219,17 +221,17 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 		if (this.settings.loadSnippetsFromFile || this.settings.loadSnippetVariablesFromFile) {
 			// Use onLayoutReady so that we don't try to read the snippets file too early
 			this.app.workspace.onLayoutReady(() => {
-				void this.processSettings(false, true);
+				void this.processSettings(false, false, true);
 			});
 		}
 		else {
-			await this.processSettings(false, true);
+			await this.processSettings(false, false, true);
 		}
 	}
 
-	async saveSettings(didFileLocationChange = false, didFileUpdated = false) {
+	async saveSettings(didFileLocationChange = false, didFileUpdated = false, forceLoad = false) {
 		await this.saveData(this.settings);
-		await this.processSettings(didFileLocationChange, didFileUpdated);
+		await this.processSettings(didFileLocationChange, didFileUpdated, forceLoad);
 	}
 
 	async getSettingsSnippetVariables() {
@@ -261,7 +263,7 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 		}
 	}
 
-	async getSnippets(becauseFileLocationUpdated: boolean, becauseFileUpdated: boolean) {
+	async getSnippets(becauseFileLocationUpdated: boolean, becauseFileUpdated: boolean, forceLoad: boolean) {
 		// don't recompute if unnecessary.
 		if (!becauseFileLocationUpdated && !becauseFileUpdated) {
 			return {
@@ -307,7 +309,7 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 			return null;
 		}
 
-		this.showSnippetsLoadedNotice(snippets.length, Object.keys(snippetVariables.snippetVariables).length,  becauseFileLocationUpdated);
+		this.showSnippetsLoadedNotice(snippets.length, Object.keys(snippetVariables.snippetVariables).length,  becauseFileLocationUpdated, forceLoad);
 
 		return {
 			snippets,
@@ -315,11 +317,11 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 		}
 	}
 
-	async processSettings(becauseFileLocationUpdated = false, becauseFileUpdated = false) {
+	async processSettings(becauseFileLocationUpdated = false, becauseFileUpdated = false, forceLoad = false) {
 		if (becauseFileLocationUpdated) {
 			this.watchFiles();
 		}
-		const snippetAndVariables = await this.getSnippets(becauseFileLocationUpdated, becauseFileUpdated) ?? {
+		const snippetAndVariables = await this.getSnippets(becauseFileLocationUpdated, becauseFileUpdated, forceLoad) ?? {
 			snippets: [],
 			snippetVariables: {},
 		}
@@ -352,6 +354,7 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 			languageExtension,
 			getFileConfigExtension(() => this.app.workspace.getActiveFile() ?? null),
 			snippetStateField,
+			notice,
 		]);
 
 		// Optional extensions
@@ -371,11 +374,14 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 			this.editorExtensions.push(mathParserPlugin);
 		}
 		if (isLogLevelEnabled(this.CMSettings.snippetDebug, "info")) {
-			this.editorExtensions.push(notice);
+			this.editorExtensions.push();
 		}
 	}
 
-	showSnippetsLoadedNotice(nSnippets: number, nSnippetVariables: number, becauseFileLocationUpdated: boolean) {
+	showSnippetsLoadedNotice(nSnippets: number, nSnippetVariables: number, becauseFileLocationUpdated: boolean, forceLoad: boolean) {
+		if (forceLoad) {
+			return;
+		}
 		const prefix = becauseFileLocationUpdated ? "Loaded " : "Successfully reloaded ";
 		const body = [];
 

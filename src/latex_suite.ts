@@ -14,7 +14,7 @@ import { handleMathTooltip } from "./editor_extensions/math_tooltip";
 import { isComposing, forceEndComposition } from "./utils/editor_utils";
 import { autoDelete$ } from "./editor_extensions/autoDelete$";
 import type { GroupedSnippets, LatexSuiteCMSettings } from "./settings/settings";
-import { getFilePathFromState, notice } from "./editor_extensions/obsidian_utils";
+import { getFilePathFromState, showNotice } from "./editor_extensions/obsidian_utils";
 import { EditorState, StateField } from "@codemirror/state";
 import { serializeSnippetLike, type Snippet } from "./snippets/snippets";
 
@@ -124,6 +124,7 @@ export const handleKeydown = (key: string, ctrlKey: boolean, isIME: boolean, vie
 		if (runSnippets(view, {snippets, key}, options)) return true;
 	} catch (e) {
 		clearSnippetQueue(view);
+		showNotice(view.state, "Error while executing snippets. See console for details.", 5000);
 		console.error(e);
 	}
 	return false;
@@ -276,7 +277,7 @@ function filterSnippetsByFile(snippets: Snippet[], path: string | null, state: E
 				return snippet.options.includedPaths({ path, state });
 			} catch (e) {
 				const error_message = `Included paths crashed, skipping snippet: \n${serializeSnippetLike(snippet)}\n\n` 
-				state.field(notice)(`${error_message}\n\n with error ${e as string}`, 5000)
+				showNotice(state, `${error_message}\n\n with error ${e as string}`, 5000)
 				console.error(error_message)
 				console.error(e);
 				return false;

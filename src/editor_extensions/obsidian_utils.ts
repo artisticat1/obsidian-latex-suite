@@ -32,6 +32,13 @@ export const notice = StateField.define<NoticeCallback>({
 	update: (value) => value,
 });
 
+export const showNotice = (state: EditorState, content: string | DocumentFragment, timeout: number) => {
+	const noticeFunc = state.field(notice, false);
+	if (noticeFunc) {
+		noticeFunc(content, timeout);
+	}
+}
+
 export function showSnippetInfo(state: EditorState,snippet: Snippet<SnippetType>, replacement: string, containsTrigger: boolean) {
 	const fragment = new DocumentFragment();
 	const message_items: (HTMLElement | string)[][] = [
@@ -57,7 +64,7 @@ export function showSnippetInfo(state: EditorState,snippet: Snippet<SnippetType>
 			}
 		}
 	});
-	state.field(notice)(fragment, 5000);
+	showNotice(state, fragment, 5000);
 	console.debug(div.textContent);
 }
 
