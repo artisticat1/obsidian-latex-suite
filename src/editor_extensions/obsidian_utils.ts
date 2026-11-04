@@ -104,4 +104,17 @@ export function getFilePathFromState(state: EditorState): string | null {
 
 
 export { type Debouncer } from "obsidian";
+
+export function getTargetHTMLElementFromMouseEvent(event: MouseEvent): HTMLElement | null {
+	return event.targetNode?.instanceOf(HTMLElement) ? event.targetNode : null;
+}
+
+
+export function getTargetElementFromMouseEvent(event: MouseEvent): Element | null {
+	return event.targetNode?.instanceOf(Element) ? event.targetNode : null;
+}
+export function UIInstanceOf<T extends Element>(element: Element | null, constructor: new (...args: unknown[]) => T): element is T {
+	return element?.instanceOf(constructor) ?? false;
+}
+
 export { debounce, livePreviewState } from "obsidian";

@@ -36,6 +36,7 @@ export interface LatexSuiteBasicSettings {
 	mathPreviewCursor: string;
 	mathPreviewBracketHighlighting: boolean;
 	mathPreviewLivePreviewDisplay: boolean;
+	mathElementsClickable: boolean;
 	autofractionSymbol: string;
 	autofractionBreakingChars: string;
 	matrixShortcutsEnabled: boolean;
@@ -181,6 +182,7 @@ export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
 	mathPreviewCursor: "▶",
 	mathPreviewBracketHighlighting: false,
 	mathPreviewLivePreviewDisplay: false,
+	mathElementsClickable: false,
 	autofractionEnabled: true,
 	autofractionSymbol: "\\frac",
 	autofractionBreakingChars: "+-=\t",

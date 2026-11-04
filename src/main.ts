@@ -13,7 +13,7 @@ import { EditorView } from "@codemirror/view";
 import { snippetExtensions } from "./snippets/codemirror/extensions";
 import { mkConcealPlugin } from "./editor_extensions/conceal";
 import { colorPairedBracketsPlugin, colorPairedBracketsPluginLowestPrec, highlightCursorBracketsExtension, highlightCursorBracketsPlugin } from "./editor_extensions/highlight_brackets";
-import { cursorTooltipField, mathTooltipExtension, updateTooltipEffect } from "./editor_extensions/math_tooltip";
+import { cursorTooltipField, createMathTooltipExtension, updateTooltipEffect } from "./editor_extensions/math_tooltip";
 import { contextPlugin, getContextPlugin } from "./editor_context/context";
 import { mathBoundsPlugin } from "./editor_context/mathbounds";
 import type { LatexSuitePluginPublicApi, UpdateHandler } from "./api";
@@ -366,7 +366,7 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 		if (this.CMSettings.highlightCursorBracketsEnabled)
 			this.editorExtensions.push(highlightCursorBracketsExtension);
 		if (this.CMSettings.mathPreviewEnabled)
-			this.editorExtensions.push(mathTooltipExtension);
+			this.editorExtensions.push(createMathTooltipExtension(this.CMSettings));
 		if (this.CMSettings.highlightDollarEnabled) {
 			this.editorExtensions.push(highlight_dollar_extension);
 		}

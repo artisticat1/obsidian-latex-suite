@@ -1,11 +1,13 @@
 import { type Tooltip, showTooltip, EditorView, ViewUpdate, tooltips, type Rect, type PluginValue, ViewPlugin } from "@codemirror/view";
 import { StateField, EditorState, EditorSelection, StateEffect, Compartment, Prec } from "@codemirror/state";
 import { renderMath, finishRenderMath, editorLivePreviewField } from "obsidian";
-import { type Bounds, Context, getContextPlugin } from "src/editor_context/context";
+import { type Bounds, type CMBound, Context, getContextPlugin, MathMode } from "src/editor_context/context";
 import { getLatexSuiteConfig } from "src/snippets/codemirror/config";
 import { syntaxTree } from "@codemirror/language";
-import { cmDarkClass, cmLightClass, createElement } from "./obsidian_utils";
+import { cmDarkClass, cmLightClass, createElement, getTargetElementFromMouseEvent, getTargetHTMLElementFromMouseEvent, UIInstanceOf } from "./obsidian_utils";
 import { isBoundMultiline } from "src/utils/editor_utils";
+import { getMathBoundsPlugin } from "src/editor_context/mathbounds";
+import type { LatexSuiteCMSettings } from "src/settings/settings";
 
 type MathTooltip = {
 	equation: string,
@@ -20,7 +22,7 @@ export const updateTooltipEffect = StateEffect.define<MathTooltip[]>();
 function getParentDocumentCoords(view: EditorView, pos: number, above: boolean): Rect {
 	const coords = view.coordsAtPos(pos);
 	if (!coords) return view.dom.getBoundingClientRect();
-	const frame = view.dom.win.frameElement as HTMLElement | null;
+	const frame = view.dom.win.frameElement;
 	if (!frame) return coords;
 
 	const frameRect = frame.getBoundingClientRect();
@@ -95,9 +97,15 @@ class MathTooltipPlugin implements PluginValue {
 	hasFocus: boolean;	
 	prevFocus: boolean;
 	currentDoc: Document;
-	constructor(view: EditorView) {
+	view: EditorView;
+	nextSelection: CMBound | null = null;
+	constructor(view: EditorView, settings: LatexSuiteCMSettings) {
 		this.prevFocus = view.hasFocus;
 		this.hasFocus = view.hasFocus;
+		this.view = view;
+		if (settings.mathElementsClickable) {
+			this.view.dom.addEventListener("mousedown", this.mousedown);
+		}
 		this.currentDoc = view.dom.win.document;
 		const docCopy = this.currentDoc;
 		if (document !== docCopy) {
@@ -108,8 +116,80 @@ class MathTooltipPlugin implements PluginValue {
 			})
 		}
 	}
+	mousedown = (event: MouseEvent) => {
+		const eventTarget = getTargetElementFromMouseEvent(event);
+		if (!eventTarget) return null;
+		const eqn = eventTarget.matchParent(".MathJax");
+		if (!eqn) return null;
+		const view = this.view
+		const posAtCoords = view.posAtCoords({x: event.clientX, y: event.clientY});
+		if (posAtCoords === null) {
+			return null;
+		}
+		const boundPlugin = getMathBoundsPlugin(view);
+		let eqnBounds;
+		for (const bound of boundPlugin.mathBounds) {
+			if (
+				(posAtCoords === bound.outer_end ||
+					posAtCoords === bound.outer_start) &&
+				(bound.mode === MathMode.InlineMath ||
+					bound.mode === MathMode.BlockMath)
+			) {
+				eqnBounds = bound;
+				break;
+			}
+		}
+		const state = view.state;
+		eqnBounds = eqnBounds ?? boundPlugin.inMathBound(state, posAtCoords);
+		if (!eqnBounds) return null;
+		const offset = eqnBounds.mode === MathMode.InlineMath && state.sliceDoc(eqnBounds.inner_end, eqnBounds.inner_end + 2) === "{}" && state.sliceDoc(eqnBounds.inner_start - 2, eqnBounds.inner_start) === "{}" ? 2 : 0;
+		const inner_end = eqnBounds.inner_end + offset;
+		const inner_start = eqnBounds.inner_start - offset;
+		const eqnWithDecorations = state.sliceDoc(inner_start, inner_end);
+		const pos = clickCallback({target: eventTarget, clientX: event.clientX}, eqnWithDecorations, eqn);
+		if (pos && !(pos + inner_start <= eqnBounds.inner_start || pos + inner_start >= eqnBounds.inner_end)) {
+			this.nextSelection = {from: pos + inner_start, to: pos + inner_start};
+		} else {
+			// get the innermost closest element to the clicked element
+			const innerElements = eventTarget.querySelectorAll("mjx-mi, mjx-mo, mjx-mn, mjx-mtext, mjx-sup, mjx-row")
+			let minDistance = Infinity
+			let minEl: Element | null = null;
+			innerElements.forEach((el) => {
+				const rect = el.getBoundingClientRect();
+				const dx = Math.max(rect.left - event.clientX, rect.right - event.clientX);
+				const dy = Math.max(rect.top - event.clientY, rect.bottom - event.clientY);
+				const distance = Math.sqrt(dx * dx + dy*dy)
+				if (distance < minDistance) {
+					minDistance = distance;
+					minEl = el;
+				}
+			})
+			if (!minEl) return null;
+			const pos = clickCallback({target: minEl, clientX: event.clientX}, eqnWithDecorations, eqn);
+			if (pos && !(pos + inner_start <= eqnBounds.inner_start || pos + inner_start >= eqnBounds.inner_end)) {
+				this.nextSelection = {from: pos + inner_start, to: pos + inner_start};
+			}
+		}
+	}
+	
+	destroy(): void {
+		this.view.dom.removeEventListener("mousedown", this.mousedown);
+	}
 	
 	update(update: ViewUpdate) {
+		// if (!(update.viewportChanged || update.selectionSet || update.docChanged)) {
+		// 	return;
+		// }
+		const nextSelection = this.nextSelection
+		if (nextSelection && update.selectionSet) {
+			this.nextSelection = null;
+			window.setTimeout(() => {
+				update.view.dispatch({
+					selection: {anchor: nextSelection.from, head: nextSelection.to},
+				})
+			}, 0);
+		}
+
 		this.prevFocus = this.hasFocus;
 		this.hasFocus = update.view.hasFocus;
 		const doc = update.view.dom.win.document;
@@ -170,6 +250,7 @@ export function handleMathTooltip(update: ViewUpdate) {
 	const eqnPos = normalizedPos - eqnBounds.inner_start;
 
 	let eqnWithDecorations: string;
+	let setPos: (pos: number) => void;
 	// skip \{\} as thats not an argument to a macro
 	const tempEscapedEqn = eqn.replaceAll(/\\[\\{}]/g, "\\R")
 	const { left, right } = settings.mathPreviewBracketHighlighting && !ctx.mode.snippetlessEnv
@@ -180,22 +261,59 @@ export function handleMathTooltip(update: ViewUpdate) {
 		: "";
 
 	if (right !== -1 && left !== -1) {
+		const highlight_class_open = `\\class{${HIGHLIGHT_CLASS}}{`;
 		// If the cursor is next to a bracket, move it inside the bracket pair
 		// case when eqnPos === left
 		const maxPosOrLeft = Math.max(left + 1, eqnPos);
 		eqnWithDecorations =
 			eqn.slice(0, left + 1) +
-			`\\class{${HIGHLIGHT_CLASS}}{` +
+			highlight_class_open +
 			eqn.slice(left + 1, maxPosOrLeft) +
 			mathPreviewCursor +
 			eqn.slice(maxPosOrLeft, right) +
 			"}" +
 			eqn.slice(right);
+		setPos = (pos: number) => {
+			let new_pos: number;
+			if (pos <= left + 1) {
+				new_pos = pos;
+			} else if (pos <= maxPosOrLeft + highlight_class_open.length) {
+				new_pos = Math.max(pos - highlight_class_open.length, left + 1);
+			} else {
+				new_pos = Math.max(pos - highlight_class_open.length - mathPreviewCursor.length, maxPosOrLeft);
+			}
+			update.view.focus()
+			update.view.dispatch({
+				selection: {
+					head: new_pos + eqnBounds.inner_start,
+					anchor: new_pos + eqnBounds.inner_start,
+				}
+			})
+		}
 	} else {
 		eqnWithDecorations =
 			eqn.slice(0, eqnPos) +
 			mathPreviewCursor +
 			eqn.slice(eqnPos);
+		setPos = (pos: number) => {
+			let new_pos: number;
+			if (pos <= eqnPos) {
+				new_pos = pos;
+			} else if (pos < eqnPos + mathPreviewCursor.length) {
+				new_pos = eqnPos;
+			} else {
+				new_pos = pos - mathPreviewCursor.length
+			}
+			const eqn_pos = new_pos + eqnBounds.inner_start;
+			update.view.focus()
+			update.view.dispatch({
+				selection: {
+					head: eqn_pos,
+					anchor: eqn_pos,
+				},
+				scrollIntoView: true,
+			})
+		}
 	}
 	const oldTooltips = update.state.field(cursorTooltipField);
 	// a little optimization: if the tooltip is currently shown and the equation with decorations is the same as the one in the tooltip, we don't need to update it.
@@ -229,7 +347,10 @@ export function handleMathTooltip(update: ViewUpdate) {
 		let mount: ReturnType<Tooltip["create"]>["mount"] = () => {};
 		try {
 			const renderedEqn = renderMath(eqnWithDecorations, ctx.mode.inDisplayMath());
-			const cursor = renderedEqn.querySelector<HTMLElement>(`.${CURSOR_CLASS}`)
+			if (settings.mathElementsClickable) {
+				createClickCallback(renderedEqn, eqnWithDecorations, setPos);
+			}
+			const cursor = renderedEqn.querySelector(`.${CURSOR_CLASS}`)
 			dom.appendChild(renderedEqn);
 			mount = () =>
 				window.requestAnimationFrame(() => {
@@ -304,6 +425,204 @@ export function handleMathTooltip(update: ViewUpdate) {
 			),
 		],
 	});
+}
+
+function clickCallback(
+	{ target, clientX }: { target: Element; clientX: number },
+	eqnWithDecorations: string,
+	eqn: Element,
+): number | null {
+	const firstTarget = getLatexElement(target);
+	if (!firstTarget) return null;
+	for (
+		let target: null | { element: Element; text: string } = firstTarget;
+		target;
+		target = target?.element.nextElementSibling
+			? getLatexElement(target.element.nextElementSibling)
+			: null
+	) {
+		const el = target.element;
+
+		let identifier = target.text;
+		const firstIdentifier = identifier;
+		let occurrence = 1;
+		// pseudo code: eqnWithDecorations.indexOf(identifier) + identifier.length
+		for (
+			let parentEl: Element | null = el;
+			parentEl && eqn.contains(parentEl);
+			parentEl = parentEl.parentElement
+		) {
+			if (parentEl !== el) {
+				const dataLatex = parentEl.getAttribute("data-latex");
+				if (dataLatex) {
+					const indexOf = stringIndexOfOccurrence(
+						dataLatex,
+						identifier,
+						occurrence,
+					);
+					if (indexOf === null) {
+						console.error(
+							"Found parent element with data-latex, but the identifier is not found in DataLatex. identifier may not be present in the equation.",
+							{
+								identifier,
+								occurrence,
+								eqnWithDecorations,
+								dataLatex,
+							},
+						);
+					} else {
+						identifier = dataLatex.slice(
+							0,
+							indexOf + identifier.length,
+						);
+						occurrence = 1;
+					}
+				}
+			}
+			for (
+				let prevSibling = parentEl.previousElementSibling;
+				prevSibling;
+				prevSibling = prevSibling.previousElementSibling
+			) {
+				const dataLatex = getContainingLatexData(prevSibling);
+				if (!dataLatex) continue;
+				occurrence += dataLatex.split(identifier).length - 1;
+			}
+		}
+		const index = stringIndexOfOccurrence(
+			eqnWithDecorations,
+			identifier,
+			occurrence,
+		);
+		if (index === null) {
+			console.error("Could not find identifier in eqnWithDecorations", {
+				identifier,
+				occurrence,
+				eqnWithDecorations,
+			});
+			continue;
+		}
+		const side =
+			clientX <
+			el.getBoundingClientRect().left +
+				el.getBoundingClientRect().width / 2
+				? "left"
+				: "right";
+		const pos =
+			index +
+			identifier.length -
+			(side === "left" ? firstIdentifier.length : 0);
+		return pos;
+	}
+	return null;
+}
+
+function getLatexElement(element: Element): {element: Element, text: string} | null {
+	const dataLatex = element.getAttribute("data-latex");
+	if (dataLatex) {
+		return { element, text: dataLatex };
+	}
+	const querySelector = element.querySelector("[data-latex]");
+	if (querySelector) {
+		const dataLatex = querySelector.getAttribute("data-latex")!;
+		return { element: querySelector, text: dataLatex };
+	}
+	const textContent = element.textContent;
+	for (let parent = element.parentElement; parent; parent = parent.parentElement) {
+		const parentDataLatex = parent.getAttribute("data-latex");
+		if (!parentDataLatex) continue;
+		if (parentDataLatex.contains(textContent)) {
+			return {element, text: parentDataLatex};
+		} else {
+			break;
+		}
+	}
+
+	const closestLatex = element.closest("[data-latex]");
+	if (closestLatex) {
+		const closestDataLatex = closestLatex.getAttribute("data-latex")!;
+		return {element: closestLatex, text: closestDataLatex};
+	}
+	return null;
+		
+}
+
+function getContainingLatexData(element: Element): string | null {
+	const dataLatex = element.getAttribute("data-latex");
+	if (dataLatex) return dataLatex;
+	const childrenWithDataLatex = element.querySelectorAll("[data-latex]");
+	const parentsSeen: Element[] = [];
+	const dataLatexs: string[] = [];
+	for (const child of childrenWithDataLatex) {
+		if (parentsSeen.some((parent) => parent.contains(child))) continue;
+		parentsSeen.push(child);
+		const childDataLatex = child.getAttribute("data-latex")!;
+		dataLatexs.push(childDataLatex);
+	}
+	return dataLatexs.length > 0 ? dataLatexs.join("") : null;
+}
+
+function createClickCallback(renderedEqn: HTMLElement, eqnWithDecorations: string, setPos: (pos: number) => void) {
+	let previousHover: HTMLElement | null = null;
+	const removeHighlight = () => previousHover?.removeClass(HIGHLIGHT_CLASS);
+	renderedEqn.addEventListener("mouseover", (event) => {
+		const eventTarget = getTargetHTMLElementFromMouseEvent(event);
+		if (!eventTarget) return;
+		removeHighlight();
+		const target = getLatexElement(eventTarget)?.element;
+		if (!target || !UIInstanceOf(target, HTMLElement)) return;
+		previousHover = target;
+		target.addClass(HIGHLIGHT_CLASS);
+		target.addEventListener("mouseleave", removeHighlight, { once: true });
+	});
+	renderedEqn.addEventListener("mouseleave", removeHighlight);
+	renderedEqn.addEventListener("mousedown", (event) => {
+		const eventTarget = getTargetElementFromMouseEvent(event);
+		if (!eventTarget) return;
+		const pos = clickCallback({target: eventTarget, clientX: event.clientX}, eqnWithDecorations, renderedEqn);
+		if (pos !== null) {
+			window.setTimeout(() => {
+				setPos(pos);
+			});
+		}
+	});
+}
+
+function stringIndexOfWithFilter(str: string, subStr: string, filter: (char: string) => boolean, position?: number): number | null {
+	for (let j = position ?? 0; j < str.length; j++) {
+		let temp_j = j;
+		for (let i = 0; i < subStr.length && temp_j < str.length; i++) {
+			if (str[temp_j] === subStr[i]) {
+				temp_j++;
+				if (i === subStr.length - 1) return temp_j - subStr.length;
+			} else if (filter(str[temp_j]!)) {
+				temp_j++;
+				i--;
+			} else if (filter(subStr[i]!)) {
+				continue;
+			} else {
+				break;
+			}
+		}
+	}
+	return null;
+}
+// console.log(stringIndexOfWithFilter("\\lim\\limits_1", "\\limits", (char) => /s/.test(char)))
+// console.log(stringIndexOfWithFilter("\\lim\\limits_{n \\to \\infty}", "\\limits_{n\\t", (char) => /s/.test(char)))
+
+function stringIndexOfOccurrence(str: string, subStr: string, occurrence: number): number | null {
+	let index = -1;
+	for (let i = 0; i < occurrence; i++) {
+		const nextIndex = stringIndexOfWithFilter(
+			str,
+			subStr,
+			(char) => /\s/.test(char),
+			index + 1,
+		);
+		if (nextIndex === null) return null;
+		index = nextIndex;
+	}
+	return index;
 }
 
 function shouldShowTooltip(state: EditorState, ctx: Context): Bounds | null {
@@ -392,9 +711,9 @@ const createTooltipConfig = (doc: Document) => Prec.lowest(tooltips({
 const tooltipCompartment = new Compartment();
 
 
-export const mathTooltipExtension = [
+export const createMathTooltipExtension = (settings: LatexSuiteCMSettings) => [
 	cursorTooltipField.extension,
 	cursorTooltipBaseTheme,
 	tooltipCompartment.of(createTooltipConfig(document)),
-	mathTooltipPlugin
+	mathTooltipPlugin.of(settings)
 ]

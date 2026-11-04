@@ -29,6 +29,7 @@ export const EMPTY_SETTINGS: LatexSuitePluginSettings = {
 	mathPreviewCursor: "",
 	mathPreviewBracketHighlighting: false,
 	mathPreviewLivePreviewDisplay: false,
+	mathElementsClickable: false,
 	autofractionEnabled: false,
 	autofractionSymbol: "",
 	autofractionBreakingChars: "",
