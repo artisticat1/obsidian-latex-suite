@@ -571,19 +571,42 @@ function createClickCallback(renderedEqn: HTMLElement, eqnWithDecorations: strin
 		removeHighlight();
 		const target = getLatexElement(eventTarget)?.element;
 		if (!target || !UIInstanceOf(target, HTMLElement)) return;
-		previousHover = target;
-		target.addClass(HIGHLIGHT_CLASS);
-		target.addEventListener("mouseleave", removeHighlight, { once: true });
+		const allowed_tags = ["mjx-mi", "mjx-mo", "mjx-mn", "mjx-mtext", "mjx-sup", "mjx-row", "mjx-c"];
+		// console.log(target.tagName)
+		if (!allowed_tags.includes(target.tagName.toLowerCase())) {
+			// console.log(allowed_tags, target.tagName)
+			// compute minimum distance 
+			const innerElements = eventTarget.querySelectorAll<HTMLElement>("mjx-mi, mjx-mo, mjx-mn, mjx-mtext, mjx-sup, mjx-row")
+			let minDistance = Infinity
+			let minEl: HTMLElement | null = null;
+			for (const el of innerElements.values()) {
+				const rect = el.getBoundingClientRect();
+				const dx = Math.max(rect.left - event.clientX, rect.right - event.clientX);
+				const dy = Math.max(rect.top - event.clientY, rect.bottom - event.clientY);
+				const distance = Math.sqrt(dx * dx + dy*dy)
+				if (distance < minDistance) {
+					minDistance = distance;
+					minEl = el;
+				}
+			}
+			if (!minEl) return null;
+			previousHover = minEl;
+			minEl.addClass(HIGHLIGHT_CLASS);
+			minEl.addEventListener("mouseleave", removeHighlight, { once: true });
+		} else {
+			previousHover = target;
+			target.addClass(HIGHLIGHT_CLASS);
+			target.addEventListener("mouseleave", removeHighlight, { once: true });
+		}
 	});
 	renderedEqn.addEventListener("mouseleave", removeHighlight);
 	renderedEqn.addEventListener("mousedown", (event) => {
 		const eventTarget = getTargetElementFromMouseEvent(event);
 		if (!eventTarget) return;
 		const pos = clickCallback({target: eventTarget, clientX: event.clientX}, eqnWithDecorations, renderedEqn);
-		if (pos !== null) {
-			window.setTimeout(() => {
-				setPos(pos);
-			});
+		if (pos) {
+			event.preventDefault();
+			setPos(pos)
 		}
 	});
 }
