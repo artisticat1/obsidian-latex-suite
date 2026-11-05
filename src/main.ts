@@ -400,7 +400,6 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 		}
 		vimcommand:  {
 			//check if vim is enabled and accessible
-			if (!this.app.isVimEnabled?.()) break vimcommand;
 			if (!this.settings.vimEnabled) break vimcommand;
 			const vimObject = window?.CodeMirrorAdapter?.Vim;
 			if (!vimObject) break vimcommand;
