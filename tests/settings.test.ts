@@ -74,16 +74,17 @@ describe("snippet editor ui", async () => {
 	});
 	
 	it("should render settings page and be able to edit snippets", async () => {
-		const snippet = JSON.stringify({
+		const snippetObj = {
 			trigger: "mk",
 			replacement: "${}$0{}$",
 			options: "mA",
 			priority: Math.random(),
-		} satisfies RawSnippet);
+		} satisfies RawSnippet;
+		const snippet = JSON.stringify(snippetObj);
 		const result = await evalInObsidian({
 			contextId,
 			input: { snippet },
-			callback: async ({ app, context, obsidianModule, lib, snippet }) => {
+			callback: async ({ app, context, lib, snippet }) => {
 				const { settings_translation, EditorView } = lib.plugin.test;
 				app.setting.open();
 				const settingEl = app.setting.contentEl.querySelector(`[data-setting-id="obsidian-latex-suite"]`);
@@ -115,17 +116,32 @@ describe("snippet editor ui", async () => {
 				}
 				view.focus();	
 				view.setDoc("export default [\n    \n]", "export default [\n    ".length);
+				const CMSnippetsBefore = lib.plugin.CMSettings.snippets;
 				await new Promise((resolve) => setTimeout(resolve, 0));
 				for (const char of snippet) {
 					context.pressKey({ key: char}, activeWindow) 
 				}
-				// save delay of 500ms and need to await the last keypress first.
+				await lib.waitUntil({
+					predicate: () => {
+						const CMSnippetsAfter = lib.plugin.CMSettings.snippets;
+						return CMSnippetsAfter !== CMSnippetsBefore	
+					},
+				})
 				await new Promise((resolve) => setTimeout(resolve, 0));
-				await new Promise((resolve) => setTimeout(resolve, 0));
-				await new Promise((resolve) => setTimeout(resolve, 500));
-				return lib.plugin.settings.snippets;
+				const snippets = lib.plugin.settings.snippets;
+				const CMSnippets = lib.plugin.CMSettings.snippets.all.map(s => s.toJSON());
+				return {
+					snippets,
+					CMSnippets,
+				}
 			}
 		})
-		expect(result).toBe(`export default [\n    ${snippet}\n]`);
+
+		expect(result.snippets).toBe(`export default [\n    ${snippet}\n]`);
+		expect(result.CMSnippets.length).toBe(1);
+		expect(result.CMSnippets[0]).toMatchObject({
+			trigger: snippetObj.trigger,
+			priority: snippetObj.priority,
+		} satisfies Partial<typeof result.CMSnippets[number]>)
 	})
 })

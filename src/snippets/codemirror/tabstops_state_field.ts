@@ -47,7 +47,7 @@ export const tabstopsStateField = StateField.define<TabstopsState>({
 				const index = firstUndidIndex !== -1 ? firstUndidIndex : value.index;
 				if (firstUndidIndex !== -1 && tabstopGroups[index]) {
 					tabstopGroups[index].embed = false;
-				} else if (firstUndidIndex === -1 && effect.value.length > 0) {
+				} else if (firstUndidIndex === -1 && effect.value.length > 0 && value.tabstopGroups.length > 0) {
 					console.warn("undidStartSnippet: could not find any of the undid tabstop groups in the current tabstop groups", effect.value, tabstopGroups, value.tabstopGroups);
 				}
 				return {
