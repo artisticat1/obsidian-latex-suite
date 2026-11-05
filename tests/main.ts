@@ -14,9 +14,10 @@ import { parser } from "./math-only-parser";
 import { minimalSetup } from "codemirror";
 import { getContextPlugin } from "../src/editor_context/context";
 import { getLatexSuiteConfig } from "../src/snippets/codemirror/config";
-import { serializeSnippetLike } from "../src/snippets/snippets";
+import { serializeSnippetLike, Snippet } from "../src/snippets/snippets";
 import { DEFAULT_SETTINGS } from "../src/settings/settings";
 import { tabstopsStateField } from "../src/snippets/codemirror/tabstops_state_field";
+import { Mode, Options } from "../src/editor_context/options";
 
 declare global {
 	interface Window {
@@ -27,6 +28,95 @@ declare global {
 			editor: Editor | null;
 		};
 	}
+}
+
+declare module "../src/snippets/snippets" {
+	interface Snippet {
+		toJSON(): ReturnType<typeof snippetToJSON>;
+	}
+}
+
+// declare module "../src/"
+declare module "../src/editor_context/options" {
+	interface Options {
+		toJSON(): ReturnType<typeof optionsToJSON>;
+	}
+	interface Mode {
+		toJSON(): ReturnType<typeof modeToJSON>;
+	}
+}
+
+const modeToJSON = (obj: Mode) => {
+	const { blockMath, code, codeBlock, codeMath, snippetlessEnv, text,textEnv  } = obj;
+	return {
+		blockMath,
+		code,
+		codeBlock,
+		codeMath,
+		snippetlessEnv,
+		text,
+		textEnv
+	};
+}
+
+const optionsToJSON = (obj: Options) => {
+	const {
+		mode,
+		automatic,
+		regex,
+		onWordBoundary,
+		visual,
+		undoKey,
+		// includedPaths
+	} = obj;
+	return {
+		mode: mode.toJSON(),
+		automatic,
+		regex,
+		onWordBoundary,
+		visual,
+		undoKey,
+		// includedPaths: includedPaths.toJSON(),
+	};
+}
+
+const snippetToJSON = (obj: Snippet) => {
+	const {
+		type,
+		trigger,
+		options,
+		replacement,
+		priority,
+		description,
+		context,
+		excludedEnvironments,
+		includedMacros,
+		triggerKey,
+		excludedMacros,	
+	} = obj;
+	return {
+		type,
+		priority,
+		description,
+		context,
+		excludedEnvironments,
+		includedMacros,
+		triggerKey,
+		excludedMacros,
+		trigger:
+			trigger instanceof RegExp ? trigger.source : trigger,
+		options: options.toJSON(),
+	};
+}
+
+Snippet.prototype.toJSON = function() {
+	return snippetToJSON(this);
+}
+Options.prototype.toJSON = function() {
+	return optionsToJSON(this);
+}
+Mode.prototype.toJSON = function() {
+	return modeToJSON(this);
 }
 
 EditorView.prototype.setDoc = function (text?: string, pos?: number) {

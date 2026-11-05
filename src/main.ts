@@ -265,7 +265,7 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 
 	async getSnippets(becauseFileLocationUpdated: boolean, becauseFileUpdated: boolean, forceLoad: boolean) {
 		// don't recompute if unnecessary.
-		if (!becauseFileLocationUpdated && !becauseFileUpdated) {
+		if (!becauseFileLocationUpdated && !becauseFileUpdated && !forceLoad) {
 			return {
 				snippets: this.CMSettings.snippets.all,
 				snippetVariables: this.CMSettings.snippetVariables,
