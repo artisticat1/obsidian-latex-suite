@@ -35,7 +35,7 @@ export const handleUpdate = (update: ViewUpdate) => {
 export const keyboardEventPlugin = ViewPlugin.fromClass(class {
 	lastKeyboardEvent: KeyboardEvent | null = null;
 
-	onKeydown(event: KeyboardEvent, view: EditorView) {
+	onKeydown(event: KeyboardEvent, view: EditorView): boolean | void {
 		if (event.key == "Unidentified" || event.key == "Process" || event.key == "Dead") {
 			this.lastKeyboardEvent = event;
 			return;
@@ -59,18 +59,17 @@ export const keyboardEventPlugin = ViewPlugin.fromClass(class {
 				view,
 			) || runScopeHandlers(view, event, "latex-suite");
 
-		if (success) event.preventDefault();
+		return success;
 	}
 }, {
 	eventHandlers: {
-		keydown(event, view) {
-			view.plugin(keyboardEventPlugin)!.onKeydown(event, view);
+		keydown(event, view): boolean | void {
+			return view.plugin(keyboardEventPlugin)!.onKeydown(event, view);
 		},
-		compositionend(event, view) {
+		compositionend(_, view) {
 			const settings = getLatexSuiteConfig(view);
 			if (!settings.snippetIMEVersion) return;
 			if (handleKeydown("", false, false, view)) {
-				event.preventDefault();
 				return true;
 			}
 		},	
