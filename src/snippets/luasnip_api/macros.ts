@@ -1537,5 +1537,68 @@ export const ALL_MACROS = [
 	"\\yen",
 	"\\zeromatrix",
 	"\\zeta",
-	"\\zmat"
-]
+	"\\zmat",
+];
+
+export function get_all_macros() {
+	return get_current_macros();
+}
+
+type TempMathJax = {
+	MathJax?: {
+		startup?: {
+			output?: {
+				math?: {
+					inputJax?: {
+						configuration?: {
+							handlers?: {
+								map?: Map<
+									string,
+									{
+										_configuration?: {
+											items?: Array<{
+												item?: {
+													map?: Map<string, unknown>;
+												};
+											}>;
+										};
+									}
+								>;
+							};
+						};
+					};
+				};
+			};
+		};
+	};
+};
+let macro_cache: string[] | null = null;
+let startup_time: number | null = null;
+const TIMEOUT = 10_000; // 10 seconds
+
+/**
+ * Get the current macros, defaulting to ALL_MACROS if mathjax ever changes or obsidian switches to temml.
+ * Caching the result for 10 seconds as it might cause unnecessary cpu usage.
+ */
+function get_current_macros() {
+	const time = performance.now();
+	if (macro_cache && startup_time !== null && time - startup_time < TIMEOUT) {
+		return macro_cache;
+	}
+	startup_time = time;
+	let macros;
+	try {
+		macros = (window as unknown as TempMathJax).MathJax?.startup?.output?.math?.inputJax?.configuration?.handlers?.map
+		?.get("macro")
+		?._configuration?.items?.flatMap((v) =>
+			Array.from(v.item?.map?.keys() ?? []),
+		)
+		.filter((m) => /^\\?[A-Za-z]+$/.test(m))
+		.map((m) => m.replace(/^\\?/, "\\"));
+	} catch (e) {
+		console.error(e);
+		macros = null;
+	}
+	macro_cache = macros && macros.length > 0 ? macros : ALL_MACROS;
+	return macro_cache;
+}
