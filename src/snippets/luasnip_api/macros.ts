@@ -1537,5 +1537,66 @@ export const ALL_MACROS = [
 	"\\yen",
 	"\\zeromatrix",
 	"\\zeta",
-	"\\zmat"
-]
+	"\\zmat",
+];
+
+export function get_all_macros() {
+	return get_current_macros();
+}
+
+type TempMathJax = {
+	MathJax?: {
+		startup?: {
+			output?: {
+				math?: {
+					inputJax?: {
+						configuration?: {
+							handlers?: {
+								map?: Map<
+									string,
+									{
+										_configuration?: {
+											items?: Array<{
+												item?: {
+													map?: Map<string, unknown>;
+												};
+											}>;
+										};
+									}
+								>;
+							};
+						};
+					};
+				};
+			};
+		};
+	};
+};
+let macro_cache: string[] | null = null;
+window.setInterval(() => {
+	macro_cache = null;
+}, 10_000)	
+
+function get_current_macros() {
+	if (macro_cache) {
+		return macro_cache;
+	}
+	const start = performance.now();
+	const runs = 100;
+	let macros
+	for (let i = 0; i < runs; i++) {
+	macros = (
+		window as unknown as TempMathJax
+	).MathJax?.startup?.output?.math?.inputJax?.configuration?.handlers?.map
+		?.get("macro")
+		?._configuration?.items?.flatMap((v) =>
+			Array.from(v.item?.map?.keys() ?? []),
+		)
+		// .filter((m) => /\\?[A-Za-z]+/.test(m))
+		.map((m) => m.replace(/^\\?/, "\\"));
+	}
+	const end = performance.now();
+	console.debug(`get_current_macros took ${(end - start)/runs} ms`);
+	macro_cache = macros && macros.length > 0 ? macros : ALL_MACROS;
+	return macro_cache;
+}
