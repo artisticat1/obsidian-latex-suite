@@ -174,19 +174,19 @@ class HighlightDollarPlugin implements PluginValue {
 
 const highlight_dollar_theme = EditorView.baseTheme({
 	[`.${ERROR_CLASS}`]: {
-		color: "#f00",
+		color: "var(--latex-suite-error-color,#f00)",
 	},
 
 	[`.${INLINE_CLASS}`]: {
-		color: "#61ae08",
+		color: "var(--latex-suite-math-inline-color,#61ae08)",
 	},
 
 	[`.${BLOCK_CLASS}`]: {
-		color: "#3e7202",
+		color: "var(--latex-suite-math-block-color,#3e7202)",
 	},
 
 	[`.${CODE_CLASS}`]: {
-		color: "#54940b",
+		color: "var(--latex-suite-math-code-color,#54940b)",
 	},
 	
 	[`.${EMPTY_INLINE_CLASS}`]: {

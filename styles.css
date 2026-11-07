@@ -125,3 +125,131 @@
 	list-style: none;
 	align-self: flex-start;
 }
+
+.latex-suite-turn-off-single-tabstop .cm-snippetFieldPosition {
+	display: none;
+}
+
+.latex-suite-turn-off-placeholder-tabstop .latex-suite-snippet-placeholder {
+	border-radius: unset;
+	background-color: unset;
+	outline: unset;
+}
+
+/* @settings
+name: Latex Suite
+id: obsidian-latex-suite
+settings:
+	- id: snippets
+	  title: Snippets
+	  type: heading
+	  level: 3
+	- id: latex-suite-turn-off-single-tabstop
+	  title: Single tabstop
+	  type: class-toggle
+	- id: latex-suite-turn-off-placeholder-tabstop
+	  title: Placeholder tabstop
+	  type: class-toggle
+	- id: latex-suite-snippet-placeholder-bg-0
+	  title: Placeholder 0 background
+	  type: variable-themed-color
+	  format: hex
+	  opacity: true
+	  default-dark: "#87cefa2e"
+	  default-light: "#87cefa2e"
+	- id: latex-suite-snippet-placeholder-outline-0
+	  title: Placeholder 0 outline
+	  type: variable-themed-color
+	  format: hex
+	  opacity: true
+	  default-dark: "#87cefa43"
+	  default-light: "#87cefa6e"
+	- id: latex-suite-snippet-placeholder-bg-1
+	  title: Placeholder 1 background
+	  type: variable-themed-color
+	  format: hex
+	  opacity: true
+	  default-dark: "#ffa50033"
+	  default-light: "#ffa50033"
+	- id: latex-suite-snippet-placeholder-outline-1
+	  title: Placeholder 1 outline
+	  type: variable-themed-color
+	  format: hex
+	  opacity: true
+	  default-dark: "#ffa5004d"
+	  default-light: "#ffa5006b"
+	- id: latex-suite-snippet-placeholder-bg-2
+	  title: Placeholder 2 background
+	  type: variable-themed-color
+	  format: hex
+	  opacity: true
+	  default-dark: "#0f02"
+	  default-light: "#0f02"
+	- id: latex-suite-snippet-placeholder-outline-2
+	  title: Placeholder 2 outline
+	  type: variable-themed-color
+	  format: hex
+	  opacity: true
+	  default-dark: "#00ff003d"
+	  default-light: "#00ff0060"
+	- id: latex-suite-color-highlight-brackets
+	  title: Color highlight brackets
+	  type: heading
+	  level: 3
+	- id: latex-suite-color-bracket-0
+	  title: Bracket 0
+	  type: variable-themed-color
+	  format: hex
+	  default-dark: "#47b8ff"
+	  default-light: "#527aff"
+	- id: latex-suite-color-bracket-1
+	  title: Bracket 1
+	  type: variable-themed-color
+	  format: hex
+	  default-dark: "#ff55cd"
+	  default-light: "#ff50b7"
+	- id: latex-suite-color-bracket-2
+	  title: Bracket 2
+	  type: variable-themed-color
+	  format: hex
+	  default-dark: "#73ff63"
+	  default-light: "#69ba00"
+	- id: latex-suite-mismatched-bracket
+	  title: Mismatched bracket
+	  type: variable-themed-color
+	  format: rgb
+	  opacity: true
+	  default-dark: "rgb(255 18 18 / 80%)"
+	  default-light: "rgb(255 18 18 / 80%)"
+	- id: latex-suite-highlight-bracket
+	  title: Highlight bracket
+	  type: variable-themed-color
+	  format: hsl
+	  opacity: true
+	  default-dark: "hsla(258, 88%, 70%, 60%)"
+	  default-light: "hsla(258, 88%, 40%, 30%)"
+	- id: latex-suite-error-color
+	  title: Error color
+	  type: variable-themed-color
+	  format: hex
+	  default-dark: "#f00"
+	  default-light: "#f00"
+	- id: latex-suite-math-inline-color
+	  title: Math inline color
+	  type: variable-themed-color
+	  format: hex
+	  default-dark: "#61ae08"
+	  default-light: "#61ae08"
+	- id: latex-suite-math-block-color
+	  title: Math block color
+	  type: variable-themed-color
+	  format: hex
+	  default-dark: "#3e7202"
+	  default-light: "#3e7202"
+	- id: latex-suite-math-code-color
+	  title: Math code color
+	  type: variable-themed-color
+	  format: hex
+	  default-dark: "#54940b"
+	  default-light: "#54940b"
+*/
