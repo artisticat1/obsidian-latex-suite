@@ -52,4 +52,39 @@ $$
 		})
 		expect(result).toMatchSnapshot();
 	})
+
+	it.for([
+		"$$((#))$$",
+		"$$(())$$  $$((#))$$",
+		"$$||\\lvert|| Ax - y# ||\\rvert||$$",
+		"$$||(||E=mc#^2}||)||$$",
+	] as const)(
+		"should highlight the innermost enclosing brackets %s",
+		async (raw_equation) => {
+			const equation = raw_equation.replaceAll(/#|\|\|/g, "");
+			const pos = raw_equation.replaceAll("||", "").indexOf("#");
+			const positions = raw_equation.includes("||")
+				? raw_equation
+						.replaceAll("#", "")
+						.matchAll(/\|\|/g)
+						.map((m, i) => m.index - i * 2)
+						.toArray()
+				: [pos - 1, pos, pos, pos + 1];
+			const first_range = { from: positions[0], to: positions[1] };
+			const second_range = { from: positions[2], to: positions[3] };
+			const result = await evalInObsidian({
+				input: { pluginId: "obsidian-latex-suite", equation, pos },
+				callback: ({ lib: { plugin, view }, equation, pos }) => {
+					const highlight = plugin.test.highlightCursorBrackets;
+					view.setDoc(equation, pos);
+					const basic_output = highlight(view);
+					return basic_output.toJSON()
+				},
+			});
+			expect(result.length).toBe(2);
+			const [first, second] = result;
+			expect(first).toMatchObject(first_range)
+			expect(second).toMatchObject(second_range)
+		},
+	);
 })
