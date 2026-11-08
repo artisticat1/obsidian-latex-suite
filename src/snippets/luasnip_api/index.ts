@@ -1,6 +1,6 @@
 import type { MathlessMacroArgs } from "src/editor_context/default_text_areas";
 import type { SnippetVariables } from "../parse";
-import { ALL_MACROS } from "./macros";
+import { get_all_macros } from "./macros";
 import { ArrayNode, BaseNode, CaptureNode, SnippetStringNode, TabstopNode, TextNode } from "./node";
 import type { UpdateHandler } from "src/api";
 import { modifiedSyntaxTree } from "src/parser/language";
@@ -45,7 +45,9 @@ export const api = (snippetVariables: SnippetVariables, pluginApi: PluginSnippet
 		tabstop_node,
 		text_node,
 		capture_node,
-		ALL_MACROS,
+		get ALL_MACROS() {
+			return get_all_macros()
+		},
 		modifiedSyntaxTree,
 		...pluginApi,
 	}
@@ -57,5 +59,7 @@ export const snippetApi = {
 	capture_node,
 	snippet_node,
 	array_node,
-	ALL_MACROS,
+	get ALL_MACROS() {
+		return get_all_macros()
+	},
 }
