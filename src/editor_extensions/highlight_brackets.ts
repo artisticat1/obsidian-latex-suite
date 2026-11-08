@@ -371,7 +371,7 @@ export function colorPairedBrackets(view: EditorView, cached_equations: ColorBra
 	return { decorations, cached_equations  };
 }
 
-function highlightCursorBrackets(view: EditorView) {
+export function highlightCursorBrackets(view: EditorView) {
 
 	const widgets: Range<Decoration>[] = []
 	const selection = view.state.selection;
@@ -384,7 +384,7 @@ function highlightCursorBrackets(view: EditorView) {
 
 	const overlays = getMathBoundsPlugin(view).getEquationOverlays(view.state);
 	for (const range of ranges) {
-		const covered_overlays = overlays.find((o) => o.overlay.from <= range.from && o.bound.inner_end >= o.overlay.to);
+		const covered_overlays = overlays.find((o) => o.overlay.from <= range.to && range.to <= o.overlay.to);
 		if (!covered_overlays) {
 			continue;
 		}

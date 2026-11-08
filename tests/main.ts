@@ -5,7 +5,7 @@ import { Editor, editorLivePreviewField, MarkdownView } from "obsidian";
 import { EditorView } from "@codemirror/view";
 import { parseSnippet, RawSnippetSchema, validateRawSnippets } from "../src/snippets/parse";
 import * as v from "valibot"
-import { colorPairedBrackets } from "../src/editor_extensions/highlight_brackets";
+import { colorPairedBrackets, highlightCursorBrackets } from "../src/editor_extensions/highlight_brackets";
 import i18next from "../src/i18n/i18n";
 import { settings_translation } from "../src/i18n/i18n";
 import type {} from "../src/i18n/i18next";
@@ -18,6 +18,7 @@ import { serializeSnippetLike, Snippet } from "../src/snippets/snippets";
 import { DEFAULT_SETTINGS } from "../src/settings/settings";
 import { tabstopsStateField } from "../src/snippets/codemirror/tabstops_state_field";
 import { Mode, Options } from "../src/editor_context/options";
+import { RangeSet, RangeValue } from "@codemirror/state";
 
 declare global {
 	interface Window {
@@ -132,12 +133,37 @@ declare module "@codemirror/view" {
 		setDoc(text?: string, pos?: number): void;		
 	}
 }
+
+declare module "@codemirror/state" {
+	interface RangeSet<T> {
+		toJSON(): ReturnType<typeof rangeSetToJSON>;
+	}
+}
+
+const rangeSetToJSON = <T extends RangeValue>(rangeSet: RangeSet<T>) => {
+	const ranges: { from: number; to: number; value: T }[] = [];
+	let iter = rangeSet.iter();
+	while (iter.value) {
+		ranges.push({
+			from: iter.from,
+			to: iter.to,
+			value: iter.value,
+		});
+		iter.next();
+	}
+	return ranges;
+}
+RangeSet.prototype.toJSON = function() {
+	return rangeSetToJSON(this);
+}
+
 export default class TestPlugin extends LatexSuitePlugin {
 	test = {
 		parser: fullMathParser,
 		conceal: (view: EditorView) => conceal(view, {}, getLatexSuiteConfig(view).concealMaps), 
 		getContextPlugin,
 		colorPairedBrackets,
+		highlightCursorBrackets,
 		settings_translation,
 		i18next,
 		EditorView,
