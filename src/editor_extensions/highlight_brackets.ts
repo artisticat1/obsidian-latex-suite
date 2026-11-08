@@ -473,35 +473,35 @@ export const colorPairedBracketsPlugin = ViewPlugin.fromClass(class {
 const colorPairedBracketsTheme = EditorView.baseTheme({
 	[`${cmLightClass} .${COLOR_BRACKET_CLASS}-0, ${cmLightClass} .${COLOR_BRACKET_CLASS}-0 .cm-bracket`]:
 		{
-			color: "#527aff",
+			color: "var(--latex-suite-color-bracket-0,#527aff)",
 		},
 	[`${cmDarkClass} .${COLOR_BRACKET_CLASS}-0, ${cmDarkClass} .${COLOR_BRACKET_CLASS}-0 .cm-bracket`]:
 		{
-			color: "#47b8ff",
+			color: "var(--latex-suite-color-bracket-0,#47b8ff)",
 		},
 	[`${cmLightClass} .${COLOR_BRACKET_CLASS}-1, ${cmLightClass} .${COLOR_BRACKET_CLASS}-1 .cm-bracket`]:
 		{
-			color: "#ff50b7",
+			color: "var(--latex-suite-color-bracket-1,#ff50b7)",
 		},
 	[`${cmDarkClass} .${COLOR_BRACKET_CLASS}-1, ${cmDarkClass} .${COLOR_BRACKET_CLASS}-1 .cm-bracket`]:
 		{
-			color: "#ff55cd",
+			color: "var(--latex-suite-color-bracket-1,#ff55cd)",
 		},
 	[`${cmLightClass} .${COLOR_BRACKET_CLASS}-2, ${cmLightClass} .${COLOR_BRACKET_CLASS}-2 .cm-bracket`]:
 		{
-			color: "#69ba00",
+			color: "var(--latex-suite-color-bracket-2,#69ba00)",
 		},
 	[`${cmDarkClass} .${COLOR_BRACKET_CLASS}-2, ${cmDarkClass} .${COLOR_BRACKET_CLASS}-2 .cm-bracket`]:
 		{
-			color: "#73ff63",
+			color: "var(--latex-suite-color-bracket-2,#73ff63)",
 		},
 	[`${cmLightClass} .${MISMATCHED_BRACKET_CLASS}, ${cmLightClass} .${MISMATCHED_BRACKET_CLASS} .cm-bracket`]:
 		{
-			color: "rgb(255 18 18 / 80%)",
+			color: "var(--latex-suite-mismatched-bracket,rgb(255 18 18 / 80%))",
 		},
 	[`${cmDarkClass} .${MISMATCHED_BRACKET_CLASS}, ${cmDarkClass} .${MISMATCHED_BRACKET_CLASS} .cm-bracket`]:
 		{
-			color: "rgb(255 18 18 / 80%)",
+			color: "var(--latex-suite-mismatched-bracket,rgb(255 18 18 / 80%))",
 		},
 });
 
@@ -524,14 +524,15 @@ export const highlightCursorBracketsPlugin = ViewPlugin.fromClass(class {
 
 }, { decorations: v => v.decorations, });
 
-const HIGHLIGHT_ACCENT_COLOR = "hsl(var(--accent-h) var(--accent-s)";
+const HIGHLIGHT_ACCENT_COLOR = "var(--accent-h) var(--accent-s)";
+const HIGHLIGHT_VARIABLE = "latex-suite-highlight-bracket";
 
 export const highlightBracketsTheme = EditorView.baseTheme({
 	[`${cmLightClass} .${HIGHLIGHTED_BRACKET_CLASS}, ${cmLightClass} .${HIGHLIGHTED_BRACKET_CLASS} [class^="${COLOR_BRACKET_CLASS}-"]`]: {
-		backgroundColor: `${HIGHLIGHT_ACCENT_COLOR} 40% / 30%)`,
+		backgroundColor: `var(--${HIGHLIGHT_VARIABLE},hsl(${HIGHLIGHT_ACCENT_COLOR} 40% / 30%))`,
 	},
 	[`${cmDarkClass} .${HIGHLIGHTED_BRACKET_CLASS}, ${cmDarkClass} .${HIGHLIGHTED_BRACKET_CLASS} [class^="${COLOR_BRACKET_CLASS}-"]`]: {
-		backgroundColor: `${HIGHLIGHT_ACCENT_COLOR} 70% / 60%)`,
+		backgroundColor: `var(--${HIGHLIGHT_VARIABLE},hsl(${HIGHLIGHT_ACCENT_COLOR} 70% / 60%))`,
 	}
 });
 

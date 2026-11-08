@@ -166,31 +166,31 @@ export const tabstopTheme = EditorView.baseTheme({
 
 	[`.${PLACEHOLDER_CLASS}-0, span.${PLACEHOLDER_CLASS}-0 span`]:
 		{
-			[PLACEHOLDER_CSS_BG_VAR]: "#87cefa2e",
-			[PLACEHOLDER_CSS_OUTLINE_VAR]: "#87cefa6e",
+			[PLACEHOLDER_CSS_BG_VAR]: `var(--${PLACEHOLDER_CLASS}-bg-0,#87cefa2e)`,
+			[PLACEHOLDER_CSS_OUTLINE_VAR]: `var(--${PLACEHOLDER_CLASS}-outline-0,#87cefa6e)`,
 		},
 
 	[`${cmDarkClass} .${PLACEHOLDER_CLASS}-0, span.${PLACEHOLDER_CLASS}-0 span`]: {
-		[PLACEHOLDER_CSS_OUTLINE_VAR]: "#87cefa43",
+		[PLACEHOLDER_CSS_OUTLINE_VAR]: `var(--${PLACEHOLDER_CLASS}-outline-0,#87cefa43)`,
 	},
 
 	[`.${PLACEHOLDER_CLASS}-1, span.${PLACEHOLDER_CLASS}-1 span`]:
 		{
-			[PLACEHOLDER_CSS_BG_VAR]: "#ffa50033",
-			[PLACEHOLDER_CSS_OUTLINE_VAR]: "#ffa5006b",
+			[PLACEHOLDER_CSS_BG_VAR]: `var(--${PLACEHOLDER_CLASS}-bg-1,#ffa50033)`,
+			[PLACEHOLDER_CSS_OUTLINE_VAR]: `var(--${PLACEHOLDER_CLASS}-outline-1,#ffa5006b)`,
 		},
 
 	[`${cmDarkClass} .${PLACEHOLDER_CLASS}-1, span.${PLACEHOLDER_CLASS}-1 span`]: {
-		[PLACEHOLDER_CSS_OUTLINE_VAR]: "#ffa5004d",
+		[PLACEHOLDER_CSS_OUTLINE_VAR]: `var(--${PLACEHOLDER_CLASS}-outline-1,#ffa5004d)`,
 	},
 
 	[`.${PLACEHOLDER_CLASS}-2, span.${PLACEHOLDER_CLASS}-2 span`]:
 		{
-			[PLACEHOLDER_CSS_BG_VAR]: "#0f02",
-			[PLACEHOLDER_CSS_OUTLINE_VAR]: "#00ff0060",
+			[PLACEHOLDER_CSS_BG_VAR]: `var(--${PLACEHOLDER_CLASS}-bg-2,#0f02)`,
+			[PLACEHOLDER_CSS_OUTLINE_VAR]: `var(--${PLACEHOLDER_CLASS}-outline-2,#00ff0060)`,
 		},
 
 	[`${cmDarkClass} .${PLACEHOLDER_CLASS}-2, span.${PLACEHOLDER_CLASS}-2 span`]: {
-		[PLACEHOLDER_CSS_OUTLINE_VAR]: "#00ff003d",
+		[PLACEHOLDER_CSS_OUTLINE_VAR]: `var(--${PLACEHOLDER_CLASS}-outline-2,#00ff003d)`,
 	},
 });
