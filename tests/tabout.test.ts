@@ -116,4 +116,13 @@ describe("tabout brackets and math delimiters", async () => {
 			"$$\\begin{matrix}\n\\text".length
 		);
 	})
+
+	it("should not tabout inside codeblock", async () => {
+		await taboutTest(
+			"```python\npass\n```",
+			"```python\npass\n".length,
+			"```python\npass\n\t".length,
+			"```python\npass\n".length
+		);
+	})
 })

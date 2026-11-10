@@ -241,7 +241,7 @@ export class MathBoundsPlugin implements PluginValue {
 			const open = node.getChild(latex.OpenParenMath);
 			const close = node.getChild(latex.CloseParenMath);
 			const tree = node.getChild(latex.Math);
-			return open && close ? { open, close, type: MathMode.BlockMath, tree } : null
+			return open && close ? { open, close, type: MathMode.InlineMath, tree } : null
 		} else if (node.type.is(latex.DollarInlineMath)) {
 			const mathNode = node.getChild("DisplayMath") ?? node;
 			let tree = mathNode.getChild(latex.Math);
