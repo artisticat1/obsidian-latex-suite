@@ -146,7 +146,7 @@ class MathTooltipPlugin implements PluginValue {
 		const inner_end = eqnBounds.inner_end + offset;
 		const inner_start = eqnBounds.inner_start - offset;
 		const eqnWithDecorations = state.sliceDoc(inner_start, inner_end);
-		const pos = clickCallback({target: eventTarget, clientX: event.clientX}, eqnWithDecorations, eqn);
+		const pos = clickCallback({target: eventTarget, event}, eqnWithDecorations, eqn);
 		if (pos && !(pos + inner_start <= eqnBounds.inner_start || pos + inner_start >= eqnBounds.inner_end)) {
 			this.nextSelection = {from: pos + inner_start, to: pos + inner_start};
 		} else {
@@ -165,7 +165,7 @@ class MathTooltipPlugin implements PluginValue {
 				}
 			})
 			if (!minEl) return null;
-			const pos = clickCallback({target: minEl, clientX: event.clientX}, eqnWithDecorations, eqn);
+			const pos = clickCallback({target: minEl, event}, eqnWithDecorations, eqn);
 			if (pos && !(pos + inner_start <= eqnBounds.inner_start || pos + inner_start >= eqnBounds.inner_end)) {
 				this.nextSelection = {from: pos + inner_start, to: pos + inner_start};
 			}
@@ -428,11 +428,14 @@ export function handleMathTooltip(update: ViewUpdate) {
 }
 
 function clickCallback(
-	{ target, clientX }: { target: Element; clientX: number },
+	{ target, event }: { target: Element; event: MouseEvent },
 	eqnWithDecorations: string,
 	eqn: Element,
 ): number | null {
-	const firstTarget = getLatexElement(target);
+	const { clientX } = event;
+	const minEl = getMinDistanceElement(target, event);
+	if (!minEl) return null;
+	const firstTarget = event.button === 0 ? getLatexElement(minEl) : getLatexElement(target);
 	if (!firstTarget) return null;
 	for (
 		let target: null | { element: Element; text: string } = firstTarget;
@@ -506,6 +509,7 @@ function clickCallback(
 			clientX <
 			el.getBoundingClientRect().left +
 				el.getBoundingClientRect().width / 2
+				&& firstIdentifier === minEl.textContent
 				? "left"
 				: "right";
 		const pos =
@@ -532,7 +536,16 @@ function getLatexElement(element: Element): {element: Element, text: string} | n
 		const parentDataLatex = parent.getAttribute("data-latex");
 		if (!parentDataLatex) continue;
 		if (parentDataLatex.includes(textContent)) {
-			return {element, text: parentDataLatex};
+			const children = parent.querySelectorAll(":not(:has(*))");
+			let occurrence = 1;
+			for (const child of children) {
+				if (child === element) break;
+				const childText = child.textContent;
+				const text = childText.length > 0 ? childText : child.className;
+				occurrence += text.split(textContent).length - 1;
+			}
+			const to = stringIndexOfOccurrence(parentDataLatex, textContent, occurrence) ?? parentDataLatex.length
+			return {element, text: parentDataLatex.slice(0,  to + textContent.length)};
 		} else {
 			break;
 		}
@@ -562,6 +575,29 @@ function getContainingLatexData(element: Element): string | null {
 	return dataLatexs.length > 0 ? dataLatexs.join("") : null;
 }
 
+function getMinDistanceElement(target: Element, event: {clientX: number, clientY: number}, defaultElement: Element=target): Element | null {
+	const {clientX, clientY} = event;
+	const innerElements = target.querySelectorAll<HTMLElement>(":not(:has(*))")
+	let minDistance = dist(defaultElement, {clientX, clientY})
+	let minEl: Element | null = defaultElement;
+	for (const el of innerElements.values()) {
+		const distance = dist(el, {clientX, clientY});
+		if (distance < minDistance) {
+			minDistance = distance;
+			minEl = el;
+		}
+	}
+	return minEl;
+}
+
+function dist(el: Element, event: {clientX: number, clientY: number}) {
+	const rect = el.getBoundingClientRect();
+	const dx = Math.max(rect.left - event.clientX, rect.right - event.clientX);
+	const dy = Math.max(rect.top - event.clientY, rect.bottom - event.clientY);
+	const distance = Math.sqrt(dx * dx + dy*dy)
+	return distance;
+}
+
 function createClickCallback(renderedEqn: HTMLElement, eqnWithDecorations: string, setPos: (pos: number) => void) {
 	let previousHover: HTMLElement | null = null;
 	const removeHighlight = () => previousHover?.removeClass(HIGHLIGHT_CLASS);
@@ -571,19 +607,20 @@ function createClickCallback(renderedEqn: HTMLElement, eqnWithDecorations: strin
 		removeHighlight();
 		const target = getLatexElement(eventTarget)?.element;
 		if (!target || !UIInstanceOf(target, HTMLElement)) return;
-		previousHover = target;
-		target.addClass(HIGHLIGHT_CLASS);
-		target.addEventListener("mouseleave", removeHighlight, { once: true });
+		const minEl = getMinDistanceElement(eventTarget, event, target);
+		if (!minEl || !UIInstanceOf(minEl, HTMLElement)) return null;
+		previousHover = minEl;
+		minEl.addClass(HIGHLIGHT_CLASS);
+		minEl.addEventListener("mouseleave", removeHighlight, { once: true });
 	});
 	renderedEqn.addEventListener("mouseleave", removeHighlight);
 	renderedEqn.addEventListener("mousedown", (event) => {
 		const eventTarget = getTargetElementFromMouseEvent(event);
 		if (!eventTarget) return;
-		const pos = clickCallback({target: eventTarget, clientX: event.clientX}, eqnWithDecorations, renderedEqn);
+		const pos = clickCallback({event, target: eventTarget}, eqnWithDecorations, renderedEqn);
 		if (pos !== null) {
-			window.setTimeout(() => {
-				setPos(pos);
-			});
+			event.preventDefault();
+			setPos(pos)
 		}
 	});
 }
