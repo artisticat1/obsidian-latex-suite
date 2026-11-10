@@ -1,7 +1,9 @@
-/// <reference types="node" />
 import { execSync } from "child_process";
 import { readFileSync, writeFileSync } from "fs";
 
+execSync("npm test");
+execSync("npm run lint");
+execSync("npm run build");
 const targetVersion = process.env.npm_package_version;
 if (!targetVersion) {
 	console.error("Error: target version not specified. Please set the npm_package_version environment variable.");
@@ -35,3 +37,4 @@ if (versions[highestVersion] !== minAppVersion) {
 }
 
 execSync("npm install");
+execSync("git add manifest.json versions.json");
