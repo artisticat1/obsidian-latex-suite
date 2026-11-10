@@ -157,24 +157,16 @@ export class Context implements PluginValue {
 		const inCode = inCodeBlock ? false : withingCode(state)
 		this.mode.code = inCode;
 
-		const settings = getLatexSuiteConfig(state);
-		const forceMath =
-			inCodeBlock &&
-			settings.forceMathLanguages.includes(codeblockLanguage);
-		this.mode.codeMath = forceMath;
-		this.mode.codeBlock = inCodeBlock && !forceMath ? codeblockLanguage : false;
-		if (inCodeBlock && this.mode.codeBlock !== false) {
-			this.codeblockLanguage = codeblockLanguage;
-			this.boundsCache.set(this.pos, codeBlockInfo);
-		}
-
 		// first, check if math mode should be "generally" on
 		const mathBoundsCache = getMathBoundsPlugin(view);
 		const inMath = mathBoundsCache.inMathBound(state, this.pos);
 
+		this.mode.codeBlock = inCodeBlock && !inMath ? codeblockLanguage : false;
+
 		if (inMath !== null) {
 			this.mode.blockMath = inMath.mode === MathMode.BlockMath;
 			this.mode.inlineMath = inMath.mode === MathMode.InlineMath;
+			this.mode.codeMath = inMath.mode === MathMode.CodeMath;
 			this.boundsCache.set(this.pos, inMath);
 		}
 
@@ -391,20 +383,13 @@ export class Context implements PluginValue {
 	}
 
 	getBounds(pos: number = this.pos): MathBounds | Bounds | null {
-		// yes, I also want the cache to work over the produced range instead of just that one through
-		// a BTree or the like, but that'd be probably overkill
+		// full range is cached in mathBoundsPlugin (for the current viewport, but we don't care about outside the viewport).
 		const cached = this.boundsCache.get(pos);
 		if (cached !== undefined) {
 			return cached;
 		}
 
-		let bounds: Bounds | null;
-		if (this.mode.codeMath) {
-			// means a codeblock language triggered the math mode -> use the codeblock bounds instead
-			bounds = getCodeblockBounds(this.state, pos);
-		} else {
-			bounds = getMathBoundsPlugin(this.view).inMathBound(this.state, pos);
-		}
+		const bounds = getMathBoundsPlugin(this.view).inMathBound(this.state, pos);
 
 		this.boundsCache.set(pos, bounds);
 		return bounds;
@@ -491,25 +476,6 @@ const getInnerEquationBounds = (view: EditorView, pos?: number ):Bounds | null =
 	};
 };
 
-/**
- * Figures out where this codeblock starts and where it ends.
- *
- * **Note:** If you intend to use this directly, check out Context.getBounds instead, which caches and also takes care of codeblock languages which should behave like math mode.
- */
-const getCodeblockBounds = (
-	state: EditorState,
-	pos: number = state.selection.main.from,
-): Bounds | null => {
-	const bounds = getCodeblockBoundNodes(state, pos);
-	if (!bounds) return null;
-	const { begin: blockBegin, end: blockEnd } = bounds;
-	return {
-		inner_start: blockBegin.to,
-		inner_end: blockEnd.from,
-		outer_start: blockBegin.from,
-		outer_end: blockEnd.to,
-	};
-};
 
 const getCodeblockBoundNodes = (
 	state: EditorState,

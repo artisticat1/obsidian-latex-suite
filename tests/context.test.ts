@@ -45,7 +45,6 @@ describe("math context", async () => {
 		const result = await getEditorContext("~~~latex\n$$E=mc^2$$\n~~~", "~~~latex\n$$E=mc^2".length)
 		expectMode(result, {
 			blockMath: true,
-			codeBlock: "latex",
 		})
 	})
 	
@@ -53,7 +52,6 @@ describe("math context", async () => {
 		const result = await getEditorContext("~~~latex\n$E=mc^2$\n~~~", "~~~latex\n$E=mc^2".length)
 		expectMode(result, {
 			inlineMath: true,
-			codeBlock: "latex",
 		})
 	})
 
@@ -68,15 +66,13 @@ describe("math context", async () => {
 		const result = await getEditorContext("~~~latex\n\\[E=mc^2\\]\n~~~", "~~~latex\n\\[E=mc^2".length)
 		expectMode(result, {
 			blockMath: true,
-			codeBlock: "latex",
 		})
 	})
 
-	it("should be inline math inside latex codeblock inside \\( ... \\]", async () => {
+	it("should be inline math inside latex codeblock inside \\( ... \\)", async () => {
 		const result = await getEditorContext("~~~latex\n\\(E=mc^2\\)\n~~~", "~~~latex\n\\(E=mc^2".length)
 		expectMode(result, {
-			blockMath: true,
-			codeBlock: "latex",
+			inlineMath: true,
 		})
 	})
 	
