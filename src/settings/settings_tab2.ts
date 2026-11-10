@@ -948,7 +948,21 @@ type snippet = {
 	
 	async renderMarkdown(body: string): Promise<void> {
 		const div = this.contentEl.createDiv();
-		await MarkdownRenderer.render(this.app, body, div, "", this.component)
+		if (requireApiVersion("1.3.5")) {
+			await MarkdownRenderer.render(this.app, body, div, "", this.component)
+		} else {
+			await (
+				// avoid wrong eslint error as it isn't depreciated for older versions.
+				MarkdownRenderer as {
+					renderMarkdown: (
+						body: string,
+						div: HTMLElement,
+						context: string,
+						component: Component,
+					) => Promise<void>;
+				}
+			).renderMarkdown(body, div, "", this.component);
+		}
 	}
 }
 

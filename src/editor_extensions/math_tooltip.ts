@@ -108,7 +108,7 @@ class MathTooltipPlugin implements PluginValue {
 		}
 		this.currentDoc = view.dom.win.document;
 		const docCopy = this.currentDoc;
-		if (document !== docCopy) {
+		if (window.document !== docCopy) {
 			window.setTimeout(() => {
 				view.dispatch({
 					effects: tooltipCompartment.reconfigure(createTooltipConfig(docCopy)),
@@ -751,6 +751,6 @@ const tooltipCompartment = new Compartment();
 export const createMathTooltipExtension = (settings: LatexSuiteCMSettings) => [
 	cursorTooltipField.extension,
 	cursorTooltipBaseTheme,
-	tooltipCompartment.of(createTooltipConfig(document)),
+	tooltipCompartment.of(createTooltipConfig(window.document)),
 	mathTooltipPlugin.of(settings)
 ]
