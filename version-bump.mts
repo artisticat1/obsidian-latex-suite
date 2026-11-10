@@ -1,3 +1,5 @@
+/// <reference types="node" />
+import { execSync } from "child_process";
 import { readFileSync, writeFileSync } from "fs";
 
 const targetVersion = process.env.npm_package_version;
@@ -31,3 +33,5 @@ if (versions[highestVersion] !== minAppVersion) {
 	versions[targetVersion] = minAppVersion;
 	writeFileSync("versions.json", JSON.stringify(versions, null, "\t"));
 }
+
+execSync("npm install");
