@@ -18,6 +18,7 @@ type SnippetSettingDefinition = Definition<
 	| "snippets"
 	| "loadSnippetsFromFile"
 	| "snippetsFileLocation"
+	| "showSnippetsReloadedNotice"
 >;
 
 type AdvancedSnippetSettingDefinition = Definition<
@@ -160,6 +161,12 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 					this.fileSearch(setting, "snippetsFileLocation")
 				},
 				visible: () => this.plugin.settings.loadSnippetsFromFile,
+			},
+			{
+				name: t("snippets.show-reloaded-notice.name"),
+				desc: this.renderHtml(t("snippets.show-reloaded-notice.desc")),
+				control: getToggleControl("showSnippetsReloadedNotice"),
+				visible: () => this.plugin.settings.loadSnippetsFromFile || this.plugin.settings.loadSnippetVariablesFromFile,
 			},
 		);
 		const advanced: AdvancedSnippetSettingDefinition[] = [

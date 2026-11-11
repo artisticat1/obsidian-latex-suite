@@ -15,6 +15,7 @@ export const EMPTY_SETTINGS: LatexSuitePluginSettings = {
 	autoDelete$: false,
 	loadSnippetsFromFile: false,
 	loadSnippetVariablesFromFile: false,
+	showSnippetsReloadedNotice: true,
 	snippetsFileLocation: "",
 	snippetVariablesFileLocation: "",
 	concealEnabled: false,
