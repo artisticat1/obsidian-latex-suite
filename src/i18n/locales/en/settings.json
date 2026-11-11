@@ -17,6 +17,10 @@
 		"file-path": {
 			"name": "Snippets file or folder location",
 			"desc": "The file or folder to load snippets from. On desktop you can use ~/ or an absolute path. Files outside your vault or in hidden folders may not be watched for changes depending on your OS."
+		},
+		"show-reloaded-notice": {
+			"name": "Show notice when snippets are reloaded",
+			"desc": "Whether to show a notice each time snippets or snippet variables are reloaded from files, for example after you edit the snippets file."
 		}
 	},
 	"conceal": {

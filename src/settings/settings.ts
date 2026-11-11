@@ -22,6 +22,7 @@ export interface LatexSuiteBasicSettings {
 	autoDelete$: boolean;
 	loadSnippetsFromFile: boolean;
 	loadSnippetVariablesFromFile: boolean;
+	showSnippetsReloadedNotice: boolean;
 	snippetsFileLocation: string;
 	snippetVariablesFileLocation: string;
 	autofractionEnabled: boolean;
@@ -169,6 +170,7 @@ export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
 	autoDelete$: true,
 	loadSnippetsFromFile: false,
 	loadSnippetVariablesFromFile: false,
+	showSnippetsReloadedNotice: true,
 	snippetsFileLocation: " ",
 	snippetVariablesFileLocation: " ",
 	concealEnabled: false,

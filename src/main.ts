@@ -379,7 +379,7 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 	}
 
 	showSnippetsLoadedNotice(nSnippets: number, nSnippetVariables: number, becauseFileLocationUpdated: boolean, forceLoad: boolean) {
-		if (forceLoad) {
+		if (forceLoad || !this.settings.showSnippetsReloadedNotice) {
 			return;
 		}
 		const prefix = becauseFileLocationUpdated ? "Loaded " : "Successfully reloaded ";

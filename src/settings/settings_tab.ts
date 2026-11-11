@@ -158,6 +158,16 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 		this.snippetsFileLocEl = snippetsFileLoc.settingEl;
 
+		new Setting(containerEl)
+			.setName("Show notice when snippets are reloaded")
+			.setDesc("Whether to show a notice each time snippets or snippet variables are reloaded from files, for example after you edit the snippets file.")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.showSnippetsReloadedNotice)
+				.onChange(async (value) => {
+					this.plugin.settings.showSnippetsReloadedNotice = value;
+					await this.plugin.saveSettings();
+				}));
+
 
 		// Hide settings that are not relevant when "loadSnippetsFromFile" is set to true/false
 		const loadSnippetsFromFile = this.plugin.settings.loadSnippetsFromFile;
