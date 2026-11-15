@@ -143,6 +143,7 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 
 	async onload() {
 		i18next.addResourceBundle("en", "settings", resources.en.settings)
+		i18next.addResourceBundle("zh", "settings", resources.zh.settings)
 		await this.loadSettings();
 
 		this.loadIcons();
