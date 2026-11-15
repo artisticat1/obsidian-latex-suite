@@ -826,13 +826,13 @@ export function createSnippetsEditor(
 	const type = (() => {
 		switch (config.type) {
 			case "snippets":
-				return "snippets";
+				return t("editor-types.snippets");
 			case "snippetVariables":
-				return "snippet variables";
+				return t("editor-types.snippetVariables");
 			case "concealMaps":
-				return "conceal maps";
+				return t("editor-types.concealMaps");
 			case "textMacros":
-				return "text macros";
+				return t("editor-types.textMacros");
 		}
 	})();
 
@@ -840,14 +840,14 @@ export function createSnippetsEditor(
 	const reset = new ButtonComponent(buttonsDiv);
 	reset
 		.setIcon("switch")
-		.setTooltip(`Reset to default ${type}`)
+		.setTooltip(t("tooltips.reset-to-defaults", { variable: type }))
 		.onClick(async () => {
 			new ConfirmationModal(
 				plugin.app,
-				`Are you sure? This will delete any custom ${type} you have written.`,
+				t("confirmation.delete-custom", { variable: type }),
 				(button) =>
 					void buttonSetWarning(button)
-					.setButtonText(`Reset to default ${type}`),
+					.setButtonText(t("tooltips.reset-to-defaults", { variable: type })),
 				async () => {
 					snippetsEditor.setState(
 						EditorState.create({
@@ -868,14 +868,14 @@ export function createSnippetsEditor(
 	const remove = new ButtonComponent(buttonsDiv);
 	remove
 		.setIcon("trash")
-		.setTooltip(`Remove all ${type}`)
+		.setTooltip(t("tooltips.trash", { variable: type }))
 		.onClick(async () => {
 			new ConfirmationModal(
 				plugin.app,
-				`Are you sure? This will delete any custom ${type} you have written.`,
+				t("confirmation.delete-custom", { variable: type }),
 				(button) =>
 					void buttonSetWarning(button)
-					.setButtonText(`Remove all ${type}`),
+					.setButtonText(t("tooltips.trash", { variable: type })),
 				async () => {
 					const value = EMPTY_SETTINGS[config.type];
 					snippetsEditor.setState(
@@ -984,7 +984,7 @@ class ConfirmationModal extends Modal {
 				});
 			})
 			.addButton(button => button
-				.setButtonText("Cancel")
+				.setButtonText(t("confirmation.cancel"))
 				.onClick(() => this.close()));
 	}
 }

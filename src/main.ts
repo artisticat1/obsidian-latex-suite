@@ -21,7 +21,7 @@ import * as v from "valibot"
 import { languageExtension, LanguageSetStateEffect, languageStateField, modifiedSyntaxTree, parseWorker } from "./parser/language";
 import { highlight_dollar_extension } from "./editor_extensions/highlight_dollar";
 import { EMPTY_SETTINGS } from "./settings/empty_settings";
-import i18next from "./i18n/i18n";
+import i18next, { settings_translation as t } from "./i18n/i18n";
 import resources from "./i18n/resources";
 import { mathParserPlugin } from "./parser/parser_printer";
 import { endSnippet, snippetInvertedEffects, startSnippet, undidEndSnippet, undidStartSnippet } from "./snippets/codemirror/history";
@@ -182,11 +182,11 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 	IMEEditorWarning() {
 		if (isIMESupported() && !this.settings.suppressIMEWarning && this.settings.suppressSnippetTriggerOnIME) {
 			const message = createFragment();
-			message.appendText("Latex Suite: this plugin supports your IME keyboard, but ");
-			message.createEl("code", { text: "Advanced settings > Don't trigger snippets when IME is active" });
-			message.appendText(" is currently enabled. You may want to disable it in the plugin settings to fully enable automatic snippets. Be aware that this may cause unexpected snippet triggers while using your IME. To turn this warning off, enable ");
-			message.createEl("code", { text: "Advanced settings > Suppress IME warning" });
-			message.appendText(".");
+			message.appendText(t("ime-warning.before-setting"));
+			message.createEl("code", { text: `${t("advanced-snippets.heading")} > ${t("advanced-snippets.suppress-IME.name")}` });
+			message.appendText(t("ime-warning.between-settings"));
+			message.createEl("code", { text: `${t("advanced-snippets.heading")} > ${t("advanced-snippets.suppress-IME-warning.name")}` });
+			message.appendText(t("ime-warning.after-setting"));
 			new Notice(message, 10000);
 			console.warn(message);
 		}

@@ -7,7 +7,7 @@
 		},
 		"snippets": {
 			"name": "片段",
-			"desc": "在此输入片段。每个片段后需添加逗号，所有反斜杠需额外转义为 <code>\\</code>。以 <code>//</code> 开头的行将作为注释忽略。"
+			"desc": "在此输入片段。每个片段后需添加逗号；每个反斜杠前需再添加一个反斜杠，例如 <code>\\</code> 写成 <code>\\\\</code>。以 <code>//</code> 开头的行将作为注释忽略。"
 		},
 		"load-from-file": {
 			"name": "从文件或文件夹加载片段",
@@ -171,7 +171,7 @@
 		},
 		"suppress-IME-warning": {
 			"name": "隐藏输入法警告",
-			"desc": "启用 <code>$t(settings:advanced-snippets.suppress-IME.name)</code> 时，启动时是否显示警告。若了解输入法限制，可关闭该项。目前仅 iOS 和 Android 的触摸/滑动键盘（如 Gboard）支持输入法。详见<a href=\"https://github.com/artisticat1/obsidian-latex-suite/blob/main/DOCS.md#IME-keyboards\">此处</a>。"
+			"desc": "开启后隐藏启动时的输入法警告。该警告会在启用 <code>$t(settings:advanced-snippets.suppress-IME.name)</code> 时显示。若已了解输入法限制，可开启此项。目前仅 iOS 和 Android 的触摸/滑动键盘（如 Gboard）支持输入法。详见<a href=\"https://github.com/artisticat1/obsidian-latex-suite/blob/main/DOCS.md#IME-keyboards\">此处</a>。"
 		},
 		"code-languages": {
 			"name": "视为数学模式的代码语言",
@@ -275,5 +275,20 @@
 		"snippet-bug": "在 GitHub 上报告问题",
 		"snippet-info": "打开片段快速概览",
 		"snippet-help": "在 GitHub 讨论区寻求帮助"
+	},
+	"editor-types": {
+		"snippets": "片段",
+		"snippetVariables": "片段变量",
+		"concealMaps": "隐藏映射",
+		"textMacros": "文本宏"
+	},
+	"confirmation": {
+		"delete-custom": "确定吗？这将删除你编写的所有自定义{{variable}}。",
+		"cancel": "取消"
+	},
+	"ime-warning": {
+		"before-setting": "Latex Suite：插件支持你的输入法，但当前已启用“",
+		"between-settings": "”。你可以在插件设置中关闭此项，以完全启用自动片段。请注意，这可能导致使用输入法时意外触发片段。要隐藏此警告，请开启“",
+		"after-setting": "”。"
 	}
 }
