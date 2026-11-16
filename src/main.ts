@@ -170,7 +170,7 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 		// legacy editor existed till 1.5.0
 		type TempOldAppVault = { config?: { legacyEditor: boolean } };
 		if ((this.app.vault as TempOldAppVault).config?.legacyEditor) {
-			const message = "Latex Suite: This plugin does not support the legacy editor. Switch to Live Preview mode to use this plugin.";
+			const message = t("legacy-editor-warning");
 
 			new Notice(message, 100000);
 			console.error(message);

@@ -236,7 +236,8 @@
 		},
 		"snippet-recursion": {
 			"name": "片段递归",
-			"desc": "连续运行片段的次数。设为 0 可禁用递归。<br><br><a href=\"https://github.com/artisticat1/obsidian-latex-suite/pull/536\">相关 PR/反馈</a>"
+			"desc": "连续运行片段的次数。设为 0 可禁用递归。<br><br><a href=\"https://github.com/artisticat1/obsidian-latex-suite/pull/536\">相关 PR/反馈</a>",
+			"invalid-notice": "片段递归次数必须为非负整数。"
 		},
 		"excalidraw-enabled": {
 			"name": "启用 Excalidraw",
@@ -290,5 +291,10 @@
 		"before-setting": "Latex Suite：插件支持你的输入法，但当前已启用“",
 		"between-settings": "”。你可以在插件设置中关闭此项，以完全启用自动片段。请注意，这可能导致使用输入法时意外触发片段。要隐藏此警告，请开启“",
 		"after-setting": "”。"
+	},
+	"legacy-editor-warning": "Latex Suite：此插件不支持旧版编辑器。请切换到实时预览模式以使用此插件。",
+	"file-watch": {
+		"parse-variable-failed": "解析变量文件 {{file}} 失败：{{error}}",
+		"parse-snippet-failed": "解析片段文件 {{file}} 失败：{{error}}"
 	}
 }

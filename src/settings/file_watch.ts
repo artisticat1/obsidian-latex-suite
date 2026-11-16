@@ -4,6 +4,7 @@ import { Snippet } from "../snippets/snippets";
 import { parseSnippets, parseSnippetVariables, type SnippetVariables } from "../snippets/parse";
 import { sortSnippets } from "src/snippets/sort";
 import type { PluginSnippetApi } from "src/snippets/luasnip_api";
+import { settings_translation as t } from "../i18n/i18n";
 
 type FSWatcher = ReturnType<typeof import("fs").watch>
 
@@ -370,7 +371,7 @@ export async function getVariablesFromFiles(files: SnippetVariableFileGenerator)
 				continue;
 			}
 			const e = err as Error;
-			const notice = new Notice(`Failed to parse variable file ${file.name}: ${e}`);
+			const notice = new Notice(t("file-watch.parse-variable-failed", { file: file.name, error: String(e) }));
 			noticeManager.addNotice(notice);
 			console.error(`Failed to parse variable file ${file.name}: ${e}`);
 			failures++;
@@ -401,7 +402,7 @@ export async function getSnippetsFromFiles(
 			snippets.push(...await parseSnippets(content, snippetVariables, file.path, pluginApi));
 		} catch (err) {
 			const e = err as Error;
-			const notice = new Notice(`Failed to parse snippet file ${file.name}: ${e}`);
+			const notice = new Notice(t("file-watch.parse-snippet-failed", { file: file.name, error: String(e) }));
 			noticeManager.addNotice(notice);
 			console.error(`Failed to parse snippet file ${file.name}: ${e}`);
 			failures++;
