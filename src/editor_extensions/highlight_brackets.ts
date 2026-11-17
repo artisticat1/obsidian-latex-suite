@@ -37,7 +37,7 @@ type BracketConcealment = {
 
 const bracket_delimiters = {
 	"{": "}",
-	"[": "}",
+	"[": "]",
 	"(": ")",
 	"\\{": "\\}",
 	// these don't neccessarily have to be paired: but they often do so we treat them like a pair.
@@ -157,37 +157,15 @@ function handleCtrlSeq(cursor: TreeCursor, doc: EquationText): BracketResult[] {
 	return [bracket];
 }
 
-const openBraceMap = {
-	"OpenBrace": "CloseBrace",
-	"OpenBracket": "CloseBracket",
-	"OpenParenMath": "CloseParenMath"
-}
 
 function handleOpenBrace(cursor: TreeCursor, doc: EquationText): BracketResult[] {
 	const node = cursor.node;
 	const open = node;
-	const closeName = openBraceMap[node.name as keyof typeof openBraceMap];
-	const inBetween: BracketResult[] = [];
-	while (cursor.nextSibling()) {
-		const sibling = cursor.node;
-		if (sibling && sibling.name === closeName) {
-			const close = sibling;
-			return [{
-				kind: "bracket",
-				open,
-				close,
-				children: inBetween,
-			}]
-		} else if (sibling) {
-			const newDoc = new EquationText(doc.eqn, sibling.from, sibling.to, doc.offset);
-			inBetween.push(...traverseTree(sibling, newDoc));
-		}
-	}
 	return [{
 		kind: "error_open",
 		open,
 		bracket: doc.slice(open.from, open.to),
-	}, ...inBetween]
+	}]
 }
 
 function handleMathSpecialChar(cursor: TreeCursor, doc: EquationText): BracketResult[] {
@@ -240,7 +218,8 @@ export function traverseTree(topNode: SyntaxNode, doc: EquationText): BracketRes
 			specs.push(...handleOpenBrace(cursor, doc));
 		} else if (
 			node.type.is(latex.CloseBrace) ||
-			node.type.is(latex.CloseBracket)
+			node.type.is(latex.CloseBracket) ||
+			node.type.is(latex.CloseParenMath)
 		) {
 			specs.push({
 				kind: "error_close",
