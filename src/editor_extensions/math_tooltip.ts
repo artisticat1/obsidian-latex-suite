@@ -14,6 +14,9 @@ type MathTooltip = {
 	bounds: Bounds,
 	pos: number,
 	tooltip: Tooltip,
+	domObject: {
+		dom: HTMLElement | null,
+	}
 }
 const HIGHLIGHT_CLASS = "mjx-latex-suite-math-preview-highlight";
 const CURSOR_CLASS = "mjx-latex-suite-cursor";
@@ -99,6 +102,7 @@ class MathTooltipPlugin implements PluginValue {
 	currentDoc: Document;
 	view: EditorView;
 	nextSelection: CMBound | null = null;
+	tooltip: MathTooltip | null = null;
 	constructor(view: EditorView, settings: LatexSuiteCMSettings) {
 		this.prevFocus = view.hasFocus;
 		this.hasFocus = view.hasFocus;
@@ -204,7 +208,34 @@ class MathTooltipPlugin implements PluginValue {
 	}
 }
 
-const mathTooltipPlugin = ViewPlugin.fromClass(MathTooltipPlugin);
+const HIDE_ZINDEX = "-1";
+
+const mathTooltipPlugin = ViewPlugin.fromClass(MathTooltipPlugin, {
+	eventObservers: {
+		drag: (event, view) => {
+			const tooltip = view.state.field(cursorTooltipField)[0];
+			if (!tooltip) return;
+			const dom = tooltip.domObject.dom;
+			if (!dom) return;
+			const domRect = dom.getBoundingClientRect();
+			const rect = {
+				left: domRect.left * 0.9,
+				top: domRect.top * 0.9,
+				right: domRect.right * 1.1,
+				bottom: domRect.bottom * 1.1,
+			}
+			const zIndex = dom.style.zIndex;
+			if (event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom) {
+				if (zIndex === HIDE_ZINDEX) return;
+				dom.setAttribute("data-dragging-z-index", zIndex);
+				dom.style.setProperty("z-index", HIDE_ZINDEX);
+			} else if (dom.getAttribute("data-dragging-z-index") !== null) {
+				const dataZindex = dom.getAttribute("data-dragging-z-index")!;
+				dom.style.setProperty("z-index", dataZindex);
+			}
+		}
+	}
+});
 
 // update the tooltip by dispatching an updateTooltipEffect
 export function handleMathTooltip(update: ViewUpdate) {
@@ -328,8 +359,10 @@ export function handleMathTooltip(update: ViewUpdate) {
 	const isEqnMultiline = isBoundMultiline(update.view, eqnBounds);
 
 	const above = settings.mathPreviewPositionIsAbove;
+	const domObject: { dom: HTMLElement | null } = { dom: null };	
 	const create: Tooltip["create"] = (view) => {
 		const dom = createElement("div")
+		domObject.dom = dom;
 		dom.addClass("cm-tooltip-cursor");
 		dom.addClass(above ? "cm-tooltip-above" : "cm-tooltip-below");
 		// there is a plugin that can hide > in block math mode in the output.
@@ -421,6 +454,7 @@ export function handleMathTooltip(update: ViewUpdate) {
 					bounds: eqnBounds,
 					pos: t.pos,
 					tooltip: t,
+					domObject,
 				})),
 			),
 		],
