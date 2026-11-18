@@ -106,7 +106,6 @@ export class MathBoundsPlugin implements PluginValue {
 	updateMathBounds(view: EditorView): void {
 		const tree = modifiedSyntaxTree(view.state);
 		const ranges: MathBounds[] = [];
-		const settings = getLatexSuiteConfig(view.state);
 		// for excalidraw the topnode is LaTeX, e.g. the whole document is in math mode.
 		if (tree.topNode.type.is(latex.MathJax)) {
 			const mathBound = {
@@ -122,95 +121,104 @@ export class MathBoundsPlugin implements PluginValue {
 			return
 		}
 		for (const { from, to } of view.visibleRanges) {
-			tree.iterate({
-				from,
-				to,
-				enter: (nodeRef: SyntaxNodeRef) => {
-					if (nodeRef.name === Type.DollarDisplayBlockMath) {
-						const { open, close } = this.getDollarBounds(nodeRef.node);
-						const children = nodeRef.node.getChildren("DisplayMath")
-						if (children.length === 0) {
-							ranges.push({
-								inner_start: open.to,
-								inner_end: close.from,
-								outer_start: open.from,
-								outer_end: close.to,
-								mode: MathMode.BlockMath,
-								tree: null,
-								overlay: [],
-							})
-							return;
-						}
-
-						const tree = nodeRef.node.enter(children[children.length - 1]!.to, -1);
-						if (!tree) {
-							return;
-						}
-
+			ranges.push(...this.computeMathBoundsFromBound({ from, to }, view));
+		}
+		this._mathBounds = ranges;
+	}
+	computeMathBoundsFromBound(bound: CMBound, view: EditorView): MathBounds[] {
+		const state = view.state
+		const { from, to } = bound;
+		const ranges: MathBounds[] = [];
+		const tree = modifiedSyntaxTree(state);
+		const settings = getLatexSuiteConfig(state);
+		tree.iterate({
+			from,
+			to,
+			enter: (nodeRef: SyntaxNodeRef) => {
+				if (nodeRef.name === Type.DollarDisplayBlockMath) {
+					const { open, close } = this.getDollarBounds(nodeRef.node);
+					const children = nodeRef.node.getChildren("DisplayMath")
+					if (children.length === 0) {
 						ranges.push({
 							inner_start: open.to,
 							inner_end: close.from,
 							outer_start: open.from,
 							outer_end: close.to,
 							mode: MathMode.BlockMath,
-							tree,
-							overlay: children,
-						});
-					} else if (
-						nodeRef.name === Type.DollarInlineMath ||
-						nodeRef.name === Type.DollarDisplayMath
-					) {
-						const { open, close } = this.getDollarBounds(nodeRef.node);
-						const tree = nodeRef.node.getChild(latex.MathJax);
-						if (!tree) {
-							return
-						}
-						const mode = nodeRef.name === Type.DollarInlineMath ? MathMode.InlineMath : MathMode.BlockMath;
-						ranges.push({
-							inner_start: open.to,
-							inner_end: close.from,
-							outer_start: open.from,
-							outer_end: close.to,
-							mode,
-							tree,
-							overlay: [tree],
-						});
-					} else if (nodeRef.name === "FencedCode") {
-						const infoNode = nodeRef.node.getChild("CodeInfo");
-						if (!infoNode) return;
-						const language = view.state.sliceDoc(infoNode.from, infoNode.to)
-						if (
-							!settings.forceMathLanguages.includes(language) &&
-							!settings.forceLatexLanguages.includes(language)
-						) {
-							return;
-						}
-						const contentNodes = nodeRef.node.getChildren("CodeText");
-						const lastNode = contentNodes.last();
-						if (!lastNode) return;
-						const tree = nodeRef.node.enter(lastNode.to, -1);
-						if (tree === null) return;
-						if (tree.type.is(latex.LaTeX)) {
-							ranges.push(...this.getMathBoundsFromLaTeXBlock(tree, view.state));
-							return false;
-						}
-						if (!tree.type.is(latex.MathJax)) return;
-						ranges.push({
-							inner_start: contentNodes[0]!.from,
-							inner_end: lastNode.to,
-							outer_start: nodeRef.node.from,
-							outer_end: nodeRef.node.to,
-							mode: MathMode.CodeMath,
-							tree,
-							overlay: contentNodes,
-						});
-					} else if (nodeRef.name === "HTMLBlock") {
-						ranges.push(...this.getMathBoundsFromHtmlBlock(nodeRef.node, view.state));
+							tree: null,
+							overlay: [],
+						})
+						return;
 					}
-				},
-			});
-		}
-		this._mathBounds = ranges;
+
+					const tree = nodeRef.node.enter(children[children.length - 1]!.to, -1);
+					if (!tree) {
+						return;
+					}
+
+					ranges.push({
+						inner_start: open.to,
+						inner_end: close.from,
+						outer_start: open.from,
+						outer_end: close.to,
+						mode: MathMode.BlockMath,
+						tree,
+						overlay: children,
+					});
+				} else if (
+					nodeRef.name === Type.DollarInlineMath ||
+					nodeRef.name === Type.DollarDisplayMath
+				) {
+					const { open, close } = this.getDollarBounds(nodeRef.node);
+					const tree = nodeRef.node.getChild(latex.MathJax);
+					if (!tree) {
+						return
+					}
+					const mode = nodeRef.name === Type.DollarInlineMath ? MathMode.InlineMath : MathMode.BlockMath;
+					ranges.push({
+						inner_start: open.to,
+						inner_end: close.from,
+						outer_start: open.from,
+						outer_end: close.to,
+						mode,
+						tree,
+						overlay: [tree],
+					});
+				} else if (nodeRef.name === "FencedCode") {
+					const infoNode = nodeRef.node.getChild("CodeInfo");
+					if (!infoNode) return;
+					const language = view.state.sliceDoc(infoNode.from, infoNode.to)
+					if (
+						!settings.forceMathLanguages.includes(language) &&
+						!settings.forceLatexLanguages.includes(language)
+					) {
+						return;
+					}
+					const contentNodes = nodeRef.node.getChildren("CodeText");
+					const lastNode = contentNodes.last();
+					if (!lastNode) return;
+					const tree = nodeRef.node.enter(lastNode.to, -1);
+					if (tree === null) return;
+					if (tree.type.is(latex.LaTeX)) {
+						ranges.push(...this.getMathBoundsFromLaTeXBlock(tree, view.state));
+						return false;
+					}
+					if (!tree.type.is(latex.MathJax)) return;
+					ranges.push({
+						inner_start: contentNodes[0]!.from,
+						inner_end: lastNode.to,
+						outer_start: nodeRef.node.from,
+						outer_end: nodeRef.node.to,
+						mode: MathMode.CodeMath,
+						tree,
+						overlay: contentNodes,
+					});
+				} else if (nodeRef.name === "HTMLBlock") {
+					ranges.push(...this.getMathBoundsFromHtmlBlock(nodeRef.node, view.state));
+				}
+			},
+		});
+		return ranges
 	}
 	getMathBoundsFromLaTeXBlock(node: SyntaxNode, state: EditorState): MathBounds[] {
 		const mathBounds: MathBounds[] = [];
@@ -276,44 +284,8 @@ export class MathBoundsPlugin implements PluginValue {
 
 
 	inMathBound(_state: EditorState, pos: number): MathBounds | null {
-		const bounds = this._mathBounds;
-		const firstBound = bounds[0];
-		if (!firstBound || pos < firstBound.outer_start || pos > bounds[bounds.length - 1]!.outer_end) {
-			return null;
-		}
-		// Use binary search to efficiently find if pos is within any math bound
-		let left = 0,
-			right = bounds.length - 1;
-		while (left <= right) {
-			const mid = (left + right) >> 1;
-			const bound = bounds[mid]!;
-			if (pos < bound.outer_start) {
-				right = mid - 1;
-			// excalidraw doesn't have delimiters thus they have 0 length and should be ignored for this check
-			} else if (pos >= bound.outer_end && bound.outer_end !== bound.inner_end) {
-				left = mid + 1;
-			} else if (
-				pos < bound.inner_start &&
-				bound.mode == MathMode.BlockMath &&
-				bound.inner_start - bound.outer_start == 2
-			) {
-				return {
-					outer_start: bound.outer_start,
-					inner_start: bound.outer_start + 1,
-					inner_end: bound.outer_start + 1,
-					outer_end: bound.outer_start + 2,
-					mode: MathMode.InlineMath,
-					tree: null,
-					overlay: [],
-				};
-			} else if (pos < bound.inner_start || pos > bound.inner_end) {
-				break;
-			} else {
-				return bound;
-			}
-		}
-		return null;
-	};
+		return inMathBound(_state, pos, this._mathBounds);
+	}
 
 	// TODO: maybe support math bounds outside viewport. But not sure if its needed.
 
@@ -344,3 +316,42 @@ export const getMathBoundsPlugin = (view: EditorView, init: boolean = true) => {
 	return init ? plugin.init(view) : plugin;
 };
 
+
+export function inMathBound(_state: EditorState, pos: number, bounds: MathBounds[]): MathBounds | null {
+	const firstBound = bounds[0];
+	if (!firstBound || pos < firstBound.outer_start || pos > bounds[bounds.length - 1]!.outer_end) {
+		return null;
+	}
+	// Use binary search to efficiently find if pos is within any math bound
+	let left = 0,
+		right = bounds.length - 1;
+	while (left <= right) {
+		const mid = (left + right) >> 1;
+		const bound = bounds[mid]!;
+		if (pos < bound.outer_start) {
+			right = mid - 1;
+		// excalidraw doesn't have delimiters thus they have 0 length and should be ignored for this check
+		} else if (pos >= bound.outer_end && bound.outer_end !== bound.inner_end) {
+			left = mid + 1;
+		} else if (
+			pos < bound.inner_start &&
+			bound.mode == MathMode.BlockMath &&
+			bound.inner_start - bound.outer_start == 2
+		) {
+			return {
+				outer_start: bound.outer_start,
+				inner_start: bound.outer_start + 1,
+				inner_end: bound.outer_start + 1,
+				outer_end: bound.outer_start + 2,
+				mode: MathMode.InlineMath,
+				tree: null,
+				overlay: [],
+			};
+		} else if (pos < bound.inner_start || pos > bound.inner_end) {
+			break;
+		} else {
+			return bound;
+		}
+	}
+	return null;
+};
