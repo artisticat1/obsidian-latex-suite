@@ -2,13 +2,8 @@ import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { ContextId, evalInObsidian, registerLibResolver } from "obsidian-integration-testing";
 // import "obsidian-integration-testing/vitest/typings";
 import { getTemporaryVault } from "obsidian-integration-testing/vitest-global-setup-plugin";
-import { TFile } from "obsidian";
 import type { Mode } from "../src/editor_context/options";
-import { createContextId } from "./setup";
-
-export interface FileContext {
-	file: TFile
-}
+import { createContextId, FileContext } from "./setup";
 
 function getEditorContext(doc: string, cursorPos: number) {
 	return evalInObsidian({
