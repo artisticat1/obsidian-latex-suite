@@ -2,7 +2,7 @@ import { SyntaxNode } from "@lezer/common";
 import type { RawSnippet } from "../main";
 
 
-export const options = ["T", "Tm", "Tn", "TM", "M", "n", "c", "m"] as const;
+export const options = ["T", "Tm", "Tn", "TM", "M", "n", "c", "m", ""] as const;
 export const names = [
 	["math-text", "T"],
 	["math-text-specified", "Tm"],
@@ -12,6 +12,7 @@ export const names = [
 	["inline-math", "n"],
 	["code", "c"],
 	["math", "m"],
+	["all", " "],
 	["math-exclude-pu", "m"],
 	["math-exclude-align", "m"],
 	["math-include-begin", "m"],
@@ -21,7 +22,7 @@ export const names = [
 	// as in most practical cases that makes the most sense. Also applies to math-exclude-pu.
 	["math-include-pu-align", "m"], 
 	["math-include-fcolorbox", "m"],
-	["math-context-include-html", ""]
+	["math-context-include-html", "t"]
 ] as const;
 
 const normal_name_options = [
@@ -33,6 +34,7 @@ const normal_name_options = [
 	["inline-math", "n"],
 	["code", "c"],
 	["math", "m"],
+	["all", " "],
 ] satisfies (typeof names)[number][];
 
 type Spec = {
@@ -46,20 +48,20 @@ export const transactionSpec: Spec[] = [
 	{
 		text: "$$\\text{}$$",
 		pos: "$$\\text{".length,
-		options: ["T", "Tm", "TM"],
-		names: ["math-text", "math-text-specified", "display-math-text"],
+		options: ["T", "Tm", "TM", " "],
+		names: ["math-text", "math-text-specified", "display-math-text", "all"],
 	},
 	{
 		text: "$\\text{}$",
 		pos: "$\\text{".length,
-		options: ["T", "Tn", "Tm"],
-		names: ["math-text", "inline-math-text", "math-text-specified"],
+		options: ["T", "Tn", "Tm", " "],
+		names: ["math-text", "inline-math-text", "math-text-specified", "all"],
 	},
 	{
 		text: "$\\fcolorbox{red}{blue}{green}$",
 		pos: "$\\fcolorbox{red}{blue}{green".length,
-		options: ["T", "Tn", "Tm"],
-		names: ["math-text", "inline-math-text", "math-text-specified"],
+		options: ["T", "Tn", "Tm", " "],
+		names: ["math-text", "inline-math-text", "math-text-specified", "all"],
 	},
 	{
 		text: "$\\fcolorbox{red}{blue}{green}$",
@@ -70,32 +72,32 @@ export const transactionSpec: Spec[] = [
 	{
 		text: "$$E=mc^a$$",
 		pos: "$$E=mc^a".length,
-		options: ["M", "m"],
-		names: ["display-math", "math", "math-exclude-pu", "math-exclude-align"],
+		options: ["M", "m", " "],
+		names: ["display-math", "math", "math-exclude-pu", "math-exclude-align", "all"],
 	},
 	{
 		text: "$a$",
 		pos: "$a".length,
-		options: ["n", "m"],
-		names: ["inline-math", "math", "math-exclude-pu", "math-exclude-align"],
+		options: ["n", "m", " "],
+		names: ["inline-math", "math", "math-exclude-pu", "math-exclude-align", "all"],
 	},
 	{
 		text: "```\n\n```",
 		pos: "```\n".length,
-		options: ["c"],
-		names: ["code"],
+		options: ["c", " "],
+		names: ["code", "all"],
 	},
 	{
 		text: "$$\\pu{}$$",
 		pos: "$$\\pu{".length,
-		options: ["M", "m"],
-		names: ["display-math", "math", "math-exclude-align", "math-include-pu-align"],
+		options: ["M", "m", " "],
+		names: ["display-math", "math", "math-exclude-align", "math-include-pu-align", "all"],
 	},
 	{
 		text: "$$\\begin{align}a&=b\\\\c&=d\\end{align}$$",
 		pos: "$$\\begin{align}a&=b\\\\c&=d".length,
-		options: ["M", "m"],
-		names: ["display-math", "math", "math-exclude-pu"],
+		options: ["M", "m", " "],
+		names: ["display-math", "math", "math-exclude-pu", "all"],
 	},
 	// snippetless envs
 	{
@@ -113,44 +115,44 @@ export const transactionSpec: Spec[] = [
 	{
 		text: "$$ \\pu{ \\begin{align} &A -> B \\\\ &C -> D \\end{align} } $$",
 		pos: "$$ \\pu{ \\begin{align} &A -> B".length,
-		options: ["m", "M"],
-		names: ["math-include-pu-align", "display-math", "math"],
+		options: ["m", "M", " "],
+		names: ["math-include-pu-align", "display-math", "math", "all"],
 	},
 	{
 		text: "$$\\pu{He2}{\\color{red}}$$",
 		pos: "$$\\pu{He2}{".length,
-		options: ["m", "M"],
-		names: ["display-math", "math", "math-exclude-pu", "math-exclude-align"],
+		options: ["m", "M", " "],
+		names: ["display-math", "math", "math-exclude-pu", "math-exclude-align", "all"],
 	},
 	{
 		text: '<div class="math math-inline">E=mc^a</div>',
 		pos: '<div class="math math-inline">E=mc^a'.length,
-		options: ["n", "m"],
-		names: ["inline-math", "math", "math-exclude-pu", "math-exclude-align"],
+		options: ["n", "m", " "],
+		names: ["inline-math", "math", "math-exclude-pu", "math-exclude-align", "all"],
 	},
 	{
 		text: '<div class="math math-display">E=mc^a</div>',
 		pos: '<div class="math math-inline">E=mc^a'.length,
-		options: ["M", "m"],
-		names: ["display-math", "math", "math-exclude-pu", "math-exclude-align"],
+		options: ["M", "m", " "],
+		names: ["display-math", "math", "math-exclude-pu", "math-exclude-align", "all"],
 	},
 	{
 		text: '<div class="math math-display">E=mc^a</div>',
 		pos: '<div class="math math-display">E=mc^a'.length,
-		options: ["M", "m"],
-		names: ["display-math", "math", "math-exclude-pu", "math-exclude-align"],
+		options: ["M", "m", " "],
+		names: ["display-math", "math", "math-exclude-pu", "math-exclude-align", "all"],
 	},
 	{
 		text: '<div class="math">E=mc^a</div>',
 		pos: '<div class="math">E=mc^a'.length,
-		options: ["M", "m"],
-		names: ["display-math", "math", "math-exclude-pu", "math-exclude-align"],
+		options: ["M", "m", " "],
+		names: ["display-math", "math", "math-exclude-pu", "math-exclude-align", "all"],
 	},
 	{
 		text: "<span>\n$$E=mc^a$$\n</span>",
 		pos: "<span>\n$$E=mc^a".length,
-		options: [""],
-		names: ["math-context-include-html"],
+		options: ["t", " "],
+		names: ["math-context-include-html", "all"],
 	}
 ];
 
@@ -211,7 +213,7 @@ const snippets = [
 	{
 		trigger: getTrigger(),
 		replacement: "",
-		options: "",
+		options: "t",
 		name: "math-context-include-html",
 		context: ({ node }: { node: SyntaxNode }) => {
 			let parent: SyntaxNode | null = node;
