@@ -122,10 +122,10 @@ class MathTooltipPlugin implements PluginValue {
 		const eqn = eventTarget.matchParent(".MathJax");
 		if (!eqn) return null;
 		const view = this.view
-		const posAtCoords = view.posAtCoords({x: event.clientX, y: event.clientY});
-		if (posAtCoords === null) {
-			return null;
-		}
+		// use false as display math at the end of document
+		// with no newline at the end in live preview
+		// doesn't generate coords otherwise
+		const posAtCoords = view.posAtCoords({x: event.clientX, y: event.clientY}, false);
 		const boundPlugin = getMathBoundsPlugin(view);
 		let eqnBounds;
 		for (const bound of boundPlugin.mathBounds) {
