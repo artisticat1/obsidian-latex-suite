@@ -287,14 +287,12 @@
 		"delete-custom": "确定吗？这将删除你编写的所有自定义{{variable}}。",
 		"cancel": "取消"
 	},
-	"ime-warning": {
-		"before-setting": "Latex Suite：插件支持你的输入法，但当前已启用“",
-		"between-settings": "”。你可以在插件设置中关闭此项，以完全启用自动片段。请注意，这可能导致使用输入法时意外触发片段。要隐藏此警告，请开启“",
-		"after-setting": "”。"
-	},
-	"legacy-editor-warning": "Latex Suite：此插件不支持旧版编辑器。请切换到实时预览模式以使用此插件。",
+	"ime-warning":"{{name}}：插件支持你的输入法，但当前已启用“<code>$t(advanced-snippets.heading) > $t(advanced-snippets.suppress-IME.name)</code>”。你可以在插件设置中关闭此项，以完全启用自动片段。请注意，这可能导致使用输入法时意外触发片段。要隐藏此警告，请开启“<code>$t(advanced-snippets.suppress-IME-warning.name)</code>”。",
+	"legacy-editor-warning": "{{name}}：此插件不支持旧版编辑器。请切换到实时预览模式以使用此插件。",
 	"file-watch": {
 		"parse-variable-failed": "解析变量文件 {{file}} 失败：{{error}}",
 		"parse-snippet-failed": "解析片段文件 {{file}} 失败：{{error}}"
-	}
+	},
+	"switch-to-english": "切换到英语",
+	"switch-to-default-language": "切换至中文"
 }

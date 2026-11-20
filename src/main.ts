@@ -36,6 +36,7 @@ import { snippetApi, type PluginSnippetApi } from "./snippets/luasnip_api";
 import { default_mapping, MappingSchema, type RawConcealMapping } from "./editor_extensions/conceal_maps";
 import { serializeSnippetLike } from "./snippets/snippets";
 import { mathlessArgsSchema, type MathlessMacroArgs } from "./editor_context/default_text_areas";
+import { renderHtml } from "./settings/settings_tab2";
 
 export default class LatexSuitePlugin extends Plugin implements LatexSuitePluginPublicApi {
 	settings: LatexSuitePluginSettings = EMPTY_SETTINGS;
@@ -170,7 +171,7 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 		// legacy editor existed till 1.5.0
 		type TempOldAppVault = { config?: { legacyEditor: boolean } };
 		if ((this.app.vault as TempOldAppVault).config?.legacyEditor) {
-			const message = t("legacy-editor-warning");
+			const message = t("legacy-editor-warning", { name: this.manifest.name });
 
 			new Notice(message, 100000);
 			console.error(message);
@@ -181,12 +182,7 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 
 	IMEEditorWarning() {
 		if (isIMESupported() && !this.settings.suppressIMEWarning && this.settings.suppressSnippetTriggerOnIME) {
-			const message = createFragment();
-			message.appendText(t("ime-warning.before-setting"));
-			message.createEl("code", { text: `${t("advanced-snippets.heading")} > ${t("advanced-snippets.suppress-IME.name")}` });
-			message.appendText(t("ime-warning.between-settings"));
-			message.createEl("code", { text: `${t("advanced-snippets.heading")} > ${t("advanced-snippets.suppress-IME-warning.name")}` });
-			message.appendText(t("ime-warning.after-setting"));
+			const message = renderHtml(t("ime-warning", { name: this.manifest.name }));
 			new Notice(message, 10000);
 			console.warn(message);
 		}

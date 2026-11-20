@@ -1,5 +1,5 @@
 import { EditorView } from "@codemirror/view";
-import { App, Component, Notice, Platform, PluginSettingTab, Setting, type SettingDefinitionItem, debounce, setIcon } from "obsidian";
+import { App, Component, Notice, Platform, PluginSettingTab, Setting, type SettingDefinitionItem, debounce, requireApiVersion, setIcon } from "obsidian";
 import { parseSnippetVariables, parseSnippets } from "src/snippets/parse";
 import LatexSuitePlugin from "../main";
 import { DEFAULT_SETTINGS, validateTextMacros, type LatexSuitePluginSettings } from "./settings";
@@ -51,7 +51,12 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 	}
 
 	getSettingDefinitions(): SettingDefinitionItem[] {
-		return new LatexSuiteSettingsTab2(this.app, this.plugin).getSettingDefinitions();
+		const updater = () => {
+			if (requireApiVersion("1.13.0")) {
+				this.update();
+			}
+		}
+		return new LatexSuiteSettingsTab2(this.app, this.plugin, updater).getSettingDefinitions();
 	}
 
 	addHeading(containerEl: HTMLElement, name: string, icon = "math") {

@@ -45,7 +45,7 @@
 		},
 		"color-math": {
 			"name": "Color math delimiters",
-			"desc": "Whether to colorize matched and mismatched math delimiters in the editor according to latex suite parser. This parser behaves closer to the reading view parser than the editor/syntax highlighting parser."
+			"desc": "Whether to colorize matched and mismatched math delimiters in the editor according to this plugin's parser. This parser behaves closer to the reading view parser than the editor/syntax highlighting parser."
 		}
 	},
 	"math-preview": {
@@ -287,14 +287,16 @@
 		"delete-custom": "Are you sure? This will delete any custom {{variable}} you have written.",
 		"cancel": "Cancel"
 	},
-	"ime-warning": {
-		"before-setting": "Latex Suite: this plugin supports your IME keyboard, but ",
-		"between-settings": " is currently enabled. You may want to disable it in the plugin settings to fully enable automatic snippets. Be aware that this may cause unexpected snippet triggers while using your IME. To turn this warning off, enable ",
-		"after-setting": "."
-	},
-	"legacy-editor-warning": "Latex Suite: This plugin does not support the legacy editor. Switch to Live Preview mode to use this plugin.",
+	"ime-warning": "{{name}}: this plugin supports your IME keyboard, but <code>$t(advanced-snippets.heading) > $t(advanced-snippets.suppress-IME.name)</code> is currently enabled. You may want to disable it in the plugin settings to fully enable automatic snippets. Be aware that this may cause unexpected snippet triggers while using your IME. To turn this warning off, enable <code>$t(advanced-snippets.suppress-IME-warning.name)</code>.",
+	"legacy-editor-warning": "{{name}}: This plugin does not support the legacy editor. Switch to Live Preview mode to use this plugin.",
 	"file-watch": {
 		"parse-variable-failed": "Failed to parse variable file {{file}}: {{error}}",
 		"parse-snippet-failed": "Failed to parse snippet file {{file}}: {{error}}"
+	},
+	"switch-to-english": "Switch to English",
+	"switch-to-default-language": "Switch to English",
+	"translation": {
+		"name": "Translation",
+		"desc": "The translation relies on user's contributions. If you see any issues or want to add your own translation, please submit a pull request to <a href=\"https://github.com/artisticat1/obsidian-latex-suite/pulls\">GitHub</a>. See <a href=\"https://github.com/artisticat1/obsidian-latex-suite/blob/main/CONTRIBUTING.md\">CONTRIBUTING.md</a> for more information on how to contribute translations."
 	}
 }
