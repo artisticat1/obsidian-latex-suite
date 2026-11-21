@@ -1,0 +1,302 @@
+{
+	"snippets": {
+		"heading": "片段",
+		"enabled": {
+			"name": "已启用",
+			"desc": "是否启用片段。片段格式说明请参阅<a href=\"https://github.com/artisticat1/obsidian-latex-suite/blob/main/DOCS.md#snippets\">文档</a>。"
+		},
+		"snippets": {
+			"name": "片段",
+			"desc": "在此输入片段。每个片段后需添加逗号；每个反斜杠前需再添加一个反斜杠，例如 <code>\\</code> 写成 <code>\\\\</code>。以 <code>//</code> 开头的行将作为注释忽略。"
+		},
+		"load-from-file": {
+			"name": "从文件或文件夹加载片段",
+			"desc": "是否从指定的文件或文件夹中的所有文件加载片段（而不是使用插件设置中的片段）。"
+		},
+		"file-path": {
+			"name": "片段文件或文件夹位置",
+			"desc": "要加载片段的文件或文件夹。桌面端可使用 ~/ 或绝对路径。根据操作系统不同，库外文件或隐藏文件夹中的文件可能不会被监视。"
+		}
+	},
+	"conceal": {
+		"heading": "隐藏语法",
+		"enabled": {
+			"name": "已启用",
+			"desc": "隐藏 LaTeX 语法并以更易读的格式显示，使公式更清晰。<br>例如 <code>\\dot{x}^{2} + \\dot{y}^{2}</code> 显示为 <code>ẋ² + ẏ²</code>，<code>\\sqrt{ 1-\\beta^{2} }</code> 显示为 <code>√(1-β²)</code><br>光标下方的 LaTeX 会重新显示。<br><br>默认关闭，以免新用户困惑。熟悉插件后可启用。"
+		},
+		"reveal-delay": {
+			"name": "重新显示延迟（毫秒）",
+			"desc": "光标移到 LaTeX 上后，延迟多久重新显示，单位为毫秒。默认 0（光标下方立即显示）。<br><br>可设为正数，例如 300，使方向键浏览公式更容易。<br><br>必须为 ≥ 0 的整数。"
+		},
+		"conceal-maps": {
+			"name": "隐藏映射",
+			"desc": "用于添加或移除宏/符号隐藏的映射。<br>例如，如果不希望 <code>\\quad</code> 显示为空格，或有自定义宏 <code>\\euro</code>，可在 <code>cmd_symbols</code> 映射中添加 <code>€</code>。<br><br>除 <code>operators</code> 和 <code>function_macros</code> 外，每个映射都按 <code>\"euro\": \"€\"</code> 的格式添加，按 <code>\"quad\": null</code> 移除。<br><code>operators</code> 使用 <code>\"sin\": false</code> 启用或禁用 <code>\\sin</code> 到 <code>sin</code> 的隐藏。<br><br>仅支持 JSON，不允许注释或尾随逗号。<br><br>详见<a href=\"https://github.com/artisticat1/obsidian-latex-suite/blob/main/DOCS.md#conceal-maps\">隐藏映射</a>。"
+		}
+	},
+	"highlight-brackets": {
+		"heading": "括号高亮与着色",
+		"color-brackets": {
+			"name": "配对括号着色",
+			"desc": "是否为匹配的括号着色。"
+		},
+		"highlight-brackets": {
+			"name": "高亮光标下的匹配括号",
+			"desc": "光标位于括号旁时，高亮匹配的括号。"
+		},
+		"color-math": {
+			"name": "数学定界符着色",
+			"desc": "是否按本插件的解析器为编辑器中匹配和不匹配的数学定界符着色。该解析器更接近阅读视图解析器，而不是编辑器/语法高亮解析器。"
+		}
+	},
+	"math-preview": {
+		"heading": "数学弹窗预览",
+		"enabled": {
+			"name": "已启用",
+			"desc": "在公式内时显示渲染后数学公式的弹窗预览。<br><br>所有行内公式以及源码模式中的块级公式都会显示预览。"
+		},
+		"position": {
+			"name": "位置",
+			"desc": "弹窗预览相对于公式源码的位置。",
+			"options": {
+				"above": "上方",
+				"below": "下方"
+			}
+		},
+		"cursor-symbol": {
+			"name": "光标符号",
+			"desc": "弹窗预览中用作光标的符号，例如 {{cursor}}。留空则关闭。"
+		},
+		"highlight-brackets": {
+			"name": "预览中高亮括号",
+			"desc": "是否在弹窗预览中高亮光标附近最近一对括号内的区域。"
+		},
+		"display-live-preview": {
+			"name": "在实时预览中显示",
+			"desc": "是否在实时预览模式下显示此工具提示。光标和括号高亮仅在此预览中显示，不会在 Obsidian 的预览中显示。"
+		}
+	},
+	"auto-fraction": {
+		"heading": "自动分数",
+		"enabled": {
+			"name": "已启用",
+			"desc": "是否启用自动分数。"
+		},
+		"fraction-symbol": {
+			"name": "分数符号",
+			"desc": "替换时使用的分数符号，例如 <code>\\frac</code>、<code>\\dfrac</code>、<code>\\tfrac</code>。"
+		},
+		"excluded-environments": {
+			"name": "排除环境",
+			"desc": "不允许自动分数运行的环境列表。例如，要避免在指数中运行，如 <code>e^{...}</code>，可使用 <code>[\"^{\", \"}\"]</code>。"
+		},
+		"breaking-characters": {
+			"name": "分隔字符",
+			"desc": "用于标记分数开始/结束的字符列表。例如，若列表包含 <code>+</code>，<code>a+b/c</code> 会展开为 <code>a+\\frac{b}{c}</code>；若不包含 <code>+</code>，则展开为 <code>\\frac{a+b}{c}</code>。"
+		}
+	},
+	"matrix-shortcuts": {
+		"heading": "矩阵快捷键",
+		"enabled": {
+			"name": "已启用",
+			"desc": "是否启用矩阵快捷键。"
+		},
+		"environments": {
+			"name": "环境",
+			"desc": "运行矩阵快捷键的环境名称列表，以逗号分隔。"
+		},
+		"macros": {
+			"name": "宏",
+			"desc": "运行矩阵快捷键的宏名称列表，以逗号分隔。"
+		}
+	},
+	"tabout": {
+		"heading": "跳出",
+		"enabled": {
+			"name": "已启用",
+			"desc": "是否启用跳出。"
+		},
+		"closing-brackets": {
+			"name": "闭合括号",
+			"desc": "用于跳出的闭合括号列表，以逗号分隔。"
+		},
+		"exit-EOL": {
+			"name": "仅在行末跳出公式",
+			"desc": "是否仅在光标位于行末时跳出公式。"
+		}
+	},
+	"auto-enlarge": {
+		"heading": "自动放大括号",
+		"enabled": {
+			"name": "已启用",
+			"desc": "是否自动放大包含 sum、int、frac 等内容的括号。"
+		},
+		"triggers": {
+			"name": "触发符号",
+			"desc": "触发自动放大括号的符号列表，以逗号分隔。"
+		},
+		"space": {
+			"name": "空格",
+			"desc": "是否在 <code>\\left(</code> 后和 <code>\\right)</code> 前添加空格。"
+		}
+	},
+	"advanced-snippets": {
+		"heading": "高级片段",
+		"variables": {
+			"name": "片段变量",
+			"desc": "指定编写片段时可作为快捷方式的片段变量。"
+		},
+		"load-variables-from-file": {
+			"name": "从文件或文件夹加载片段变量",
+			"desc": "是否从指定文件或文件夹中的所有文件加载片段变量（而不是使用插件设置中的片段变量）。"
+		},
+		"variables-file-path": {
+			"name": "片段变量文件或文件夹位置",
+			"desc": "要加载片段变量的文件或文件夹。桌面端可使用 ~/ 或绝对路径。根据操作系统不同，库外文件或隐藏文件夹中的文件可能不会被监视。"
+		},
+		"word-delimiters": {
+			"name": "单词分隔符",
+			"desc": "将被视为单词分隔符的符号，用于 <code>w</code> 片段选项。"
+		},
+		"trailing-whitespace": {
+			"name": "移除行内数学片段末尾的空白",
+			"desc": "在行内数学块末尾展开片段时，是否移除末尾空白。"
+		},
+		"auto-delete$": {
+			"name": "在空白行内数学中退格时移除闭合 $",
+			"desc": "删除空白行内数学中的起始 $ 时，是否同时移除闭合 $。"
+		},
+		"suppress-IME": {
+			"name": "输入法激活时不触发片段",
+			"desc": "是否在输入法激活时阻止片段触发。"
+		},
+		"suppress-IME-warning": {
+			"name": "隐藏输入法警告",
+			"desc": "开启后隐藏启动时的输入法警告。该警告会在启用 <code>$t(settings:advanced-snippets.suppress-IME.name)</code> 时显示。若已了解输入法限制，可开启此项。目前仅 iOS 和 Android 的触摸/滑动键盘（如 Gboard）支持输入法。详见<a href=\"https://github.com/artisticat1/obsidian-latex-suite/blob/main/DOCS.md#IME-keyboards\">此处</a>。"
+		},
+		"code-languages": {
+			"name": "视为数学模式的代码语言",
+			"desc": "将整个代码块视为数学块的代码块语言，以逗号分隔。"
+		},
+		"snippet-debug-mode": {
+			"name": "片段调试模式",
+			"desc": "设置片段展开的调试信息级别。设为 <code>info</code> 或 <code>verbose</code> 可帮助识别正在展开哪个片段。详细模式会在开发者控制台以 debug 级别记录大部分信息。",
+			"options": {
+				"off": "关闭",
+				"info": "信息",
+				"verbose": "详细"
+			}
+		},
+		"text-macros": {
+			"name": "文本宏",
+			"desc": "应作为文本处理的宏列表。<ul><li>\"text\" 宏按 LaTeX 文本模式处理，因此带选项 <code>T</code> 的片段会展开。</li><li>\"restricted\" 宏按 <code>\\begin</code> 和 <code>\\end</code> 宏处理，因此仅当片段通过 <code>includedMacros</code> 包含这些宏时才会在其中展开。</li></ul><br>格式与片段中的 <code>includedMacros</code> 相同，详见<a href=\"https://github.com/artisticat1/obsidian-latex-suite/blob/main/DOCS.md#macro-scopes\">此处</a>。<br><br>仅支持 JSON，不允许注释或尾随逗号。"
+		},
+		"snippetless-macros": {
+			"name": "无片段宏",
+			"desc": "不应展开任何片段的宏列表，带 `includedMacros` 选项的片段除外。"
+		}
+	},
+	"vim": {
+		"enabled": {
+			"name": "Vim 键位",
+			"desc": "开启/关闭 Vim 键位。需先在 Obsidian 中启用 Vim。"
+		},
+		"select-mode": {
+			"name": "Vim：从可视模式切换到选择模式",
+			"desc": "设置从可视模式切换到选择模式的按键。必须为 Vim 键位且不能包含空格。留空可禁用此功能。（选择模式=插入键位）"
+		},
+		"visual-mode": {
+			"name": "Vim：从选择模式切换到可视模式",
+			"desc": "设置从选择模式切换到可视模式的按键。必须为 Vim 键位且不能包含空格。例如 <code>&lt;C-g&gt;&lt;C-A-i&gt;</code> = <code>Ctrl-g + Ctrl-Alt-i</code>。报告问题前请先用其他命令（如 w）检查 Vim 键位。部分键位（如 shift）因原 Vim 插件限制不可用。留空可禁用此功能。（选择模式=插入键位）"
+		},
+		"matrix-enter": {
+			"name": "Vim：执行矩阵换行",
+			"desc": "设置在矩阵环境中当前行末尾追加 <code>\\\\</code> 并在下方插入新行的按键。留空可禁用此功能。"
+		}
+	},
+	"keymap": {
+		"desc": "触发操作所用的按键。应遵循 CodeMirror 6 键位语法，例如 <code>Ctrl-k Ctrl-a</code>。详见<a href=\"https://codemirror.net/6/docs/ref/#keymap\">CodeMirror 键位</a><br><br>部分键位可能因与 Obsidian 或其他插件冲突而失效。<br><br>操作按列出顺序展开。片段中的自定义键位与 <code>$t(settings:keymap.snippet)</code> 优先级相同。",
+		"heading": {
+			"name": "键位",
+			"desc": "片段和跳出的 CodeMirror 6 键位。"
+		},
+		"snippet": "展开手动片段",
+		"next-tabstop": "下一个制表位",
+		"prev-tabstop": "上一个制表位",
+		"tabout": "跳出",
+		"reverse-tabout": "反向跳出",
+		"matrix-newline": "矩阵：插入换行和 \"\\\\\"",
+		"matrix-cell": "矩阵：插入 \" & \"",
+		"matrix-exit": "矩阵：移到下一行",
+		"auto-fraction": "展开分数"
+	},
+	"experimental": {
+		"heading": {
+			"name": "实验性功能",
+			"desc": "仍在测试、可能需要用户反馈的功能。这些功能的向后兼容性可能改变，或这些设置可能被覆盖。"
+		},
+		"snippet-recursion": {
+			"name": "片段递归",
+			"desc": "连续运行片段的次数。设为 0 可禁用递归。<br><br><a href=\"https://github.com/artisticat1/obsidian-latex-suite/pull/536\">相关 PR/反馈</a>",
+			"invalid-notice": "片段递归次数必须为非负整数。"
+		},
+		"excalidraw-enabled": {
+			"name": "启用 Excalidraw",
+			"desc": "启用或禁用 Excalidraw 集成。"
+		},
+		"log-level": {
+			"name": "日志级别",
+			"desc": "设置记录的调试信息级别。反馈问题时请设为 <code>$t(settings:experimental.log-level.options.vverbose)</code>。",
+			"options": {
+				"off": "关闭",
+				"info": "信息",
+				"verbose": "详细",
+				"vverbose": "极详细"
+			}
+		},
+		"conceal-log-level": {
+			"name": "隐藏日志级别",
+			"desc": "问题 <a href=\"https://github.com/artisticat1/obsidian-latex-suite/issues/549\">#549</a> 的临时设置。",
+			"options": {
+				"off": "关闭",
+				"verbose": "详细"
+			}
+		},
+		"snippet-IME-version": {
+			"name": "片段输入法版本",
+			"desc": "输入法组合完成后按键时是否展开自动片段。这或许能解决部分输入法/中文键盘问题。"
+		},
+		"math-elements-clickable": {
+			"name": "数学元素可点击",
+			"desc": "是否使数学元素可点击，点击后光标大致移动到对应源码处。这是在 Obsidian 和 MathJax 限制下的近似行为。点击 Obsidian 渲染元素而不是数学工具提示时可能有延迟/抖动；若 MathJax 信息不足，光标不一定移动或移动正确。例如展开为 <code>\\;\\LongRightArrow\\;</code> 的宏 <code>\\implies</code> 无法使用。"
+		}
+	},
+	"tooltips": {
+		"reset-to-defaults": "重置为默认 {{variable}}",
+		"trash": "移除所有 {{variable}}",
+		"snippet-bug": "在 GitHub 上报告问题",
+		"snippet-info": "打开片段快速概览",
+		"snippet-help": "在 GitHub 讨论区寻求帮助"
+	},
+	"editor-types": {
+		"snippets": "片段",
+		"snippetVariables": "片段变量",
+		"concealMaps": "隐藏映射",
+		"textMacros": "文本宏"
+	},
+	"confirmation": {
+		"delete-custom": "确定吗？这将删除你编写的所有自定义{{variable}}。",
+		"cancel": "取消"
+	},
+	"ime-warning": "{{name}}：插件支持你的输入法，但当前已启用“<code>$t(advanced-snippets.heading) > $t(advanced-snippets.suppress-IME.name)</code>”。你可以在插件设置中关闭此项，以完全启用自动片段。请注意，这可能导致使用输入法时意外触发片段。要隐藏此警告，请开启“<code>$t(advanced-snippets.suppress-IME-warning.name)</code>”。",
+	"legacy-editor-warning": "{{name}}：此插件不支持旧版编辑器。请切换到实时预览模式以使用此插件。",
+	"file-watch": {
+		"parse-variable-failed": "解析变量文件 {{file}} 失败：{{error}}",
+		"parse-snippet-failed": "解析片段文件 {{file}} 失败：{{error}}"
+	},
+	"switch-to-english": "切换到英语",
+	"switch-to-default-language": "切换至中文",
+	"translation": {
+		"name": "翻译",
+		"desc": "翻译依赖用户贡献。如果你发现任何问题，或希望添加自己的翻译，请在 <a href=\"https://github.com/artisticat1/obsidian-latex-suite/pulls\">GitHub</a> 提交 Pull Request。有关如何贡献翻译的更多信息，请参阅 <a href=\"https://github.com/artisticat1/obsidian-latex-suite/blob/main/CONTRIBUTING.md\">CONTRIBUTING.md</a>。"
+	}
+}

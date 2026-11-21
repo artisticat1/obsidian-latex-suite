@@ -1,5 +1,5 @@
 import { EditorView } from "@codemirror/view";
-import { App, Component, Notice, Platform, PluginSettingTab, Setting, type SettingDefinitionItem, debounce, setIcon } from "obsidian";
+import { App, Component, Notice, Platform, PluginSettingTab, Setting, type SettingDefinitionItem, debounce, requireApiVersion, setIcon } from "obsidian";
 import { parseSnippetVariables, parseSnippets } from "src/snippets/parse";
 import LatexSuitePlugin from "../main";
 import { DEFAULT_SETTINGS, validateTextMacros, type LatexSuitePluginSettings } from "./settings";
@@ -51,7 +51,12 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 	}
 
 	getSettingDefinitions(): SettingDefinitionItem[] {
-		return new LatexSuiteSettingsTab2(this.app, this.plugin).getSettingDefinitions();
+		const updater = () => {
+			if (requireApiVersion("1.13.0")) {
+				this.update();
+			}
+		}
+		return new LatexSuiteSettingsTab2(this.app, this.plugin, updater).getSettingDefinitions();
 	}
 
 	addHeading(containerEl: HTMLElement, name: string, icon = "math") {
@@ -89,11 +94,11 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 	private displaySnippetSettings() {
 		const containerEl = this.containerEl;
-		this.addHeading(containerEl, "Snippets", "ballpen");
+		this.addHeading(containerEl, t("snippets.heading"), "ballpen");
 
 		new Setting(containerEl)
-			.setName("Enabled")
-			.setDesc("Whether snippets are enabled.")
+			.setName(t("snippets.enabled.name"))
+			.setDesc(this.renderHtml(t("snippets.enabled.desc")))
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.snippetsEnabled)
 				.onChange(async (value) => {
@@ -103,8 +108,8 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 
 		const snippetsSetting = new Setting(containerEl)
-			.setName("Snippets")
-			.setDesc("Enter snippets here.  Remember to add a comma after each snippet, and escape all backslashes with an extra \\. Lines starting with \"//\" will be treated as comments and ignored.")
+			.setName(t("snippets.snippets.name"))
+			.setDesc(this.renderHtml(t("snippets.snippets.desc")))
 			.setClass("snippets-text-area");
 
 
@@ -117,8 +122,8 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 
 		new Setting(containerEl)
-			.setName("Load snippets from file or folder")
-			.setDesc("Whether to load snippets from a specified file, or from all files within a folder (instead of from the plugin settings).")
+			.setName(t("snippets.load-from-file.name"))
+			.setDesc(this.renderHtml(t("snippets.load-from-file.desc")))
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.loadSnippetsFromFile)
 				.onChange(async (value) => {
@@ -134,11 +139,11 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 		const snippetsFileLocDesc = new DocumentFragment();
 		snippetsFileLocDesc.createDiv({}, div => {
-			div.appendText("The file or folder to load snippets from. On desktop you can use ~/ or an absolute path. Files outside your vault or in hidden folders may not be watched for changes depending on your os.")
+			div.appendText(t("snippets.file-path.desc"));
 		});
 
 		const snippetsFileLoc = new Setting(containerEl)
-			.setName("Snippets file or folder location")
+			.setName(t("snippets.file-path.name"))
 			.setDesc(snippetsFileLocDesc);
 
 		let inputEl;
@@ -168,11 +173,11 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 	private displayConcealSettings() {
 		const containerEl = this.containerEl;
-		this.addHeading(containerEl, "Conceal", "math-integral-x");
+		this.addHeading(containerEl, t("conceal.heading"), "math-integral-x");
 
 		const fragment = renderHtml(t("conceal.enabled.desc"))
 		new Setting(containerEl)
-			.setName("Enabled")
+			.setName(t("conceal.enabled.name"))
 			.setDesc(fragment)
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.concealEnabled)
@@ -184,7 +189,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 		const fragment2 = renderHtml(t("conceal.reveal-delay.desc"))
 		new Setting(containerEl)
-			.setName("Reveal delay (ms)")
+			.setName(t("conceal.reveal-delay.name"))
 			.setDesc(fragment2)
 			.addText(text => text
 				.setPlaceholder(String(DEFAULT_SETTINGS.concealRevealTimeout))
@@ -216,11 +221,11 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 	private displayColorHighlightBracketsSettings() {
 		const containerEl = this.containerEl;
-		this.addHeading(containerEl, "Highlight and color brackets", "parentheses");
+		this.addHeading(containerEl, t("highlight-brackets.heading"), "parentheses");
 
 		new Setting(containerEl)
-			.setName("Color paired brackets")
-			.setDesc("Whether to colorize matching brackets.")
+			.setName(t("highlight-brackets.color-brackets.name"))
+			.setDesc(this.renderHtml(t("highlight-brackets.color-brackets.desc")))
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.colorPairedBracketsEnabled)
 				.onChange(async (value) => {
@@ -228,8 +233,8 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 		new Setting(containerEl)
-			.setName("Highlight matching bracket beneath cursor")
-			.setDesc("When the cursor is adjacent to a bracket, highlight the matching bracket.")
+			.setName(t("highlight-brackets.highlight-brackets.name"))
+			.setDesc(this.renderHtml(t("highlight-brackets.highlight-brackets.desc")))
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.highlightCursorBracketsEnabled)
 				.onChange(async (value) => {
@@ -237,8 +242,8 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 		new Setting(containerEl)
-			.setName("Highlight math delimiters")
-			.setDesc("Whether to highlight matched and mismatched math delimiters in the editor according to latex suite parser. This parser behaves closer to the reading view parser than the editor/syntax highlighting parser.")
+			.setName(t("highlight-brackets.color-math.name"))
+			.setDesc(this.renderHtml(t("highlight-brackets.color-math.desc")))
 			.addToggle((toggle) => toggle
 				.setValue(this.plugin.settings.highlightDollarEnabled)
 				.onChange(async (value) => {
@@ -250,26 +255,18 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 	private displayPopupPreviewSettings() {
 		const containerEl = this.containerEl;
-		this.addHeading(containerEl, "Math popup preview", "superscript");
-
-		const popup_fragment = new DocumentFragment();
-		const popup_line1 = popup_fragment.createDiv();
-		popup_line1.setText("When inside an equation, show a popup preview window of the rendered math.");
-		const popup_space = popup_fragment.createEl("br");
-		const popup_line2 = popup_fragment.createDiv();
-		popup_line2.setText("The popup preview will be shown for all inline math equations, as well as for block math equations in Source mode.");
-		popup_fragment.append(popup_line1, popup_space, popup_line2);
+		this.addHeading(containerEl, t("math-preview.heading"), "superscript");
 
 		const mathPreviewSetting = new Setting(containerEl)
-			.setName("Enabled")
-			.setDesc(popup_fragment)
+			.setName(t("math-preview.enabled.name"))
+			.setDesc(this.renderHtml(t("math-preview.enabled.desc")))
 
 		const positionSetting = new Setting(containerEl)
-			.setName("Position")
-			.setDesc("Where to display the popup preview relative to the equation source.")
+			.setName(t("math-preview.position.name"))
+			.setDesc(this.renderHtml(t("math-preview.position.desc")))
 			.addDropdown((dropdown) => dropdown
-				.addOption("Above", "Above")
-				.addOption("Below", "Below")
+				.addOption("Above", t("math-preview.position.options.above"))
+				.addOption("Below", t("math-preview.position.options.below"))
 				.setValue(this.plugin.settings.mathPreviewPositionIsAbove ? "Above" : "Below")
 				.onChange(async (value) => {
 					this.plugin.settings.mathPreviewPositionIsAbove = (value === "Above");
@@ -277,8 +274,8 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				})
 			);
 		const cursorSetting = new Setting(containerEl)
-			.setName("Cursor symbol")
-			.setDesc(`The symbol to use as the cursor in the popup preview such as ${DEFAULT_SETTINGS.mathPreviewCursor}. Leave it blank to turn it off.`)
+			.setName(t("math-preview.cursor-symbol.name"))
+			.setDesc(this.renderHtml(t("math-preview.cursor-symbol.desc", { cursor: DEFAULT_SETTINGS.mathPreviewCursor })))
 			.addText(text => {
 				text
 					.setPlaceholder(DEFAULT_SETTINGS.mathPreviewCursor)
@@ -295,8 +292,8 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			});
 
 		const highlightSetting = new Setting(containerEl)
-			.setName("Highlight brackets in preview")
-			.setDesc("Whether to highlight the area within the nearest pair of brackets around the cursor in the popup preview.")
+			.setName(t("math-preview.highlight-brackets.name"))
+			.setDesc(this.renderHtml(t("math-preview.highlight-brackets.desc")))
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.mathPreviewBracketHighlighting)
 				.onChange(async (value) => {
@@ -305,11 +302,8 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				}));
 
 		const livePreviewDisplay = new Setting(containerEl)
-			.setName("Display live preview")
-			.setDesc(
-				"Whether to display the tooltip in live preview mode. " +
-					"The cursor and bracket highlighting will only be shown in this preview and not in obsidian's preview. ",
-			)
+			.setName(t("math-preview.display-live-preview.name"))
+			.setDesc(this.renderHtml(t("math-preview.display-live-preview.desc")))
 			.addToggle((toggle) =>
 				toggle
 				.setValue(this.plugin.settings.mathPreviewLivePreviewDisplay)
@@ -341,11 +335,11 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 	private displayAutofractionSettings() {
 		const containerEl = this.containerEl;
-		this.addHeading(containerEl, "Auto-fraction", "math-x-divide-y-2");
+		this.addHeading(containerEl, t("auto-fraction.heading"), "math-x-divide-y-2");
 
 		new Setting(containerEl)
-			.setName("Enabled")
-			.setDesc("Whether auto-fraction is enabled.")
+			.setName(t("auto-fraction.enabled.name"))
+			.setDesc(this.renderHtml(t("auto-fraction.enabled.desc")))
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.autofractionEnabled)
 				.onChange(async (value) => {
@@ -354,8 +348,8 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName("Fraction symbol")
-			.setDesc("The fraction symbol to use in the replacement. e.g. \\frac, \\dfrac, \\tfrac")
+			.setName(t("auto-fraction.fraction-symbol.name"))
+			.setDesc(this.renderHtml(t("auto-fraction.fraction-symbol.desc")))
 			.addText(text => {
 				text
 					.setPlaceholder(DEFAULT_SETTINGS.autofractionSymbol)
@@ -373,8 +367,8 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 
 		new Setting(containerEl)
-			.setName("Excluded environments")
-			.setDesc("A list of environments to exclude auto-fraction from running in. For example, to exclude auto-fraction from running while inside an exponent, such as e^{...}, use  [\"^{\", \"}\"]")
+			.setName(t("auto-fraction.excluded-environments.name"))
+			.setDesc(this.renderHtml(t("auto-fraction.excluded-environments.desc")))
 			.addTextArea(text => text
 				.setPlaceholder("[ [\"^{\", \"}] ]")
 				.setValue(this.plugin.settings.autofractionExcludedEnvs)
@@ -385,8 +379,8 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 
 		new Setting(containerEl)
-			.setName("Breaking characters")
-			.setDesc("A list of characters that denote the start/end of a fraction. e.g. if + is included in the list, \"a+b/c\" will expand to \"a+\\frac{b}{c}\". If + is not in the list, it will expand to \"\\frac{a+b}{c}\".")
+			.setName(t("auto-fraction.breaking-characters.name"))
+			.setDesc(this.renderHtml(t("auto-fraction.breaking-characters.desc")))
 			.addText(text => text
 				.setPlaceholder(DEFAULT_SETTINGS.autofractionBreakingChars)
 				.setValue(this.plugin.settings.autofractionBreakingChars)
@@ -399,11 +393,11 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 	private displayMatrixShortcutsSettings() {
 		const containerEl = this.containerEl;
-		this.addHeading(containerEl, "Matrix shortcuts", "brackets-contain");
+		this.addHeading(containerEl, t("matrix-shortcuts.heading"), "brackets-contain");
 
 		new Setting(containerEl)
-			.setName("Enabled")
-			.setDesc("Whether matrix shortcuts are enabled.")
+			.setName(t("matrix-shortcuts.enabled.name"))
+			.setDesc(this.renderHtml(t("matrix-shortcuts.enabled.desc")))
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.matrixShortcutsEnabled)
 				.onChange(async (value) => {
@@ -412,8 +406,8 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName("Environments")
-			.setDesc("A list of environment names to run the matrix shortcuts in, separated by commas.")
+			.setName(t("matrix-shortcuts.environments.name"))
+			.setDesc(this.renderHtml(t("matrix-shortcuts.environments.desc")))
 			.addText(text => text
 				.setPlaceholder(DEFAULT_SETTINGS.matrixShortcutsEnvNames)
 				.setValue(this.plugin.settings.matrixShortcutsEnvNames)
@@ -424,8 +418,8 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName("Macros")
-			.setDesc("A list of macro names to run the matrix shortcuts in, separated by commas.")
+			.setName(t("matrix-shortcuts.macros.name"))
+			.setDesc(this.renderHtml(t("matrix-shortcuts.macros.desc")))
 			.addText(text => text
 				.setPlaceholder(DEFAULT_SETTINGS.matrixShortcutsMacroNames)
 				.setValue(this.plugin.settings.matrixShortcutsMacroNames)
@@ -439,11 +433,11 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 	private displayTaboutSettings() {
 		const containerEl = this.containerEl;
-		this.addHeading(containerEl, "Tabout", "tabout");
+		this.addHeading(containerEl, t("tabout.heading"), "tabout");
 
 		new Setting(containerEl)
-			.setName("Enabled")
-			.setDesc("Whether tabout is enabled.")
+			.setName(t("tabout.enabled.name"))
+			.setDesc(this.renderHtml(t("tabout.enabled.desc")))
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.taboutEnabled)
 				.onChange(async (value) => {
@@ -456,8 +450,8 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				}));
 
 		const taboutClosingBracketsSetting =  new Setting(containerEl)
-			.setName("Closing brackets")
-			.setDesc("A list of closing brackets for tabout, separated by commas.")
+			.setName(t("tabout.closing-brackets.name"))
+			.setDesc(this.renderHtml(t("tabout.closing-brackets.desc")))
 			.addText(text => text
 				.setPlaceholder(DEFAULT_SETTINGS.taboutClosingSymbols)
 				.setValue(this.plugin.settings.taboutClosingSymbols)
@@ -468,8 +462,8 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				}));
 
 		const taboutExitEquationOnlyOnEOLSetting = new Setting(containerEl)
-			.setName("Exit equation only on EOL")
-			.setDesc("Whether to exit the equation only when the cursor is at the end of the line.")
+			.setName(t("tabout.exit-EOL.name"))
+			.setDesc(this.renderHtml(t("tabout.exit-EOL.desc")))
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.taboutExitEquationOnlyOnEOL)
 				.onChange(async (value) => {
@@ -483,11 +477,11 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 	private displayAutoEnlargeBracketsSettings() {
 		const containerEl = this.containerEl;
-		this.addHeading(containerEl, "Auto-enlarge brackets", "parentheses");
+		this.addHeading(containerEl, t("auto-enlarge.heading"), "parentheses");
 
 		new Setting(containerEl)
-			.setName("Enabled")
-			.setDesc("Whether to automatically enlarge brackets containing e.g. sum, int, frac.")
+			.setName(t("auto-enlarge.enabled.name"))
+			.setDesc(this.renderHtml(t("auto-enlarge.enabled.desc")))
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.autoEnlargeBrackets)
 				.onChange(async (value) => {
@@ -497,8 +491,8 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 
 		new Setting(containerEl)
-			.setName("Triggers")
-			.setDesc("A list of symbols that should trigger auto-enlarge brackets, separated by commas.")
+			.setName(t("auto-enlarge.triggers.name"))
+			.setDesc(this.renderHtml(t("auto-enlarge.triggers.desc")))
 			.addText(text => text
 				.setPlaceholder(DEFAULT_SETTINGS.autoEnlargeBracketsTriggers)
 				.setValue(this.plugin.settings.autoEnlargeBracketsTriggers)
@@ -509,8 +503,8 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName("Space")
-			.setDesc("Whether to add a space after \\left( and before \\right) or not")
+			.setName(t("auto-enlarge.space.name"))
+			.setDesc(this.renderHtml(t("auto-enlarge.space.desc")))
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.autoEnlargeBracketsSpace)
 				.onChange(async (value) => {
@@ -521,11 +515,11 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 	private displayAdvancedSnippetSettings() {
 		const containerEl = this.containerEl;
-		this.addHeading(containerEl, "Advanced snippet settings");
+		this.addHeading(containerEl, t("advanced-snippets.heading"));
 
 		const snippetVariablesSetting = new Setting(containerEl)
-			.setName("Snippet variables")
-			.setDesc("Assign snippet variables that can be used as shortcuts when writing snippets.")
+			.setName(t("advanced-snippets.variables.name"))
+			.setDesc(this.renderHtml(t("advanced-snippets.variables.desc")))
 		this.snippetVariablesEditor = createSnippetsEditor(snippetVariablesSetting, this.plugin, {
 			type: "snippetVariables",
 			validate: async (value) => {
@@ -534,8 +528,8 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		})
 
 		new Setting(containerEl)
-			.setName("Load snippet variables from file or folder")
-			.setDesc("Whether to load snippet variables from a specified file, or from all files within a folder (instead of from the plugin settings).")
+			.setName(t("advanced-snippets.load-variables-from-file.name"))
+			.setDesc(this.renderHtml(t("advanced-snippets.load-variables-from-file.desc")))
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.loadSnippetVariablesFromFile)
 				.onChange(async (value) => {
@@ -550,11 +544,11 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 		const snippetVariablesFileLocDesc = new DocumentFragment();
 		snippetVariablesFileLocDesc.createDiv({}, (div) => {
-			div.appendText("The file or folder to load snippets from. On desktop you can use ~/ or an absolute path. Files outside your vault or in hidden folders may not be watched for changes depending on your os.")
+			div.appendText(t("advanced-snippets.variables-file-path.desc"));
 		});
 
 		const snippetVariablesFileLoc = new Setting(containerEl)
-			.setName("Snippet variables file or folder location")
+			.setName(t("advanced-snippets.variables-file-path.name"))
 			.setDesc(snippetVariablesFileLocDesc);
 
 
@@ -582,8 +576,8 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		this.snippetVariablesFileLocEl.toggleClass("hidden", !loadSnippetVariablesFromFile);
 
 		new Setting(containerEl)
-			.setName("Word delimiters")
-			.setDesc("Symbols that will be treated as word delimiters, for use with the \"w\" snippet option.")
+			.setName(t("advanced-snippets.word-delimiters.name"))
+			.setDesc(this.renderHtml(t("advanced-snippets.word-delimiters.desc")))
 			.addText(text => text
 				.setPlaceholder(DEFAULT_SETTINGS.wordDelimiters)
 				.setValue(this.plugin.settings.wordDelimiters)
@@ -594,8 +588,8 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName("Remove trailing whitespaces in snippets in inline math")
-			.setDesc("Whether to remove trailing whitespaces when expanding snippets at the end of inline math blocks.")
+			.setName(t("advanced-snippets.trailing-whitespace.name"))
+			.setDesc(this.renderHtml(t("advanced-snippets.trailing-whitespace.desc")))
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.removeSnippetWhitespace)
 				.onChange(async (value) => {
@@ -604,8 +598,8 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-		.setName("Remove closing $ when backspacing inside blank inline math")
-		.setDesc("Whether to also remove the closing $ when you delete the opening $ symbol inside blank inline math.")
+		.setName(t("advanced-snippets.auto-delete$.name"))
+		.setDesc(this.renderHtml(t("advanced-snippets.auto-delete$.desc")))
 		.addToggle((toggle) => toggle
 			.setValue(this.plugin.settings.autoDelete$)
 			.onChange(async (value) => {
@@ -614,11 +608,11 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			}));
 
 		const suppressIMESetting = new Setting(containerEl)
-			.setName("Don't trigger snippets when IME is active")
-			.setDesc("Whether to suppress snippets triggering when an IME is active.");
+			.setName(t("advanced-snippets.suppress-IME.name"))
+			.setDesc(this.renderHtml(t("advanced-snippets.suppress-IME.desc")));
 		const suppressIMEWarning = new Setting(containerEl)
-			.setName("Suppress IME warning")
-			.setDesc("Whether a warning is shown on startup if `Don't trigger snippets when IME is active` is enabled. Disable that setting if you are aware of the IME limitations. Currently only ios and android touch/swipe keyboards like gboard have support for IME. See https://github.com/artisticat1/obsidian-latex-suite/blob/main/DOCS.md#IME-keyboards for more info.")
+			.setName(t("advanced-snippets.suppress-IME-warning.name"))
+			.setDesc(this.renderHtml(t("advanced-snippets.suppress-IME-warning.desc")))
 			.addToggle((toggle) => toggle
 				.setValue(this.plugin.settings.suppressIMEWarning)
 				.onChange(async (value) => {
@@ -638,8 +632,8 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName("Code languages to interpret as math mode")
-			.setDesc("Codeblock languages where the whole code block should be treated like a math block, separated by commas.")
+			.setName(t("advanced-snippets.code-languages.name"))
+			.setDesc(this.renderHtml(t("advanced-snippets.code-languages.desc")))
 			.addText(text => text
 				.setPlaceholder(DEFAULT_SETTINGS.forceMathLanguages)
 				.setValue(this.plugin.settings.forceMathLanguages)
@@ -650,12 +644,12 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName("Snippet debug mode")
-			.setDesc("Set the level of debug information to log about snippet expansion. Set to \"info\" or \"verbose\" to help identify issues with snippet syntax or why a snippet is not expanding. Verbose mode will log most information to the developer console on debug level.")
+			.setName(t("advanced-snippets.snippet-debug-mode.name"))
+			.setDesc(this.renderHtml(t("advanced-snippets.snippet-debug-mode.desc")))
 			.addDropdown((dropdown) => dropdown
-				.addOption("off", "Off")
-				.addOption("info", "Info")
-				.addOption("verbose", "Verbose")
+				.addOption("off", t("advanced-snippets.snippet-debug-mode.options.off"))
+				.addOption("info", t("advanced-snippets.snippet-debug-mode.options.info"))
+				.addOption("verbose", t("advanced-snippets.snippet-debug-mode.options.verbose"))
 				.setValue(this.plugin.settings.snippetDebug)
 				.onChange(async (value) => {
 					this.plugin.settings.snippetDebug = value as "off" | "info" | "verbose";
@@ -679,14 +673,12 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 		//The toggle both hides the settings and makes the plugin not load the vim commands on startup.
 		// the vim toggle is loaded before the rest since expanding down looks better.
 		const vimEnabled: Setting = new Setting(containerEl)
-			.setName("Vim key bindings")
-			.setDesc("turn on/off vim keybindings. Note vim needs to be enabled in obsidian itself.")
+			.setName(t("vim.enabled.name"))
+			.setDesc(this.renderHtml(t("vim.enabled.desc")))
 		const vimSettings: Setting[] = [];
 		const selectMode: Setting = new Setting(containerEl)
-			.setName("Vim: Switch from visual mode to select mode")
-			.setDesc(`maps the key to switch from visual mode to select mode.
-				 Keymap must be a vim keymap and can't contain any spaces. Use empty string to disable this feature.
-				  (select mode=insert keybindings)`)
+			.setName(t("vim.select-mode.name"))
+			.setDesc(this.renderHtml(t("vim.select-mode.desc")))
 			.addText((text) =>
 				text.setPlaceholder(DEFAULT_SETTINGS.vimSelectMode)
 				.setValue(this.plugin.settings.vimSelectMode)
@@ -705,11 +697,8 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			);
 		vimSettings.push(selectMode);
 		const visualMode = new Setting(containerEl)
-			.setName("Vim: Switch from select mode to visual mode")
-			.setDesc(`maps the key to switch from select mode to visual mode.
-				 must be a vim keymap and can't contain any spaces. Example <C-g><C-A-i> = Ctrl-g + Ctrl-Alt-i.
-				 Please check the vim keybinding first on another command like w before reporting it. Some keybindings like shift don't work due to the original vim plugin. Use empty string to disable this feature.
-				  (select mode=insert keybindings)`)
+			.setName(t("vim.visual-mode.name"))
+			.setDesc(this.renderHtml(t("vim.visual-mode.desc")))
 			.addText((text) =>{
 				text.setPlaceholder(DEFAULT_SETTINGS.vimVisualMode)
 				.setValue(this.plugin.settings.vimVisualMode)
@@ -728,9 +717,8 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			});
 		vimSettings.push(visualMode);
 		const matrixEnter: Setting = new Setting(containerEl)
-			.setName("Vim: run matrix enter")
-			.setDesc(`maps the key to the action of inserting a new line below while appending \\\\ to the current line in a matrix environment.
-				 Use empty string to disable this feature.`)
+			.setName(t("vim.matrix-enter.name"))
+			.setDesc(this.renderHtml(t("vim.matrix-enter.desc")))
 			.addText((text) => {
 				text.setPlaceholder(DEFAULT_SETTINGS.vimMatrixEnter)
 				.setValue(this.plugin.settings.vimMatrixEnter)
@@ -769,7 +757,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 	
 	private displayKeymapSettings() {
 		const containerEl = this.containerEl;
-		this.addHeading(containerEl, "Keymap", "keyboard");
+		this.addHeading(containerEl, t("keymap.heading.name"), "keyboard");
 		
 		const settings = [
 			["snippet", "snippetsTrigger"],
@@ -805,16 +793,11 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 
 	private displayExperimentalSettings() {
 		const containerEl = this.containerEl;
-		this.addHeading(containerEl, "Experimental features", "experiment")
-			.setDesc("Features that are still in testing and may need user feedback. Backwards compatibility may break for these features/ these settings can be overriden.");
-		const fragment = new DocumentFragment()
-		const span = fragment.createDiv({
-			text: "How many times to run snippets in a row. Set to 0 disable recursion. ",
-		});
-		span.createEl("a", {href: "https://github.com/artisticat1/obsidian-latex-suite/pull/536", text: "Related pr/feedback."})
+		this.addHeading(containerEl, t("experimental.heading.name"), "experiment")
+			.setDesc(this.renderHtml(t("experimental.heading.desc")));
 		new Setting(containerEl)
-			.setName("Snippet recursion")
-			.setDesc(fragment)
+			.setName(t("experimental.snippet-recursion.name"))
+			.setDesc(this.renderHtml(t("experimental.snippet-recursion.desc")))
 			.addText(text => text
 				.setPlaceholder(String(DEFAULT_SETTINGS.snippetRecursion))
 				.setValue(String(this.plugin.settings.snippetRecursion))
@@ -822,7 +805,7 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 					try {
 						const snippetRecurisve = parseInt(value, 10);
 						if (snippetRecurisve < 0) {
-							new Notice("Snippet recursion must be a non-negative integer.");
+							new Notice(t("experimental.snippet-recursion.invalid-notice"));
 							return;
 						}
 						this.plugin.settings.snippetRecursion = snippetRecurisve;
@@ -834,8 +817,8 @@ export class LatexSuiteSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName("IME support for automatic snippets")
-			.setDesc("Whether to expand automatic snippets when a key is pressed after IME composition is completed. This may solve some issues with IME/Chinese keyboards.")
+			.setName(t("experimental.snippet-IME-version.name"))
+			.setDesc(this.renderHtml(t("experimental.snippet-IME-version.desc")))
 			.addToggle((toggle) => toggle
 				.setValue(this.plugin.settings.snippetIMEVersion)
 				.onChange(async (value) => {

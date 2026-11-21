@@ -1,6 +1,6 @@
 import { App, ButtonComponent, Component, debounce, ExtraButtonComponent, MarkdownRenderer, Modal, Platform, requireApiVersion, sanitizeHTMLToDom, Setting, type SettingDefinition, type SettingDefinitionControl, type SettingDefinitionGroup, type SettingDefinitionItem, SettingTab } from "obsidian"
 import { DEFAULT_SETTINGS, EnvironmentSchema, validateTextMacros, type LatexSuitePluginSettings } from "./settings"
-import { settings_translation as t } from "../i18n/i18n"
+import { isNonEnglish, settings_translation, settings_translation_en } from "../i18n/i18n"
 import { EditorState, type Extension } from "@codemirror/state"
 import { EditorView, ViewUpdate } from "@codemirror/view"
 import { parseSnippetVariables, parseSnippets } from "src/snippets/parse"
@@ -94,7 +94,8 @@ type ExperimentalSettingDefinition = Definition<
 	| "snippetIMEVersion"
 	| "mathElementsClickable"
 >
-
+let language_switch = false;
+let t = settings_translation;
 
 export class LatexSuiteSettingsTab2 extends SettingTab {
 	snippetsEditor: EditorView | null = null;
@@ -105,12 +106,14 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 	constructor(
 		public app: App,
 		public plugin: LatexSuitePlugin,
+		public pageUpdater: () => void,
 	) {
 		super();
 	}
 
 	getSettingDefinitions(): SettingDefinitionItem[] {
 		const definitions: SettingDefinitionItem[] = [
+			...this.getTopButtonDefinitions(),
 			...this.getSnippetDefinitions(),
 			...this.getConcealDefinitions(),
 			...this.getColorHighlightBracketsDefinitions(),
@@ -122,8 +125,36 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 			...this.getVimSettingDefinitions(),
 			...this.getKeyMapDefinitions(),
 			...this.getExperimentalDefinitions(),
+			...this.getTranslationDefinitions(),
 		]
 		return definitions
+	}
+	
+	getTopButtonDefinitions(): SettingDefinitionItem[] {
+		const extraButtons: ((button: ExtraButtonComponent) => void)[] = this.githubExtraButtons();
+		if (isNonEnglish) {
+			extraButtons.push(
+				(button) => {
+					button.onClick(() => {
+						language_switch = !language_switch;
+						if (language_switch) {
+							t = settings_translation_en;
+						} else {
+							t = settings_translation;
+						}
+						this.pageUpdater();
+					}).setIcon("globe")
+					.setTooltip(language_switch ? settings_translation("switch-to-default-language") : t("switch-to-english"));
+				}
+			)
+		}
+
+		return [{
+			type: "group",
+			// force a reload for this group
+			heading: this.plugin.manifest.name + " ".repeat(+language_switch),
+			extraButtons: extraButtons, 
+		}]
 	}
 
 	getSnippetDefinitions(): SettingDefinitionItem[] {
@@ -263,25 +294,13 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 			items: snippets,
 			heading: t("snippets.heading"),
 			extraButtons: [
+				...this.githubExtraButtons(),
 				(c) => {
-					c.setIcon("bug");
-					c.setTooltip(t("tooltips.snippet-bug"));
-					c.onClick(() => {
-						const url =
-							"https://github.com/artisticat1/obsidian-latex-suite/issues/new?template=bug_report.yml";
-						window.open(url);
-					});
-				},
-				(c) => {
-					c.setIcon("help").setTooltip(t("tooltips.snippet-help")).onClick(() => {
-						const url = "https://github.com/artisticat1/obsidian-latex-suite/discussions"
-						window.open(url);
-					})
-				},
-				(c) => {
-					c.setIcon("info").onClick(() => {
-						new QuickOverViewSnippetModal(this.app).open();
-					}).setTooltip(t("tooltips.snippet-info"))
+					c.setIcon("info")
+						.onClick(() => {
+							new QuickOverViewSnippetModal(this.app).open();
+						})
+						.setTooltip(t("tooltips.snippet-info"));
 				},
 			],
 		};
@@ -294,6 +313,26 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 				items: advanced
 			}],
 		}]
+	}
+	
+	githubExtraButtons(): ((button: ExtraButtonComponent) => void)[] {
+		return [
+			(c) => {
+				c.setIcon("bug");
+				c.setTooltip(t("tooltips.snippet-bug"));
+				c.onClick(() => {
+					const url =
+						"https://github.com/artisticat1/obsidian-latex-suite/issues/new?template=bug_report.yml";
+					window.open(url);
+				});
+			},
+			(c) => {
+				c.setIcon("help").setTooltip(t("tooltips.snippet-help")).onClick(() => {
+					const url = "https://github.com/artisticat1/obsidian-latex-suite/discussions"
+					window.open(url);
+				})
+			},
+		]
 	}
 
 	getConcealDefinitions(): SettingDefinitionItem[] {
@@ -708,6 +747,20 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 		}]
 	}
 
+	getTranslationDefinitions(): SettingDefinitionItem[] {
+		return [
+			{
+				type: "group",
+				items: [
+					{
+						name: t("translation.name"),
+						desc: this.renderHtml(t("translation.desc")),
+					},
+				],
+			},
+		];
+	}
+
 	fileSearch(setting: Setting, key: "snippetsFileLocation" | "snippetVariablesFileLocation") {
 		setting.addSearch((component) => {
 			component
@@ -826,13 +879,13 @@ export function createSnippetsEditor(
 	const type = (() => {
 		switch (config.type) {
 			case "snippets":
-				return "snippets";
+				return t("editor-types.snippets");
 			case "snippetVariables":
-				return "snippet variables";
+				return t("editor-types.snippetVariables");
 			case "concealMaps":
-				return "conceal maps";
+				return t("editor-types.concealMaps");
 			case "textMacros":
-				return "text macros";
+				return t("editor-types.textMacros");
 		}
 	})();
 
@@ -840,14 +893,14 @@ export function createSnippetsEditor(
 	const reset = new ButtonComponent(buttonsDiv);
 	reset
 		.setIcon("switch")
-		.setTooltip(`Reset to default ${type}`)
+		.setTooltip(t("tooltips.reset-to-defaults", { variable: type }))
 		.onClick(async () => {
 			new ConfirmationModal(
 				plugin.app,
-				`Are you sure? This will delete any custom ${type} you have written.`,
+				t("confirmation.delete-custom", { variable: type }),
 				(button) =>
 					void buttonSetWarning(button)
-					.setButtonText(`Reset to default ${type}`),
+					.setButtonText(t("tooltips.reset-to-defaults", { variable: type })),
 				async () => {
 					snippetsEditor.setState(
 						EditorState.create({
@@ -868,14 +921,14 @@ export function createSnippetsEditor(
 	const remove = new ButtonComponent(buttonsDiv);
 	remove
 		.setIcon("trash")
-		.setTooltip(`Remove all ${type}`)
+		.setTooltip(t("tooltips.trash", { variable: type }))
 		.onClick(async () => {
 			new ConfirmationModal(
 				plugin.app,
-				`Are you sure? This will delete any custom ${type} you have written.`,
+				t("confirmation.delete-custom", { variable: type }),
 				(button) =>
 					void buttonSetWarning(button)
-					.setButtonText(`Remove all ${type}`),
+					.setButtonText(t("tooltips.trash", { variable: type })),
 				async () => {
 					const value = EMPTY_SETTINGS[config.type];
 					snippetsEditor.setState(
@@ -984,7 +1037,7 @@ class ConfirmationModal extends Modal {
 				});
 			})
 			.addButton(button => button
-				.setButtonText("Cancel")
+				.setButtonText(t("confirmation.cancel"))
 				.onClick(() => this.close()));
 	}
 }

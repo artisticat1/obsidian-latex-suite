@@ -21,7 +21,7 @@ import * as v from "valibot"
 import { languageExtension, LanguageSetStateEffect, languageStateField, modifiedSyntaxTree, parseWorker } from "./parser/language";
 import { highlight_dollar_extension } from "./editor_extensions/highlight_dollar";
 import { EMPTY_SETTINGS } from "./settings/empty_settings";
-import i18next from "./i18n/i18n";
+import i18next, { settings_translation as t } from "./i18n/i18n";
 import resources from "./i18n/resources";
 import { mathParserPlugin } from "./parser/parser_printer";
 import { endSnippet, snippetInvertedEffects, startSnippet, undidEndSnippet, undidStartSnippet } from "./snippets/codemirror/history";
@@ -36,6 +36,7 @@ import { snippetApi, type PluginSnippetApi } from "./snippets/luasnip_api";
 import { default_mapping, MappingSchema, type RawConcealMapping } from "./editor_extensions/conceal_maps";
 import { serializeSnippetLike } from "./snippets/snippets";
 import { mathlessArgsSchema, type MathlessMacroArgs } from "./editor_context/default_text_areas";
+import { renderHtml } from "./settings/settings_tab2";
 
 export default class LatexSuitePlugin extends Plugin implements LatexSuitePluginPublicApi {
 	settings: LatexSuitePluginSettings = EMPTY_SETTINGS;
@@ -143,6 +144,7 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 
 	async onload() {
 		i18next.addResourceBundle("en", "settings", resources.en.settings)
+		i18next.addResourceBundle("zh", "settings", resources.zh.settings)
 		await this.loadSettings();
 
 		this.loadIcons();
@@ -169,7 +171,7 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 		// legacy editor existed till 1.5.0
 		type TempOldAppVault = { config?: { legacyEditor: boolean } };
 		if ((this.app.vault as TempOldAppVault).config?.legacyEditor) {
-			const message = "Latex Suite: This plugin does not support the legacy editor. Switch to Live Preview mode to use this plugin.";
+			const message = t("legacy-editor-warning", { name: this.manifest.name });
 
 			new Notice(message, 100000);
 			console.error(message);
@@ -180,12 +182,7 @@ export default class LatexSuitePlugin extends Plugin implements LatexSuitePlugin
 
 	IMEEditorWarning() {
 		if (isIMESupported() && !this.settings.suppressIMEWarning && this.settings.suppressSnippetTriggerOnIME) {
-			const message = createFragment();
-			message.appendText("Latex Suite: this plugin supports your IME keyboard, but ");
-			message.createEl("code", { text: "Advanced settings > Don't trigger snippets when IME is active" });
-			message.appendText(" is currently enabled. You may want to disable it in the plugin settings to fully enable automatic snippets. Be aware that this may cause unexpected snippet triggers while using your IME. To turn this warning off, enable ");
-			message.createEl("code", { text: "Advanced settings > Suppress IME warning" });
-			message.appendText(".");
+			const message = renderHtml(t("ime-warning", { name: this.manifest.name }));
 			new Notice(message, 10000);
 			console.warn(message);
 		}
