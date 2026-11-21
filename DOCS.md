@@ -38,7 +38,7 @@
   - No other shortcut such as obsidians hotkeys, vims keymaps or other plugins can have used the shortcut before this plugin. For example `Ctrl-o` by default will open quick switcher and thus can't be used for `triggerKey`.
 
 - `language` (optional): Which code language to expand this in. Needs to match the text after <code>```</code> exactly.
-- `excludedMacros` (optional): Which macros\commands name to skip expansion in. Could be usefull for commands such as `ce` and `pu`, for more info see [macro scopes](#macro-scopes).
+- `excludedMacros` (optional): Which macros\commands name to skip expansion in. Could be useful for commands such as `ce` and `pu`, for more info see [macro scopes](#macro-scopes).
 - `excludedEnvironments` (optional): Which environment names such as `pmatrix` to skip expansion in.
 - `includedMacros` (optional): Which macros\commands name to only do expansion in. Could be useful for commands such as `color` and `unicode`, for more info see [macro scopes](#macro-scopes).
 - `includedPaths` (optional): File paths relative to the vault in which the snippets are enabled in. Can also be a function, see [context](#context).
@@ -262,7 +262,7 @@ The snippet
 {trigger: "-", replacement: sel => { if (!sel.includes(" ")) { return false } return sel.replaceAll(/\s+/g, "-")}, options: "vA"},
 ```
 
-will convert all spaces in your selection to hypens (for example, `hello world` will expand to `hello-world`) when "-" is typed.
+will convert all spaces in your selection to hyphens (for example, `hello world` will expand to `hello-world`) when "-" is typed.
 
 ---
 
@@ -296,7 +296,7 @@ type Options = {
 
 ### Nodes
 
-Taking inspiration from [LuaSnip](https://github.com/L3MON4D3/LuaSnip) you can also create replacements programmaticaly with nodes.
+Taking inspiration from [LuaSnip](https://github.com/L3MON4D3/LuaSnip) you can also create replacements programmatically with nodes.
 These functions can be imported as the following:
 
 ```js
@@ -461,7 +461,7 @@ ls.addUpdateHandler(function (ctx, update) {
 })
 ```
 
-On mobile devices a warning is shown that this setting is turned on, notifying that the keyboard is supported. If you use a different keyboard than swipe/touch keyboard thats IME, e.g. a physical keyboard with pinyin or if `Don't trigger snippets when IME is active` is turned on intentionally, you can turn that warning off.
+On mobile devices a warning is shown that this setting is turned on, notifying that the keyboard is supported. If you use a different keyboard than swipe/touch keyboard that's IME, e.g. a physical keyboard with pinyin or if `Don't trigger snippets when IME is active` is turned on intentionally, you can turn that warning off.
 
 ## Snippet files
 
@@ -594,7 +594,7 @@ Snippet variable files can be saved with any extension. However, to obtain synta
 
 A snippet variable file is a JavaScript object, or a JavaScript module with a default export of an object.
 
-The `${}` around the variable may be ommited, i.e. `"${VARIABLE}": "..."` and `"VARIABLE": "..."` are both accepted.
+The `${}` around the variable may be omitted, i.e. `"${VARIABLE}": "..."` and `"VARIABLE": "..."` are both accepted.
 
 _Note: an **object** is a mapping of names to values. In JavaScript, this is represented with the braces symbols `{}`, with a `:` between the name and value, and a comma between name-value pairs, e.g. `{ name: "value1", "name2": "value2" }`. In most cases, the key may be written with or without quotes. Specifically, `VARIABLE: "..."` is also acceptable_
 
