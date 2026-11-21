@@ -8,7 +8,7 @@ interface FileContext {
 	file: TFile
 }
 
-describe("conceal", async () => {
+describe("highlight brackets", async () => {
 	getTemporaryVault();
 	const contextId = new ContextId<FileContext>()
 	registerLibResolver(() => window.__latex_suite_test_library)
@@ -30,28 +30,59 @@ describe("conceal", async () => {
 	beforeEach(() => {
 		registerLibResolver(() => window.__latex_suite_test_library)
 	})
-	it("should display mismatched brackets", async () => {
-		const result = await evalInObsidian({
-			input: {pluginId: "obsidian-latex-suite" },
-			callback: ({app, pluginId, obsidianModule, lib }) => {
-				const plugin = lib.plugin
-				const view = lib.view
-				const color = plugin.test.colorPairedBrackets
-				// set content to "Einstein's equation is $E=mc^2$."
-				const basic_display =
-`
-$$
-\\frac{1}{2
-$$
-`
-				view.setDoc(basic_display)
-				const basic_output = color(view, {}).cached_equations
-				return basic_output;
-				
-			}
-		})
-		expect(result).toMatchSnapshot();
-	})
+	
+	// use <%0[[bracket]]%> to indicate a bracket and the color. 0-1-2 for color and error for mismatched.
+	it.for([
+		["$$\\frac{1}{2$$", "$$\\frac<%0{%>1<%0}%><%error{%>2$$"],
+		["$$(())$$", "$$<%0(%><%1(%><%1)%><%0)%>$$"],
+		["$$[[]]$$", "$$<%0[%><%1[%><%1]%><%0]%>$$"],
+		["$$\\{\\}$$", "$$<%0\\{%><%0\\}%>$$"],
+		["$$\\lvert\\rvert$$", "$$<%0\\lvert%><%0\\rvert%>$$"],
+		["$$[[]] E[E[X|Y]] [([])]$$", "$$<%0[%><%1[%><%1]%><%0]%> E<%0[%>E<%1[%>X|Y<%1]%><%0]%> <%0[%><%1(%><%2[%><%2]%><%1)%><%0]%>$$"],
+	])(
+		"should display mismatched brackets",
+		async ([equation, equation_with_tags]) => {
+			let index = 0;
+			const expected_colors_arr = equation_with_tags
+				.slice(2, -2)
+				.matchAll(/<%(\d|error)(.+?)%>/g)
+				.map((m) => {
+					const pos = m.index - index;
+					const bracket = m[2].length;
+					const className =
+						m[1] === "error"
+							? "latex-suite-mismatched-bracket"
+							: `latex-suite-color-bracket-${m[1]}`;
+					index += m[0].length - m[2].length;
+					return {
+						pos,
+						bracket,
+						className,
+					};
+				})
+				.toArray();
+			const expected_colors = {
+				[equation.slice(2, -2)]: expected_colors_arr,
+			};
+			const result = await evalInObsidian({
+				input: { equation },
+				callback: ({ lib: { plugin, view }, equation }) => {
+					const color = plugin.test.colorPairedBrackets;
+					view.setDoc(equation);
+					const result = color(view, {}).cached_equations;
+					const sorted_result = Object.fromEntries(
+						Object.entries(result).map(([eq, colors]) => [
+							eq,
+							colors.sort((a, b) => a.pos - b.pos),
+						]),
+					);
+					return sorted_result;
+				},
+			});
+
+			expect(result).toStrictEqual(expected_colors);
+		},
+	);
 
 	it.for([
 		"$$((#))$$",
