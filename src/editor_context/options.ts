@@ -77,32 +77,33 @@ export class Options {
 		mode: Mode,
 		ignoreSnippetLessEnv: boolean = false,
 	): boolean {
+		const thisMode = this.mode;
 		if (mode.snippetlessEnv && !ignoreSnippetLessEnv) {
 			return false;
 		}
 		if (
-			(this.mode.inlineMath && mode.inlineMath) ||
-			(this.mode.blockMath && mode.blockMath) ||
-			((this.mode.inlineMath || this.mode.blockMath) && mode.codeMath)
+			(thisMode.inlineMath && mode.inlineMath) ||
+			(thisMode.blockMath && mode.blockMath) ||
+			((thisMode.inlineMath || thisMode.blockMath) && mode.codeMath)
 		) {
 			// only run when snippet doesn't run in `\text{}` and cursor not inside `\text{}` or they both are
-			if (mode.textEnv === this.mode.textEnv) {
+			if (mode.textEnv === thisMode.textEnv || thisMode.all) {
 				return true;
 			}
 		}
 
-		if (this.mode.text && mode.text) {
+		if (thisMode.text && mode.text) {
 			return true;
 		}
 		if (
-			(this.mode.codeBlock === mode.codeBlock &&
+			(thisMode.codeBlock === mode.codeBlock &&
 				mode.codeBlock !== false) ||
-			(this.mode.codeBlock === true && mode.codeBlock !== false)
+			(thisMode.codeBlock === true && mode.codeBlock !== false)
 		) {
 			return true;
 		}
 
-		if (this.mode.code && mode.code) {
+		if (thisMode.code && mode.code) {
 			return true;
 		}
 		return false;
@@ -126,6 +127,7 @@ export class Mode {
 	code: boolean;
 	textEnv: boolean;
 	snippetlessEnv: boolean;
+	all: boolean;
 
 	constructor({
 		text,
@@ -136,6 +138,7 @@ export class Mode {
 		code,
 		textEnv,
 		snippetlessEnv,
+		all,
 	}: {
 		text: boolean;
 		inlineMath: boolean;
@@ -145,6 +148,7 @@ export class Mode {
 		code: boolean;
 		textEnv: boolean;
 		snippetlessEnv: boolean;
+		all: boolean;
 	}) {
 		this.text = text;
 		this.inlineMath = inlinemath;
@@ -154,6 +158,7 @@ export class Mode {
 		this.code = code;
 		this.textEnv = textEnv;
 		this.snippetlessEnv = snippetlessEnv;
+		this.all = all;
 	}
 
 	/**
@@ -194,6 +199,7 @@ export class Mode {
 		this.code = !this.code;
 		this.textEnv = !this.textEnv;
 		this.snippetlessEnv = !this.snippetlessEnv;
+		this.all = !this.all;
 	}
 
 	static fromSource(source: string, language: string | undefined): Mode {
@@ -250,6 +256,7 @@ export class Mode {
 			code,
 			textEnv,
 			snippetlessEnv,
+			all: false,
 		})
 
 		if (
