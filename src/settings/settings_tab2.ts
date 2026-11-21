@@ -144,7 +144,7 @@ export class LatexSuiteSettingsTab2 extends SettingTab {
 						}
 						this.pageUpdater();
 					}).setIcon("globe")
-					.setTooltip(language_switch ? t("switch-to-default-language") : t("switch-to-english"));
+					.setTooltip(language_switch ? settings_translation("switch-to-default-language") : t("switch-to-english"));
 				}
 			)
 		}

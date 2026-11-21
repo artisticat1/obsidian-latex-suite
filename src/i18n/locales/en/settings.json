@@ -294,7 +294,7 @@
 		"parse-snippet-failed": "Failed to parse snippet file {{file}}: {{error}}"
 	},
 	"switch-to-english": "Switch to English",
-	"switch-to-default-language": "Switch to English",
+	"switch-to-default-language": "Switch to default language",
 	"translation": {
 		"name": "Translation",
 		"desc": "The translation relies on user's contributions. If you see any issues or want to add your own translation, please submit a pull request to <a href=\"https://github.com/artisticat1/obsidian-latex-suite/pulls\">GitHub</a>. See <a href=\"https://github.com/artisticat1/obsidian-latex-suite/blob/main/CONTRIBUTING.md\">CONTRIBUTING.md</a> for more information on how to contribute translations."
