@@ -287,10 +287,15 @@ type Options = {
 	view: EditorView; // codemirror view
 	options: {
 		captures: {
-			match: string
-			groups: Record<string, string>
+			match: string[];
+			groups: Record<string, string>;
 		}
 	} // used to expand a BaseNode.applyInsert. ${VISUAL_ORIGINAL} for example will be in the `options.captures.groups["${VISUAL_ORIGINAL}]`.
+	options: InsertOptions;
+	// selection range of the expanded cursor
+	range: {from: number, to: number};
+	// the result of triggerAfter.
+	triggerAfter: string | RegExpExecArray | undefined;
 }
 ```
 

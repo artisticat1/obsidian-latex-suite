@@ -60,9 +60,10 @@ function convertOutputToNode(rawReplacement: unknown): ArrayNode | null {
 }
 
 type SnippetReplacementUnstableApi = {
-	view: EditorView
-	options: InsertOptions
-	range: CMBound,
+	view: EditorView;
+	options: InsertOptions;
+	range: CMBound;
+	triggerAfter: string | RegExpExecArray | undefined;
 }
 
 // output of replacement functions should be the output fo ReplacementOutputSchema,
@@ -258,7 +259,7 @@ export class VisualSnippet extends Snippet<"visual"> {
 			replacement = this.replacement.applyInsert(options);
 		} else {
 			const replacementOptions = {
-				view, options, range: range.parsed
+				view, options, range: range.parsed, triggerAfter: undefined
 			}
 			const replacementTemp = convertOutputToNode(this.replacement(sel.parsed, replacementOptions))
 
@@ -299,7 +300,12 @@ export class RegexSnippet extends Snippet<"regex"> {
 			: undefined;
 
 		let replacement: ResultInsert;
-		const options: InsertOptions = { captures: { match: result.slice(1), groups: result.groups ?? {} } };
+		const options: InsertOptions = {
+			captures: {
+				match: [...result.slice(1), ...(afterResult?.slice(1) ?? [])],
+				groups: { ...result.groups, ...(afterResult?.groups ?? {}) },
+			},
+		};
 		if (this.replacement instanceof ArrayNode) {
 			// Compute the replacement string
 			// result.length - 1 = the number of capturing groups
@@ -308,7 +314,8 @@ export class RegexSnippet extends Snippet<"regex"> {
 			const replacementOptions = {
 				view,
 				options,
-				range: range.parsed
+				range: range.parsed,
+				triggerAfter: afterResult ?? undefined,
 			};
 			const replacementTemp = convertOutputToNode(this.replacement(result, replacementOptions));
 
@@ -342,7 +349,11 @@ export class StringSnippet extends Snippet<"string"> {
 		const triggerEndPos = this.data.triggerAfter !== undefined
 			? effectiveLine.length + this.data.triggerAfter.length
 			: undefined;
-		const options: InsertOptions = { captures: { match: [this.trigger], groups: {} } };
+		const match = [this.trigger];
+		if (this.data.triggerAfter !== undefined) {
+			match.push(this.data.triggerAfter);
+		}
+		const options: InsertOptions = { captures: { match, groups: {} } };
 		let replacement: ResultInsert;
 		if (this.replacement instanceof ArrayNode) {
 			replacement = this.replacement.applyInsert(options)
@@ -350,7 +361,8 @@ export class StringSnippet extends Snippet<"string"> {
 			const replacementOptions = {
 				view,
 				options,
-				range: range.parsed
+				range: range.parsed,
+				triggerAfter: this.data.triggerAfter,
 			};
 			const replacementTemp = convertOutputToNode(this.replacement(this.trigger, replacementOptions))
 
