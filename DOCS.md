@@ -35,10 +35,10 @@
   - Empty strings are ignored.
   - When `trigger` is defined and the snippet is not automatic, both `triggerKey` and `trigger` have to match.
   - When the snippet is automatic, `trigger` is ignored when `triggerKey` is pressed.
-  - No other shortcut such as obsidians hotkeys, vims keymaps or other plugins can have used the shortcut before this plugin. For example `Ctrl-o` by default will open quick switcher and thus can't be used for `triggerKey`.
+  - No other shortcut such as Obsidian's hotkeys, Vim's keymaps or other plugins can have used the shortcut before this plugin. For example, `Ctrl-o` by default will open quick switcher and thus can't be used for `triggerKey`.
 
 - `language` (optional): Which code language to expand this in. Needs to match the text after <code>```</code> exactly.
-- `excludedMacros` (optional): Which macros\commands name to skip expansion in. Could be usefull for commands such as `ce` and `pu`, for more info see [macro scopes](#macro-scopes).
+- `excludedMacros` (optional): Which macros\commands name to skip expansion in. Could be useful for commands such as `ce` and `pu`, for more info see [macro scopes](#macro-scopes).
 - `excludedEnvironments` (optional): Which environment names such as `pmatrix` to skip expansion in.
 - `includedMacros` (optional): Which macros\commands name to only do expansion in. Could be useful for commands such as `color` and `unicode`, for more info see [macro scopes](#macro-scopes).
 - `includedPaths` (optional): File paths relative to the vault in which the snippets are enabled in. Can also be a function, see [context](#context).
@@ -262,7 +262,7 @@ The snippet
 {trigger: "-", replacement: sel => { if (!sel.includes(" ")) { return false } return sel.replaceAll(/\s+/g, "-")}, options: "vA"},
 ```
 
-will convert all spaces in your selection to hypens (for example, `hello world` will expand to `hello-world`) when "-" is typed.
+will convert all spaces in your selection to hyphens (for example, `hello world` will expand to `hello-world`) when "-" is typed.
 
 ---
 
@@ -296,7 +296,7 @@ type Options = {
 
 ### Nodes
 
-Taking inspiration from [LuaSnip](https://github.com/L3MON4D3/LuaSnip) you can also create replacements programmaticaly with nodes.
+Taking inspiration from [LuaSnip](https://github.com/L3MON4D3/LuaSnip) you can also create replacements programmatically with nodes.
 These functions can be imported as the following:
 
 ```js
@@ -359,7 +359,7 @@ const arrow = {trigger: "->", replacement: "\\to", options: "mA", excludedMacros
 where `->` already renders as an arrow inside `\ce`, thus doesn't need to expand inside `\ce{}`.
 
 Some snippets like `\color` accept a custom syntax, in this case a color code, and expanding any snippets wouldn't make sense.
-Thus snippets are disabled except for snippets where `includedMacros` includes the macro.
+Thus, snippets are disabled except for snippets where `includedMacros` includes the macro.
 Or for more complicated macros like `\fcolorbox` which accepts a color code in the first and second argument you can use the following snippet to replace `li` with `lime` inside color scopes.
 ```ts
 const lime = {
@@ -382,14 +382,14 @@ type Macro =
 			arguments?: number[];
 	  };
 ```
-For the default text macros and snippetless macros see [here](./src/editor_context/default_text_areas.ts)
+For the default text macros and snippet-less macros see [here](./src/editor_context/default_text_areas.ts)
 
 ### Files and context
 
-Some mathematical areas use the same A-Z letter, but with a different to indicate a different meaning. For example `\mathbb{E}` or `\mathbf{E}`.
+Some mathematical areas use the same A-Z letter, but with a different font to indicate a different meaning. For example, `\mathbb{E}` or `\mathbf{E}`.
 Then to only turn on a snippet in any folder named `statistics`, you can give a bash glob like `**/statistics/*`.
 It also allows a function, if you organize your notes differently than using folders. These functions are only executed on opening the note, not during editing.
-the type of function is as follows
+The type of function is as follows
 
 ```ts
 type FileFunction = (options: FileOptions) => boolean
@@ -402,7 +402,7 @@ type FileOptions = {
 ```
 
 If you can't specify the context easily through things like `options`, regex, `excludedMacros`, etc, you can create your own context function.
-For example to create callout context you can do the following:
+For example, to create callout context you can do the following:
 
 ```ts
 const calloutContext = ({node}) => {
@@ -428,9 +428,9 @@ type aContextFunction = (options: {
 ```
 
 ### IME keyboards
-By default snippets won't automatically expand for [Input Method Editor](https://en.wikipedia.org/wiki/Input_method)(IME) keyboards when they are in the middle of a composition because of `Advanced Settings > Don't trigger snippets when IME is active`. Keyboards like gboard are almost always in composition, making automatic snippets unusable. Currently there is only support for keyboards like gboard, so turning that setting off will enable all automatic snippets. But due to the way french/german/chinese keyboards behave, there will still be automatic snippets that don't work (like `trigger: "^"`) when this setting is turned off. 
+By default snippets won't automatically expand for [Input Method Editor (IME)](https://en.wikipedia.org/wiki/Input_method) keyboards when they are in the middle of a composition because of `Advanced Settings > Don't trigger snippets when IME is active`. Keyboards like Gboard are almost always in composition, making automatic snippets unusable. Currently there is only support for keyboards like Gboard, so turning that setting off will enable all automatic snippets. But due to the way French/German/Chinese keyboards behave, there will still be automatic snippets that don't work (like `trigger: "^"`) when this setting is turned off. 
 
-You can use https://github.com/daipeihust/im-select to automatically switch to an english keyboard when inside math and back when outside math.
+You can use https://github.com/daipeihust/im-select to automatically switch to an English keyboard when inside math and back when outside math.
 You would add the following to your snippet file:
 
 ```js
@@ -461,15 +461,15 @@ ls.addUpdateHandler(function (ctx, update) {
 })
 ```
 
-On mobile devices a warning is shown that this setting is turned on, notifying that the keyboard is supported. If you use a different keyboard than swipe/touch keyboard thats IME, e.g. a physical keyboard with pinyin or if `Don't trigger snippets when IME is active` is turned on intentionally, you can turn that warning off.
+On mobile devices a warning is shown that this setting is turned on, notifying that the keyboard is supported. If you use a different keyboard than swipe/touch keyboard that's IME, e.g. a physical keyboard with pinyin or if `Don't trigger snippets when IME is active` is turned on intentionally, you can turn that warning off.
 
 ## Snippet files
 
 You can choose to load snippets from a file or from all files within a folder. To do this, toggle the setting **Snippets > Load snippets from file or folder**. The file or folder must be within your vault, and not in a hidden folder (such as `.obsidian/`).
 
-Snippet files can be saved with any extension. However, to obtain syntax highlighting in external editors, you may wish to save your snippet files with an extension of `.js`. If you don't have an external editor, [vscode](https://code.visualstudio.com/) is a beginner-friendly editor to start with. If you wish to edit the snippet files inside Obsidian, you can create a regular markdown file and format it in a certain way to still get the syntax highlighting. See below.
+Snippet files can be saved with any extension. However, to obtain syntax highlighting in external editors, you may wish to save your snippet files with an extension of `.js`. If you don't have an external editor, [vscode](https://code.visualstudio.com/) is a beginner-friendly editor to start with. If you wish to edit the snippet files inside Obsidian, you can create a regular Markdown file and format it in a certain way to still get the syntax highlighting. See below.
 
-A snippets file is a Javascript module/file with a default export of an array of snippets. (The file can also contain only an array but this can mess up with syntax highlighting and its easier to break this file, so it is not recommended)
+A snippets file is a JavaScript module/file with a default export of an array of snippets. (The file can also contain only an array but this can mess up syntax highlighting and it's easier to break this file, so it is not recommended)
 
 _Note: an **array** is a list of items. In JavaScript, this is represented with the bracket symbols `[` `]`, with the items between them and separated by commas, e.g. `[ item1, item2 ]`._
 
@@ -484,7 +484,7 @@ export default [
 ]
 ```
 
-2. A snippets file that can be edited by obsidian. For example `latex-suite-snippets.md` formatted in the following way:
+2. A snippets file that can be edited by Obsidian. For example, `latex-suite-snippets.md` formatted in the following way:
 ~~~md
 /*
 
@@ -594,7 +594,7 @@ Snippet variable files can be saved with any extension. However, to obtain synta
 
 A snippet variable file is a JavaScript object, or a JavaScript module with a default export of an object.
 
-The `${}` around the variable may be ommited, i.e. `"${VARIABLE}": "..."` and `"VARIABLE": "..."` are both accepted.
+The `${}` around the variable may be omitted, i.e. `"${VARIABLE}": "..."` and `"VARIABLE": "..."` are both accepted.
 
 _Note: an **object** is a mapping of names to values. In JavaScript, this is represented with the braces symbols `{}`, with a `:` between the name and value, and a comma between name-value pairs, e.g. `{ name: "value1", "name2": "value2" }`. In most cases, the key may be written with or without quotes. Specifically, `VARIABLE: "..."` is also acceptable_
 
@@ -639,7 +639,7 @@ If the feature is disabled, the keymap will be skipped.
 ## Conceal maps
 
 You can change the conceal symbols or disable them inside the snippet files and snippet variable files.
-For example if you don't like that `\quad` is concealed as ` `, or have a custom macro  you can do the following
+For example, if you don't like that `\quad` is concealed as ` `, or have a custom macro you can do the following
 
 ```js
 const ls = require("latex-suite")
@@ -684,16 +684,16 @@ For all the default values see [here](./src/editor_extensions/conceal_maps.ts).
 
 [Vim](https://vimhelp.org/intro.txt.html#intro.txt) is a powerful and highly configurable text editor, that is known for its unique editing style. It allows you to perform complex editing tasks with minimal keystrokes. It is heavily centered around moving with the keys `hjkl` instead of using the mouse. This can make the tedious parts of editing a bit less tedious.
 
-But this intro can't do it justice, so for those unfamiliar that are interested, it's recommended to read [Vims](https://vimhelp.org/usr_02.txt.html#usr_02.txt) for a proper explanation.
+But this intro can't do it justice, so for those unfamiliar that are interested, it's recommended to read [the Vim docs](https://vimhelp.org/usr_02.txt.html#usr_02.txt) for a proper explanation.
 
-Obsidian uses a subset of vim's keybindings maintained by [this repo](https://github.com/replit/codemirror-vim). This subset does not cover everything like [select-mode](https://vimhelp.org/visual.txt.html#Select-mode) and has its own bugs. For any issues that may arise, please first check if the problem lies with [CodeMirror-Vim](https://github.com/replit/codemirror-vim) at [vim-playground](https://raw.githack.com/replit/codemirror-vim/master/dev/web-demo.html) or Obsidian before reporting it here.
+Obsidian uses a subset of vim's key bindings maintained by [this repo](https://github.com/replit/codemirror-vim). This subset does not cover everything like [select-mode](https://vimhelp.org/visual.txt.html#Select-mode) and has its own bugs. For any issues that may arise, please first check if the problem lies with [CodeMirror-Vim](https://github.com/replit/codemirror-vim) at [vim-playground](https://raw.githack.com/replit/codemirror-vim/master/dev/web-demo.html) or Obsidian before reporting it here.
 
 ### Select mode
 You can trigger visual snippets in insert mode, but not in visual mode.
-Because of this, a shortcut in the vim extension is defined that allows you to switch between insert mode and visual mode while keeping the selection. This should also work with multicursor.
+Because of this, a shortcut in the vim extension is defined that allows you to switch between insert mode and visual mode while keeping the selection. This should also work with multi-cursor.
 
 You can define this shortcut in the settings by enabling vim mode in obsidian and in this plugin.
-The shortcut should be a vim keybinding with no spaces. Some keybindings are not supported by the original vim extension. Due to this, please first see if the shortcut works for other keys, such as `:imap <C-a> <Esc>` or `:vmap <A-h> 0`. It is known that the shift key (`:map <S-a> <Esc>`) does not work.
+The shortcut should be a vim key binding with no spaces. Some key bindings are not supported by the original vim extension. Due to this, please first see if the shortcut works for other keys, such as `:imap <C-a> <Esc>` or `:vmap <A-h> 0`. It is known that the shift key (`:map <S-a> <Esc>`) does not work.
 
 Keep in mind that the shortcut from visual -> select mode only works in visual mode, and the shortcut from select -> visual mode only works when something is selected and you are in insert mode.
 
