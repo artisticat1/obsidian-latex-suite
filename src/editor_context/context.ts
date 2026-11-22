@@ -97,6 +97,7 @@ export class Context implements PluginValue {
 			code: false,
 			textEnv: false,
 			snippetlessEnv: false,
+			all: false,
 		})
 		const mathBounds = getMathBoundsPlugin(this.view, false);
 		mathBounds.reset();
@@ -146,6 +147,7 @@ export class Context implements PluginValue {
 			code: false,
 			textEnv: false,
 			snippetlessEnv: false,
+			all: false,
 		});
 		this.boundsCache = new Map();
 		this.innerBoundsCache = new Map();
