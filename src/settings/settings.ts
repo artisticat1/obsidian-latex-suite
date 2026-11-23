@@ -185,7 +185,7 @@ export const DEFAULT_SETTINGS: LatexSuitePluginSettings = {
 	mathElementsClickable: false,
 	autofractionEnabled: true,
 	autofractionSymbol: "\\frac",
-	autofractionBreakingChars: "+-=\t",
+	autofractionBreakingChars: "+-=\t&<>",
 	matrixShortcutsEnabled: true,
 	taboutEnabled: true,
 	taboutExitEquationOnlyOnEOL: true,
