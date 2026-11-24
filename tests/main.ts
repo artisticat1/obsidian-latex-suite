@@ -18,7 +18,7 @@ import { serializeSnippetLike, Snippet } from "../src/snippets/snippets";
 import { DEFAULT_SETTINGS } from "../src/settings/settings";
 import { tabstopsStateField } from "../src/snippets/codemirror/tabstops_state_field";
 import { Mode, Options } from "../src/editor_context/options";
-import { RangeSet, RangeValue } from "@codemirror/state";
+import { EditorSelection, RangeSet, RangeValue } from "@codemirror/state";
 
 declare global {
 	interface Window {
@@ -124,7 +124,7 @@ EditorView.prototype.setDoc = function (text?: string, pos?: number) {
 	const doc = this.state.doc;
 	const transaction = this.state.update({
 		changes: { from: 0, to: doc.length, insert: text ?? "" },
-		selection: pos !== undefined ? { anchor: pos, head: pos } : undefined,
+		selection: pos !== undefined ? EditorSelection.cursor(pos) : undefined,
 	});
 	this.dispatch(transaction);
 }
@@ -211,7 +211,7 @@ export default class TestPlugin extends LatexSuitePlugin {
 	setLib() {
 		const mdView = this.app.workspace.getActiveViewOfType(MarkdownView);
 		const editor: Editor | null = mdView?.editor ?? null;
-		const view: EditorView | null = editor?.activeCM ?? null;
+		const view: EditorView | null = editor?.cm ?? null;
 		window.__latex_suite_test_library = {
 			plugin: this,
 			mdView,
@@ -227,6 +227,28 @@ export default class TestPlugin extends LatexSuitePlugin {
 		// 		view.dispatch(transaction);
 		// 	}
 		// }
+	}
+	
+	getActiveEditorView() {
+		const mdView = this.app.workspace.getActiveViewOfType(MarkdownView);
+		const editor: Editor | null = mdView?.editor ?? null;
+		const view: EditorView | null = editor?.cm ?? null;
+		return view;
+	}
+
+	ensureEditorMode(type: "source" | "preview") {
+		const mdView = this.app.workspace.getActiveViewOfType(MarkdownView);
+		const editor: Editor | null = mdView?.editor ?? null;
+		const view: EditorView | null = editor?.cm ?? null;
+		if (view) {
+			const inLivePreview = view.state.field(editorLivePreviewField);
+			if (inLivePreview && type === "source") {
+				this.app.commands.executeCommandById("editor:toggle-source");
+			}
+			if (!inLivePreview && type === "preview") {
+				this.app.commands.executeCommandById("editor:toggle-source");
+			}
+		}
 	}
 	
 	async setSnippets(snippets: RawSnippet[]) {
