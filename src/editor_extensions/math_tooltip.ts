@@ -22,11 +22,30 @@ const HIGHLIGHT_CLASS = "mjx-latex-suite-math-preview-highlight";
 const CURSOR_CLASS = "mjx-latex-suite-cursor";
 export const updateTooltipEffect = StateEffect.define<MathTooltip[]>();
 
-function getParentDocumentCoords(view: EditorView, pos: number, above: boolean): Rect {
+function getParentDocumentCoords(view: EditorView, pos: number, above: boolean, dom: HTMLElement): Rect {
 	const coords = view.coordsAtPos(pos);
 	if (!coords) return view.dom.getBoundingClientRect();
 	const frame = view.dom.win.frameElement;
-	if (!frame) return coords;
+	if (!frame) {
+		const copyCoords = {
+			left: coords.left,
+			right: coords.right,
+			top: coords.top,
+			bottom: coords.bottom,
+		};
+		const domRect = activeDocument.body.getBoundingClientRect();
+		const topRel = coords.top - domRect.top;
+		const lineHeight = 6 * view.defaultLineHeight;
+		if (above && topRel < lineHeight) {
+			const cursorCoords = view.coordsAtPos(view.state.selection.main.head) ?? coords;
+			const bodyRect = activeDocument.body.getBoundingClientRect();
+			const domHeight = dom.scrollHeight;
+			const newBottom = Math.min(cursorCoords.bottom - lineHeight, bodyRect.top + domHeight);
+			copyCoords.bottom = newBottom;
+			copyCoords.top = newBottom;
+		}
+		return copyCoords;
+	}
 
 	const frameRect = frame.getBoundingClientRect();
 	const scaleX = frame.clientWidth ? frameRect.width / frame.clientWidth : 1;
@@ -96,6 +115,13 @@ const findMatchingBrackets = (text: string, cursorPos: number, openBracket: stri
 	return { left, right };
 }
 
+function getOuterDocument(view: EditorView) {
+	const win = view.dom.win;
+	const frame = win.frameElement
+	return frame?.ownerDocument ?? win.document
+}
+
+const defaultDoc = window.document;
 class MathTooltipPlugin implements PluginValue {
 	hasFocus: boolean;	
 	prevFocus: boolean;
@@ -110,9 +136,9 @@ class MathTooltipPlugin implements PluginValue {
 		if (settings.mathElementsClickable) {
 			this.view.dom.addEventListener("mousedown", this.mousedown);
 		}
-		this.currentDoc = view.dom.win.document;
+		this.currentDoc = getOuterDocument(view);
 		const docCopy = this.currentDoc;
-		if (window.document !== docCopy) {
+		if (defaultDoc !== docCopy) {
 			window.setTimeout(() => {
 				view.dispatch({
 					effects: tooltipCompartment.reconfigure(createTooltipConfig(docCopy)),
@@ -196,7 +222,7 @@ class MathTooltipPlugin implements PluginValue {
 
 		this.prevFocus = this.hasFocus;
 		this.hasFocus = update.view.hasFocus;
-		const doc = update.view.dom.win.document;
+		const doc = activeDocument;
 		if (this.currentDoc !== doc) {
 			this.currentDoc = doc;
 			window.setTimeout(() => {
@@ -239,14 +265,15 @@ const mathTooltipPlugin = ViewPlugin.fromClass(MathTooltipPlugin, {
 
 // update the tooltip by dispatching an updateTooltipEffect
 export function handleMathTooltip(update: ViewUpdate) {
-	const {prevFocus, hasFocus} = update.view.plugin(mathTooltipPlugin)!;
+	const view = update.view;
+	const {prevFocus, hasFocus} = view.plugin(mathTooltipPlugin)!;
 	const shouldUpdate = update.docChanged || update.selectionSet || (hasFocus !== prevFocus)
 	if (!shouldUpdate) return;
 	const settings = getLatexSuiteConfig(update.state);
 	
 	// We don't need to update the tooltip every time the cursor moves. 
 	// Only update when we leaf or enter a LaTeX block. High impact.
-	const ctx = getContextPlugin(update.view);
+	const ctx = getContextPlugin(view);
 	const eqnBounds = shouldShowTooltip(update.state, ctx);
 
 	if (!eqnBounds || (prevFocus && !hasFocus)) {
@@ -255,7 +282,7 @@ export function handleMathTooltip(update: ViewUpdate) {
 		// If the tooltip is not currently shown and there is no need to show it,
 		// we don't dispatch an transaction.
 		if (currTooltips.length > 0) {
-			update.view.dispatch({
+			view.dispatch({
 				effects: [updateTooltipEffect.of([])],
 			});
 		}
@@ -313,8 +340,8 @@ export function handleMathTooltip(update: ViewUpdate) {
 			} else {
 				new_pos = Math.max(pos - highlight_class_open.length - mathPreviewCursor.length, maxPosOrLeft);
 			}
-			update.view.focus()
-			update.view.dispatch({
+			view.focus()
+			view.dispatch({
 				selection: {
 					head: new_pos + eqnBounds.inner_start,
 					anchor: new_pos + eqnBounds.inner_start,
@@ -336,8 +363,8 @@ export function handleMathTooltip(update: ViewUpdate) {
 				new_pos = pos - mathPreviewCursor.length
 			}
 			const eqn_pos = new_pos + eqnBounds.inner_start;
-			update.view.focus()
-			update.view.dispatch({
+			view.focus()
+			view.dispatch({
 				selection: {
 					head: eqn_pos,
 					anchor: eqn_pos,
@@ -356,7 +383,7 @@ export function handleMathTooltip(update: ViewUpdate) {
 	) {
 		return;
 	}
-	const isEqnMultiline = isBoundMultiline(update.view, eqnBounds);
+	const isEqnMultiline = isBoundMultiline(view, eqnBounds);
 
 	const above = settings.mathPreviewPositionIsAbove;
 	const domObject: { dom: HTMLElement | null } = { dom: null };	
@@ -378,8 +405,9 @@ export function handleMathTooltip(update: ViewUpdate) {
 			}
 		}
 		let mount: ReturnType<Tooltip["create"]>["mount"] = () => {};
+		let renderedEqn: HTMLElement;
 		try {
-			const renderedEqn = renderMath(eqnWithDecorations, ctx.mode.inDisplayMath());
+			renderedEqn = renderMath(eqnWithDecorations, ctx.mode.inDisplayMath());
 			if (settings.mathElementsClickable) {
 				createClickCallback(renderedEqn, eqnWithDecorations, setPos);
 			}
@@ -404,52 +432,55 @@ export function handleMathTooltip(update: ViewUpdate) {
 		return {
 			dom,
 			mount,
-			getCoords: (pos) => getParentDocumentCoords(view, pos, above),
+			getCoords: (pos) => getParentDocumentCoords(view, pos, above, renderedEqn),
 		};
 	};
 
-	let newTooltips: Tooltip[] = [];
+	let newTooltip: Tooltip;
 
 	if (isEqnMultiline) {
-		newTooltips = [{
+		newTooltip = {
 			pos: above ? eqnBounds.inner_start : eqnBounds.inner_end,
 			above: above,
 			strictSide: true,
 			arrow: true,
 			clip: false,
 			create: create,
-		}];
+		};
 	} else if (!isEqnMultiline && above) {
-		newTooltips = [{
+		newTooltip = {
 			pos: eqnBounds.inner_start,
 			above: true,
 			strictSide: true,
 			arrow: true,
 			clip: false,
 			create: create,
-		}];
+		};
 	} else if (!isEqnMultiline && !above) {
 		const endRange = EditorSelection.range(eqnBounds.inner_end, eqnBounds.inner_end);
 
-		newTooltips = [{
+		newTooltip = {
 			pos: Math.max(
 				eqnBounds.inner_start,
 				// the beginning position of the visual line where eqnBounds.end is
 				// located
-				update.view.moveToLineBoundary(endRange, false).anchor,
+				view.moveToLineBoundary(endRange, false).anchor,
 			),
 			above: false,
 			strictSide: true,
 			arrow: true,
 			clip: false,
 			create: create,
-		}];
+		};
+	} else {
+		// appease ts
+		return;
 	}
 
-	update.view.dispatch({
+	view.dispatch({
 		effects: [
 			updateTooltipEffect.of(
-				newTooltips.map((t) => ({
+				[newTooltip].map((t) => ({
 					equation: eqnWithDecorations,
 					bounds: eqnBounds,
 					pos: t.pos,
@@ -785,6 +816,6 @@ const tooltipCompartment = new Compartment();
 export const createMathTooltipExtension = (settings: LatexSuiteCMSettings) => [
 	cursorTooltipField.extension,
 	cursorTooltipBaseTheme,
-	tooltipCompartment.of(createTooltipConfig(window.document)),
+	tooltipCompartment.of(createTooltipConfig(defaultDoc)),
 	mathTooltipPlugin.of(settings)
 ]
