@@ -110,18 +110,18 @@
 		}
 	},
 	"tabout": {
-		"heading": "Tabout",
+		"heading": "Salir con Tab",
 		"enabled": {
-			"name": "Enabled",
-			"desc": "Whether tabout is enabled."
+			"name": "Activar",
+			"desc": "Define si está activo el salir con Tab."
 		},
 		"closing-brackets": {
-			"name": "Closing brackets",
-			"desc": "A list of closing brackets for tabout, separated by commas."
+			"name": "Delimitadores de cierre",
+			"desc": "Una lista de los delimitadores de cierre para salir, separados por comas."
 		},
 		"exit-EOL": {
-			"name": "Exit equation only on EOL",
-			"desc": "Whether to exit the equation only when the cursor is at the end of line"
+			"name": "Salir de la ecuación solo desde el final",
+			"desc": "Cuando está activo, Tab te saca de la ecuación solo cuando el cursor está al final de la misma."
 		}
 	},
 	"auto-enlarge": {
