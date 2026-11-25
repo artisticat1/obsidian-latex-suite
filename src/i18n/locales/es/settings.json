@@ -95,18 +95,18 @@
 		}
 	},
 	"matrix-shortcuts": {
-		"heading": "Matrix shortcuts",
+		"heading": "Atajos de matrices",
 		"enabled": {
-			"name": "Enabled",
-			"desc": "Whether matrix shortcuts are enabled."
+			"name": "Activar",
+			"desc": "Decide si los atajos de matrices están activados."
 		},
 		"environments": {
-			"name": "Environments",
-			"desc": "A list of environment names to run the matrix shortcuts in, separated by commas."
+			"name": "Entornos",
+			"desc": "Una lista de los entornos, separados por comas, donde los atajos de matrices están activos."
 		},
 		"macros": {
 			"name": "Macros",
-			"desc": "A list of macros names to run the matrix shortcuts in, separated by commas."
+			"desc": "Una lista de las macros, separadas por comas, donde los atajos de matrices están activos."
 		}
 	},
 	"tabout": {
