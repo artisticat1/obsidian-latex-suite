@@ -125,18 +125,18 @@
 		}
 	},
 	"auto-enlarge": {
-		"heading": "Auto-enlarge brackets",
+		"heading": "Ampliar delimitadores automáticamente",
 		"enabled": {
-			"name": "Enabled",
-			"desc": "Whether to automatically enlarge brackets containing e.g. sum, int, frac."
+			"name": "Activar",
+			"desc": "Define si los delimitadores se amplían automáticamente cuando contienen, por ejemplo, una suma, fracción o integral."
 		},
 		"triggers": {
-			"name": "Triggers",
-			"desc": "A list of symbols that should trigger auto-enlarge brackets, separated by commas."
+			"name": "Activadores",
+			"desc": "Una lista de símbolos, separados por comas, que activarán la ampliación automática de delimitadores."
 		},
 		"space": {
-			"name": "Space",
-			"desc": "Whether to add a space after <code>\\left(</code> and before <code>\\right)</code> or not"
+			"name": "Añadir espacios",
+			"desc": "Decide si añadir un espacio después de <code>\\left(</code> y antes de <code>\\right)</code>"
 		}
 	},
 	"advanced-snippets": {
