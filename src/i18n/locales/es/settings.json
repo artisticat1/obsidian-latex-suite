@@ -34,18 +34,18 @@
 		}
 	},
 	"highlight-brackets": {
-		"heading": "Highlight and color brackets",
+		"heading": "Resaltar y colorear delimitadores",
 		"color-brackets": {
-			"name": "Color paired brackets",
-			"desc": "Whether to colorize matching brackets."
+			"name": "Colorear pares de delimitadores",
+			"desc": "Decide si colorear pares de delimitadores correspondientes entre sí."
 		},
 		"highlight-brackets": {
-			"name": "Highlight matching bracket beneath cursor",
-			"desc": "When the cursor is adjacent to a bracket, highlight the matching bracket."
+			"name": "Resaltar delimitador adyacente al cursor",
+			"desc": "Cuando el cursor esté adyacente a un delimitador, se resalta su pareja correspondiente."
 		},
 		"color-math": {
-			"name": "Color math delimiters",
-			"desc": "Whether to colorize matched and mismatched math delimiters in the editor according to this plugin's parser. This parser behaves closer to the reading view parser than the editor/syntax highlighting parser."
+			"name": "Colorear delimitadores matemáticos",
+			"desc": "Decide si colorear delimitadores (parejos o no) con base en el parser LaTeX de este plugin. Es más fiel a la vista de lectura que el parser de resaltado de sintaxis del editor."
 		}
 	},
 	"math-preview": {
