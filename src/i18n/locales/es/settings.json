@@ -2,20 +2,20 @@
 	"snippets": {
 		"heading": "Snippets",
 		"enabled": {
-			"name": "Enabled",
-			"desc": "Whether snippets are enabled. For more info on how to format snippets see the <a href=\"https://github.com/artisticat1/obsidian-latex-suite/blob/main/DOCS.md#snippets\">documentation</a>."
+			"name": "Activar",
+			"desc": "Define si se activan los snippets. Para más información sobre cómo escribir tus snippets mira la <a href=\"https://github.com/artisticat1/obsidian-latex-suite/blob/main/DOCS.md#snippets\">documentación</a>."
 		},
 		"snippets": {
 			"name": "Snippets",
-			"desc": "Enter snippets here. Remember to add a comma after each snippet, and escape all backslashes with an extra <code>\\</code>. Lines starting with <code>//</code> will be treated as comments and ignored."
+			"desc": "Escribe tus snippets aquí. Recuerda añadir una coma después de cada uno, y escapar todas las barras invertidas con una <code>\\</code> extra. Las líneas que comiencen con <code>//</code> son comentarios y se ignorarán."
 		},
 		"load-from-file": {
-			"name": "Load snippets from file or folder",
-			"desc": "Whether to load snippets from specified file, or from all files within a folder (instead of from the plugin settings)."
+			"name": "Cargar snippets desde un archivo o carpeta",
+			"desc": "Permite cargar snippets desde un archivo dado, o todos los archivos de una carpeta (diferente a la de los ajustes del plugin)."
 		},
 		"file-path": {
-			"name": "Snippets file or folder location",
-			"desc": "The file or folder to load snippets from. On desktop you can use ~/ or an absolute path. Files outside your vault or in hidden folders may not be watched for changes depending on your OS."
+			"name": "Ubicación de los snippets",
+			"desc": "El archivo o carpeta desde donde se cargarán los snippets. En escritorio puedes usar ~/ o una ruta absoluta. Los archivos fuera del baúl o en carpetas ocultas podrían no ser actualizados adecuadamente dependiendo del sistema operativo."
 		}
 	},
 	"conceal": {
