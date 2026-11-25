@@ -49,30 +49,30 @@
 		}
 	},
 	"math-preview": {
-		"heading": "Math popup preview",
+		"heading": "Vista previa flotante",
 		"enabled": {
-			"name": "Enabled",
-			"desc": "When inside an equation, show a popup preview window of the rendered math.<br><br>The popup preview will be shown for all inline math equations, as well as for block math equations in Source mode."
+			"name": "Activar",
+			"desc": "Cuando editas una ecuación, se muestra una vista flotante de la ecuación renderizada.<br><br>Aparecerá en todas las ecuaciones en línea, así como las de bloque (para el modo de código fuente)."
 		},
 		"position": {
-			"name": "Position",
-			"desc": "Where to display the popup preview relative to the equation source.",
+			"name": "Posición",
+			"desc": "Dónde se muestra la vista flotante respecto a la posición del código de la ecuación.",
 			"options": {
-				"above": "Above",
-				"below": "Below"
+				"above": "Encima",
+				"below": "Debajo"
 			}
 		},
 		"cursor-symbol": {
-			"name": "Cursor symbol",
-			"desc": "The symbol to use as the cursor in the popup preview such as {{cursor}}. Leave it blank to turn it off."
+			"name": "Símbolo del cursor",
+			"desc": "Símbolo a usar como cursor dentro de la vista flotante, como por ejemplo {{cursor}}. Déjalo en blanco para desactivarlo."
 		},
 		"highlight-brackets": {
-			"name": "Highlight brackets in preview",
-			"desc": "Whether to highlight the area within the nearest pair of brackets around the cursor in the popup preview."
+			"name": "Resaltar delimitadores en la vista previa",
+			"desc": "Resalta el área entre el par de delimitadores más cercano al cursor en la vista flotante."
 		},
 		"display-live-preview": {
-			"name": "Display live preview",
-			"desc": "Whether to display the tooltip in live preview mode. The cursor and bracket highlighting will only be shown in this preview and not in obsidian's preview"
+			"name": "Mostrar en modo Vista previa",
+			"desc": "Define si se muestra la vista flotante en el modo Vista previa (Live Preview). El cursor y el resaltado de delimitadores solo aparecen en esta vista flotante y no en la de Obsidian."
 		}
 	},
 	"auto-fraction": {
