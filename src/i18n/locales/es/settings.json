@@ -76,22 +76,22 @@
 		}
 	},
 	"auto-fraction": {
-		"heading": "Auto-fraction",
+		"heading": "Fracciones automáticas",
 		"enabled": {
-			"name": "Enabled",
-			"desc": "Whether auto-fraction is enabled."
+			"name": "Activar",
+			"desc": "Define si se activan las fracciones automáticas."
 		},
 		"fraction-symbol": {
-			"name": "Fraction symbol",
-			"desc": "The fraction symbol to use in the replacement. e.g. <code>\\frac</code>, <code>\\dfrac</code>, <code>\\tfrac</code>."
+			"name": "Símbolo de fracción",
+			"desc": "El símbolo de fracción a usar como reemplazo. Por ejemplo, <code>\\frac</code>, <code>\\dfrac</code> o <code>\\tfrac</code>."
 		},
 		"excluded-environments": {
-			"name": "Excluded environments",
-			"desc": "A list of environments to exclude auto-fraction from running in. For example, to exclude auto-fraction from running while inside an exponent, such as <code>e^{...}</code>, use <code>[\"^{\", \"}\"]</code>"
+			"name": "Entornos excluidos",
+			"desc": "Una lista de los entornos en los que las fracciones automáticas no aplican. Por ejemplo, para desactivar las fracciones automáticas dentro de un exponente como <code>e^{...}</code>, usa <code>[\"^{\", \"}\"]</code>."
 		},
 		"breaking-characters": {
-			"name": "Breaking characters",
-			"desc": "A list of characters that denote the start/end of a fraction. e.g. if <code>+</code> is included in the list, <code>a+b/c</code> will expand to <code>a+\\frac{b}{c}</code>. If <code>+</code> is not in the list, it will expand to <code>\\frac{a+b}{c}</code>."
+			"name": "Caracteres de corte",
+			"desc": "Una lista de caracteres que denota el inicio/final de una fracción. Por ejemplo, si <code>+</code> está en la lista, <code>a+b/c</code> se expande a <code>a+\\frac{b}{c}</code>. Si no, se expande a <code>\\frac{a+b}{c}</code>."
 		}
 	},
 	"matrix-shortcuts": {
