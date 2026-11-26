@@ -197,20 +197,20 @@
 	},
 	"vim": {
 		"enabled": {
-			"name": "Vim key bindings",
-			"desc": "Turn on/off vim keybindings. Note vim needs to be enabled in obsidian itself."
+			"name": "Atajos de teclado de Vim",
+			"desc": "Activa o desactiva los atajos de teclado de Vim. Debes activar Vim para Obsidian también."
 		},
 		"select-mode": {
-			"name": "Vim: Switch from visual mode to select mode",
-			"desc": "Maps the key to switch from visual mode to select mode.Keymap must be vim keymap and can't contain any spaces. Use empty string to disable this feature. (select mode=insert keybindings)"
+			"name": "Vim: Cambio del modo visual al modo de selección",
+			"desc": "Elige la tecla que cambia del modo visual al modo de selección. El mapeo de teclas debe ser de Vim y no puede contener espacios. Déjalo vacío para desactivar esta opción. (modo selección = atajos del modo inserción)"
 		},
 		"visual-mode": {
-			"name": "Vim: Switch from select mode to visual mode",
-			"desc": "Maps the key to switch from select mode to visual mode. must be a vim keymap and can't contain any spaces. Example <code>&lt;C-g&gt;&lt;C-A-i&gt;</code> = <code>Ctrl-g + Ctrl-Alt-i</code>. Please check the vim keybinding first on another command like w before reporting it. Some keybindings like shift don't work due to the original vim plugin. Use empty string to disable this feature. (select mode=insert keybindings)"
+			"name": "Vim: Cambio del modo de selección al modo visual",
+			"desc": "Elige la tecla que cambia el modo de selección al modo visual. El mapeo de teclas debe ser de Vim y no puede contener espacios. Por ejemplo <code>&lt;C-g&gt;&lt;C-A-i&gt;</code> = <code>Ctrl-g + Ctrl-Alt-i</code>. Por favor, prueba primero el atajo de teclado de Vim con otro comando como w antes de reportar un error. Algunos atajos como Shift no funcionan por causa del plugin original de Vim. Déjalo vacío para desactivar esta opción. (modo selección = atajos del modo inserción)"
 		},
 		"matrix-enter": {
-			"name": "Vim: run matrix enter",
-			"desc": "Maps the key to the action of inserting a new line below while appending <code>\\\\</code> to the current line in a matrix environment. Use empty string to disable this feature."
+			"name": "Vim: Salto de línea en matrices",
+			"desc": "Elige la tecla para insertar una línea debajo mientras me añade un <code>\\\\</code> al final de la línea actual en un entorno de matriz. Déjalo vacío para desactivar esta opción."
 		}
 	},
 	"keymap": {
