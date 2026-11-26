@@ -214,20 +214,20 @@
 		}
 	},
 	"keymap": {
-		"desc": "What key to press to trigger the action. Should follow codemirror 6 keymap syntax such as <code>Ctrl-k Ctrl-a</code> For more info see <a href=\"https://codemirror.net/6/docs/ref/#keymap\">codemirror keymap</a><br><br>Note that some keymaps may not work due to conflicts with obsidian or other plugins.<br><br>The actions are expanded in the order that they are listed. Custom keymaps in snippets are on the same priority as <code>$t(settings:keymap.snippet)</code>.",
+		"desc": "Elige qué tecla desencadena cada acción. Debe seguir la sintaxis Codemirror 6 de mapeo de teclas, como por ejemplo <code>Ctrl-k Ctrl-a</code>. Para más información mira <a href=\"https://codemirror.net/6/docs/ref/#keymap\">mapeo de teclas Codemirror</a><br><br>Algunos atajos de teclado pueden no funcionar debido a conflictos con Obsidian u otros plugins.<br><br>Las acciones se expanden en el orden en el que se listan. Los atajos personalizados en snippets tienen la misma prioridad que <code>$t(settings:keymap.snippet)</code>.",
 		"heading": {
-			"name": "Keymap",
-			"desc": "codemirror 6 keymaps for snippets and tabout."
+			"name": "Atajos de teclado",
+			"desc": "Atajos de teclado de Codemirror 6 para snippets y salir con Tab."
 		},
-		"snippet": "Expand manual snippets",
-		"next-tabstop": "Next tabstop",
-		"prev-tabstop": "Previous tabstop",
-		"tabout": "Tabout",
-		"reverse-tabout": "Reverse tabout",
-		"matrix-newline": "Matrix: insert newline and \"\\\\\"",
-		"matrix-cell": "Matrix: insert \" & \"",
-		"matrix-exit": "Matrix: move to the next line",
-		"auto-fraction": "Expand fraction"
+		"snippet": "Expandir snippets manuales",
+		"next-tabstop": "Siguiente parada de tabulación",
+		"prev-tabstop": "Anterior parada de tabulación",
+		"tabout": "Salir con Tab",
+		"reverse-tabout": "Revertir salida con Tab",
+		"matrix-newline": "Matriz: insertar nueva línea y \"\\\\\"",
+		"matrix-cell": "Matriz: insertar \" & \"",
+		"matrix-exit": "Matriz: pasar a la siguiente línea",
+		"auto-fraction": "Expandir fracción"
 	},
 	"experimental": {
 		"heading": {
