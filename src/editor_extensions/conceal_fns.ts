@@ -686,7 +686,7 @@ function handleNot({cursor, doc, maps}: MacroHandlerOptions): HandleConcealResul
 	const peekCursor = cursor.node.cursor();
 	if (!peekCursor.next()) return handled([]);
 	const sibling = peekCursor.node;
-	const to = cursor.to;
+	const to = sibling.to;
 	const symbol = doc.slice(sibling.from + 1, sibling.to);
 	const notSymbol = not_remap[symbol];
 	if (!notSymbol) {
