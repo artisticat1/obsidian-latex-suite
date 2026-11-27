@@ -1,0 +1,302 @@
+{
+	"snippets": {
+		"heading": "Snippets",
+		"enabled": {
+			"name": "Activar",
+			"desc": "Define si se activan los snippets. Para más información sobre cómo escribir tus snippets mira la <a href=\"https://github.com/artisticat1/obsidian-latex-suite/blob/main/DOCS.md#snippets\">documentación</a>."
+		},
+		"snippets": {
+			"name": "Snippets",
+			"desc": "Escribe tus snippets aquí. Recuerda añadir una coma después de cada uno, y escapar todas las barras invertidas con una <code>\\</code> extra. Las líneas que comiencen con <code>//</code> son comentarios y se ignorarán."
+		},
+		"load-from-file": {
+			"name": "Cargar snippets desde un archivo o carpeta",
+			"desc": "Permite cargar snippets desde un archivo dado, o todos los archivos de una carpeta (diferente a la de los ajustes del plugin)."
+		},
+		"file-path": {
+			"name": "Ubicación de los snippets",
+			"desc": "El archivo o carpeta desde donde se cargarán los snippets. En escritorio puedes usar ~/ o una ruta absoluta. Los archivos fuera del baúl o en carpetas ocultas podrían no ser actualizados adecuadamente dependiendo del sistema operativo."
+		}
+	},
+	"conceal": {
+		"heading": "Ocultar comandos",
+		"enabled": {
+			"name": "Activar",
+			"desc": "Hace el código de las ecuaciones más legible escondiendo la sintaxis LaTeX y mostrando un formato mejorado en su lugar.<br>por ejemplo, <code>\\dot{x}^{2} + \\dot{y}^{2}</code> se verá como <code>ẋ² + ẏ²</code> y <code>\\sqrt{ 1-\\beta^{2} }</code> se verá como <code>√(1-β²)</code><br>El código LaTeX se revelará debajo del cursor.<br><br>Está deshabilitado por defecto para no confundir a los nuevos usarios. Sin embargo, ¡recomiendo activarlo cuando te sientas cómodo!"
+		},
+		"reveal-delay": {
+			"name": "Retraso de revelado (ms)",
+			"desc": "Tiempo de retraso para revelar el código, en milisegundos, cuando el cursor pasa sobre LaTeX. Por defecto es 0 (LaTeX se revela inmediatamente).<br><br>Puede ser un número positivo, por ejemplo 300, para retrasar el revelado, facilitando el navegar por ecuaciones con las flechas del teclado.<br><br>Debe ser un entero mayor o igual a cero."
+		},
+		"conceal-maps": {
+			"name": "Mapas de ocultamiento",
+			"desc": "Úsalo para añadir o eliminar ocultamientos de símbolos o macros.<br>Por ejemplo, si no te gusta que <code>\\quad</code> se vea como un espacio, o tienes una macro como <code>\\euro</code>, puedes añadir <code>€</code> al mapeo <code>cmd_symbols</code>.<br><br>\nTodo mapeo, excepto <code>operators</code> y <code>function_macros</code>, sigue un esquema como <code>\"euro\": \"€\"</code> para añadir y <code>\"quad\": null</code> para eliminar un mapeo.<br><code>operators</code> usa <code>\"sin\": false</code> para activar o desactivar el ocultamiento de <code>\\sin</code> a <code>sin</code>.<br><br>Solo se soporta JSON, así que no añadas comas finales o comentarios.<br><br>Mira <a href='https://github.com/artisticat1/obsidian-latex-suite/blob/main/DOCS.md#conceal-maps'>Mapas de ocultamiento (en inglés)</a> para más información."
+		}
+	},
+	"highlight-brackets": {
+		"heading": "Resaltar y colorear delimitadores",
+		"color-brackets": {
+			"name": "Colorear pares de delimitadores",
+			"desc": "Decide si colorear pares de delimitadores correspondientes entre sí."
+		},
+		"highlight-brackets": {
+			"name": "Resaltar delimitador adyacente al cursor",
+			"desc": "Cuando el cursor esté adyacente a un delimitador, se resalta su pareja correspondiente."
+		},
+		"color-math": {
+			"name": "Colorear delimitadores matemáticos",
+			"desc": "Decide si colorear delimitadores (parejos o no) con base en el parser LaTeX de este plugin. Es más fiel a la vista de lectura que el parser de resaltado de sintaxis del editor."
+		}
+	},
+	"math-preview": {
+		"heading": "Vista previa flotante",
+		"enabled": {
+			"name": "Activar",
+			"desc": "Cuando editas una ecuación, se muestra una vista flotante de la ecuación renderizada.<br><br>Aparecerá en todas las ecuaciones en línea, así como las de bloque (para el modo de código fuente)."
+		},
+		"position": {
+			"name": "Posición",
+			"desc": "Dónde se muestra la vista flotante respecto a la posición del código de la ecuación.",
+			"options": {
+				"above": "Encima",
+				"below": "Debajo"
+			}
+		},
+		"cursor-symbol": {
+			"name": "Símbolo del cursor",
+			"desc": "Símbolo a usar como cursor dentro de la vista flotante, como por ejemplo {{cursor}}. Déjalo en blanco para desactivarlo."
+		},
+		"highlight-brackets": {
+			"name": "Resaltar delimitadores en la vista previa",
+			"desc": "Resalta el área entre el par de delimitadores más cercano al cursor en la vista flotante."
+		},
+		"display-live-preview": {
+			"name": "Mostrar en modo Vista previa",
+			"desc": "Define si se muestra la vista flotante en el modo Vista previa (Live Preview). El cursor y el resaltado de delimitadores solo aparecen en esta vista flotante y no en la de Obsidian."
+		}
+	},
+	"auto-fraction": {
+		"heading": "Fracciones automáticas",
+		"enabled": {
+			"name": "Activar",
+			"desc": "Define si se activan las fracciones automáticas."
+		},
+		"fraction-symbol": {
+			"name": "Símbolo de fracción",
+			"desc": "El símbolo de fracción a usar como reemplazo. Por ejemplo, <code>\\frac</code>, <code>\\dfrac</code> o <code>\\tfrac</code>."
+		},
+		"excluded-environments": {
+			"name": "Entornos excluidos",
+			"desc": "Una lista de los entornos en los que las fracciones automáticas no aplican. Por ejemplo, para desactivar las fracciones automáticas dentro de un exponente como <code>e^{...}</code>, usa <code>[\"^{\", \"}\"]</code>."
+		},
+		"breaking-characters": {
+			"name": "Caracteres de corte",
+			"desc": "Una lista de caracteres que denota el inicio/final de una fracción. Por ejemplo, si <code>+</code> está en la lista, <code>a+b/c</code> se expande a <code>a+\\frac{b}{c}</code>. Si no, se expande a <code>\\frac{a+b}{c}</code>."
+		}
+	},
+	"matrix-shortcuts": {
+		"heading": "Atajos de matrices",
+		"enabled": {
+			"name": "Activar",
+			"desc": "Decide si los atajos de matrices están activados."
+		},
+		"environments": {
+			"name": "Entornos",
+			"desc": "Una lista de los entornos, separados por comas, donde los atajos de matrices están activos."
+		},
+		"macros": {
+			"name": "Macros",
+			"desc": "Una lista de las macros, separadas por comas, donde los atajos de matrices están activos."
+		}
+	},
+	"tabout": {
+		"heading": "Salir con Tab",
+		"enabled": {
+			"name": "Activar",
+			"desc": "Define si está activo el salir con Tab."
+		},
+		"closing-brackets": {
+			"name": "Delimitadores de cierre",
+			"desc": "Una lista de los delimitadores de cierre para salir, separados por comas."
+		},
+		"exit-EOL": {
+			"name": "Salir de la ecuación solo desde el final",
+			"desc": "Cuando está activo, Tab te saca de la ecuación solo cuando el cursor está al final de la misma."
+		}
+	},
+	"auto-enlarge": {
+		"heading": "Ampliar delimitadores automáticamente",
+		"enabled": {
+			"name": "Activar",
+			"desc": "Define si los delimitadores se amplían automáticamente cuando contienen, por ejemplo, una suma, fracción o integral."
+		},
+		"triggers": {
+			"name": "Activadores",
+			"desc": "Una lista de símbolos, separados por comas, que activarán la ampliación automática de delimitadores."
+		},
+		"space": {
+			"name": "Añadir espacios",
+			"desc": "Decide si añadir un espacio después de <code>\\left(</code> y antes de <code>\\right)</code>"
+		}
+	},
+	"advanced-snippets": {
+		"heading": "Snippets avanzados",
+		"variables": {
+			"name": "Variables de snippets",
+			"desc": "Asigna variables a los snippets, que se usan como atajos para escribirlos."
+		},
+		"load-variables-from-file": {
+			"name": "Cargar variables de snippets desde archivo o carpeta",
+			"desc": "Permite cargar variables de snippets desde un archivo dado, o todos los archivos de una carpeta (diferente a la de los ajustes del plugin)."
+		},
+		"variables-file-path": {
+			"name": "Ubicación de las variables de snippets",
+			"desc": "El archivo o carpeta desde donde se cargarán los snippets. En escritorio puedes usar ~/ o una ruta absoluta. Los archivos fuera del baúl o en carpetas ocultas podrían no ser actualizados adecuadamente dependiendo del sistema operativo."
+		},
+		"word-delimiters": {
+			"name": "Delimitadores de palabra",
+			"desc": "Símbolos que serán usados como delimitadores de palabras, para usar con la opción <code>w</code> de los snippets."
+		},
+		"trailing-whitespace": {
+			"name": "Remover espacios finales de snippets en ecuaciones en línea",
+			"desc": "Elimina los espacios finales cuando se expande un snippet al final de una ecuación en línea."
+		},
+		"auto-delete$": {
+			"name": "Eliminar $ de cierre cuando borras dentro de una ecuación vacía",
+			"desc": "Decide si también eliminar el $ de cierre cuando borras el $ de apertura dentro de una ecuación en línea vacía."
+		},
+		"suppress-IME": {
+			"name": "Desactivar snippets cuando un IME está activo",
+			"desc": "Suprime la expansión de snippets cuando un IME (editor de métodos de entrada) está activo."
+		},
+		"suppress-IME-warning": {
+			"name": "Suprimir advertencias por IME",
+			"desc": "Decide si mostrar una advertencia al arrancar cuando <code>$t(settings:advanced-snippets.suppress-IME.name)</code> está activado. Desactiva este ajuste si eres consciente de las limitaciones de un IME. Actualmente solo los teclados de toque/deslizamiento para iOS y Android, como GBoard, tienen soporte para IME. Mira <a href=\"https://github.com/artisticat1/obsidian-latex-suite/blob/main/DOCS.md#IME-keyboards\">aquí</a> para más información."
+		},
+		"code-languages": {
+			"name": "Lenguajes a interpretar como ecuaciones",
+			"desc": "Lenguajes para bloques de código, separados por comas, que deberían interpretar el bloque completo como una ecuación."
+		},
+		"snippet-debug-mode": {
+			"name": "Modo de depuración",
+			"desc": "Establece el volumen de información que se obtiene sobre la expansión de snippets. Configúralo en <code>info</code> o <code>verbose</code> para identificar qué snippet es expandido. El modo verboso imprimirá más información hacia la consola en modo depuración.",
+			"options": {
+				"off": "Desactivado",
+				"info": "Info",
+				"verbose": "Verboso"
+			}
+		},
+		"text-macros": {
+			"name": "Macros de texto",
+			"desc": "Una lista de macros que deberían ser tratadas como texto. <ul><li>Las macros \"text\" serán tratadas como el modo texto en LaTeX, y por consiguiente, los snippets con la opción <code>T</code> serán expandidos.</li><li>Las macros \"restricted\" serán tratadas como macros <code>\\begin</code> y <code>\\end</code>. Entonces solo se expandirán cuando la opción <code>includedMacros</code> esté activa para incluir dichas macros.</li></ul><br>Usan el mismo formato que <code>includedMacros</code> en los snippets, más información <a href=\"https://github.com/artisticat1/obsidian-latex-suite/blob/main/DOCS.md#macro-scopes\">aquí</a>.<br><br>Solo se soporta JSON, así que no añadas comas finales o comentarios."
+		},
+		"snippetless-macros": {
+			"name": "Macros sin snippets",
+			"desc": "Una lista de macros donde los snippets no deberían ser expandidos excepto los que incluyan la opción `includedMacros`."
+		}
+	},
+	"vim": {
+		"enabled": {
+			"name": "Atajos de teclado de Vim",
+			"desc": "Activa o desactiva los atajos de teclado de Vim. Debes activar Vim para Obsidian también."
+		},
+		"select-mode": {
+			"name": "Vim: Cambio del modo visual al modo de selección",
+			"desc": "Elige la tecla que cambia del modo visual al modo de selección. El mapeo de teclas debe ser de Vim y no puede contener espacios. Déjalo vacío para desactivar esta opción. (modo selección = atajos del modo inserción)"
+		},
+		"visual-mode": {
+			"name": "Vim: Cambio del modo de selección al modo visual",
+			"desc": "Elige la tecla que cambia el modo de selección al modo visual. El mapeo de teclas debe ser de Vim y no puede contener espacios. Por ejemplo <code>&lt;C-g&gt;&lt;C-A-i&gt;</code> = <code>Ctrl-g + Ctrl-Alt-i</code>. Por favor, prueba primero el atajo de teclado de Vim con otro comando como w antes de reportar un error. Algunos atajos como Shift no funcionan por causa del plugin original de Vim. Déjalo vacío para desactivar esta opción. (modo selección = atajos del modo inserción)"
+		},
+		"matrix-enter": {
+			"name": "Vim: Salto de línea en matrices",
+			"desc": "Elige la tecla para insertar una línea debajo mientras me añade un <code>\\\\</code> al final de la línea actual en un entorno de matriz. Déjalo vacío para desactivar esta opción."
+		}
+	},
+	"keymap": {
+		"desc": "Elige qué tecla desencadena cada acción. Debe seguir la sintaxis Codemirror 6 de mapeo de teclas, como por ejemplo <code>Ctrl-k Ctrl-a</code>. Para más información mira <a href=\"https://codemirror.net/6/docs/ref/#keymap\">mapeo de teclas Codemirror</a><br><br>Algunos atajos de teclado pueden no funcionar debido a conflictos con Obsidian u otros plugins.<br><br>Las acciones se expanden en el orden en el que se listan. Los atajos personalizados en snippets tienen la misma prioridad que <code>$t(settings:keymap.snippet)</code>.",
+		"heading": {
+			"name": "Atajos de teclado",
+			"desc": "Atajos de teclado de Codemirror 6 para snippets y salir con Tab."
+		},
+		"snippet": "Expandir snippets manuales",
+		"next-tabstop": "Siguiente parada de tabulación",
+		"prev-tabstop": "Anterior parada de tabulación",
+		"tabout": "Salir con Tab",
+		"reverse-tabout": "Revertir salida con Tab",
+		"matrix-newline": "Matriz: insertar nueva línea y \"\\\\\"",
+		"matrix-cell": "Matriz: insertar \" & \"",
+		"matrix-exit": "Matriz: pasar a la siguiente línea",
+		"auto-fraction": "Expandir fracción"
+	},
+	"experimental": {
+		"heading": {
+			"name": "Experimental features",
+			"desc": "Features that are still in testing and may need user feedback. Backwards compatibility may break for these features or these settings may be overridden."
+		},
+		"snippet-recursion": {
+			"name": "Snippet recursion",
+			"desc": "How many times to run snippets in a row. Set to 0 to disable recursion.<br><br><a href=\"https://github.com/artisticat1/obsidian-latex-suite/pull/536\">Related pr/feedback</a>",
+			"invalid-notice": "Snippet recursion must be a non-negative integer."
+		},
+		"excalidraw-enabled": {
+			"name": "Excalidraw enabled",
+			"desc": "Enable or disable Excalidraw integration."
+		},
+		"log-level": {
+			"name": "Log level",
+			"desc": "Set the level of debug information to log. Set to <code>$t(settings:experimental.log-level.options.vverbose)</code> for bug report purposes.",
+			"options": {
+				"off": "Off",
+				"info": "Info",
+				"verbose": "Verbose",
+				"vverbose": "VVerbose"
+			}
+		},
+		"conceal-log-level": {
+			"name": "Conceal log level",
+			"desc": "Temporary setting for issue <a href=\"https://github.com/artisticat1/obsidian-latex-suite/issues/549\">#549</a>.",
+			"options": {
+				"off": "Off",
+				"verbose": "Verbose"
+			}
+		},
+		"snippet-IME-version": {
+			"name": "Snippet IME version",
+			"desc": "Whether to expand automatic snippets when a key is pressed after IME composition is completed. This may solve some issues with IME/Chinese keyboards"
+		},
+		"math-elements-clickable": {
+			"name": "Math elements clickable",
+			"desc": "Whether to make math elements clickable such that clicking on them will move the cursor roughly to the corresponding source code. This is an approximation within Obsidian's and MathJax's limitations. Where there is a delay/jittering if an Obsidian rendered element instead of the math tooltip is clicked and the cursor may not always move or to the right position if MathJax doesn't give enough information. For example macros <code>\\implies</code> that expands to <code>\\;\\LongRightArrow\\;</code> dont work."
+		}
+	},
+	"tooltips": {
+		"reset-to-defaults": "Reset to default {{variable}}",
+		"trash": "Remove all {{variable}}",
+		"snippet-bug": "Report a bug on github",
+		"snippet-info": "Open the quick overview for snippets",
+		"snippet-help": "Ask a question on github discussions for help"
+	},
+	"editor-types": {
+		"snippets": "snippets",
+		"snippetVariables": "snippet variables",
+		"concealMaps": "conceal maps",
+		"textMacros": "text macros"
+	},
+	"confirmation": {
+		"delete-custom": "Are you sure? This will delete any custom {{variable}} you have written.",
+		"cancel": "Cancel"
+	},
+	"ime-warning": "{{name}}: this plugin supports your IME keyboard, but <code>$t(advanced-snippets.heading) > $t(advanced-snippets.suppress-IME.name)</code> is currently enabled. You may want to disable it in the plugin settings to fully enable automatic snippets. Be aware that this may cause unexpected snippet triggers while using your IME. To turn this warning off, enable <code>$t(advanced-snippets.suppress-IME-warning.name)</code>.",
+	"legacy-editor-warning": "{{name}}: This plugin does not support the legacy editor. Switch to Live Preview mode to use this plugin.",
+	"file-watch": {
+		"parse-variable-failed": "Failed to parse variable file {{file}}: {{error}}",
+		"parse-snippet-failed": "Failed to parse snippet file {{file}}: {{error}}"
+	},
+	"switch-to-english": "Switch to English",
+	"switch-to-default-language": "Switch to default language",
+	"translation": {
+		"name": "Translation",
+		"desc": "The translation relies on user's contributions. If you see any issues or want to add your own translation, please submit a pull request to <a href=\"https://github.com/artisticat1/obsidian-latex-suite/pulls\">GitHub</a>. See <a href=\"https://github.com/artisticat1/obsidian-latex-suite/blob/main/CONTRIBUTING.md\">CONTRIBUTING.md</a> for more information on how to contribute translations."
+	}
+}
