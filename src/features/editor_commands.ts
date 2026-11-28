@@ -2,12 +2,14 @@ import { Editor, type EditorSelection } from "obsidian";
 import { EditorView } from "@codemirror/view";
 import { replaceRange, setCursor, setSelection } from "../utils/editor_utils";
 import LatexSuitePlugin from "src/main";
-import { getContextPlugin } from "src/editor_context/context";
+import { getContextPlugin, MathMode } from "src/editor_context/context";
 import type { CodeMirrorEditor } from "src/types/vim_types";
 import type { LatexSuitePluginSettings } from "src/settings/settings";
 import { newlineMatrixShortcut} from "./matrix_shortcuts";
 import { insertNewlineAndIndent } from "@codemirror/commands";
 import { Transaction, Annotation, type TransactionSpec } from "@codemirror/state";
+import { getMathBoundsPlugin, type MathBounds } from "src/editor_context/mathbounds";
+import { clickCallback } from "src/editor_extensions/math_tooltip";
 
 
 function boxCurrentEquation(view: EditorView) {
@@ -260,10 +262,74 @@ export function getVimRunMatrixEnterCommand(settings: LatexSuitePluginSettings):
 	}
 }
 
+export function getElementVertically(view: EditorView, forward: boolean) {
+	const sel = view.state.selection.main
+	const newSel = view.moveVertically(sel, forward);
+	const mathPlugin = getMathBoundsPlugin(view)
+	const line = view.state.doc.lineAt(sel.head);
+	const nextLine = view.state.doc.line(line.number + (forward ? 1 : -1));
+	const bounds2 = mathPlugin.computeMathBoundsFromBound({from: nextLine.from, to: nextLine.to}, view);
+	const currentCoords = view.coordsAtPos(sel.head);
+	const coords =
+		newSel.head <= nextLine.to
+			? view.coordsAtPos(newSel.head)
+			: view.coordsAtPos((nextLine.from + nextLine.to) / 2);
+	if (!coords || !currentCoords) return null;
+
+	const element = view.dom.ownerDocument.elementFromPoint(
+		currentCoords.left,
+		(coords.top + coords.bottom) / 2,
+	);
+	if (!element) return null;
+	const mathjax = element.matchParent(".MathJax");
+	if (!mathjax) return null;
+	const bounds = mathPlugin.computeMathBoundsFromBound({from: newSel.from, to: newSel.to}, view);
+	const find = (b: MathBounds) => b.outer_start <= newSel.from && b.outer_end >= newSel.to;
+	const eqn = bounds.find(find) ?? bounds2[0];
+	if (!eqn) return null;
+
+	const state = view.state;
+	const offset = eqn.mode === MathMode.InlineMath && state.sliceDoc(eqn.inner_end, eqn.inner_end + 2) === "{}" && state.sliceDoc(eqn.inner_start - 2, eqn.inner_start) === "{}" ? 2 : 0;
+	const inner_end = eqn.inner_end + offset;
+	const inner_start = eqn.inner_start - offset;
+	const pos = clickCallback(
+		{
+			target: element,
+			event: {
+				clientX: currentCoords.left,
+				clientY: (coords.top + coords.bottom) / 2,
+				button: 0,
+			},
+		},
+		view.state.sliceDoc(inner_start, inner_end),
+		mathjax,
+	);
+	if (pos === null) return null;
+	const actualPos = pos + inner_start;
+	view.dispatch({
+		selection: {head: actualPos, anchor: actualPos},
+	})
+}
+
+export function getVimMathClickCommand(settings: LatexSuitePluginSettings): vimCommand[] {
+	return [{
+		id: "latex-suite-vim-math-click",
+		defineType: "defineAction",
+		type: "action",
+		action: (cm: CodeMirrorEditor) => {
+			const view = cm.cm6;
+			getElementVertically(view, true);
+		},
+		key: "z",
+		context: "normal",
+	}]
+}
+
 export function getVimEditorCommands(settings: LatexSuitePluginSettings): vimCommand[] {
 	return [
 		getVimSelectModeCommand(settings),
 		getVimVisualModeCommand(settings),
 		getVimRunMatrixEnterCommand(settings),
+		...getVimMathClickCommand(settings),
 	]
 }

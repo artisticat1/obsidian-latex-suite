@@ -492,8 +492,8 @@ export function handleMathTooltip(update: ViewUpdate) {
 	});
 }
 
-function clickCallback(
-	{ target, event }: { target: Element; event: MouseEvent },
+export function clickCallback(
+	{ target, event }: { target: Element; event: {clientX: number, clientY: number, button: number} },
 	eqnWithDecorations: string,
 	eqn: Element,
 ): number | null {

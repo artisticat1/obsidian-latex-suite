@@ -450,9 +450,9 @@ export function isMacroArgumentCount<T extends MacroArgs>(stack: Readonly<MacroS
 }
 
 export enum MathMode {
-	InlineMath,
-	BlockMath,
-	CodeMath
+	InlineMath = "InlineMath",
+	BlockMath = "BlockMath",
+	CodeMath = "CodeMath"
 }
 
 // Accounts for equations within text environments, e.g. $$\text{... $...$}$$
